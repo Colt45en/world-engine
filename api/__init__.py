@@ -8,6 +8,6 @@ Provides REST endpoints for:
 - Lexicon queries
 """
 
-from .service import create_app, WorldEngineAPI
+from .service import create_app, WordEngineAPI
 
-__all__ = ['create_app', 'WorldEngineAPI']
+__all__ = ['create_app', 'WordEngineAPI']

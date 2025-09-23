@@ -18,7 +18,7 @@ def launch_web_server():
     print("API documentation at: http://localhost:8000/docs")
 
     import uvicorn
-    from world_engine_unified.api.service import create_app
+    from api.service import create_app
 
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
@@ -26,20 +26,20 @@ def launch_web_server():
 
 def launch_demo():
     """Run the interactive demo."""
-    from world_engine_unified.demo import main
+    from demo import main
     main()
 
 
 def launch_cli():
     """Launch command-line interface for text processing."""
-    from world_engine_unified.api.service import WorldEngineAPI
-    from world_engine_unified.scales.seeds import DEFAULT_SEEDS, DEFAULT_CONSTRAINTS
+    from api.service import WordEngineAPI
+    from scales.seeds import DEFAULT_SEEDS, DEFAULT_CONSTRAINTS
 
     print("World Engine CLI")
     print("================")
 
     # Initialize API
-    api = WorldEngineAPI()
+    api = WordEngineAPI()
 
     # Load default seeds
     for word, value in DEFAULT_SEEDS.items():

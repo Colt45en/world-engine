@@ -13,8 +13,9 @@ import json
 import os
 from pathlib import Path
 
-from ..scales.seeds import SeedManager
-from ..context.parser import TextParser
+from scales.seeds import SeedManager
+from context.parser import TextParser
+from thought_pipeline import ThoughtPipeline
 
 
 class WordRequest(BaseModel):
@@ -36,6 +37,19 @@ class ScaleRequest(BaseModel):
     scale_type: Optional[str] = "semantic"
 
 
+class ThoughtRequest(BaseModel):
+    """Request model for thought pipeline processing."""
+    text: str
+    priority: Optional[int] = 1
+    metadata: Optional[Dict[str, Any]] = {}
+
+
+class MeaningAnalysisRequest(BaseModel):
+    """Request model for meaning analysis."""
+    text: str
+    analysis_types: Optional[List[str]] = None
+
+
 class WordEngineAPI:
     """Core API class for World Engine operations."""
 
@@ -43,6 +57,7 @@ class WordEngineAPI:
         self.config_dir = Path(config_dir) if config_dir else Path(__file__).parent.parent / "config"
         self.seed_manager = SeedManager()
         self.text_parser = TextParser()
+        self.thought_pipeline = ThoughtPipeline()
         self._load_configuration()
 
     def _load_configuration(self):
@@ -135,6 +150,47 @@ class WordEngineAPI:
 
         return result
 
+    async def process_thought(self, text: str, priority: int = 1, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+        """Process text through the 5-stage thought pipeline."""
+        return await self.thought_pipeline.process(text, priority, metadata)
+
+    async def analyze_meaning(self, text: str, analysis_types: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Perform comprehensive meaning analysis."""
+        from thought_pipeline.meaning_analyzer import MeaningAnalyzer, AnalysisType
+        
+        analyzer = MeaningAnalyzer()
+        
+        # Convert string analysis types to enum
+        if analysis_types:
+            enum_types = []
+            for analysis_type in analysis_types:
+                try:
+                    enum_types.append(AnalysisType(analysis_type))
+                except ValueError:
+                    pass  # Skip invalid types
+            if enum_types:
+                results = await analyzer.analyze_meaning(text, enum_types)
+            else:
+                results = await analyzer.analyze_meaning(text)
+        else:
+            results = await analyzer.analyze_meaning(text)
+        
+        # Convert results to serializable format
+        serializable_results = {}
+        for key, result in results.items():
+            serializable_results[key] = {
+                'confidence': result.confidence,
+                'findings': result.findings,
+                'processing_time': result.processing_time,
+                'metadata': result.metadata
+            }
+        
+        return {
+            'text': text,
+            'analysis_results': serializable_results,
+            'analysis_count': len(serializable_results)
+        }
+
 
 def create_app(config_dir: str = None) -> FastAPI:
     """Create and configure FastAPI application."""
@@ -155,7 +211,7 @@ def create_app(config_dir: str = None) -> FastAPI:
     )
 
     # Initialize API
-    api = WorldEngineAPI(config_dir)
+    api = WordEngineAPI(config_dir)
 
     # Mount static files (for web interfaces)
     web_dir = Path(__file__).parent.parent / "web"
@@ -170,8 +226,10 @@ def create_app(config_dir: str = None) -> FastAPI:
             "version": "0.1.0",
             "endpoints": [
                 "/score_word",
-                "/score_token",
+                "/score_token", 
                 "/scale_between",
+                "/process_thought",
+                "/analyze_meaning",
                 "/health",
                 "/web",
                 "/studio"
@@ -219,6 +277,24 @@ def create_app(config_dir: str = None) -> FastAPI:
         """Compare two words on a semantic scale."""
         try:
             result = api.scale_between(request.word1, request.word2, request.scale_type)
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/process_thought")
+    async def process_thought(request: ThoughtRequest):
+        """Process text through the 5-stage thought pipeline."""
+        try:
+            result = await api.process_thought(request.text, request.priority, request.metadata)
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/analyze_meaning")
+    async def analyze_meaning(request: MeaningAnalysisRequest):
+        """Perform comprehensive meaning analysis."""
+        try:
+            result = await api.analyze_meaning(request.text, request.analysis_types)
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Square–Triangle–Circle IDE (Self-Scaling)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b0f14;--panel:#0f1720;--ink:#e6f1ff;--muted:#9fb0c6;
+      --accent:#64ffda;--hot:#ff7a7a;--cool:#7ac8ff;--ok:#64ffb2;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;}
+    header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #1d2937;background:linear-gradient(180deg,#0f1720,#0b121a);}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.5s infinite;}
+    @keyframes pulse{0%{transform:scale(.95);opacity:.8}50%{transform:scale(1.15);opacity:1}100%{transform:scale(.95);opacity:.8}}
+    main{display:grid;grid-template-columns:400px 1fr;grid-template-rows:auto 1fr;min-height:calc(100vh - 48px);}
+    .left{border-right:1px solid #17212d;background:var(--panel);display:flex;flex-direction:column;min-height:0}
+    .section{padding:10px 12px;border-bottom:1px solid #17212d}
+    .section h3{margin:0 0 8px 0;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.25px;text-transform:uppercase}
+    textarea{width:100%;min-height:120px;resize:vertical;background:#0e151e;color:var(--ink);border:1px solid #162231;border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .btns{display:flex;gap:8px;margin-top:8px}
+    button{background:#121c27;border:1px solid #203042;color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer}
+    button:hover{border-color:#2f4b64}
+    .log{flex:1;overflow:auto;padding:8px 12px;font-family:ui-monospace,monospace}
+    .log .line{white-space:pre-wrap;color:var(--muted);margin:2px 0}
+    canvas{display:block;width:100%;height:100%;background:#0a1219}
+    .viz{position:relative}
+    .legend{position:absolute;top:8px;right:8px;background:#0f1720;border:1px solid #1c2a3a;border-radius:10px;padding:8px 10px;color:var(--muted);font-size:12px}
+    .legend div{margin:3px 0}
+    footer{grid-column:1 / -1;border-top:1px solid #17212d;padding:6px 12px;color:var(--muted);font-size:12px;background:#0b1219}
+    code.key{background:#0e151e;border:1px solid #162231;color:#a8b2d1;border-radius:6px;padding:1px 6px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="dot"></div>Square–Triangle–Circle IDE</div>
+    <div>hard math • no external APIs • self-scaling</div>
+  </header>
+  <main>
+    <div class="left">
+      <div class="section">
+        <h3>Input / Code</h3>
+        <textarea id="code" spellcheck="false">// Try me:
+function heatWater(temp){
+  if(temp < 30){ return "cold"; }
+  else if(temp < 60){ return "warm"; }
+  else { return "hot"; }
+}
+for(let i=0;i<3;i++){ console.log(heatWater(i*40)); }</textarea>
+        <div class="btns">
+          <button id="ingest">Ingest</button>
+          <button id="mine">Mine + Scale</button>
+          <button id="clear">Clear</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Scales</h3>
+        <div class="btns">
+          <button id="seedPol">Seed Polarity</button>
+          <button id="seedTemp">Seed Temperature</button>
+          <button id="seedInt">Seed Intensity</button>
+        </div>
+      </div>
+      <div class="section" style="flex:1;min-height:0">
+        <h3>Log</h3>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+    <div class="viz">
+      <canvas id="canvas"></canvas>
+      <div class="legend">
+        <div><b>Visual mapping</b></div>
+        <div>Radius = intensity ↑</div>
+        <div>Hue = polarity (cool→hot)</div>
+        <div>Spin = direction</div>
+      </div>
+    </div>
+    <footer>
+      Square foundation (sharded storage) • Triangle motion (pattern miner) • Circle rhythm (live viz).
+      Keyboard: <code class="key">I</code> ingest, <code class="key">M</code> mine+scale.
+    </footer>
+  </main>
+
+  <script type="module">
+  import { createUpflowAutomation, defaultTokenize, defaultAbbrs } from "./upflow_automation_sharded_idb.js";
+
+  // ──────────────── Square: persistence engine ────────────────
+  const up = createUpflowAutomation({
+    morph: morpho,
+    deriveAbbrs: defaultAbbrs,
+    tokenize: defaultTokenize
+  });
+
+  // ──────────────── Sidecar for scale vectors ────────────────
+  const SCALE_KEY = "lexi.scale.vectors";
+  const scaleStore = new Map(Object.entries(JSON.parse(localStorage.getItem(SCALE_KEY) || "{}")));
+  function saveScaleStore(){ localStorage.setItem(SCALE_KEY, JSON.stringify(Object.fromEntries(scaleStore))); }
+
+  // ──────────────── Triangle: pattern miner ────────────────
+  const reMore = /\bmore\s+([a-z\-]+)\s+than\s+([a-z\-]+)\b/ig;
+  const reLess = /\bless\s+([a-z\-]+)\s+than\s+([a-z\-]+)\b/ig;
+  const reVery = /\b(very|extremely|slightly|barely)\s+([a-z\-]+)\b/ig;
+
+  function analyzePatterns(code){
+    const kinds = [];
+    if (/for\s*\(|while\s*\(/.test(code)) kinds.push("loop");
+    if (/if\s*\(/.test(code)) kinds.push("condition");
+    if (/function\s+/.test(code)) kinds.push("function");
+    return kinds;
+  }
+
+  function mineConstraints(text){
+    const out = { intensity: [], temperature: [], polarity: [] };
+    for (const m of text.matchAll(reMore)){ const a=m[1].toLowerCase(), b=m[2].toLowerCase(); out.intensity.push([b,a,0.6]); }
+    for (const m of text.matchAll(reLess)){ const a=m[1].toLowerCase(), b=m[2].toLowerCase(); out.intensity.push([a,b,0.6]); }
+    for (const m of text.matchAll(reVery)){
+      const adv=m[1].toLowerCase(), adj=m[2].toLowerCase();
+      const mult = {"very":1.4,"extremely":1.8,"slightly":0.7,"barely":0.5}[adv] || 1.0;
+      if (mult>1) out.intensity.push([`less-${adj}`, adj, 0.4]);
+      else if (mult<1) out.intensity.push([adj, `more-${adj}`, 0.4]);
+    }
+    return out;
+  }
+
+  // ──────────────── Hard-math scale engine (pure JS) ────────────────
+  function fitTypeScale({name, anchors, yMin=-1, yMax=1, pairs=[], syn=[], ant=[], steps=1200, lr=0.06, margin=0.2, seedWeight=5.0, lamGraph=1.0, lamL2=1e-4}){
+    const vocabSet = new Set(anchors);
+    for (const [a,b] of pairs){ vocabSet.add(a); vocabSet.add(b); }
+    for (const [u,v] of syn){ vocabSet.add(u); vocabSet.add(v); }
+    for (const [u,v] of ant){ vocabSet.add(u); vocabSet.add(v); }
+    const V = [...vocabSet];
+    const idx = Object.fromEntries(V.map((w,i)=>[w,i]));
+
+    const x = new Float32Array(V.length);
+    if (anchors.length>1){
+      anchors.forEach((w,i)=>{ x[idx[w]] = yMin + i*(yMax-yMin)/(anchors.length-1); });
+    }
+
+    const A = pairs.map(p=>idx[p[0]]).filter(i=>i!==undefined);
+    const B = pairs.map(p=>idx[p[1]]).filter(i=>i!==undefined);
+    const W = pairs.map(p=>Math.max(0.1, Math.min(2.0, +p[2] || 1.0)));
+
+    const seedPairs = new Set(anchors.slice(0,-1).map((w,i)=>`${anchors[i]}→${anchors[i+1]}`));
+    const isSeed = pairs.map(([a,b])=> seedPairs.has(`${a}→${b}`) ? 1.0 : 0.0);
+
+    const Su = syn.map(([u])=>idx[u]).filter(i=>i!==undefined);
+    const Sv = syn.map(([,v])=>idx[v]).filter(i=>i!==undefined);
+    const Sw = syn.map(([, ,w])=> +w || 1.0);
+
+    const Tu = ant.map(([u])=>idx[u]).filter(i=>i!==undefined);
+    const Tv = ant.map(([,v])=>idx[v]).filter(i=>i!==undefined);
+    const Tw = ant.map(([, ,w])=> +w || 1.0);
+
+    function stepOnce(){
+      const g = new Float32Array(x.length);
+
+      // ranking hinge
+      for (let i=0;i<A.length;i++){
+        const a=A[i], b=B[i], w=W[i]*(1 + isSeed[i]*(seedWeight-1));
+        const diff = x[b]-x[a];
+        const viol = margin - diff;
+        if (viol>0){ g[a]+= w; g[b]-= w; }
+      }
+      // syn smoothness
+      for (let i=0;i<Su.length;i++){
+        const u=Su[i], v=Sv[i], w=Sw[i];
+        const d = x[u]-x[v]; const gg = 2*lamGraph*w*d;
+        g[u]+=gg; g[v]-=gg;
+      }
+      // ant anti-smoothness
+      for (let i=0;i<Tu.length;i++){
+        const u=Tu[i], v=Tv[i], w=Tw[i];
+        const d = x[u]+x[v]; const gg = 2*lamGraph*w*d;
+        g[u]+=gg; g[v]+=gg;
+      }
+      // L2
+      for (let i=0;i<g.length;i++){ g[i]+= 2*lamL2*x[i]; }
+
+      // gradient step w/ clip
+      let norm=0; for (let i=0;i<g.length;i++) norm+=g[i]*g[i]; norm=Math.sqrt(norm);
+      const clip = 5.0;
+      const scale = norm>clip ? (lr*clip/norm) : lr;
+      for (let i=0;i<x.length;i++) x[i]-= scale*g[i];
+    }
+
+    for (let s=0;s<steps;s++){ stepOnce(); if ((s%97)===0){ // tiny jitter
+      for (let i=0;i<x.length;i++){ x[i]+= (Math.random()-0.5)*1e-4; }
+    }}
+
+    // Isotonic (approx): place nodes by seed-topology index and fit monotone by median bins
+    const topo = topoOrderFromPairs(pairs);
+    if (topo.length>=2){
+      const pos = Object.fromEntries(topo.map((w,i)=>[w,i]));
+      const keep = V.filter(w=>pos[w]!==undefined);
+      const xs = keep.map(w=>pos[w]);
+      const ys = keep.map(w=>x[idx[w]]);
+      const order = xs.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]).map(p=>p[1]);
+      // simple pool-adjacent-violators via binning
+      const cal = pav1d(xs.map((_,i)=>ys[order[i]]), yMin, yMax);
+      for (let k=0;k<order.length;k++){
+        const w = keep[order[k]];
+        x[idx[w]] = cal[k];
+      }
+    }
+    return Object.fromEntries(V.map((w,i)=>[w, x[i]]));
+  }
+
+  function topoOrderFromPairs(pairs){
+    const nodes=new Set(); const indeg=new Map(); const adj=new Map();
+    for (const [a,b] of pairs){ nodes.add(a); nodes.add(b); }
+    nodes.forEach(n=>{indeg.set(n,0); adj.set(n,[])});
+    for (const [a,b] of pairs){ adj.get(a).push(b); indeg.set(b, (indeg.get(b)||0)+1); }
+    const q=[]; for (const n of nodes){ if((indeg.get(n)||0)===0) q.push(n); }
+    const out=[];
+    while(q.length){ const u=q.shift(); out.push(u); for (const v of adj.get(u)){ indeg.set(v,indeg.get(v)-1); if(indeg.get(v)===0) q.push(v); } }
+    return out; // may be partial; good enough for calibration axis
+  }
+
+  function pav1d(y, yMin, yMax){
+    // pool-adjacent-violators for monotone increasing fit over y (already x-sorted)
+    const n=y.length; const g=y.slice(); const w=new Array(n).fill(1);
+    for (let i=0;i<n-1;i++){
+      if (g[i]>g[i+1]){
+        let j=i;
+        while(j>=0 && g[j]>g[j+1]){
+          const totw = w[j]+w[j+1];
+          const avg = (g[j]*w[j] + g[j+1]*w[j+1]) / totw;
+          g.splice(j,2,avg); w.splice(j,2,totw); i=Math.max(-1,j-1); j--;
+        }
+      }
+    }
+    // expand back to length n by repeating segment values
+    const out=[]; for (let k=0;k<g.length;k++){ for (let t=0;t<w[k];t++) out.push(g[k]); }
+    // clamp and resize (just in case)
+    return out.slice(0,n).map(v=> Math.max(yMin, Math.min(yMax, v)));
+  }
+
+  // ──────────────── Scales/Seeds/Constraints ────────────────
+  const SEEDS = {
+    polarity:   ["terrible","bad","meh","okay","good","great","fantastic"],
+    temperature:["freezing","cold","cool","lukewarm","warm","hot","boiling"],
+    intensity:  ["faint","slight","moderate","strong","intense","extreme"],
+  };
+  const PAIRS_SEED = {
+    polarity:   [["bad","okay",1],["okay","good",1],["good","great",1]],
+    temperature:[["cool","warm",1],["warm","hot",1],["hot","boiling",1]],
+    intensity:  [["slight","moderate",1],["moderate","strong",1],["strong","extreme",1]],
+  };
+  const SYN = [["hot","boiling",1],["cold","freezing",1],["cool","chilly",0.8],["good","great",0.8],["terrible","awful",0.9]];
+  const ANT = [["hot","cold",1],["boiling","freezing",1],["good","bad",1],["great","terrible",1]];
+
+  // ──────────────── Circle: visualization ────────────────
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const logEl = document.getElementById("log");
+  const codeEl = document.getElementById("code");
+  const nodes = new Map(); // word -> node
+  let width=0, height=0;
+
+  function resize(){
+    width = canvas.width = canvas.clientWidth;
+    height = canvas.height = canvas.clientHeight;
+  }
+  window.addEventListener("resize", resize); resize();
+
+  class Node{
+    constructor(word){
+      this.word=word;
+      this.angle = Math.random()*Math.PI*2;
+      this.radius = 120 + Math.random()*160;
+      this.size=8;
+      this.spin=0.4; // future: use for direction
+    }
+    update(dt){
+      this.angle += this.spin*dt;
+    }
+    draw(){
+      const vec = JSON.parse(scaleStore.get(this.word)||"{}");
+      const pol = +(vec.polarity ?? 0);      // [-1,1]
+      const inten = +(vec.intensity ?? 0);   // [-1,1]
+      const r = 140 + 140 * ((inten+1)/2);   // map to [140,280]
+      const x = width/2 + r*Math.cos(this.angle);
+      const y = height/2 + r*Math.sin(this.angle);
+      // hue: cool(-1)->200°, hot(+1)->0°
+      const hue = 200 - 200 * ((pol+1)/2);
+      ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+      ctx.beginPath(); ctx.arc(x,y,this.size,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#cfe9ff"; ctx.fillText(this.word, x+10, y+4);
+    }
+  }
+
+  function ensureNode(word){
+    if (!nodes.has(word)) nodes.set(word, new Node(word));
+  }
+
+  function log(msg){
+    const d=document.createElement("div"); d.className="line"; d.textContent=msg; logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ──────────────── Ingest → Mine → Scale → Persist ────────────────
+  function ingest(text){
+    const toks = defaultTokenize(text);
+    for (const t of toks){
+      up.ingestOutcome({ payload:{ word:t, english:t }});
+      ensureNode(t);
+    }
+    const kinds = analyzePatterns(text);
+    log("Patterns: "+kinds.join(", "));
+  }
+
+  function mineAndScale(){
+    const txt = codeEl.value;
+    const mined = mineConstraints(txt);
+
+    // For each scale, combine seeds + mined pairs
+    const scalesOut = {};
+    for (const scaleName of Object.keys(SEEDS)){
+      const anchors = SEEDS[scaleName];
+      const pairs = [...(PAIRS_SEED[scaleName]||[]) , ...(mined[scaleName]||[])];
+      const scores = fitTypeScale({
+        name:scaleName, anchors, pairs, syn:SYN, ant:ANT,
+        steps: 1400, lr:0.06, margin:0.2, seedWeight:5.0
+      });
+      scalesOut[scaleName] = scores;
+    }
+
+    // Merge per-word vectors and persist in sidecar
+    const allWords = new Set();
+    Object.values(scalesOut).forEach(map=>{ Object.keys(map).forEach(w=>allWords.add(w)); });
+    for (const w of allWords){
+      const vec = Object.assign({}, JSON.parse(scaleStore.get(w)||"{}"));
+      for (const s of Object.keys(scalesOut)){
+        const val = scalesOut[s][w];
+        if (val!=null) vec[s]=val;
+      }
+      scaleStore.set(w, JSON.stringify(vec));
+    }
+    saveScaleStore();
+    log(`Scaled ${allWords.size} words.`);
+  }
+
+  // ──────────────── Animation ────────────────
+  let last=0;
+  function frame(ts){
+    const dt=(ts-last)/1000; last=ts;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // orbit ring
+    ctx.strokeStyle="#14314a"; ctx.beginPath(); ctx.arc(width/2,height/2,140,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle="#15435f"; ctx.beginPath(); ctx.arc(width/2,height/2,280,0,Math.PI*2); ctx.stroke();
+    // nodes
+    ctx.font="12px ui-monospace, monospace";
+    for (const n of nodes.values()){ n.update(dt); n.draw(); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ──────────────── UI wiring ────────────────
+  document.getElementById("ingest").onclick = ()=> ingest(codeEl.value);
+  document.getElementById("mine").onclick = ()=> { mineAndScale(); };
+  document.getElementById("clear").onclick = ()=> { logEl.innerHTML=""; };
+
+  document.getElementById("seedPol").onclick = ()=> { seedBump("polarity"); };
+  document.getElementById("seedTemp").onclick = ()=> { seedBump("temperature"); };
+  document.getElementById("seedInt").onclick = ()=> { seedBump("intensity"); };
+
+  function seedBump(scale){
+    // simple demo: nudge anchor tokens into nodes
+    for (const w of SEEDS[scale]) ensureNode(w);
+    log(`Seed anchors surfaced for ${scale}.`);
+  }
+
+  // keyboard: I=ingest, M=mine
+  window.addEventListener("keydown",(e)=>{
+    if (e.key==='i' || e.key==='I') ingest(codeEl.value);
+    if (e.key==='m' || e.key==='M') mineAndScale();
+  });
+
+  // Morph stub (root-first indexing for shards)
+  function morpho(word){
+    const w=String(word||'').toLowerCase();
+    // very small, deterministic
+    const m = w.match(/^([a-z]{0,2})(.*?)(ing|ed|ly|s)?$/) || [];
+    return { prefix:m[1]||"", root:(m[2]||w)||w, suffix:m[3]||"" };
+  }
+
+  // boot: ingest the seed text so you see nodes immediately
+  ingest(document.getElementById("code").value);
+  </script>
+</body>
+</html>

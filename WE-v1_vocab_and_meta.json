@@ -1,0 +1,6 @@
+{
+  "vocab": {"the":101,"quick":502,"brown":733,"fox":204,"jumps":880,"over":311,"lazy":620,"dog":190},
+  "pos_vocab": {"DET":0,"ADJ":1,"NOUN":2,"VERB":3,"ADP":4},
+  "feat_vocab": ["DET","SPEED","COLOR","ANIMAL","CANID","ACTION","MOTION","PREP","PATH","TRAIT_INDOLENCE"],
+  "rel_vocab": {"nsubj":0,"amod":1,"obl:over":2,"det":3,"case":4}
+}

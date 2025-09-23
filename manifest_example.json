@@ -1,0 +1,21 @@
+{
+  "layer": "L1-IDE-CANOPY",
+  "items": [
+    {
+      "id": "L1.loop.castMeteor",
+      "bHash": "\u2026",
+      "cHash": "\u2026",
+      "sHash": "\u2026",
+      "refs": []
+    },
+    {
+      "id": "L1.circ.surfaceNets",
+      "bHash": "\u2026",
+      "cHash": "\u2026",
+      "sHash": "\u2026",
+      "refs": [
+        "L1.circ.buildVolume"
+      ]
+    }
+  ]
+}

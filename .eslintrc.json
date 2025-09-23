@@ -1,0 +1,36 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "globals": {
+    "sendBus": "readonly",
+    "onBus": "readonly",
+    "Utils": "readonly",
+    "Store": "readonly",
+    "setupEngineTransport": "readonly",
+    "EngineController": "readonly",
+    "RecorderController": "readonly",
+    "ChatController": "readonly",
+    "StudioBridge": "readonly"
+  },
+  "rules": {
+    "indent": ["error", 2],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "single"],
+    "semi": ["error", "always"],
+    "no-unused-vars": ["warn"],
+    "no-console": ["warn"],
+    "no-debugger": ["error"],
+    "prefer-const": ["error"],
+    "no-var": ["error"]
+  }
+}

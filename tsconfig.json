@@ -1,51 +1,55 @@
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "allowJs": true,
-    "checkJs": true,
-    "outDir": "./dist",
-    "rootDir": "./web",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "removeComments": false,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
-  },
-  "include": [
-    "web/**/*.js",
-    "web/**/*.ts",
-    "web/**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "**/*.min.js",
-    "**/*.test.js",
-    "**/*.spec.js"
-  ],
-  "ts-node": {
-    "esm": true
-  },
-  "compileOnSave": true
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "lib": [
+            "ES2020",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "allowJs": true,
+        "checkJs": true,
+        "outDir": "./dist",
+        "rootDir": "./web",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "removeComments": false,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "incremental": true,
+        "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    },
+    "include": [
+        "web/**/*.js",
+        "web/**/*.ts",
+        "web/**/*.d.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "build",
+        "**/*.min.js",
+        "**/*.test.js",
+        "**/*.spec.js"
+    ],
+    "ts-node": {
+        "esm": true
+    },
+    "compileOnSave": true
 }

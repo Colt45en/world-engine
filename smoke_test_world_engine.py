@@ -33,7 +33,7 @@ def build_batched_edges(batch_edges, lengths):
 
 edge_index, edge_type = build_batched_edges([e0,e1,e2], lengths.tolist())
 
-from world_engine_tg import WorldEngineTG          # RGCN flavor
+from physics.world_engine_tg import WorldEngineTG          # RGCN flavor
 from world_engine_tg_gat import WorldEngineTG_GAT  # GATv2 flavor
 
 def run_model(M):

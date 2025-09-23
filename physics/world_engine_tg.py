@@ -9,7 +9,7 @@ try:
 except Exception:
     HAS_CRF = False
 
-from graph_encoder_tg import RelGraphEncoderTG
+from .graph_encoder_tg import RelGraphEncoderTG
 
 def sinusoidal_positions(n_pos: int, d: int, device=None):
     pe = torch.zeros(n_pos, d, device=device)

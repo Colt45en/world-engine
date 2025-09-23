@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine Studio - Integrated Workspace</title>
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --fg: #e6f0ff;
+            --panel: #121824;
+            --border: #2a3548;
+            --accent: #7cdcff;
+            --success: #18c08f;
+            --warning: #e5c558;
+            --error: #ff4d4f;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            overflow: hidden;
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "chat engine recorder"
+                "status status status";
+            grid-template-rows: auto 1fr auto;
+            grid-template-columns: 300px 1fr 300px;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .studio-header {
+            grid-area: header;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .studio-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .studio-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .studio-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--fg);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .studio-btn:hover {
+            background: var(--border);
+        }
+
+        .studio-chat {
+            grid-area: chat;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .studio-engine {
+            grid-area: engine;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            position: relative;
+        }
+
+        .studio-recorder {
+            grid-area: recorder;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .studio-status {
+            grid-area: status;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .engine-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 4px;
+            background: var(--bg);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .status-dot.connected { background: var(--success); }
+        .status-dot.error { background: var(--error); }
+        .status-dot.warning { background: var(--warning); }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .studio-layout {
+                grid-template-areas:
+                    "header"
+                    "chat"
+                    "engine"
+                    "recorder"
+                    "status";
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 200px 1fr 200px auto;
+            }
+        }
+
+        /* Chat UI integration */
+        #chat-ui {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Recorder UI integration */
+        #recorder-ui {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="studio-layout">
+        <!-- Header -->
+        <div class="studio-header">
+            <div class="studio-title">🌍 World Engine Studio</div>
+            <div class="studio-controls">
+                <button class="studio-btn" onclick="Studio.showHelp()">Help</button>
+                <button class="studio-btn" onclick="Studio.exportData()">Export</button>
+                <button class="studio-btn" onclick="Studio.reset()">Reset</button>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="studio-chat">
+            <div class="section-title">💬 AI Chat Controller</div>
+            <div id="chat-ui" class="loading">Initializing chat interface</div>
+        </div>
+
+        <!-- Engine Panel -->
+        <div class="studio-engine">
+            <iframe id="engine-frame" class="engine-frame" src="worldengine.html"></iframe>
+        </div>
+
+        <!-- Recorder Panel -->
+        <div class="studio-recorder">
+            <div class="section-title">🎙️ Recording Studio</div>
+            <div id="recorder-ui" class="loading">Initializing recorder</div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="studio-status">
+            <div class="status-item">
+                <div class="status-dot" id="engine-status"></div>
+                <span>Engine: <span id="engine-text">Loading...</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="recorder-status"></div>
+                <span>Recorder: <span id="recorder-text">Ready</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="bridge-status"></div>
+                <span>Bridge: <span id="bridge-text">Connecting...</span></span>
+            </div>
+            <div class="status-item">
+                <span id="session-info">Session: New</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load all the bridge components -->
+    <script src="studio-bridge.js"></script>
+    <script src="engine-controller.js"></script>
+    <script src="recorder-controller.js"></script>
+    <script src="chat-controller.js"></script>
+
+    <script>
+        // Studio Manager - Coordinates all components
+        class StudioManager {
+            constructor() {
+                this.engine = null;
+                this.recorder = null;
+                this.chat = null;
+                this.sessionId = Utils.generateId();
+
+                this.init();
+            }
+
+            async init() {
+                try {
+                    Utils.log('Starting World Engine Studio...');
+                    this.updateStatus('bridge', 'connected', 'Connected');
+
+                    // Wait for engine iframe to load
+                    const engineFrame = document.getElementById('engine-frame');
+
+                    engineFrame.addEventListener('load', () => {
+                        setTimeout(() => {
+                            this.initializeComponents();
+                        }, 1000); // Give engine time to fully initialize
+                    });
+
+                    // Initialize bridge listeners
+                    this.setupBridgeListeners();
+
+                } catch (error) {
+                    Utils.log(`Studio initialization error: ${error.message}`, 'error');
+                    this.updateStatus('bridge', 'error', 'Failed');
+                }
+            }
+
+            initializeComponents() {
+                try {
+                    // Initialize Engine Controller
+                    const engineFrame = document.getElementById('engine-frame');
+                    this.engine = new EngineController(engineFrame);
+                    this.updateStatus('engine', 'connected', 'Ready');
+
+                    // Initialize Recorder Controller
+                    this.recorder = new RecorderController({
+                        transcription: false, // Enable if you have transcription service
+                        autoMarkRuns: true
+                    });
+                    this.updateStatus('recorder', 'connected', 'Ready');
+
+                    // Initialize Chat Controller
+                    this.chat = new ChatController({
+                        autoLinkClips: true,
+                        transcriptCommands: true
+                    });
+
+                    Utils.log('All components initialized successfully');
+                    this.updateSessionInfo();
+
+                    // Send ready signal
+                    sendBus({ type: 'studio.ready', sessionId: this.sessionId });
+
+                } catch (error) {
+                    Utils.log(`Component initialization error: ${error.message}`, 'error');
+                    this.updateStatus('engine', 'error', 'Failed');
+                }
+            }
+
+            setupBridgeListeners() {
+                onBus((msg) => {
+                    // Log all messages in debug mode
+                    if (window.location.search.includes('debug=true')) {
+                        Utils.log(`Bridge: ${JSON.stringify(msg)}`, 'debug');
+                    }
+
+                    // Handle studio-level messages
+                    switch (msg.type) {
+                        case 'eng.ready':
+                            this.updateStatus('engine', 'connected', 'Ready');
+                            break;
+                        case 'eng.error':
+                            this.updateStatus('engine', 'error', 'Error');
+                            break;
+                        case 'rec.ready':
+                            this.updateStatus('recorder', 'warning', 'Recording');
+                            break;
+                        case 'rec.clip':
+                            this.updateStatus('recorder', 'connected', 'Ready');
+                            break;
+                        case 'rec.error':
+                            this.updateStatus('recorder', 'error', 'Error');
+                            break;
+                    }
+                });
+            }
+
+            updateStatus(component, state, text) {
+                const dot = document.getElementById(`${component}-status`);
+                const textEl = document.getElementById(`${component}-text`);
+
+                if (dot) {
+                    dot.className = `status-dot ${state}`;
+                }
+                if (textEl) {
+                    textEl.textContent = text;
+                }
+            }
+
+            updateSessionInfo() {
+                const info = document.getElementById('session-info');
+                if (info) {
+                    const time = new Date().toLocaleTimeString();
+                    info.textContent = `Session: ${this.sessionId.slice(-6)} (${time})`;
+                }
+            }
+
+            showHelp() {
+                if (this.chat) {
+                    this.chat.announce(`
+🌍 World Engine Studio Help:
+
+Components:
+• Chat Controller - Send commands and manage workflow
+• World Engine - Lexicon analysis and processing
+• Recorder - Audio/video capture with timeline markers
+
+Quick Start:
+1. Type text or commands in the chat panel
+2. Use /rec start to begin recording
+3. Use /run <text> to analyze content
+4. Use /rec stop to save recording
+5. Recordings auto-link to analysis runs
+
+Commands: Type /help in chat for full list
+                    `.trim(), 'system');
+                }
+            }
+
+            async exportData() {
+                try {
+                    const data = {
+                        sessionId: this.sessionId,
+                        timestamp: Date.now(),
+                        commandHistory: this.chat?.getHistory() || [],
+                        lastRun: await Store.load('wordEngine.lastRun'),
+                        // Could export clips and runs here
+                    };
+
+                    const blob = new Blob([JSON.stringify(data, null, 2)], {
+                        type: 'application/json'
+                    });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `world-engine-session-${this.sessionId}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    if (this.chat) {
+                        this.chat.announce('Session data exported', 'system');
+                    }
+
+                } catch (error) {
+                    Utils.log(`Export error: ${error.message}`, 'error');
+                }
+            }
+
+            reset() {
+                if (confirm('Reset studio session? This will clear history and stop any recordings.')) {
+                    // Stop any active recording
+                    if (this.recorder) {
+                        sendBus({ type: 'rec.stop' });
+                    }
+
+                    // Clear chat
+                    if (this.chat) {
+                        this.chat.clearMessages();
+                        this.chat.announce('Studio session reset', 'system');
+                    }
+
+                    // Reset session
+                    this.sessionId = Utils.generateId();
+                    this.updateSessionInfo();
+
+                    Utils.log('Studio session reset');
+                }
+            }
+
+            getStatus() {
+                return {
+                    sessionId: this.sessionId,
+                    engine: this.engine?.getStatus(),
+                    recorder: this.recorder?.getStatus(),
+                    chat: this.chat?.getStats()
+                };
+            }
+        }
+
+        // Initialize Studio when page loads
+        let Studio;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            Studio = new StudioManager();
+
+            // Make Studio globally available for console debugging
+            window.Studio = Studio;
+
+            Utils.log('World Engine Studio loaded');
+        });
+
+        // Global error handling
+        window.addEventListener('error', (event) => {
+            Utils.log(`Global error: ${event.error.message}`, 'error');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            Utils.log(`Unhandled promise rejection: ${event.reason}`, 'error');
+        });
+    </script>
+</body>
+</html>

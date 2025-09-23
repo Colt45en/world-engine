@@ -12,9 +12,6 @@ export async function initWordEngine({
     fetch(aliasUrl).then(r=>r.json()),
     fetch((await fetch(schemaUrl).then(r=>r.json())).ui?.bookmarks_url || 'bookmarks.json').then(r=>r.json()).catch(()=>({}))
   ]);
-    fetch(schemaUrl).then(r=>r.json()),
-    fetch(aliasUrl).then(r=>r.json())
-  ]);
 
   // Simple alias applier
   const rules = (alias.apply_rules||[]).map(r=>({

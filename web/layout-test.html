@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0a;
+            --panel: #1a1a1a;
+            --border: #333;
+            --text: #ffffff;
+            --accent: #4a9eff;
+            --secondary: #666;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header header"
+                "chat engine visual recorder"
+                "status status status status";
+            grid-template-rows: auto 1fr auto;
+            grid-template-columns: 280px 1fr 1fr 280px;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .studio-header {
+            grid-area: header;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .studio-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .studio-chat {
+            grid-area: chat;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .studio-engine {
+            grid-area: engine;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            position: relative;
+        }
+
+        .studio-visual {
+            grid-area: visual;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .studio-recorder {
+            grid-area: recorder;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .studio-status {
+            grid-area: status;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--accent);
+        }
+
+        .test-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(74, 158, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 8px;
+            color: var(--secondary);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="studio-layout">
+        <!-- Header -->
+        <div class="studio-header">
+            <div class="studio-title">🌍 Layout Test</div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="studio-chat">
+            <div class="section-title">💬 Chat Panel</div>
+            <div class="test-content">Chat content area</div>
+        </div>
+
+        <!-- Engine Panel -->
+        <div class="studio-engine">
+            <div class="section-title">⚙️ Engine Panel</div>
+            <div class="test-content">Engine content area</div>
+        </div>
+
+        <!-- Visual Panel -->
+        <div class="studio-visual">
+            <div class="section-title">🎯 Visual Panel</div>
+            <div class="test-content">Visual content area</div>
+        </div>
+
+        <!-- Recorder Panel -->
+        <div class="studio-recorder">
+            <div class="section-title">🎙️ Recorder Panel</div>
+            <div class="test-content">Recorder content area</div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="studio-status">
+            <span>Layout Test - All panels visible</span>
+        </div>
+    </div>
+</body>
+</html>

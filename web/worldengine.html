@@ -48,6 +48,9 @@ Anchors (ordered, weak → strong). Each sowing appends below.
   .gutter{position:absolute;top:42px;bottom:0;left:calc(var(--left) + 4px);width:6px;cursor:col-resize}
   .gutter::after{content:"";position:absolute;top:50%;left:1px;right:1px;height:38px;border-radius:6px;border:1px solid var(--line);background:#102036;opacity:.6;transform:translateY(-50%)}
   .info{position:relative}
+
+  /* Hide Johnson JSON section to prevent overflow */
+  #johnson-json-section { display: none !important; }
   .info:hover .tip{opacity:1;transform:translateY(-2px)}
   .tip{position:absolute;right:0;top:100%;margin-top:6px;max-width:320px;background:#0a1222;border:1px solid var(--line);padding:8px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:all .12s ease;pointer-events:none;font-size:var(--tiny)}
   .dock{display:flex;gap:6px;flex-wrap:wrap}
@@ -108,7 +111,7 @@ Anchors (ordered, weak → strong). Each sowing appends below.
         </details>
       </div>
 
-      <div class="sec">
+      <div class="sec" id="johnson-json-section">
         <div class="title">Johnson (JSON)</div>
         <div style="display:grid;grid-template-rows:minmax(0,1fr) auto;gap:6px;min-height:160px">
           <pre id="out" class="out" aria-live="polite">(ready)</pre>

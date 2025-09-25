@@ -1,0 +1,178 @@
+<!-- Enhanced Tier-4 Integration Panel -->
+<div id="integration-panel" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: rgba(20, 20, 40, 0.95);
+  border: 1px solid #4a4a8a;
+  border-radius: 12px;
+  padding: 15px;
+  color: #e8e8e8;
+  font-family: 'Consolas', monospace;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+">
+  <!-- HUD Display -->
+  <div id="hud-section">
+    <h3 style="color: #64ffda; margin: 0 0 10px 0; font-size: 14px;">🎛️ Developer HUD</h3>
+    <div id="hud-display" style="
+      background: rgba(0, 0, 0, 0.6);
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+    ">
+      <div>Last Op: <span id="hud-op">-</span> • Δx: <span id="hud-dx">0.000</span></div>
+      <div>Time: <span id="hud-dt">0</span>ms • Mu: <span id="hud-mu">0.000</span></div>
+      <div>Level: <span id="hud-level">0</span> • κ: <span id="hud-kappa">0.600</span></div>
+      <div id="hud-error" style="color: #ff6b6b; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- Macros -->
+  <div id="macro-section" style="margin-top: 15px;">
+    <h3 style="color: #ff6b9d; margin: 0 0 10px 0; font-size: 14px;">🎯 Three Ides Macros</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+      <button onclick="worldEngine.runMacro('IDE_A')" style="
+        background: linear-gradient(45deg, #11998e, #38ef7d);
+        border: none;
+        color: white;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+      ">IDE_A</button>
+
+      <button onclick="worldEngine.runMacro('IDE_B')" style="
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+      ">IDE_B</button>
+
+      <button onclick="worldEngine.runMacro('IDE_C')" style="
+        background: linear-gradient(45deg, #f093fb, #f5576c);
+        border: none;
+        color: white;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+      ">IDE_C</button>
+
+      <button onclick="worldEngine.runMacro('MERGE_ABC')" style="
+        background: linear-gradient(45deg, #ffecd2, #fcb69f);
+        border: none;
+        color: #333;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        font-weight: bold;
+      ">MERGE</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; margin-top: 8px;">
+      <button onclick="worldEngine.runMacro('OPTIMIZE')" style="
+        background: #2a2a54;
+        border: 1px solid #4a4a8a;
+        color: #e8e8e8;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        cursor: pointer;
+      ">OPT</button>
+
+      <button onclick="worldEngine.runMacro('DEBUG')" style="
+        background: #2a2a54;
+        border: 1px solid #4a4a8a;
+        color: #e8e8e8;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        cursor: pointer;
+      ">DBG</button>
+
+      <button onclick="worldEngine.runMacro('STABILIZE')" style="
+        background: #2a2a54;
+        border: 1px solid #4a4a8a;
+        color: #e8e8e8;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        cursor: pointer;
+      ">STB</button>
+    </div>
+  </div>
+
+  <!-- Auto-Planner -->
+  <div id="planner-section" style="margin-top: 15px;">
+    <h3 style="color: #a78bfa; margin: 0 0 10px 0; font-size: 14px;">🧠 Tier-4 Auto-Planner</h3>
+    <button onclick="worldEngine.planNextMove()" style="
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 8px;
+    ">🎯 Plan Next Move</button>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+      <button onclick="worldEngine.saveSession()" style="
+        background: #2a2a54;
+        border: 1px solid #4a4a8a;
+        color: #e8e8e8;
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+      ">💾 Save</button>
+
+      <button onclick="worldEngine.loadSession(); worldEngine.updateDisplay();" style="
+        background: #2a2a54;
+        border: 1px solid #4a4a8a;
+        color: #e8e8e8;
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+      ">📂 Load</button>
+    </div>
+  </div>
+
+  <!-- Hotkey Help -->
+  <div id="hotkey-help" style="margin-top: 15px; font-size: 10px; color: #a0a0a0;">
+    <strong>Hotkeys:</strong><br>
+    R - Reset • P - Plan • S - Save • L - Load • D - Debug
+  </div>
+</div>
+
+<script>
+// Enhanced integration functions
+function updateIntegrationHUD(hud) {
+  document.getElementById('hud-op').textContent = hud.op;
+  document.getElementById('hud-dx').textContent = hud.dx.toFixed(3);
+  document.getElementById('hud-dt').textContent = hud.dt;
+  document.getElementById('hud-mu').textContent = hud.mu.toFixed(3);
+  document.getElementById('hud-level').textContent = hud.level;
+  document.getElementById('hud-kappa').textContent = hud.kappa.toFixed(3);
+
+  const errorDiv = document.getElementById('hud-error');
+  if (hud.lastError) {
+    errorDiv.textContent = hud.lastError;
+    errorDiv.style.display = 'block';
+  } else {
+    errorDiv.style.display = 'none';
+  }
+}
+
+// Add to your existing WorldEngineTier4Demo class:
+// After each applyOperator call, add: updateIntegrationHUD(this.hud);
+</script>

@@ -292,10 +292,11 @@ class AIBotController {
     const clearBtn = document.getElementById('ai-bot-clear');
 
     const sendMessage = () => {
-      const message = input.value.trim();
+      if (!input) return;
+      const message = (input).value.trim();
       if (message && !this.isTyping) {
         this.sendMessage(message);
-        input.value = '';
+        (input).value = '';
       }
     };
 
@@ -350,8 +351,13 @@ class AIBotController {
       setTimeout(() => this.fetchStats(), 1000);
 
     } catch (error) {
-      this.addMessage(`Sorry, I encountered an error: ${error.message}`, 'ai', { isError: true });
-      Utils.log(`AI Bot error: ${error.message}`, 'error');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      this.addMessage(`Sorry, I encountered an error: ${errorMsg}`, 'ai', { isError: true });
+      if (typeof Utils !== 'undefined') {
+        Utils.log(`AI Bot error: ${errorMsg}`, 'error');
+      } else {
+        console.error(`AI Bot error: ${errorMsg}`);
+      }
     } finally {
       this.showTyping(false);
     }

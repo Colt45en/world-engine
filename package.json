@@ -13,11 +13,21 @@
         "lint:fix": "eslint web/**/*.js --fix",
         "test": "python -m pytest tests/",
         "setup": "python -m world_engine_unified.main setup",
+        "tier4:demo": "start tier4_meta_system_demo.html",
+        "tier4:guide": "code tier4_meta_system_guide.md",
+        "tier4:core": "code src/tier4_meta_system_complete.ts"
         "install-python": "pip install -r requirements.txt",
         "install-spacy": "python -m spacy download en_core_web_sm",
         "clean": "rimraf dist/ build/ *.tsbuildinfo",
         "serve": "python -m http.server 8080 --directory web",
-        "studio": "python launch_studio.py"
+        "studio": "python launch_studio.py",
+        "demo:backprop": "python src/examples/xor_backprop_demo.py",
+        "learn:fundamentals": "python src/examples/xor_backprop_demo.py",
+        "demo:v4": "python run_v4_demo.py",
+        "v4:upgrade": "python src/world_engine_v4.py",
+        "v4:features": "type docs\\world_engine_v4_features.md",
+        "demo:tier4": "python -m http.server 8080 --directory web && start http://localhost:8080/world_engine_tier4.html",
+        "tier4:ide": "code src/world_engine_tier4_ide.ts"
     },
     "keywords": [
         "lexicon",

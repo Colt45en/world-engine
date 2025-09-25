@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine Tier 4 - IDE Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .card h3 {
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+
+        .state-display {
+            margin-bottom: 15px;
+        }
+
+        .state-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .state-bar {
+            height: 25px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .state-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+            border-radius: 12px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .mu-display {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .operator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .operator-btn {
+            padding: 15px 10px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .operator-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .operator-btn:active {
+            transform: translateY(0);
+        }
+
+        .word-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .word-input input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 1em;
+        }
+
+        .word-input input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .word-input button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #4ecdc4;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .word-input button:hover {
+            background: #45b7d1;
+        }
+
+        .ide-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ide-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .ide-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .log-container {
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            padding: 25px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .log-entry.recent {
+            opacity: 1;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+
+        .recommendations {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,215,0,0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+
+        .recommendation {
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .operator-grid {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            }
+
+            .ide-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 World Engine Tier 4</h1>
+        <p>IDE-Integrated Development Environment with Multimodal Control</p>
+    </div>
+
+    <div class="main-container">
+        <div class="grid">
+            <!-- State Display -->
+            <div class="card">
+                <h3>🎯 State Vector [p,i,g,c]</h3>
+
+                <div class="state-display">
+                    <div class="state-label">
+                        <span>Polarity (p)</span>
+                        <span id="p-value">0.000</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="p-bar" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="state-display">
+                    <div class="state-label">
+                        <span>Intensity (i)</span>
+                        <span id="i-value">0.500</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="i-bar" style="width: 20%"></div>
+                    </div>
+                </div>
+
+                <div class="state-display">
+                    <div class="state-label">
+                        <span>Generality (g)</span>
+                        <span id="g-value">0.300</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="g-bar" style="width: 12%"></div>
+                    </div>
+                </div>
+
+                <div class="state-display">
+                    <div class="state-label">
+                        <span>Confidence (c)</span>
+                        <span id="c-value">0.600</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="c-bar" style="width: 60%"></div>
+                    </div>
+                </div>
+
+                <div class="mu-display">
+                    μ (Stack Height): <span id="mu-display">1.400</span>
+                </div>
+            </div>
+
+            <!-- Operators -->
+            <div class="card">
+                <h3>⚡ Operators</h3>
+                <div class="operator-grid" id="operator-grid">
+                    <!-- Operators will be populated by JavaScript -->
+                </div>
+
+                <div class="word-input">
+                    <input type="text" id="word-input" placeholder="e.g., 'rebuild component structure'">
+                    <button onclick="handleWordInput()">Parse</button>
+                </div>
+            </div>
+
+            <!-- IDE Simulation -->
+            <div class="card">
+                <h3>💻 IDE Simulation</h3>
+                <div class="ide-controls">
+                    <button class="ide-btn" onclick="simulateBuildSuccess()">✅ Build Success</button>
+                    <button class="ide-btn" onclick="simulateBuildError()">❌ Build Error</button>
+                    <button class="ide-btn" onclick="simulateTestPass()">🧪 Tests Pass</button>
+                    <button class="ide-btn" onclick="simulateTestFail()">🧪 Tests Fail</button>
+                </div>
+
+                <div id="recommendations-container"></div>
+            </div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="card">
+            <h3>📝 Event Log</h3>
+            <div class="log-container" id="event-log">
+                <!-- Log entries will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="world_engine_tier4_demo.js"></script>
+    <script>
+        // Global functions for button clicks
+        function handleWordInput() {
+            if (window.demo) {
+                window.demo.handleWordInput();
+            }
+        }
+
+        function simulateBuildSuccess() {
+            if (window.demo) {
+                window.demo.simulateBuildSuccess();
+            }
+        }
+
+        function simulateBuildError() {
+            if (window.demo) {
+                window.demo.simulateBuildError();
+            }
+        }
+
+        function simulateTestPass() {
+            if (window.demo) {
+                window.demo.simulateTestPass();
+            }
+        }
+
+        function simulateTestFail() {
+            if (window.demo) {
+                window.demo.simulateTestFail();
+            }
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                switch(event.key) {
+                    case 's': // Ctrl+S -> ST (snapshot)
+                        event.preventDefault();
+                        if (window.demo) window.demo.applyOperator('ST');
+                        break;
+                    case 'z': // Ctrl+Z -> RST (restore)
+                        event.preventDefault();
+                        if (window.demo) window.demo.applyOperator('RST');
+                        break;
+                    case 'r': // Ctrl+R -> RB (rebuild)
+                        event.preventDefault();
+                        if (window.demo) window.demo.applyOperator('RB');
+                        break;
+                }
+            }
+        });
+
+        // Add word input enter key support
+        document.addEventListener('DOMContentLoaded', function() {
+            const wordInput = document.getElementById('word-input');
+            if (wordInput) {
+                wordInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        handleWordInput();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

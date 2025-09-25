@@ -416,6 +416,449 @@ function drawVisual(elapsedMs){
 }
 window.addEventListener('resize', ()=> startVisual());
 
+/* ============================
+   Engine Room Message Bus (Tier-4)
+   ============================ */
+
+// Simple in-room KV (use IndexedDB later; localStorage for demo)
+const KV_KEY = "gridroom.store.v1";
+const Store = {
+  load() { try { return JSON.parse(localStorage.getItem(KV_KEY) || "{}"); } catch { return {}; } },
+  save(obj) { localStorage.setItem(KV_KEY, JSON.stringify(obj)); },
+};
+let ROOM_STATE = Store.load();
+
+// Message schema (from IDE → Room)
+/// {type:"INIT", payload:{sessionId, title?}}
+/// {type:"SNAPSHOT", payload:{cid, state, parentCid, timestamp}}
+/// {type:"EVENT", payload:{id, button, inputCid, outputCid, timestamp, meta?}}
+/// {type:"SET_PANEL_HTML", payload:{panelId, html}}
+/// {type:"ADD_PANEL", payload:{wall, x,y,w,h, title, html?}}
+/// {type:"REMOVE_PANEL", payload:{panelId}}
+/// {type:"FOCUS_PANEL", payload:{panelId}}
+/// {type:"TOAST", payload:{msg}}
+/// {type:"LOAD_SESSION", payload:{events, snapshots, currentCid}}
+/// {type:"REQUEST", payload:{op:"GET_STATE"|"LIST_PANELS"}}
+
+const ROOM_ORIGIN = "*"; // tighten if you know the IDE origin
+
+function sendToIDE(msg) {
+  // If the room is embedded as an iframe, parent is the IDE
+  window.parent?.postMessage({ room: "gridroom", ...msg }, ROOM_ORIGIN);
+}
+
+// Enhanced toast function for the room
+function toast(msg, type = 'info') {
+  const existingToast = document.querySelector('.room-toast');
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'room-toast';
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 10000;
+    background: ${type === 'error' ? '#67060c' : '#0d4f3c'};
+    border: 1px solid ${type === 'error' ? '#da3633' : '#238636'};
+    color: ${type === 'error' ? '#f85149' : '#46d158'};
+    padding: 12px 16px; border-radius: 8px; font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
+    transform: translateX(100%);
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.style.transform = 'translateX(0)', 10);
+  setTimeout(() => {
+    toast.style.transform = 'translateX(100%)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Virtual panel system for managing content areas
+const virtualPanels = new Map();
+let panelIdCounter = 1000;
+
+function addPanel({ wall, x, y, w, h, title }) {
+  const id = panelIdCounter++;
+  const panel = { id, wall, x, y, w, h, title, created: Date.now() };
+  virtualPanels.set(id, panel);
+
+  // Create actual DOM element for the panel
+  createPanelElement(panel);
+  return panel;
+}
+
+function createPanelElement(panel) {
+  const existing = document.getElementById(`panel-${panel.id}`);
+  if (existing) return existing;
+
+  const element = document.createElement('div');
+  element.id = `panel-${panel.id}`;
+  element.className = 'room-panel';
+  element.style.cssText = `
+    position: absolute;
+    left: ${Math.max(0, panel.x)}px;
+    top: ${Math.max(0, panel.y)}px;
+    width: ${panel.w}px;
+    height: ${panel.h}px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = `
+    background: #1a2332; padding: 6px 12px; border-bottom: 1px solid var(--line);
+    font-size: 12px; font-weight: 600; color: var(--acc); cursor: move;
+    display: flex; align-items: center; justify-content: space-between;
+  `;
+  header.innerHTML = `
+    <span>${panel.title}</span>
+    <button onclick="removePanel(${panel.id})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 0 4px;">×</button>
+  `;
+
+  const content = document.createElement('div');
+  content.id = `panel-content-${panel.id}`;
+  content.style.cssText = `
+    height: calc(100% - 32px); overflow: auto;
+    padding: 8px; background: var(--bg);
+  `;
+
+  element.appendChild(header);
+  element.appendChild(content);
+  document.body.appendChild(element);
+
+  // Make draggable
+  makeDraggable(element, header);
+  return element;
+}
+
+function makeDraggable(element, handle) {
+  let isDragging = false;
+  let currentX, currentY, initialX, initialY;
+
+  handle.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    initialX = e.clientX - element.offsetLeft;
+    initialY = e.clientY - element.offsetTop;
+    element.style.zIndex = '1000';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+    element.style.left = Math.max(0, currentX) + 'px';
+    element.style.top = Math.max(0, currentY) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    element.style.zIndex = '100';
+  });
+}
+
+function removePanel(panelId) {
+  const element = document.getElementById(`panel-${panelId}`);
+  if (element) element.remove();
+  virtualPanels.delete(panelId);
+}
+
+function setPanelHTML(panelId, html) {
+  const content = document.getElementById(`panel-content-${panelId}`);
+  if (!content) return;
+
+  // Create iframe for safe HTML rendering
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: transparent;';
+  iframe.srcdoc = html;
+  content.innerHTML = '';
+  content.appendChild(iframe);
+}
+
+// Register commands
+const Commands = {
+  INIT({ sessionId, title }) {
+    ROOM_STATE.sessionId = sessionId || ("session:" + Date.now());
+    if (title) document.title = title + " • Engine Room";
+    Store.save(ROOM_STATE);
+    toast(`Session: ${ROOM_STATE.sessionId.slice(0, 12)}...`);
+
+    // Initialize core panels
+    setTimeout(() => {
+      ensureEventsPanel();
+      ensureSnapshotsPanel();
+      ensureNucleusPanel();
+    }, 500);
+  },
+
+  SNAPSHOT({ cid, state, parentCid, timestamp }) {
+    ROOM_STATE.snapshots = ROOM_STATE.snapshots || {};
+    ROOM_STATE.snapshots[cid] = { cid, state, parentCid, timestamp };
+    ROOM_STATE.currentCid = cid;
+    Store.save(ROOM_STATE);
+
+    ensureSnapshotsPanel();
+    renderSnapshotsPanel();
+
+    // Update nucleus with new state
+    updateNucleusState(state);
+  },
+
+  EVENT(evt) {
+    ROOM_STATE.events = [evt, ...(ROOM_STATE.events || [])].slice(0, 1000);
+    Store.save(ROOM_STATE);
+    ensureEventsPanel();
+    renderEventsPanel();
+
+    // Trigger visual update on the main canvas
+    if (evt.button && evt.button.startsWith('Tier4_')) {
+      highlightOperation(evt.button);
+    }
+  },
+
+  SET_PANEL_HTML({ panelId, html }) {
+    setPanelHTML(panelId, html);
+  },
+
+  ADD_PANEL({ wall, x, y, w, h, title, html }) {
+    const p = addPanel({ wall: wall || 'front', x: x || 100, y: y || 100, w: w || 300, h: h || 200, title: title || "Panel" });
+    if (html) setPanelHTML(p.id, html);
+    toast(`Panel ${p.id} added`);
+    sendToIDE({ type: "ROOM_ACK", payload: { op: "ADD_PANEL", panelId: p.id }});
+  },
+
+  REMOVE_PANEL({ panelId }) {
+    removePanel(panelId);
+    toast(`Panel ${panelId} removed`);
+  },
+
+  FOCUS_PANEL({ panelId }) {
+    const element = document.getElementById(`panel-${panelId}`);
+    if (element) {
+      element.style.zIndex = '999';
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    toast(`Focused panel ${panelId}`);
+  },
+
+  TOAST({ msg }) {
+    toast(msg || "Notice");
+  },
+
+  LOAD_SESSION({ events = [], snapshots = {}, currentCid }) {
+    ROOM_STATE.events = events;
+    ROOM_STATE.snapshots = snapshots;
+    ROOM_STATE.currentCid = currentCid;
+    Store.save(ROOM_STATE);
+
+    ensureEventsPanel();   renderEventsPanel();
+    ensureSnapshotsPanel(); renderSnapshotsPanel();
+    ensureNucleusPanel();   renderNucleusPanel();
+
+    toast("Session loaded");
+  },
+
+  REQUEST({ op }) {
+    if (op === "GET_STATE") {
+      sendToIDE({
+        type: "ROOM_STATE",
+        payload: {
+          sessionId: ROOM_STATE.sessionId,
+          panelCount: virtualPanels.size,
+          events: (ROOM_STATE.events || []).length,
+          snapshots: ROOM_STATE.snapshots ? Object.keys(ROOM_STATE.snapshots).length : 0,
+          currentCid: ROOM_STATE.currentCid || null,
+        }
+      });
+    }
+    if (op === "LIST_PANELS") {
+      sendToIDE({
+        type: "ROOM_PANELS",
+        payload: Array.from(virtualPanels.values()).map(p => ({
+          id: p.id, wall: p.wall, x: p.x, y: p.y, w: p.w, h: p.h, title: p.title
+        }))
+      });
+    }
+  }
+};
+
+// Listener for postMessage commands
+window.addEventListener("message", (e) => {
+  const data = e.data || {};
+  if (data?.room !== "gridroom" || !data.type) return;
+  const fn = Commands[data.type];
+  if (fn) try { fn(data.payload || {}); } catch (err) { console.error(err); toast("Command error", 'error'); }
+});
+
+// Core panel management
+let _eventsPid = null, _snapsPid = null, _nucleusPid = null;
+
+function ensureEventsPanel() {
+  if (_eventsPid && virtualPanels.has(_eventsPid)) return;
+  const p = addPanel({ wall: 'left', x: 60, y: 260, w: 420, h: 260, title: "Tier-4 Events" });
+  _eventsPid = p.id;
+}
+
+function ensureSnapshotsPanel() {
+  if (_snapsPid && virtualPanels.has(_snapsPid)) return;
+  const p = addPanel({ wall: 'right', x: window.innerWidth - 480, y: 260, w: 420, h: 260, title: "State Snapshots" });
+  _snapsPid = p.id;
+}
+
+function ensureNucleusPanel() {
+  if (_nucleusPid && virtualPanels.has(_nucleusPid)) return;
+  const p = addPanel({ wall: 'front', x: window.innerWidth / 2 - 200, y: 50, w: 400, h: 300, title: "Nucleus Monitor" });
+  _nucleusPid = p.id;
+}
+
+function renderEventsPanel() {
+  if (!_eventsPid) return;
+  const evts = ROOM_STATE.events || [];
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#0b1418;color:#cfe;font:12px ui-monospace}
+    .row{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between}
+    .meta{opacity:.7;font-size:11px}
+    .operator{color:#54f0b8;font-weight:600}
+    .nucleus{color:#ff9f43}
+  </style>
+  ${evts.slice(0, 64).map(e => `
+    <div class="row">
+      <div>
+        <span class="${e.button?.startsWith('Tier4_') ? 'operator' : 'nucleus'}">${e.button || e.type}</span>
+        ${e.inputCid && e.outputCid ? `<span class="meta">${e.inputCid.slice(0,8)} → ${e.outputCid.slice(0,8)}</span>` : ''}
+      </div>
+      <div class="meta">${new Date(e.timestamp).toLocaleTimeString()}</div>
+    </div>`).join("")}`;
+  setPanelHTML(_eventsPid, html);
+}
+
+function renderSnapshotsPanel() {
+  if (!_snapsPid) return;
+  const snaps = ROOM_STATE.snapshots || {};
+  const list = Object.values(snaps).sort((a,b)=> (b.timestamp||0) - (a.timestamp||0)).slice(0, 64);
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#0b1418;color:#cfe;font:12px ui-monospace}
+    .row{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
+    button{background:#0c2230;color:#9fd6ff;border:1px solid #244;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px}
+    button:hover{background:#1a3a55}
+    .state-info{font-size:11px;opacity:0.8}
+    .current{border-left:3px solid #54f0b8;padding-left:8px}
+  </style>
+  ${list.map(s => `
+    <div class="row ${s.cid === ROOM_STATE.currentCid ? 'current' : ''}">
+      <div>
+        <div><strong>${s.cid.slice(0,12)}…</strong></div>
+        <div class="state-info">κ:${(s.state.kappa||0).toFixed(2)} lv:${s.state.level||0} dim:${s.state.x?.length||4}</div>
+      </div>
+      <button onclick="parent.postMessage({room:'gridroom',type:'REQUEST_LOAD_CID',payload:{cid:'${s.cid}'}},'*')">Load</button>
+    </div>`).join("")}`;
+  setPanelHTML(_snapsPid, html);
+}
+
+function renderNucleusPanel() {
+  if (!_nucleusPid) return;
+  const currentSnapshot = ROOM_STATE.currentCid ? ROOM_STATE.snapshots?.[ROOM_STATE.currentCid] : null;
+  const state = currentSnapshot?.state || { x: [0, 0.5, 0.4, 0.6], kappa: 0.6, level: 0 };
+  const recentEvents = (ROOM_STATE.events || []).slice(0, 5);
+
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#0b1418;color:#cfe;font:12px ui-monospace;padding:12px}
+    .state-vector{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+    .vector-item{text-align:center;padding:8px;background:#1a2332;border-radius:6px}
+    .nucleus-viz{width:100%;height:80px;background:#06101c;border:1px solid #2a3548;border-radius:6px;margin:8px 0}
+    .recent-event{padding:4px 8px;background:#0f1523;border-radius:4px;margin:2px 0;font-size:11px}
+    .glow{animation:pulse 2s infinite}
+    @keyframes pulse{0%{opacity:1}50%{opacity:0.6}100%{opacity:1}}
+  </style>
+  <div><strong>State Vector [p, i, g, c]</strong></div>
+  <div class="state-vector">
+    <div class="vector-item">p<br><strong>${(state.x?.[0] || 0).toFixed(3)}</strong></div>
+    <div class="vector-item">i<br><strong>${(state.x?.[1] || 0.5).toFixed(3)}</strong></div>
+    <div class="vector-item">g<br><strong>${(state.x?.[2] || 0.4).toFixed(3)}</strong></div>
+    <div class="vector-item">c<br><strong>${(state.x?.[3] || 0.6).toFixed(3)}</strong></div>
+  </div>
+  <div>κ: <strong>${(state.kappa || 0.6).toFixed(3)}</strong> | Level: <strong>${state.level || 0}</strong></div>
+  <canvas class="nucleus-viz glow" id="nucleus-canvas"></canvas>
+  <div><strong>Recent Activity:</strong></div>
+  ${recentEvents.map(e => `<div class="recent-event">${e.button || e.type} (${new Date(e.timestamp).toLocaleTimeString()})</div>`).join("")}
+  <script>
+    const canvas = document.getElementById('nucleus-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 80;
+
+    function drawNucleus() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const time = Date.now() / 1000;
+
+      // Draw nucleus core
+      const coreRadius = 12 + Math.sin(time * 3) * 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, coreRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#54f0b8';
+      ctx.fill();
+
+      // Draw orbiting particles
+      for (let i = 0; i < 4; i++) {
+        const angle = time + (i * Math.PI / 2);
+        const radius = 25;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#9fd6ff';
+        ctx.fill();
+      }
+    }
+
+    setInterval(drawNucleus, 50);
+  </script>`;
+  setPanelHTML(_nucleusPid, html);
+}
+
+function updateNucleusState(state) {
+  // Update the main visualization with new state
+  if (typeof startVisual === 'function') {
+    // Trigger a refresh of the main canvas
+    setTimeout(startVisual, 100);
+  }
+
+  // Re-render nucleus panel
+  renderNucleusPanel();
+}
+
+function highlightOperation(operation) {
+  // Add visual feedback for operations
+  toast(`${operation.replace('Tier4_', '')} applied`, 'info');
+
+  // Flash the main visualization
+  const viz = document.querySelector('.viz');
+  if (viz) {
+    viz.style.boxShadow = '0 0 20px rgba(84, 240, 184, 0.6)';
+    setTimeout(() => viz.style.boxShadow = '', 300);
+  }
+}
+
+// On first load, rebuild panels if there is saved state
+(function hydrate() {
+  if (ROOM_STATE.snapshots) { ensureSnapshotsPanel(); renderSnapshotsPanel(); }
+  if (ROOM_STATE.events)    { ensureEventsPanel(); renderEventsPanel(); }
+  if (ROOM_STATE.sessionId) { ensureNucleusPanel(); renderNucleusPanel(); }
+})();
+
+// Send ready signal to parent
+setTimeout(() => {
+  sendToIDE({ type: "ROOM_READY", payload: { sessionId: ROOM_STATE.sessionId || "new" } });
+}, 1000);
+
   // Startup
   restore(); initTests(); if(!elIn.value) elIn.value = TESTS.join('\n'); run();
 })();

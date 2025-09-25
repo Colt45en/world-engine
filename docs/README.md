@@ -1,6 +1,8 @@
-# 🌍 World Engine Studio
+# 🌍 World Engine Studio V3.1
 
 A unified lexicon processing and semantic analysis system with integrated recording, chat interface, and real-time analysis capabilities.
+
+**NEW:** Complete neural architecture fundamentals with backpropagation examples - see `src/examples/xor_backprop_demo.py` for hands-on learning!
 
 ## 🚀 Quick Start
 

@@ -18,6 +18,12 @@ var/
 wheels/
 *.egg-info/
 .installed.cfg
+
+# Backup files
+*.zip
+*backup*.zip
+*-backup-*.zip
+world-engine-*.zip
 *.egg
 MANIFEST
 

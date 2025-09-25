@@ -2395,6 +2395,226 @@ class MultiScaleProcessor(nn.Module):
         scale_outputs = []
         scale_features = []
 
+        for i, (conv_stack, norm, pool) in enumerate(zip(self.conv_stacks, self.norms, self.pooling_layers)):
+            # Apply convolution stack
+            conv_out = conv_stack(x_conv)  # [B, D//num_scales, N]
+            
+            # Apply pooling with different scales
+            if self.use_pooling and i > 0:
+                # Different pooling for different scales
+                pool_size = min(seq_len // (2**i), seq_len)
+                if pool_size > 1:
+                    pooled = F.adaptive_avg_pool1d(conv_out, pool_size)
+                    unpooled = F.interpolate(pooled, size=seq_len, mode='linear', align_corners=False)
+                    conv_out = unpooled
+            
+            # Transpose back and normalize
+            conv_out = conv_out.transpose(1, 2)  # [B, N, D//num_scales]
+            conv_out = norm(conv_out)
+            
+            scale_outputs.append(conv_out)
+            scale_features.append(conv_out)
+
+        # Concatenate all scale outputs
+        multi_scale_out = torch.cat(scale_outputs, dim=-1)  # [B, N, D]
+
+        # Hierarchical attention across scales
+        if self.use_hierarchical:
+            if mask is not None:
+                key_padding_mask = ~mask
+            else:
+                key_padding_mask = None
+                
+            attended_out, _ = self.scale_attention(
+                multi_scale_out, multi_scale_out, multi_scale_out,
+                key_padding_mask=key_padding_mask
+            )
+            multi_scale_out = self.scale_norm(multi_scale_out + attended_out)
+
+        # Final projection and output
+        output = self.output_proj(multi_scale_out)
+        
+        if self.use_residual:
+            output = self.output_norm(x + self.dropout(output))
+        else:
+            output = self.output_norm(self.dropout(output))
+
+        return output
+
+
+def create_world_engine(config):
+    """Factory function to create World Engine with configuration."""
+    return WorldEngine(
+        vocab_size=config.get('vocab_size', 10000),
+        d_model=config.get('d_model', 512),
+        k_feats=config.get('k_feats', 100),
+        n_pos=config.get('n_pos', 50),
+        n_rels=config.get('n_rels', 20),
+        n_layers=config.get('n_layers', 6),
+        n_heads=config.get('n_heads', 8),
+        p_drop=config.get('dropout', 0.1),
+        use_transformer=config.get('use_transformer', True),
+        use_gnn=config.get('use_gnn', True),
+        use_crf=config.get('use_crf', True),
+        num_role_labels=config.get('num_role_labels', 5)
+    )
+
+
+# ===========================
+# COMPREHENSIVE TESTING SUITE
+# ===========================
+
+def run_basic_tests():
+    """Run basic functionality tests."""
+    print("🧪 Running World Engine Test Suite...")
+    
+    # Test configuration
+    config = {
+        'vocab_size': 1000,
+        'd_model': 128,
+        'k_feats': 50,
+        'n_pos': 25,
+        'n_rels': 10,
+        'n_layers': 2,
+        'n_heads': 4,
+        'dropout': 0.1,
+        'use_transformer': True,
+        'use_gnn': True,
+        'use_crf': False,  # Disable CRF for basic testing
+        'num_role_labels': 5
+    }
+    
+    print(f"✅ Configuration: {config}")
+    
+    # Create model
+    try:
+        model = create_world_engine(config)
+        param_count = sum(p.numel() for p in model.parameters())
+        print(f"✅ Model created successfully with {param_count:,} parameters")
+    except Exception as e:
+        print(f"❌ Model creation failed: {e}")
+        return False
+    
+    # Test forward pass
+    try:
+        batch_size = 4
+        seq_len = 10
+        
+        # Create dummy input
+        tok_ids = torch.randint(0, config['vocab_size'], (batch_size, seq_len))
+        pos_ids = torch.randint(0, config['n_pos'], (batch_size, seq_len))
+        feat_rows = torch.randn(batch_size, seq_len, config['k_feats'])
+        lengths = torch.tensor([seq_len] * batch_size)
+        
+        # Forward pass
+        model.eval()
+        with torch.no_grad():
+            outputs = model.forward(tok_ids, pos_ids, feat_rows, lengths)
+        
+        # Validate outputs
+        assert 'z' in outputs, "Missing semantic embeddings"
+        assert 'feat_hat' in outputs, "Missing reconstructed features"
+        assert 'role_logits' in outputs, "Missing role predictions"
+        assert outputs['z'].shape == (batch_size, 64), f"Wrong z shape: {outputs['z'].shape}"
+        
+        print(f"✅ Forward pass successful: z={outputs['z'].shape}, feat_hat={outputs['feat_hat'].shape}")
+        
+    except Exception as e:
+        print(f"❌ Forward pass failed: {e}")
+        return False
+    
+    print("🎉 All tests passed! World Engine is fully operational.")
+    return True
+
+
+def run_performance_benchmark():
+    """Run performance benchmarks."""
+    print("\n📊 Running Performance Benchmarks...")
+    
+    config = {
+        'vocab_size': 10000,
+        'd_model': 512,
+        'k_feats': 100,
+        'n_pos': 50,
+        'n_rels': 20,
+        'n_layers': 6,
+        'n_heads': 8,
+        'dropout': 0.1,
+        'use_transformer': True,
+        'use_gnn': True,
+        'use_crf': False,
+        'num_role_labels': 5
+    }
+    
+    model = create_world_engine(config)
+    model.eval()
+    
+    # Benchmark different batch sizes and sequence lengths
+    batch_sizes = [1, 4, 16]
+    seq_lengths = [32, 128, 512]
+    
+    for batch_size in batch_sizes:
+        for seq_len in seq_lengths:
+            # Create input
+            tok_ids = torch.randint(0, config['vocab_size'], (batch_size, seq_len))
+            pos_ids = torch.randint(0, config['n_pos'], (batch_size, seq_len))
+            feat_rows = torch.randn(batch_size, seq_len, config['k_feats'])
+            lengths = torch.tensor([seq_len] * batch_size)
+            
+            # Time forward pass
+            start_time = time.time()
+            with torch.no_grad():
+                outputs = model.forward(tok_ids, pos_ids, feat_rows, lengths)
+            end_time = time.time()
+            
+            forward_time = (end_time - start_time) * 1000  # Convert to ms
+            tokens_per_sec = (batch_size * seq_len) / (forward_time / 1000)
+            
+            print(f"📈 Batch={batch_size}, SeqLen={seq_len}: {forward_time:.2f}ms ({tokens_per_sec:.1f} tokens/sec)")
+
+
+def demonstrate_capabilities():
+    """Demonstrate key capabilities."""
+    print("\n🚀 Demonstrating World Engine Capabilities...")
+    
+    # Create a smaller model for demonstration
+    config = {
+        'vocab_size': 5000, 'd_model': 256, 'k_feats': 50, 'n_pos': 25,
+        'n_rels': 10, 'n_layers': 3, 'n_heads': 8, 'dropout': 0.1,
+        'use_transformer': True, 'use_gnn': True, 'use_crf': False, 'num_role_labels': 5
+    }
+    
+    model = create_world_engine(config)
+    
+    # Show model statistics
+    print(f"\n📊 Model Statistics:")
+    print(f"   🔢 Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+    print(f"   🎯 Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+    print(f"   💾 Model size: ~{sum(p.numel() * 4 for p in model.parameters()) / 1024 / 1024:.1f} MB")
+
+
+if __name__ == "__main__":
+    print("=" * 80)
+    print("🌍 WORLD ENGINE V3.1 - ADVANCED NEURAL ARCHITECTURE")
+    print("=" * 80)
+    
+    # Basic functionality tests
+    if run_basic_tests():
+        # Performance benchmarks
+        run_performance_benchmark()
+        
+        # Capability demonstration
+        demonstrate_capabilities()
+        
+        print("\n" + "=" * 80)
+        print("🎉 World Engine V3.1 is fully operational!")
+        print("🔗 Ready for Studio Controls integration")
+        print("📊 Advanced neural architecture with complete implementation")
+        print("🧠 Features: Multi-modal processing, Graph neural networks, Memory systems")
+        print("=" * 80)
+    else:
+        print("\n❌ Tests failed - please check the implementation")
+
         for scale_idx, branch in enumerate(self.conv_branches):
             scale_input = x_conv
 

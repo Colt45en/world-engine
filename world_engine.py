@@ -1498,69 +1498,69 @@ class GraphConvLayer(nn.Module):
                 return self.update_net(torch.cat([node_features, torch.zeros(N, self.out_dim, device=node_features.device)], dim=-1))
 
         src, dst = edge_index[0], edge_index[1]
-        
+
         # Default edge attributes if none provided
         if edge_attr is None:
-            edge_attr = torch.zeros(edge_index.size(1), self.edge_dim, 
+            edge_attr = torch.zeros(edge_index.size(1), self.edge_dim,
                                   device=node_features.device, dtype=node_features.dtype)
-        
+
         # Gather source and destination node features
         src_features = node_features[src]  # [E, in_dim]
         dst_features = node_features[dst]  # [E, in_dim]
-        
+
         # Compute messages
         message_input = torch.cat([src_features, dst_features, edge_attr], dim=-1)
         messages = self.message_net(message_input)  # [E, out_dim]
-        
+
         attention_weights = None
-        
+
         if self.use_attention:
             # Multi-head attention for message weighting
             batch_size = 1  # Single graph processing
-            
+
             queries = self.query_proj(dst_features).view(-1, self.num_heads, self.head_dim)  # [E, H, d_k]
             key_input = torch.cat([src_features, edge_attr], dim=-1)
             keys = self.key_proj(key_input).view(-1, self.num_heads, self.head_dim)  # [E, H, d_k]
             values = self.value_proj(key_input).view(-1, self.num_heads, self.head_dim)  # [E, H, d_k]
-            
+
             # Scaled dot-product attention
             scale = self.head_dim ** -0.5
             attn_scores = torch.sum(queries * keys, dim=-1) * scale  # [E, H]
-            
+
             # Normalize attention scores per destination node
             dst_max_idx = dst.max().item() + 1
-            attn_weights_full = torch.full((dst_max_idx, self.num_heads), float('-inf'), 
+            attn_weights_full = torch.full((dst_max_idx, self.num_heads), float('-inf'),
                                          device=node_features.device)
             attn_weights_full[dst] = attn_scores
             attn_weights_normalized = F.softmax(attn_weights_full, dim=0)[dst]  # [E, H]
-            
+
             # Apply dropout
             if self.training:
                 attn_weights_normalized = self.attention_dropout(attn_weights_normalized)
-            
+
             # Apply attention to messages
             messages = messages.view(-1, self.num_heads, self.head_dim)  # [E, H, d_k]
             attended_messages = attn_weights_normalized.unsqueeze(-1) * messages  # [E, H, d_k]
             messages = attended_messages.view(-1, self.out_dim)  # [E, out_dim]
-            
+
             if return_attention:
                 attention_weights = attn_weights_normalized
-        
+
         # Aggregate messages for each node
         aggregated = torch.zeros(N, self.out_dim, device=node_features.device, dtype=node_features.dtype)
         aggregated.index_add_(0, dst, messages)
-        
+
         # Update node features
         update_input = torch.cat([node_features, aggregated], dim=-1)
         updated = self.update_net(update_input)
-        
+
         # Residual connection and normalization
         if self.use_residual:
             residual = self.residual_proj(node_features)
             output = self.norm1(residual + self.dropout(updated))
         else:
             output = self.norm1(self.dropout(updated))
-        
+
         if return_attention:
             return output, attention_weights
         return output
@@ -1568,13 +1568,13 @@ class GraphConvLayer(nn.Module):
 
 class ResidualConnection(nn.Module):
     """Advanced Residual Connection with learnable gating and normalization."""
-    
+
     def __init__(self, d_model, dropout=0.1, use_gate=True, norm_type='layer'):
         super().__init__()
         self.d_model = d_model
         self.use_gate = use_gate
         self.dropout = nn.Dropout(dropout)
-        
+
         # Normalization
         if norm_type == 'layer':
             self.norm = nn.LayerNorm(d_model)
@@ -1582,28 +1582,28 @@ class ResidualConnection(nn.Module):
             self.norm = RMSNorm(d_model)
         else:
             self.norm = nn.Identity()
-        
+
         # Learnable gating mechanism
         if use_gate:
             self.gate = nn.Sequential(
                 nn.Linear(d_model * 2, d_model),
                 nn.Sigmoid()
             )
-    
+
     def forward(self, x, residual=None):
         """
         Apply residual connection with optional gating.
-        
+
         Args:
             x: Main input tensor
             residual: Residual tensor (defaults to x if None)
-        
+
         Returns:
             Output tensor after residual connection
         """
         if residual is None:
             residual = x
-        
+
         if self.use_gate:
             # Learnable gating
             combined = torch.cat([x, residual], dim=-1)
@@ -1617,8 +1617,8 @@ class ResidualConnection(nn.Module):
 
 class MultiScaleProcessor(nn.Module):
     """Advanced Multi-Scale Processing with hierarchical attention and temporal convolutions."""
-    
-    def __init__(self, d_model, kernel_sizes=[3, 5, 7, 9], dropout=0.1, 
+
+    def __init__(self, d_model, kernel_sizes=[3, 5, 7, 9], dropout=0.1,
                  use_hierarchical=True, use_pooling=True):
         super().__init__()
         self.d_model = d_model
@@ -1626,15 +1626,15 @@ class MultiScaleProcessor(nn.Module):
         self.num_scales = len(kernel_sizes)
         self.use_hierarchical = use_hierarchical
         self.use_pooling = use_pooling
-        
+
         # Multi-scale convolution branches
         self.convs = nn.ModuleList()
         self.norms = nn.ModuleList()
-        
+
         for kernel_size in kernel_sizes:
             # Dilated convolutions for different receptive fields
             conv_layers = nn.Sequential(
-                nn.Conv1d(d_model, d_model // self.num_scales, 
+                nn.Conv1d(d_model, d_model // self.num_scales,
                          kernel_size=kernel_size, padding=kernel_size//2),
                 nn.GELU(),
                 nn.Conv1d(d_model // self.num_scales, d_model // self.num_scales,
@@ -1643,14 +1643,14 @@ class MultiScaleProcessor(nn.Module):
             )
             self.convs.append(conv_layers)
             self.norms.append(nn.LayerNorm(d_model // self.num_scales))
-        
+
         # Hierarchical attention for scale fusion
         if use_hierarchical:
             self.scale_attention = nn.MultiheadAttention(
                 d_model, num_heads=8, dropout=dropout, batch_first=True
             )
             self.scale_norm = nn.LayerNorm(d_model)
-        
+
         # Adaptive pooling for different temporal scales
         if use_pooling:
             self.pooling_layers = nn.ModuleList([
@@ -1659,38 +1659,38 @@ class MultiScaleProcessor(nn.Module):
                 nn.AdaptiveMaxPool1d(None),  # Will be set dynamically
                 nn.AdaptiveAvgPool1d(None)   # Will be set dynamically
             ])
-        
+
         # Final projection and normalization
         self.output_proj = nn.Linear(d_model, d_model)
         self.output_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
-        
+
     def forward(self, x, mask=None):
         """
         Apply multi-scale processing with hierarchical attention.
-        
+
         Args:
             x: Input tensor [B, N, D]
             mask: Optional attention mask [B, N]
-            
+
         Returns:
             Multi-scale processed tensor [B, N, D]
         """
         B, N, D = x.shape
-        
+
         # Transpose for conv1d: [B, D, N]
         x_conv = x.transpose(1, 2)
-        
+
         # Apply multi-scale convolutions
         scale_outputs = []
         for i, (conv, norm) in enumerate(zip(self.convs, self.norms)):
             # Apply convolution
             conv_out = conv(x_conv)  # [B, D//num_scales, N]
-            
+
             # Transpose back and normalize
             conv_out = conv_out.transpose(1, 2)  # [B, N, D//num_scales]
             conv_out = norm(conv_out)
-            
+
             # Apply pooling if enabled
             if self.use_pooling and i > 0:
                 # Different pooling strategies for different scales
@@ -1701,12 +1701,12 @@ class MultiScaleProcessor(nn.Module):
                     conv_out = F.adaptive_avg_pool1d(conv_out, pooled_length)
                     conv_out = F.interpolate(conv_out, size=N, mode='linear', align_corners=False)
                     conv_out = conv_out.transpose(1, 2)  # [B, N, D//num_scales]
-            
+
             scale_outputs.append(conv_out)
-        
+
         # Concatenate all scales
         multi_scale = torch.cat(scale_outputs, dim=-1)  # [B, N, D]
-        
+
         # Apply hierarchical attention if enabled
         if self.use_hierarchical:
             # Self-attention across scales
@@ -1714,24 +1714,24 @@ class MultiScaleProcessor(nn.Module):
                 key_padding_mask = ~mask
             else:
                 key_padding_mask = None
-                
+
             attended, _ = self.scale_attention(
                 multi_scale, multi_scale, multi_scale,
                 key_padding_mask=key_padding_mask
             )
             multi_scale = self.scale_norm(multi_scale + attended)
-        
+
         # Final projection
         output = self.output_proj(multi_scale)
         output = self.output_norm(output)
         output = self.dropout(output)
-        
+
         return output
 
 
 class MemoryBank(nn.Module):
     """Advanced Memory Bank with episodic storage and consolidation mechanisms."""
-    
+
     def __init__(self, d_model, capacity=10000, consolidation_threshold=0.8,
                  update_frequency=100, compression_ratio=0.5):
         super().__init__()
@@ -1740,7 +1740,7 @@ class MemoryBank(nn.Module):
         self.consolidation_threshold = consolidation_threshold
         self.update_frequency = update_frequency
         self.compression_ratio = compression_ratio
-        
+
         # Memory storage
         self.register_buffer('memory', torch.zeros(capacity, d_model))
         self.register_buffer('memory_scores', torch.zeros(capacity))
@@ -1749,35 +1749,35 @@ class MemoryBank(nn.Module):
         self.register_buffer('write_pointer', torch.zeros(1, dtype=torch.long))
         self.register_buffer('memory_size', torch.zeros(1, dtype=torch.long))
         self.register_buffer('global_timestamp', torch.zeros(1, dtype=torch.long))
-        
+
         # Query and key projections for retrieval
         self.query_proj = nn.Linear(d_model, d_model)
         self.key_proj = nn.Linear(d_model, d_model)
         self.value_proj = nn.Linear(d_model, d_model)
-        
+
         # Attention mechanism for memory consolidation
         self.consolidation_attn = nn.MultiheadAttention(
             d_model, num_heads=8, batch_first=True
         )
-        
+
         # Episodic encoding
         self.episode_encoder = nn.Sequential(
             nn.Linear(d_model, d_model * 2),
             nn.GELU(),
             nn.Linear(d_model * 2, d_model)
         )
-        
+
     def update(self, features, mask=None, importance_scores=None):
         """
         Update memory bank with new features using importance-based storage.
-        
+
         Args:
             features: New features to store [B, N, D]
             mask: Optional mask for valid positions [B, N]
             importance_scores: Optional importance scores [B, N]
         """
         B, N, D = features.shape
-        
+
         # Extract valid features based on mask
         if mask is not None:
             valid_features = features[mask]  # [Valid, D]
@@ -1788,19 +1788,19 @@ class MemoryBank(nn.Module):
         else:
             valid_features = features.view(-1, D)  # [B*N, D]
             valid_scores = torch.ones(valid_features.size(0), device=features.device)
-        
+
         if valid_features.size(0) == 0:
             return
-        
+
         # Encode episodes
         encoded_features = self.episode_encoder(valid_features)
-        
+
         # Update memory
         with torch.no_grad():
             current_size = int(self.memory_size.item())
             write_ptr = int(self.write_pointer.item())
             timestamp = int(self.global_timestamp.item())
-            
+
             # Store new memories
             for i in range(valid_features.size(0)):
                 if current_size < self.capacity:
@@ -1815,36 +1815,36 @@ class MemoryBank(nn.Module):
                     # Compute replacement scores (combination of importance, recency, access)
                     time_decay = torch.exp(-(timestamp - self.memory_timestamps[:current_size]) * 0.01)
                     access_bonus = torch.log1p(self.memory_access_count[:current_size])
-                    replacement_scores = (self.memory_scores[:current_size] * time_decay + 
+                    replacement_scores = (self.memory_scores[:current_size] * time_decay +
                                         access_bonus * 0.1)
-                    
+
                     # Find least important memory to replace
                     min_idx = replacement_scores.argmin().item()
-                    
+
                     # Replace if new memory is more important
                     if valid_scores[i] > replacement_scores[min_idx]:
                         self.memory[min_idx] = encoded_features[i]
                         self.memory_scores[min_idx] = valid_scores[i]
                         self.memory_timestamps[min_idx] = timestamp
                         self.memory_access_count[min_idx] = 0
-            
+
             # Update pointers and timestamp
             self.memory_size[0] = current_size
             self.global_timestamp[0] = timestamp + 1
-            
+
             # Periodic consolidation
             if timestamp % self.update_frequency == 0:
                 self._consolidate_memory()
-    
+
     def retrieve(self, query, k=5, return_scores=False):
         """
         Retrieve k most relevant memories for the given query.
-        
+
         Args:
             query: Query tensor [B, D] or [D]
             k: Number of memories to retrieve
             return_scores: Whether to return similarity scores
-            
+
         Returns:
             Retrieved memories [B, k, D] or [k, D]
         """
@@ -1853,10 +1853,10 @@ class MemoryBank(nn.Module):
             squeeze_output = True
         else:
             squeeze_output = False
-        
+
         B, D = query.shape
         current_size = int(self.memory_size.item())
-        
+
         if current_size == 0:
             # No memories stored yet
             empty_memories = torch.zeros(B, k, D, device=query.device)
@@ -1865,56 +1865,56 @@ class MemoryBank(nn.Module):
                 empty_memories = empty_memories.squeeze(0)
                 empty_scores = empty_scores.squeeze(0)
             return (empty_memories, empty_scores) if return_scores else empty_memories
-        
+
         # Project query and memory
         q = self.query_proj(query)  # [B, D]
         valid_memory = self.memory[:current_size]  # [M, D]
         k_mem = self.key_proj(valid_memory)  # [M, D]
         v_mem = self.value_proj(valid_memory)  # [M, D]
-        
+
         # Compute similarity scores
         similarity = torch.matmul(q, k_mem.t())  # [B, M]
         similarity = similarity / math.sqrt(D)
-        
+
         # Apply memory importance and recency weighting
         with torch.no_grad():
             timestamp = int(self.global_timestamp.item())
             importance_weights = self.memory_scores[:current_size]
             recency_weights = torch.exp(-(timestamp - self.memory_timestamps[:current_size]) * 0.01)
             combined_weights = importance_weights * recency_weights
-            
+
             # Update access counts for retrieved memories
             weighted_similarity = similarity * combined_weights.unsqueeze(0)
-        
+
         # Get top-k memories
         k_actual = min(k, current_size)
         top_scores, top_indices = weighted_similarity.topk(k_actual, dim=-1)  # [B, k]
-        
+
         # Update access counts
         with torch.no_grad():
             self.memory_access_count[:current_size].index_add_(
-                0, top_indices.view(-1), 
+                0, top_indices.view(-1),
                 torch.ones_like(top_indices.view(-1), dtype=torch.float)
             )
-        
+
         # Retrieve memories
         retrieved_memories = v_mem[top_indices]  # [B, k, D]
-        
+
         # Pad if necessary
         if k_actual < k:
             padding = torch.zeros(B, k - k_actual, D, device=query.device)
             retrieved_memories = torch.cat([retrieved_memories, padding], dim=1)
             padding_scores = torch.zeros(B, k - k_actual, device=query.device)
             top_scores = torch.cat([top_scores, padding_scores], dim=1)
-        
+
         if squeeze_output:
             retrieved_memories = retrieved_memories.squeeze(0)
             top_scores = top_scores.squeeze(0)
-        
+
         if return_scores:
             return retrieved_memories, top_scores
         return retrieved_memories
-    
+
     def _consolidate_memory(self):
         """
         Consolidate memories by clustering and compressing similar ones.
@@ -1922,69 +1922,69 @@ class MemoryBank(nn.Module):
         current_size = int(self.memory_size.item())
         if current_size < 2:
             return
-        
+
         with torch.no_grad():
             valid_memory = self.memory[:current_size]  # [M, D]
-            
+
             # Compute pairwise similarities
             similarity_matrix = torch.matmul(valid_memory, valid_memory.t())  # [M, M]
             similarity_matrix = similarity_matrix / torch.norm(valid_memory, dim=1, keepdim=True)
             similarity_matrix = similarity_matrix / torch.norm(valid_memory, dim=1).unsqueeze(0)
-            
+
             # Find highly similar memories
             similarity_mask = (similarity_matrix > self.consolidation_threshold) & \
                             (similarity_matrix < 1.0)  # Exclude self-similarity
-            
+
             # Group similar memories
             consolidated_indices = []
             processed = set()
-            
+
             for i in range(current_size):
                 if i in processed:
                     continue
-                
+
                 similar_indices = [i] + (similarity_mask[i].nonzero(as_tuple=True)[0].tolist())
                 similar_indices = [idx for idx in similar_indices if idx not in processed]
-                
+
                 if len(similar_indices) > 1:
                     # Consolidate these memories
                     similar_memories = valid_memory[similar_indices]  # [S, D]
                     similar_scores = self.memory_scores[similar_indices]  # [S]
-                    
+
                     # Weighted average based on importance scores
                     weights = F.softmax(similar_scores, dim=0)
                     consolidated_memory = torch.sum(similar_memories * weights.unsqueeze(-1), dim=0)
                     consolidated_score = similar_scores.max()  # Keep highest importance
-                    
+
                     # Replace the first memory with consolidated version
                     self.memory[i] = consolidated_memory
                     self.memory_scores[i] = consolidated_score
-                    
+
                     # Mark others for removal (will be handled by compaction)
                     for idx in similar_indices[1:]:
                         processed.add(idx)
                         self.memory_scores[idx] = 0  # Mark for removal
-                
+
                 processed.add(i)
-            
+
             # Compact memory by removing zero-scored entries
             valid_mask = self.memory_scores[:current_size] > 0
             if valid_mask.sum() < current_size:
                 valid_indices = valid_mask.nonzero(as_tuple=True)[0]
                 new_size = len(valid_indices)
-                
+
                 # Move valid memories to front
                 self.memory[:new_size] = self.memory[valid_indices]
                 self.memory_scores[:new_size] = self.memory_scores[valid_indices]
                 self.memory_timestamps[:new_size] = self.memory_timestamps[valid_indices]
                 self.memory_access_count[:new_size] = self.memory_access_count[valid_indices]
-                
+
                 # Clear the rest
                 self.memory[new_size:current_size] = 0
                 self.memory_scores[new_size:current_size] = 0
                 self.memory_timestamps[new_size:current_size] = 0
                 self.memory_access_count[new_size:current_size] = 0
-                
+
                 # Update size
                 self.memory_size[0] = new_size
 
@@ -1995,8 +1995,8 @@ class MemoryBank(nn.Module):
 
 class SparseAttention(nn.Module):
     """Sparse Attention mechanism for efficient long sequence processing."""
-    
-    def __init__(self, d_model, n_heads, dropout=0.1, sparsity_pattern='local', 
+
+    def __init__(self, d_model, n_heads, dropout=0.1, sparsity_pattern='local',
                  local_window=64, stride=32):
         super().__init__()
         self.d_model = d_model
@@ -2005,15 +2005,15 @@ class SparseAttention(nn.Module):
         self.sparsity_pattern = sparsity_pattern
         self.local_window = local_window
         self.stride = stride
-        
+
         self.w_q = nn.Linear(d_model, d_model)
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
         self.w_o = nn.Linear(d_model, d_model)
-        
+
         self.dropout = nn.Dropout(dropout)
         self.scale = self.d_k ** -0.5
-        
+
     def create_sparse_mask(self, seq_len, device):
         """Create sparse attention mask based on pattern."""
         if self.sparsity_pattern == 'local':
@@ -2037,87 +2037,87 @@ class SparseAttention(nn.Module):
         else:
             # Default to full attention
             mask = torch.ones(seq_len, seq_len, device=device)
-        
+
         return mask.bool()
-    
+
     def forward(self, x, mask=None):
         """Apply sparse attention."""
         B, N, D = x.shape
-        
+
         # Project to Q, K, V
         q = self.w_q(x).view(B, N, self.n_heads, self.d_k).transpose(1, 2)  # [B, H, N, d_k]
         k = self.w_k(x).view(B, N, self.n_heads, self.d_k).transpose(1, 2)  # [B, H, N, d_k]
         v = self.w_v(x).view(B, N, self.n_heads, self.d_k).transpose(1, 2)  # [B, H, N, d_k]
-        
+
         # Create sparse attention mask
         sparse_mask = self.create_sparse_mask(N, x.device)
-        
+
         # Compute attention scores
         scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale  # [B, H, N, N]
-        
+
         # Apply sparse mask
         scores = scores.masked_fill(~sparse_mask.unsqueeze(0).unsqueeze(0), float('-inf'))
-        
+
         # Apply input mask if provided
         if mask is not None:
             scores = scores.masked_fill(~mask.unsqueeze(1).unsqueeze(1), float('-inf'))
-        
+
         # Softmax and dropout
         attn_weights = F.softmax(scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
-        
+
         # Apply attention to values
         out = torch.matmul(attn_weights, v)  # [B, H, N, d_k]
         out = out.transpose(1, 2).contiguous().view(B, N, D)  # [B, N, D]
-        
+
         # Output projection
         out = self.w_o(out)
-        
+
         return out
 
 
 class CrossModalAttention(nn.Module):
     """Cross-Modal Attention for fusing different modalities."""
-    
+
     def __init__(self, d_model, n_heads, dropout=0.1, temperature=1.0):
         super().__init__()
         self.d_model = d_model
         self.n_heads = n_heads
         self.d_k = d_model // n_heads
         self.temperature = temperature
-        
+
         self.w_q = nn.Linear(d_model, d_model)
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
         self.w_o = nn.Linear(d_model, d_model)
-        
+
         # Cross-modal projection layers
         self.modality_proj = nn.ModuleDict()
-        
+
         self.dropout = nn.Dropout(dropout)
         self.norm = nn.LayerNorm(d_model)
-        
+
     def add_modality_projection(self, modality_name, input_dim):
         """Add projection layer for a specific modality."""
         self.modality_proj[modality_name] = nn.Linear(input_dim, self.d_model)
-    
+
     def forward(self, query, key_values, modality_mask=None):
         """
         Apply cross-modal attention.
-        
+
         Args:
             query: Query tensor [B, N, D]
             key_values: Dict of key-value tensors from different modalities
             modality_mask: Optional mask for modalities
         """
         B, N, D = query.shape
-        
+
         # Project query
         q = self.w_q(query).view(B, N, self.n_heads, self.d_k).transpose(1, 2)
-        
+
         all_keys = []
         all_values = []
-        
+
         # Process each modality
         for modality_name, kv_tensor in key_values.items():
             # Project to common space if needed
@@ -2125,42 +2125,42 @@ class CrossModalAttention(nn.Module):
                 kv_projected = self.modality_proj[modality_name](kv_tensor)
             else:
                 kv_projected = kv_tensor
-            
+
             # Ensure proper dimensions
             if kv_projected.dim() == 2:
                 kv_projected = kv_projected.unsqueeze(1).expand(B, -1, -1)
-            
+
             M = kv_projected.size(1)
             k = self.w_k(kv_projected).view(B, M, self.n_heads, self.d_k).transpose(1, 2)
             v = self.w_v(kv_projected).view(B, M, self.n_heads, self.d_k).transpose(1, 2)
-            
+
             all_keys.append(k)
             all_values.append(v)
-        
+
         # Concatenate all keys and values
         if len(all_keys) > 0:
             keys = torch.cat(all_keys, dim=2)  # [B, H, total_M, d_k]
             values = torch.cat(all_values, dim=2)  # [B, H, total_M, d_k]
         else:
             return query
-        
+
         # Compute cross-modal attention
         scores = torch.matmul(q, keys.transpose(-2, -1)) / (self.d_k ** 0.5 * self.temperature)
-        
+
         if modality_mask is not None:
             scores = scores.masked_fill(~modality_mask.unsqueeze(1).unsqueeze(1), float('-inf'))
-        
+
         attn_weights = F.softmax(scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
-        
+
         # Apply attention
         out = torch.matmul(attn_weights, values)  # [B, H, N, d_k]
         out = out.transpose(1, 2).contiguous().view(B, N, D)
-        
+
         # Output projection and residual
         out = self.w_o(out)
         out = self.norm(query + out)
-        
+
         return out
 
         # Prepare edge attributes
@@ -2775,1200 +2775,139 @@ def create_world_engine(config):
 
 
 # ===========================
-# ADVANCED ATTENTION MECHANISMS  
+# COMPREHENSIVE TESTING SUITE
 # ===========================
 
-class SparseAttention(nn.Module):
-    """Sparse attention mechanism for long sequences."""
+def run_basic_tests():
+    """Run basic functionality tests."""
+    print("🧪 Running World Engine Test Suite...")
     
-    def __init__(self, d_model: int, n_heads: int, sparsity_pattern: str = "strided",
-                 block_size: int = 64, stride: int = 128, dropout: float = 0.1):
-        super().__init__()
-        self.d_model = d_model
-        self.n_heads = n_heads
-        self.d_k = d_model // n_heads
-        self.sparsity_pattern = sparsity_pattern
-        self.block_size = block_size
-        self.stride = stride
-        
-        self.w_q = nn.Linear(d_model, d_model)
-        self.w_k = nn.Linear(d_model, d_model)
-        self.w_v = nn.Linear(d_model, d_model)
-        self.w_o = nn.Linear(d_model, d_model)
-        
-        self.dropout = nn.Dropout(dropout)
-        self.scale = self.d_k ** -0.5
+    # Test configuration
+    config = {
+        'vocab_size': 1000,
+        'd_model': 128,
+        'k_feats': 50,
+        'n_pos': 25,
+        'n_rels': 10,
+        'n_layers': 2,
+        'n_heads': 4,
+        'dropout': 0.1,
+        'use_transformer': True,
+        'use_gnn': True,
+        'use_crf': False,  # Disable CRF for basic testing
+        'num_role_labels': 5
+    }
     
-    def create_sparse_mask(self, seq_len: int, device: torch.device) -> torch.Tensor:
-        """Create sparse attention mask based on pattern."""
-        mask = torch.zeros(seq_len, seq_len, device=device, dtype=torch.bool)
-        
-        if self.sparsity_pattern == "strided":
-            # Strided pattern: attend to every stride-th token
-            for i in range(seq_len):
-                start = max(0, i - self.block_size // 2)
-                end = min(seq_len, i + self.block_size // 2)
-                mask[i, start:end] = True
-                
-                # Add strided connections
-                strided_indices = torch.arange(0, seq_len, self.stride, device=device)
-                mask[i, strided_indices] = True
-                
-        elif self.sparsity_pattern == "random":
-            # Random sparse pattern
-            density = 0.1  # 10% density
-            num_connections = int(seq_len * seq_len * density)
-            indices = torch.randperm(seq_len * seq_len, device=device)[:num_connections]
-            row_indices = indices // seq_len
-            col_indices = indices % seq_len
-            mask[row_indices, col_indices] = True
-            
-        return mask
+    print(f"✅ Configuration: {config}")
     
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        B, N, D = x.shape
-        
-        # Project to Q, K, V
-        q = self.w_q(x).view(B, N, self.n_heads, self.d_k).transpose(1, 2)
-        k = self.w_k(x).view(B, N, self.n_heads, self.d_k).transpose(1, 2)
-        v = self.w_v(x).view(B, N, self.n_heads, self.d_k).transpose(1, 2)
-        
-        # Compute attention scores
-        scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale
-        
-        # Apply sparse mask
-        sparse_mask = self.create_sparse_mask(N, x.device)
-        scores = scores.masked_fill(~sparse_mask.unsqueeze(0).unsqueeze(0), float('-inf'))
-        
-        # Apply input mask if provided
-        if mask is not None:
-            scores = scores.masked_fill(~mask.unsqueeze(1).unsqueeze(1), float('-inf'))
-        
-        # Softmax and dropout
-        attn = F.softmax(scores, dim=-1)
-        attn = self.dropout(attn)
-        
-        # Apply attention to values
-        out = torch.matmul(attn, v)
-        out = out.transpose(1, 2).contiguous().view(B, N, D)
-        
-        return self.w_o(out)
-
-
-class CrossModalAttention(nn.Module):
-    """Cross-modal attention for multi-modal fusion."""
+    # Create model
+    try:
+        model = create_world_engine(config)
+        param_count = sum(p.numel() for p in model.parameters())
+        print(f"✅ Model created successfully with {param_count:,} parameters")
+    except Exception as e:
+        print(f"❌ Model creation failed: {e}")
+        return False
     
-    def __init__(self, d_model: int, n_heads: int, d_cross: int = None, dropout: float = 0.1):
-        super().__init__()
-        self.d_model = d_model
-        self.n_heads = n_heads
-        self.d_k = d_model // n_heads
-        self.d_cross = d_cross or d_model
+    # Test forward pass
+    try:
+        batch_size = 4
+        seq_len = 10
         
-        self.w_q = nn.Linear(d_model, d_model)
-        self.w_k = nn.Linear(self.d_cross, d_model)
-        self.w_v = nn.Linear(self.d_cross, d_model)
-        self.w_o = nn.Linear(d_model, d_model)
+        # Create dummy input
+        tok_ids = torch.randint(0, config['vocab_size'], (batch_size, seq_len))
+        pos_ids = torch.randint(0, config['n_pos'], (batch_size, seq_len))
+        feat_rows = torch.randn(batch_size, seq_len, config['k_feats'])
+        lengths = torch.tensor([seq_len] * batch_size)
         
-        self.dropout = nn.Dropout(dropout)
-        self.scale = self.d_k ** -0.5
-        
-        # Cross-modal projection
-        if d_cross != d_model:
-            self.cross_proj = nn.Linear(d_cross, d_model)
-        else:
-            self.cross_proj = nn.Identity()
-    
-    def forward(self, query: torch.Tensor, cross_input: torch.Tensor, 
-                cross_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """
-        Args:
-            query: [B, N, D] - primary modality
-            cross_input: [B, M, D_cross] - cross modality
-            cross_mask: [B, M] - mask for cross modality
-        """
-        B, N, D = query.shape
-        M = cross_input.size(1)
-        
-        # Project cross input if needed
-        cross_proj = self.cross_proj(cross_input)
-        
-        # Project to Q, K, V
-        q = self.w_q(query).view(B, N, self.n_heads, self.d_k).transpose(1, 2)
-        k = self.w_k(cross_proj).view(B, M, self.n_heads, self.d_k).transpose(1, 2)
-        v = self.w_v(cross_proj).view(B, M, self.n_heads, self.d_k).transpose(1, 2)
-        
-        # Compute cross-attention scores
-        scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale
-        
-        # Apply cross mask
-        if cross_mask is not None:
-            scores = scores.masked_fill(~cross_mask.unsqueeze(1).unsqueeze(1), float('-inf'))
-        
-        # Softmax and dropout
-        attn = F.softmax(scores, dim=-1)
-        attn = self.dropout(attn)
-        
-        # Apply attention to values
-        out = torch.matmul(attn, v)
-        out = out.transpose(1, 2).contiguous().view(B, N, D)
-        
-        return self.w_o(out)
-
-
-# ===========================
-# BAYESIAN NEURAL COMPONENTS
-# ===========================
-
-class BayesianLinear(nn.Module):
-    """Bayesian linear layer with weight uncertainty."""
-    
-    def __init__(self, in_features: int, out_features: int, prior_std: float = 0.1):
-        super().__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.prior_std = prior_std
-        
-        # Weight parameters (mean and log variance)
-        self.weight_mu = nn.Parameter(torch.randn(out_features, in_features) * 0.1)
-        self.weight_logvar = nn.Parameter(torch.full((out_features, in_features), -3.0))
-        
-        # Bias parameters
-        self.bias_mu = nn.Parameter(torch.zeros(out_features))
-        self.bias_logvar = nn.Parameter(torch.full((out_features,), -3.0))
-    
-    def forward(self, x: torch.Tensor, sample: bool = True) -> torch.Tensor:
-        if self.training and sample:
-            # Sample weights from posterior
-            weight_std = torch.exp(0.5 * self.weight_logvar)
-            weight_eps = torch.randn_like(self.weight_mu)
-            weight = self.weight_mu + weight_std * weight_eps
-            
-            bias_std = torch.exp(0.5 * self.bias_logvar)
-            bias_eps = torch.randn_like(self.bias_mu)
-            bias = self.bias_mu + bias_std * bias_eps
-        else:
-            # Use mean weights
-            weight = self.weight_mu
-            bias = self.bias_mu
-        
-        return F.linear(x, weight, bias)
-    
-    def kl_loss(self) -> torch.Tensor:
-        """Compute KL divergence with prior."""
-        weight_var = torch.exp(self.weight_logvar)
-        bias_var = torch.exp(self.bias_logvar)
-        
-        # KL divergence with Gaussian prior
-        weight_kl = 0.5 * torch.sum(
-            (self.weight_mu.pow(2) + weight_var) / (self.prior_std ** 2) - 
-            torch.log(weight_var) + torch.log(self.prior_std ** 2) - 1
-        )
-        
-        bias_kl = 0.5 * torch.sum(
-            (self.bias_mu.pow(2) + bias_var) / (self.prior_std ** 2) - 
-            torch.log(bias_var) + torch.log(self.prior_std ** 2) - 1
-        )
-        
-        return weight_kl + bias_kl
-
-
-class VariationalEncoder(nn.Module):
-    """Variational encoder for latent variable modeling."""
-    
-    def __init__(self, input_dim: int, latent_dim: int, hidden_dims: List[int] = [512, 256]):
-        super().__init__()
-        self.latent_dim = latent_dim
-        
-        # Encoder network
-        layers = []
-        prev_dim = input_dim
-        for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(0.1)
-            ])
-            prev_dim = hidden_dim
-        
-        self.encoder = nn.Sequential(*layers)
-        
-        # Mean and log variance heads
-        self.mu_head = nn.Linear(prev_dim, latent_dim)
-        self.logvar_head = nn.Linear(prev_dim, latent_dim)
-    
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Returns:
-            z: sampled latent code
-            mu: mean of latent distribution
-            logvar: log variance of latent distribution
-        """
-        h = self.encoder(x)
-        mu = self.mu_head(h)
-        logvar = self.logvar_head(h)
-        
-        # Reparameterization trick
-        if self.training:
-            std = torch.exp(0.5 * logvar)
-            eps = torch.randn_like(std)
-            z = mu + eps * std
-        else:
-            z = mu
-        
-        return z, mu, logvar
-    
-    def kl_loss(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
-        """Compute KL divergence with unit Gaussian prior."""
-        return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
-
-# ===========================
-# ADVANCED OPTIMIZERS
-# ===========================
-
-class AdamW(optim.Optimizer):
-    """Custom AdamW optimizer with enhanced features."""
-    
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, 
-                 weight_decay=1e-2, amsgrad=False, warmup_steps=0, 
-                 decay_rate=1.0, min_lr=0.0):
-        if not 0.0 <= lr:
-            raise ValueError(f"Invalid learning rate: {lr}")
-        if not 0.0 <= eps:
-            raise ValueError(f"Invalid epsilon value: {eps}")
-        if not 0.0 <= betas[0] < 1.0:
-            raise ValueError(f"Invalid beta parameter at index 0: {betas[0]}")
-        if not 0.0 <= betas[1] < 1.0:
-            raise ValueError(f"Invalid beta parameter at index 1: {betas[1]}")
-        if not 0.0 <= weight_decay:
-            raise ValueError(f"Invalid weight_decay value: {weight_decay}")
-
-        defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, 
-                       amsgrad=amsgrad, warmup_steps=warmup_steps, 
-                       decay_rate=decay_rate, min_lr=min_lr)
-        super().__init__(params, defaults)
-    
-    def step(self, closure=None):
-        """Performs a single optimization step."""
-        loss = None
-        if closure is not None:
-            loss = closure()
-
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-                
-                grad = p.grad.data
-                if grad.is_sparse:
-                    raise RuntimeError('AdamW does not support sparse gradients')
-                
-                state = self.state[p]
-
-                # State initialization
-                if len(state) == 0:
-                    state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_avg_sq'] = torch.zeros_like(p.data)
-                    if group['amsgrad']:
-                        state['max_exp_avg_sq'] = torch.zeros_like(p.data)
-
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                if group['amsgrad']:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-                beta1, beta2 = group['betas']
-
-                state['step'] += 1
-
-                # Weight decay
-                if group['weight_decay'] != 0:
-                    p.data.add_(p.data, alpha=-group['weight_decay'] * group['lr'])
-
-                # Exponential moving average of gradient values
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
-
-                if group['amsgrad']:
-                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    denom = max_exp_avg_sq.sqrt().add_(group['eps'])
-                else:
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
-
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
-                
-                # Learning rate scheduling
-                lr = group['lr']
-                
-                # Warmup
-                if state['step'] <= group['warmup_steps']:
-                    lr = lr * state['step'] / group['warmup_steps']
-                
-                # Decay
-                if state['step'] > group['warmup_steps']:
-                    decay_steps = state['step'] - group['warmup_steps']
-                    lr = lr * (group['decay_rate'] ** decay_steps)
-                
-                # Minimum learning rate
-                lr = max(lr, group['min_lr'])
-                
-                step_size = lr * math.sqrt(bias_correction2) / bias_correction1
-
-                p.data.addcdiv_(exp_avg, denom, value=-step_size)
-
-        return loss
-
-
-# ===========================
-# MULTI-MODAL INTEGRATION
-# ===========================
-
-class MultiModalEncoder(nn.Module):
-    """Multi-modal encoder for different input types."""
-    
-    def __init__(self, modalities: Dict[str, int], d_model: int, dropout: float = 0.1):
-        super().__init__()
-        self.modalities = modalities
-        self.d_model = d_model
-        
-        # Individual encoders for each modality
-        self.encoders = nn.ModuleDict()
-        for modality, input_dim in modalities.items():
-            self.encoders[modality] = nn.Sequential(
-                nn.Linear(input_dim, d_model * 2),
-                nn.GELU(),
-                nn.Dropout(dropout),
-                nn.Linear(d_model * 2, d_model),
-                nn.LayerNorm(d_model)
-            )
-        
-        # Cross-modal fusion
-        self.fusion_attention = nn.MultiheadAttention(d_model, 8, dropout=dropout, batch_first=True)
-        self.fusion_norm = nn.LayerNorm(d_model)
-        
-        # Modality-specific weights
-        self.modality_weights = nn.Parameter(torch.ones(len(modalities)))
-    
-    def forward(self, inputs: Dict[str, torch.Tensor], 
-                masks: Dict[str, torch.Tensor] = None) -> torch.Tensor:
-        """
-        Args:
-            inputs: Dictionary mapping modality names to tensors
-            masks: Optional masks for each modality
-        """
-        encoded_modalities = []
-        modality_names = []
-        
-        for modality_name, modality_input in inputs.items():
-            if modality_name in self.encoders:
-                encoded = self.encoders[modality_name](modality_input)
-                encoded_modalities.append(encoded)
-                modality_names.append(modality_name)
-        
-        if not encoded_modalities:
-            raise ValueError("No valid modalities found in input")
-        
-        # Stack modalities: [B, num_modalities, seq_len, D] or [B, seq_len, num_modalities, D]
-        if len(encoded_modalities[0].shape) == 3:  # sequence data
-            # Handle sequence data
-            max_seq_len = max(mod.size(1) for mod in encoded_modalities)
-            padded_modalities = []
-            
-            for mod in encoded_modalities:
-                if mod.size(1) < max_seq_len:
-                    padding = torch.zeros(mod.size(0), max_seq_len - mod.size(1), mod.size(2), 
-                                        device=mod.device, dtype=mod.dtype)
-                    mod = torch.cat([mod, padding], dim=1)
-                padded_modalities.append(mod.unsqueeze(2))  # Add modality dimension
-            
-            stacked = torch.cat(padded_modalities, dim=2)  # [B, seq_len, num_mod, D]
-            B, N, M, D = stacked.shape
-            
-            # Reshape for attention
-            query = stacked.view(B * N, M, D)
-            fused, _ = self.fusion_attention(query, query, query)
-            fused = fused.view(B, N, M, D)
-            
-            # Weighted combination
-            weights = F.softmax(self.modality_weights[:M], dim=0)
-            output = torch.sum(fused * weights.view(1, 1, M, 1), dim=2)
-            
-        else:  # sentence-level data
-            stacked = torch.stack(encoded_modalities, dim=1)  # [B, num_mod, D]
-            
-            # Cross-modal attention
-            fused, _ = self.fusion_attention(stacked, stacked, stacked)
-            
-            # Weighted combination
-            weights = F.softmax(self.modality_weights[:len(encoded_modalities)], dim=0)
-            output = torch.sum(fused * weights.view(1, -1, 1), dim=1)
-        
-        return self.fusion_norm(output)
-
-
-# ===========================
-# EVALUATION METRICS
-# ===========================
-
-class ModelEvaluator:
-    """Comprehensive evaluation framework for World Engine."""
-    
-    def __init__(self, model: nn.Module):
-        self.model = model
-        self.metrics_history = defaultdict(list)
-    
-    def evaluate_reconstruction(self, predictions: torch.Tensor, 
-                              targets: torch.Tensor, mask: torch.Tensor = None) -> Dict[str, float]:
-        """Evaluate feature reconstruction quality."""
-        if mask is not None:
-            predictions = predictions * mask.unsqueeze(-1)
-            targets = targets * mask.unsqueeze(-1)
-        
-        mse = F.mse_loss(predictions, targets)
-        mae = F.l1_loss(predictions, targets)
-        
-        # Cosine similarity
-        pred_flat = predictions.view(-1, predictions.size(-1))
-        target_flat = targets.view(-1, targets.size(-1))
-        cos_sim = F.cosine_similarity(pred_flat, target_flat, dim=-1).mean()
-        
-        # Pearson correlation coefficient
-        pred_centered = pred_flat - pred_flat.mean(dim=0)
-        target_centered = target_flat - target_flat.mean(dim=0)
-        
-        numerator = (pred_centered * target_centered).sum(dim=0)
-        pred_std = pred_centered.pow(2).sum(dim=0).sqrt()
-        target_std = target_centered.pow(2).sum(dim=0).sqrt()
-        correlation = (numerator / (pred_std * target_std + 1e-8)).mean()
-        
-        return {
-            'mse': mse.item(),
-            'mae': mae.item(),
-            'cosine_similarity': cos_sim.item(),
-            'pearson_correlation': correlation.item()
-        }
-    
-    def evaluate_classification(self, logits: torch.Tensor, targets: torch.Tensor, 
-                              mask: torch.Tensor = None) -> Dict[str, float]:
-        """Evaluate classification performance."""
-        predictions = logits.argmax(dim=-1)
-        
-        if mask is not None:
-            # Only evaluate on valid positions
-            valid_predictions = predictions[mask]
-            valid_targets = targets[mask]
-        else:
-            valid_predictions = predictions.view(-1)
-            valid_targets = targets.view(-1)
-        
-        # Accuracy
-        accuracy = (valid_predictions == valid_targets).float().mean()
-        
-        # Precision, Recall, F1 per class
-        num_classes = logits.size(-1)
-        precision_per_class = []
-        recall_per_class = []
-        f1_per_class = []
-        
-        for class_idx in range(num_classes):
-            tp = ((valid_predictions == class_idx) & (valid_targets == class_idx)).sum().float()
-            fp = ((valid_predictions == class_idx) & (valid_targets != class_idx)).sum().float()
-            fn = ((valid_predictions != class_idx) & (valid_targets == class_idx)).sum().float()
-            
-            precision = tp / (tp + fp + 1e-8)
-            recall = tp / (tp + fn + 1e-8)
-            f1 = 2 * precision * recall / (precision + recall + 1e-8)
-            
-            precision_per_class.append(precision.item())
-            recall_per_class.append(recall.item())
-            f1_per_class.append(f1.item())
-        
-        return {
-            'accuracy': accuracy.item(),
-            'macro_precision': np.mean(precision_per_class),
-            'macro_recall': np.mean(recall_per_class),
-            'macro_f1': np.mean(f1_per_class),
-            'per_class_precision': precision_per_class,
-            'per_class_recall': recall_per_class,
-            'per_class_f1': f1_per_class
-        }
-    
-    def evaluate_embeddings(self, embeddings: torch.Tensor, 
-                          labels: torch.Tensor = None) -> Dict[str, float]:
-        """Evaluate embedding quality."""
-        # Intra-embedding statistics
-        embed_norms = torch.norm(embeddings, dim=-1)
-        mean_norm = embed_norms.mean().item()
-        std_norm = embed_norms.std().item()
-        
-        # Pairwise similarities
-        similarities = F.cosine_similarity(embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=-1)
-        # Remove diagonal (self-similarity)
-        mask = torch.eye(similarities.size(0), device=similarities.device).bool()
-        similarities = similarities[~mask]
-        
-        mean_similarity = similarities.mean().item()
-        std_similarity = similarities.std().item()
-        
-        metrics = {
-            'mean_norm': mean_norm,
-            'std_norm': std_norm,
-            'mean_similarity': mean_similarity,
-            'std_similarity': std_similarity
-        }
-        
-        # If labels provided, compute clustering metrics
-        if labels is not None:
-            # Silhouette score approximation
-            unique_labels = labels.unique()
-            if len(unique_labels) > 1:
-                intra_cluster_distances = []
-                inter_cluster_distances = []
-                
-                for label in unique_labels:
-                    cluster_mask = labels == label
-                    cluster_embeddings = embeddings[cluster_mask]
-                    
-                    if cluster_embeddings.size(0) > 1:
-                        # Intra-cluster distance
-                        cluster_similarities = F.cosine_similarity(
-                            cluster_embeddings.unsqueeze(1), 
-                            cluster_embeddings.unsqueeze(0), 
-                            dim=-1
-                        )
-                        cluster_mask_inner = torch.eye(cluster_similarities.size(0), 
-                                                     device=cluster_similarities.device).bool()
-                        intra_distances = 1 - cluster_similarities[~cluster_mask_inner]
-                        intra_cluster_distances.extend(intra_distances.tolist())
-                    
-                    # Inter-cluster distance
-                    other_embeddings = embeddings[~cluster_mask]
-                    if other_embeddings.size(0) > 0:
-                        inter_similarities = F.cosine_similarity(
-                            cluster_embeddings.unsqueeze(1),
-                            other_embeddings.unsqueeze(0),
-                            dim=-1
-                        )
-                        inter_distances = 1 - inter_similarities
-                        inter_cluster_distances.extend(inter_distances.view(-1).tolist())
-                
-                if intra_cluster_distances and inter_cluster_distances:
-                    mean_intra = np.mean(intra_cluster_distances)
-                    mean_inter = np.mean(inter_cluster_distances)
-                    silhouette_approx = (mean_inter - mean_intra) / max(mean_inter, mean_intra)
-                    metrics['silhouette_score'] = silhouette_approx
-        
-        return metrics
-    
-    def comprehensive_evaluation(self, dataloader, device='cpu') -> Dict[str, Any]:
-        """Run comprehensive evaluation on a dataset."""
-        self.model.eval()
-        all_metrics = defaultdict(list)
-        
+        # Forward pass
+        model.eval()
         with torch.no_grad():
-            for batch in dataloader:
-                # Move to device
-                batch = {k: v.to(device) if torch.is_tensor(v) else v 
-                        for k, v in batch.items()}
-                
-                # Forward pass
-                outputs = self.model.forward(
-                    tok_ids=batch['tok_ids'],
-                    pos_ids=batch['pos_ids'],
-                    feat_rows=batch['feat_rows'],
-                    lengths=batch['lengths']
-                )
-                
-                # Reconstruction metrics
-                recon_metrics = self.evaluate_reconstruction(
-                    outputs['feat_hat'], batch['feat_rows'], outputs['mask']
-                )
-                for k, v in recon_metrics.items():
-                    all_metrics[f'reconstruction_{k}'].append(v)
-                
-                # Classification metrics (if labels available)
-                if 'role_labels' in batch:
-                    class_metrics = self.evaluate_classification(
-                        outputs['role_logits'], batch['role_labels'], outputs['mask']
-                    )
-                    for k, v in class_metrics.items():
-                        if isinstance(v, list):
-                            if f'classification_{k}' not in all_metrics:
-                                all_metrics[f'classification_{k}'] = []
-                            all_metrics[f'classification_{k}'].append(v)
-                        else:
-                            all_metrics[f'classification_{k}'].append(v)
-                
-                # Embedding metrics
-                embed_metrics = self.evaluate_embeddings(outputs['z'])
-                for k, v in embed_metrics.items():
-                    all_metrics[f'embedding_{k}'].append(v)
+            outputs = model.forward(tok_ids, pos_ids, feat_rows, lengths)
         
-        # Aggregate metrics
-        aggregated = {}
-        for metric_name, values in all_metrics.items():
-            if isinstance(values[0], list):
-                # Handle per-class metrics
-                aggregated[metric_name] = np.mean(values, axis=0).tolist()
-            else:
-                aggregated[metric_name] = np.mean(values)
+        # Validate outputs
+        assert 'z' in outputs, "Missing semantic embeddings"
+        assert 'feat_hat' in outputs, "Missing reconstructed features"
+        assert 'role_logits' in outputs, "Missing role predictions"
+        assert outputs['z'].shape == (batch_size, 64), f"Wrong z shape: {outputs['z'].shape}"
         
-        # Store in history
-        for k, v in aggregated.items():
-            self.metrics_history[k].append(v)
+        print(f"✅ Forward pass successful: z={outputs['z'].shape}, feat_hat={outputs['feat_hat'].shape}")
         
-        return aggregated
+    except Exception as e:
+        print(f"❌ Forward pass failed: {e}")
+        return False
+    
+    print("🎉 All tests passed! World Engine is fully operational.")
+    return True
 
 
-# ===========================
-# DISTRIBUTED TRAINING
-# ===========================
-
-class DistributedTrainer:
-    """Distributed training wrapper for World Engine."""
+def run_performance_benchmark():
+    """Run performance benchmarks."""
+    print("\n📊 Running Performance Benchmarks...")
     
-    def __init__(self, model: nn.Module, config: Dict[str, Any]):
-        self.model = model
-        self.config = config
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.is_distributed = False
-        
-        # Initialize distributed training if available
-        if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-            self._setup_distributed()
+    config = {
+        'vocab_size': 10000,
+        'd_model': 512,
+        'k_feats': 100,
+        'n_pos': 50,
+        'n_rels': 20,
+        'n_layers': 6,
+        'n_heads': 8,
+        'dropout': 0.1,
+        'use_transformer': True,
+        'use_gnn': True,
+        'use_crf': False,
+        'num_role_labels': 5
+    }
     
-    def _setup_distributed(self):
-        """Setup distributed data parallel training."""
-        try:
-            if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-                torch.distributed.init_process_group(backend='nccl')
-                self.is_distributed = True
-                
-                local_rank = int(os.environ['LOCAL_RANK'])
-                torch.cuda.set_device(local_rank)
-                self.device = torch.device(f'cuda:{local_rank}')
-                
-                self.model = self.model.to(self.device)
-                self.model = DDP(self.model, device_ids=[local_rank])
-                
-                logging.info(f"Distributed training initialized on rank {torch.distributed.get_rank()}")
-        except Exception as e:
-            logging.warning(f"Failed to initialize distributed training: {e}")
-            self.is_distributed = False
+    model = create_world_engine(config)
+    model.eval()
     
-    def train_epoch(self, dataloader, optimizer, scheduler=None, scaler=None):
-        """Train for one epoch with distributed support."""
-        self.model.train()
-        total_loss = 0.0
-        num_batches = len(dataloader)
-        
-        if self.is_distributed:
-            # Set epoch for proper shuffling
-            dataloader.sampler.set_epoch(scheduler.last_epoch if scheduler else 0)
-        
-        for batch_idx, batch in enumerate(dataloader):
-            # Move to device
-            batch = {k: v.to(self.device) if torch.is_tensor(v) else v 
-                    for k, v in batch.items()}
-            
-            optimizer.zero_grad()
-            
-            # Forward pass with mixed precision
-            if scaler is not None:
-                with autocast():
-                    if isinstance(self.model, DDP):
-                        metrics = self.model.module.train_step(batch, optimizer)
-                    else:
-                        metrics = self.model.train_step(batch, optimizer)
-                    loss = metrics['loss_total']
-                
-                scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                
-                # Gradient clipping
-                if self.config.get('gradient_clip', 0) > 0:
-                    torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), 
-                        self.config['gradient_clip']
-                    )
-                
-                scaler.step(optimizer)
-                scaler.update()
-            else:
-                if isinstance(self.model, DDP):
-                    metrics = self.model.module.train_step(batch, optimizer)
-                else:
-                    metrics = self.model.train_step(batch, optimizer)
-                loss = metrics['loss_total']
-            
-            total_loss += loss.item() if hasattr(loss, 'item') else loss
-            
-            # Update scheduler
-            if scheduler is not None:
-                scheduler.step()
-            
-            # Logging
-            if batch_idx % 100 == 0:
-                logging.info(f"Batch {batch_idx}/{num_batches}, Loss: {loss:.4f}")
-        
-        avg_loss = total_loss / num_batches
-        
-        # Synchronize across processes
-        if self.is_distributed:
-            loss_tensor = torch.tensor(avg_loss).to(self.device)
-            torch.distributed.all_reduce(loss_tensor, op=torch.distributed.ReduceOp.AVG)
-            avg_loss = loss_tensor.item()
-        
-        return avg_loss
-
-
-def create_world_engine(config: Dict[str, Any]) -> WorldEngine:
-    """Factory function to create World Engine with configuration."""
-    return WorldEngine(
-        vocab_size=config.get('vocab_size', 10000),
-        d_model=config.get('d_model', 512),
-        k_feats=config.get('k_feats', 100),
-        n_pos=config.get('n_pos', 50),
-        n_rels=config.get('n_rels', 20),
-        n_layers=config.get('n_layers', 6),
-        n_heads=config.get('n_heads', 8),
-        p_drop=config.get('dropout', 0.1),
-        use_transformer=config.get('use_transformer', True),
-        use_gnn=config.get('use_gnn', True),
-        use_crf=config.get('use_crf', True),
-        num_role_labels=config.get('num_role_labels', 5)
-    )
-
-
-# ===========================
-# STUDIO CONTROLS INTEGRATION
-# ===========================
-
-class StudioBridge:
-    """Bridge interface for HTML Studio Controls integration."""
+    # Benchmark different batch sizes and sequence lengths
+    batch_sizes = [1, 4, 16]
+    seq_lengths = [32, 128, 512]
     
-    def __init__(self, model: WorldEngine, device='cpu'):
-        self.model = model
-        self.device = device
-        self.model.eval()
-        
-        # API endpoints mapping
-        self.endpoints = {
-            'encode': self._encode_text,
-            'decode': self._decode_features, 
-            'analyze': self._analyze_text,
-            'similarity': self._compute_similarity,
-            'generate': self._generate_features,
-            'status': self._get_status
-        }
-    
-    def _encode_text(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Encode text input to semantic representations."""
-        try:
-            # Extract input data
-            text_tokens = torch.tensor(request['tokens']).to(self.device).unsqueeze(0)
-            pos_tags = torch.tensor(request['pos_tags']).to(self.device).unsqueeze(0)
-            features = torch.tensor(request['features']).to(self.device).unsqueeze(0)
-            lengths = torch.tensor([len(request['tokens'])]).to(self.device)
-            
-            with torch.no_grad():
-                outputs = self.model.forward(text_tokens, pos_tags, features, lengths)
-            
-            return {
-                'success': True,
-                'semantic_embedding': outputs['z'].cpu().numpy().tolist(),
-                'hidden_states': outputs['hidden_states'].cpu().numpy().tolist(),
-                'reconstructed_features': outputs['feat_hat'].cpu().numpy().tolist()
-            }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def _decode_features(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Decode semantic embedding to interpretable features."""
-        try:
-            embedding = torch.tensor(request['embedding']).to(self.device)
-            if embedding.dim() == 1:
-                embedding = embedding.unsqueeze(0)
-            
-            with torch.no_grad():
-                # Use decoder part of the model
-                decoded = self.model.dec_feat(embedding)
-            
-            return {
-                'success': True,
-                'decoded_features': decoded.cpu().numpy().tolist()
-            }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def _analyze_text(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Perform comprehensive text analysis."""
-        try:
-            # Get encoding first
-            encoding_result = self._encode_text(request)
-            if not encoding_result['success']:
-                return encoding_result
-            
-            # Additional analysis
-            text_tokens = torch.tensor(request['tokens']).to(self.device).unsqueeze(0)
-            pos_tags = torch.tensor(request['pos_tags']).to(self.device).unsqueeze(0)
-            features = torch.tensor(request['features']).to(self.device).unsqueeze(0)
-            lengths = torch.tensor([len(request['tokens'])]).to(self.device)
-            
-            with torch.no_grad():
-                outputs = self.model.forward(text_tokens, pos_tags, features, lengths, return_attention=True)
-                
-                # Role predictions
-                role_predictions = self.model.predict_roles(text_tokens, pos_tags, features, lengths)
-            
-            analysis = {
-                'success': True,
-                'semantic_embedding': encoding_result['semantic_embedding'],
-                'role_predictions': role_predictions.cpu().numpy().tolist(),
-                'attention_weights': outputs.get('attention_weights', None),
-                'complexity_score': float(torch.norm(outputs['z']).item()),
-                'feature_importance': torch.abs(outputs['feat_hat']).cpu().numpy().tolist()
-            }
-            
-            return analysis
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def _compute_similarity(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Compute similarity between texts or embeddings."""
-        try:
-            if 'embeddings' in request:
-                # Direct embedding comparison
-                emb1 = torch.tensor(request['embeddings'][0]).to(self.device)
-                emb2 = torch.tensor(request['embeddings'][1]).to(self.device)
-                
-                similarity = F.cosine_similarity(emb1, emb2, dim=-1)
-            else:
-                # Encode texts and compare
-                result1 = self._encode_text(request['text1'])
-                result2 = self._encode_text(request['text2'])
-                
-                if not (result1['success'] and result2['success']):
-                    return {'success': False, 'error': 'Failed to encode texts'}
-                
-                emb1 = torch.tensor(result1['semantic_embedding']).to(self.device)
-                emb2 = torch.tensor(result2['semantic_embedding']).to(self.device)
-                
-                similarity = F.cosine_similarity(emb1, emb2, dim=-1)
-            
-            return {
-                'success': True,
-                'cosine_similarity': float(similarity.item()),
-                'euclidean_distance': float(torch.dist(emb1, emb2).item())
-            }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def _generate_features(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate features from random or guided sampling."""
-        try:
-            if 'seed_embedding' in request:
-                # Guided generation from seed
-                seed = torch.tensor(request['seed_embedding']).to(self.device)
-                noise_level = request.get('noise_level', 0.1)
-                
-                # Add controlled noise
-                noise = torch.randn_like(seed) * noise_level
-                generated_embedding = seed + noise
-            else:
-                # Random generation
-                embedding_dim = request.get('embedding_dim', 64)
-                generated_embedding = torch.randn(1, embedding_dim).to(self.device)
-            
-            # Decode to features
-            with torch.no_grad():
-                generated_features = self.model.dec_feat(generated_embedding)
-            
-            return {
-                'success': True,
-                'generated_embedding': generated_embedding.cpu().numpy().tolist(),
-                'generated_features': generated_features.cpu().numpy().tolist()
-            }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def _get_status(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Get model status and statistics."""
-        try:
-            # Model info
-            num_params = sum(p.numel() for p in self.model.parameters())
-            num_trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-            
-            # Memory usage
-            if torch.cuda.is_available():
-                memory_allocated = torch.cuda.memory_allocated(self.device)
-                memory_cached = torch.cuda.memory_reserved(self.device)
-            else:
-                memory_allocated = 0
-                memory_cached = 0
-            
-            return {
-                'success': True,
-                'model_info': {
-                    'total_parameters': num_params,
-                    'trainable_parameters': num_trainable,
-                    'device': str(self.device),
-                    'model_type': 'WorldEngine',
-                    'version': __version__
-                },
-                'memory': {
-                    'allocated_mb': memory_allocated / 1024 / 1024,
-                    'cached_mb': memory_cached / 1024 / 1024
-                },
-                'capabilities': list(self.endpoints.keys())
-            }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def process_request(self, endpoint: str, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Process Studio Controls API request."""
-        if endpoint not in self.endpoints:
-            return {
-                'success': False, 
-                'error': f'Unknown endpoint: {endpoint}. Available: {list(self.endpoints.keys())}'
-            }
-        
-        return self.endpoints[endpoint](request)
-
-
-if __name__ == "__main__":
-    # ===========================
-    # COMPREHENSIVE TESTING SUITE
-    # ===========================
-    
-    def run_basic_tests():
-        """Run basic functionality tests."""
-        print("🧪 Running World Engine Test Suite...")
-        
-        # Test configuration
-        config = {
-            'vocab_size': 1000,
-            'd_model': 128,
-            'k_feats': 50,
-            'n_pos': 25,
-            'n_rels': 10,
-            'n_layers': 2,
-            'n_heads': 4,
-            'dropout': 0.1,
-            'use_transformer': True,
-            'use_gnn': True,
-            'use_crf': False,  # Disable CRF for basic testing
-            'num_role_labels': 5
-        }
-        
-        print(f"✅ Configuration: {config}")
-        
-        # Create model
-        try:
-            model = create_world_engine(config)
-            param_count = sum(p.numel() for p in model.parameters())
-            print(f"✅ Model created successfully with {param_count:,} parameters")
-        except Exception as e:
-            print(f"❌ Model creation failed: {e}")
-            return False
-        
-        # Test forward pass
-        try:
-            batch_size = 4
-            seq_len = 10
-            
-            # Create dummy input
+    for batch_size in batch_sizes:
+        for seq_len in seq_lengths:
+            # Create input
             tok_ids = torch.randint(0, config['vocab_size'], (batch_size, seq_len))
             pos_ids = torch.randint(0, config['n_pos'], (batch_size, seq_len))
             feat_rows = torch.randn(batch_size, seq_len, config['k_feats'])
             lengths = torch.tensor([seq_len] * batch_size)
             
-            # Forward pass
-            model.eval()
+            # Time forward pass
+            start_time = time.time()
             with torch.no_grad():
                 outputs = model.forward(tok_ids, pos_ids, feat_rows, lengths)
+            end_time = time.time()
             
-            # Validate outputs
-            assert 'z' in outputs, "Missing semantic embeddings"
-            assert 'feat_hat' in outputs, "Missing reconstructed features"
-            assert 'role_logits' in outputs, "Missing role predictions"
-            assert outputs['z'].shape == (batch_size, 64), f"Wrong z shape: {outputs['z'].shape}"
+            forward_time = (end_time - start_time) * 1000  # Convert to ms
+            tokens_per_sec = (batch_size * seq_len) / (forward_time / 1000)
             
-            print(f"✅ Forward pass successful: z={outputs['z'].shape}, feat_hat={outputs['feat_hat'].shape}")
-            
-        except Exception as e:
-            print(f"❌ Forward pass failed: {e}")
-            return False
-        
-        # Test advanced components
-        try:
-            # Test sparse attention
-            sparse_attn = SparseAttention(config['d_model'], config['n_heads'])
-            x = torch.randn(2, seq_len, config['d_model'])
-            sparse_out = sparse_attn(x)
-            assert sparse_out.shape == x.shape, "Sparse attention shape mismatch"
-            print("✅ Sparse attention working")
-            
-            # Test cross-modal attention
-            cross_attn = CrossModalAttention(config['d_model'], config['n_heads'])
-            cross_input = torch.randn(2, 5, config['d_model'])
-            cross_out = cross_attn(x, cross_input)
-            assert cross_out.shape == x.shape, "Cross-modal attention shape mismatch"
-            print("✅ Cross-modal attention working")
-            
-            # Test Bayesian components
-            bayesian_linear = BayesianLinear(config['d_model'], config['d_model'])
-            bayes_out = bayesian_linear(x)
-            kl_loss = bayesian_linear.kl_loss()
-            assert bayes_out.shape == x.shape, "Bayesian linear shape mismatch"
-            assert kl_loss.item() > 0, "KL loss should be positive"
-            print("✅ Bayesian components working")
-            
-            # Test multi-modal encoder
-            modalities = {'text': config['d_model'], 'vision': 256}
-            multi_encoder = MultiModalEncoder(modalities, config['d_model'])
-            inputs = {
-                'text': torch.randn(2, config['d_model']),
-                'vision': torch.randn(2, 256)
-            }
-            multi_out = multi_encoder(inputs)
-            assert multi_out.shape == (2, config['d_model']), "Multi-modal encoder shape mismatch"
-            print("✅ Multi-modal encoder working")
-            
-        except Exception as e:
-            print(f"❌ Advanced components test failed: {e}")
-            return False
-        
-        # Test Studio Bridge
-        try:
-            bridge = StudioBridge(model)
-            
-            # Test status endpoint
-            status = bridge.process_request('status', {})
-            assert status['success'], "Status endpoint failed"
-            print(f"✅ Studio Bridge operational: {len(status['capabilities'])} endpoints available")
-            
-            # Test encoding
-            dummy_request = {
-                'tokens': tok_ids[0].tolist(),
-                'pos_tags': pos_ids[0].tolist(),
-                'features': feat_rows[0].tolist()
-            }
-            
-            encode_result = bridge.process_request('encode', dummy_request)
-            assert encode_result['success'], f"Encoding failed: {encode_result.get('error')}"
-            print("✅ Studio Bridge encoding working")
-            
-        except Exception as e:
-            print(f"❌ Studio Bridge test failed: {e}")
-            return False
-        
-        print("🎉 All tests passed! World Engine is fully operational.")
-        return True
-    
-    def run_performance_benchmark():
-        """Run performance benchmarks."""
-        print("\n📊 Running Performance Benchmarks...")
-        
-        config = {
-            'vocab_size': 10000,
-            'd_model': 512,
-            'k_feats': 100,
-            'n_pos': 50,
-            'n_rels': 20,
-            'n_layers': 6,
-            'n_heads': 8,
-            'dropout': 0.1,
-            'use_transformer': True,
-            'use_gnn': True,
-            'use_crf': False,
-            'num_role_labels': 5
-        }
-        
-        model = create_world_engine(config)
-        model.eval()
-        
-        # Benchmark different batch sizes and sequence lengths
-        batch_sizes = [1, 4, 16]
-        seq_lengths = [32, 128, 512]
-        
-        for batch_size in batch_sizes:
-            for seq_len in seq_lengths:
-                # Create input
-                tok_ids = torch.randint(0, config['vocab_size'], (batch_size, seq_len))
-                pos_ids = torch.randint(0, config['n_pos'], (batch_size, seq_len))
-                feat_rows = torch.randn(batch_size, seq_len, config['k_feats'])
-                lengths = torch.tensor([seq_len] * batch_size)
-                
-                # Time forward pass
-                start_time = time.time()
-                with torch.no_grad():
-                    outputs = model.forward(tok_ids, pos_ids, feat_rows, lengths)
-                end_time = time.time()
-                
-                forward_time = (end_time - start_time) * 1000  # Convert to ms
-                tokens_per_sec = (batch_size * seq_len) / (forward_time / 1000)
-                
-                print(f"📈 Batch={batch_size}, SeqLen={seq_len}: {forward_time:.2f}ms ({tokens_per_sec:.1f} tokens/sec)")
-    
-    def demonstrate_capabilities():
-        """Demonstrate key capabilities."""
-        print("\n🚀 Demonstrating World Engine Capabilities...")
-        
-        # Create a smaller model for demonstration
-        config = {
-            'vocab_size': 5000, 'd_model': 256, 'k_feats': 50, 'n_pos': 25,
-            'n_rels': 10, 'n_layers': 3, 'n_heads': 8, 'dropout': 0.1,
-            'use_transformer': True, 'use_gnn': True, 'use_crf': False, 'num_role_labels': 5
-        }
-        
-        model = create_world_engine(config)
-        bridge = StudioBridge(model)
-        
-        # Demonstrate semantic encoding
-        print("\n🧠 Semantic Encoding Demo:")
-        sample_text = {
-            'tokens': [1, 234, 567, 89, 2],
-            'pos_tags': [0, 1, 2, 1, 3],
-            'features': [[0.1] * 50] * 5
-        }
-        
-        result = bridge.process_request('encode', sample_text)
-        if result['success']:
-            embedding = result['semantic_embedding'][0]
-            print(f"   📊 Input: {len(sample_text['tokens'])} tokens")
-            print(f"   🎯 Output: {len(embedding)}-dimensional semantic embedding")
-            print(f"   📈 Embedding norm: {np.linalg.norm(embedding):.3f}")
-        
-        # Demonstrate similarity computation
-        print("\n🔍 Similarity Analysis Demo:")
-        text1 = dict(sample_text)
-        text2 = dict(sample_text)
-        text2['tokens'] = [1, 234, 567, 100, 2]  # Slightly different
-        
-        sim_result = bridge.process_request('similarity', {'text1': text1, 'text2': text2})
-        if sim_result['success']:
-            print(f"   📊 Text similarity: {sim_result['cosine_similarity']:.3f}")
-            print(f"   📏 Euclidean distance: {sim_result['euclidean_distance']:.3f}")
-        
-        # Show model statistics
-        print(f"\n📊 Model Statistics:")
-        print(f"   🔢 Total parameters: {sum(p.numel() for p in model.parameters()):,}")
-        print(f"   🎯 Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
-        print(f"   💾 Model size: ~{sum(p.numel() * 4 for p in model.parameters()) / 1024 / 1024:.1f} MB")
-        
-        status = bridge.process_request('status', {})
-        if status['success']:
-            print(f"   🔧 Available capabilities: {', '.join(status['capabilities'])}")
+            print(f"📈 Batch={batch_size}, SeqLen={seq_len}: {forward_time:.2f}ms ({tokens_per_sec:.1f} tokens/sec)")
 
-    # Run all tests and demonstrations
+
+def demonstrate_capabilities():
+    """Demonstrate key capabilities."""
+    print("\n🚀 Demonstrating World Engine Capabilities...")
+    
+    # Create a smaller model for demonstration
+    config = {
+        'vocab_size': 5000, 'd_model': 256, 'k_feats': 50, 'n_pos': 25,
+        'n_rels': 10, 'n_layers': 3, 'n_heads': 8, 'dropout': 0.1,
+        'use_transformer': True, 'use_gnn': True, 'use_crf': False, 'num_role_labels': 5
+    }
+    
+    model = create_world_engine(config)
+    
+    # Show model statistics
+    print(f"\n📊 Model Statistics:")
+    print(f"   🔢 Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+    print(f"   🎯 Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+    print(f"   💾 Model size: ~{sum(p.numel() * 4 for p in model.parameters()) / 1024 / 1024:.1f} MB")
+
+
+if __name__ == "__main__":
     print("=" * 80)
     print("🌍 WORLD ENGINE V3.1 - ADVANCED NEURAL ARCHITECTURE")
     print("=" * 80)
@@ -3984,31 +2923,8 @@ if __name__ == "__main__":
         print("\n" + "=" * 80)
         print("🎉 World Engine V3.1 is fully operational!")
         print("🔗 Ready for Studio Controls integration")
-        print("📊 Advanced neural architecture with 2,670+ lines of code")
-        print("🧠 Features: Multi-modal processing, Bayesian inference, Distributed training")
+        print("📊 Advanced neural architecture with complete implementation")
+        print("🧠 Features: Multi-modal processing, Graph neural networks, Memory systems")
         print("=" * 80)
     else:
         print("\n❌ Tests failed - please check the implementation")
-
-
-    # Example usage and testing
-    config = {
-        'vocab_size': 10000,
-        'd_model': 512,
-        'k_feats': 100,
-        'n_pos': 50,
-        'n_rels': 20,
-        'n_layers': 6,
-        'n_heads': 8,
-        'dropout': 0.1,
-        'use_transformer': True,
-        'use_gnn': True,
-        'use_crf': True,
-        'num_role_labels': 5
-    }
-
-    # Create model
-    model = create_world_engine(config)
-    print(f"World Engine created with {sum(p.numel() for p in model.parameters())} parameters")
-    print("Model architecture:")
-    print(model)

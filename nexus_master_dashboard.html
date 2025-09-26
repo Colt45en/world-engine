@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Dashboard Master Control - Fixed & Integrated</title>
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --panel: #0f1523;
+            --ink: #e6f0ff;
+            --acc: #54f0b8;
+            --heart: #ff69b4;
+            --line: #1e2b46;
+            --warning: #ffc107;
+            --error: #dc3545;
+            --success: #28a745;
+            --radius: 12px;
+            --gap: 8px;
+            --pad: 12px;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--panel), #1a2332);
+            border-bottom: 2px solid var(--line);
+            padding: var(--pad);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--acc);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: var(--gap);
+            align-items: center;
+        }
+
+        .status-indicator {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-connected { background: var(--success); color: white; }
+        .status-disconnected { background: var(--error); color: white; }
+        .status-learning { background: var(--warning); color: black; }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: var(--gap);
+            padding: var(--gap);
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .dashboard-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            color: var(--acc);
+            font-weight: bold;
+            margin-bottom: var(--gap);
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .dashboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .dashboard-item {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dashboard-item:hover {
+            background: rgba(84, 240, 184, 0.1);
+            border-color: var(--acc);
+        }
+
+        .dashboard-name {
+            font-size: 14px;
+            flex-grow: 1;
+        }
+
+        .dashboard-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .status-working { background: var(--success); }
+        .status-broken { background: var(--error); }
+        .status-utility { background: var(--acc); }
+        .status-test { background: var(--heart); }
+
+        .dashboard-viewer {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viewer-header {
+            padding: var(--pad);
+            background: var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .viewer-title {
+            font-weight: bold;
+            color: var(--acc);
+        }
+
+        .viewer-controls {
+            display: flex;
+            gap: var(--gap);
+        }
+
+        .control-btn {
+            padding: 4px 12px;
+            background: var(--acc);
+            color: var(--bg);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .control-btn:hover {
+            opacity: 0.8;
+        }
+
+        .dashboard-frame {
+            flex-grow: 1;
+            border: none;
+            min-height: 600px;
+            background: var(--bg);
+        }
+
+        .metrics-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .metrics-panel.visible {
+            display: block;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metric-value {
+            color: var(--acc);
+            font-weight: bold;
+        }
+
+        .learning-log {
+            background: var(--bg);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .log-success { color: var(--success); }
+        .log-warning { color: var(--warning); }
+        .log-error { color: var(--error); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .learning-active {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🧠 NEXUS Dashboard Master Control</div>
+        <div class="status-bar">
+            <div id="connectionStatus" class="status-indicator status-disconnected">Disconnected</div>
+            <div id="learningStatus" class="status-indicator status-learning">Learning Active</div>
+            <button class="control-btn" onclick="toggleMetrics()">📊 Metrics</button>
+            <button class="control-btn" onclick="startLearning()">🎯 Start Learning</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="dashboard-section">
+                <div class="section-title">🔧 Engine Utilities</div>
+                <div class="dashboard-list" id="utilityDashboards">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <div class="section-title">🧪 Nucleus Test Dashboards</div>
+                <div class="dashboard-list" id="testDashboards">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <div class="section-title">🔄 Hybrid Systems</div>
+                <div class="dashboard-list" id="hybridDashboards">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <div class="section-title">⚠️ Needs Repair</div>
+                <div class="dashboard-list" id="brokenDashboards">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-viewer">
+            <div class="viewer-header">
+                <div class="viewer-title" id="viewerTitle">Select a dashboard to begin</div>
+                <div class="viewer-controls">
+                    <button class="control-btn" onclick="reloadDashboard()">🔄 Reload</button>
+                    <button class="control-btn" onclick="testDashboard()">🧪 Test</button>
+                    <button class="control-btn" onclick="repairDashboard()">🔧 Repair</button>
+                </div>
+            </div>
+            <iframe id="dashboardFrame" class="dashboard-frame" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <div class="metrics-panel" id="metricsPanel">
+        <div class="section-title">📊 System Metrics</div>
+        <div id="metricsContent">
+            <!-- Populated by JavaScript -->
+        </div>
+        <div class="section-title">🧠 Learning Log</div>
+        <div class="learning-log" id="learningLog">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        class NexusDashboardMaster {
+            constructor() {
+                this.dashboards = new Map();
+                this.currentDashboard = null;
+                this.websocket = null;
+                this.learningActive = false;
+
+                this.initializeDashboards();
+                this.setupWebSocket();
+                this.startMetricsUpdates();
+                this.populateDashboardLists();
+            }
+
+            initializeDashboards() {
+                // Engine Utilities (convert to useful tools)
+                this.addDashboard('vectorlab_demo', 'VectorLab Engine', 'web/vectorlab_demo.html', 'utility', 'working');
+                this.addDashboard('quantum_graphics', 'Quantum Graphics', 'web/quantum_graphics_demo.html', 'utility', 'working');
+                this.addDashboard('glyph_forge', 'Glyph Forge', 'web/glyph_forge.html', 'utility', 'working');
+                this.addDashboard('nexus_forge', 'NEXUS Forge', 'web/nexus_forge_demo.html', 'hybrid', 'working');
+
+                // Nucleus Test Interfaces (link to nucleus for learning)
+                this.addDashboard('tier4_collaborative', 'Tier 4 Collaborative', 'demo/tier4_collaborative_demo.html', 'test', 'broken');
+                this.addDashboard('tier4_meta', 'Tier 4 Meta System', 'demo/html_demos/tier4_meta_system_demo.html', 'test', 'broken');
+                this.addDashboard('tier4_integration', 'Tier 4 Integration', 'demo/html_demos/tier4_integration_panel.html', 'test', 'broken');
+                this.addDashboard('nucleus_demo', 'Nucleus Demo', 'demo/nucleus-demo.html', 'test', 'broken');
+                this.addDashboard('holy_beat_clockbus', 'Holy Beat ClockBus', 'nexus_holy_beat_clockbus_demo.html', 'test', 'broken');
+                this.addDashboard('holy_beat_math', 'Holy Beat Math', 'nexus_holy_beat_mathematical_demo.html', 'test', 'broken');
+                this.addDashboard('vibe_nexus', 'Vibe NEXUS', 'vibe_nexus_demo.html', 'test', 'broken');
+                this.addDashboard('synthesis', 'NEXUS Synthesis', 'nexus_synthesis_demo.html', 'test', 'broken');
+                this.addDashboard('holy_beat', 'NEXUS Holy Beat', 'nexus_holy_beat_demo.html', 'test', 'broken');
+                this.addDashboard('meta_librarian', 'Meta Librarian', 'web/meta-librarian-canvas.html', 'test', 'broken');
+                this.addDashboard('lexical_logic', 'Lexical Logic', 'web/lexical-logic-engine.html', 'test', 'broken');
+                this.addDashboard('world_engine', 'World Engine', 'web/worldengine.html', 'test', 'broken');
+                this.addDashboard('world_engine_t4', 'World Engine T4', 'web/world_engine_tier4.html', 'test', 'broken');
+                this.addDashboard('primordial_deck', 'Primordial Deck', 'web/nexus_forge_primordial_deck.html', 'test', 'broken');
+
+                // Broken/Complex ones
+                this.addDashboard('stc_ide', 'STC IDE Unified', 'stc_ide_unified.html', 'hybrid', 'broken');
+                this.addDashboard('dashboard_complete', 'Dashboard Complete', 'web/dashboards_complete', 'hybrid', 'broken');
+            }
+
+            addDashboard(id, name, url, type, status) {
+                this.dashboards.set(id, {
+                    id: id,
+                    name: name,
+                    url: url,
+                    type: type,
+                    status: status,
+                    lastTest: null,
+                    performance: 0.0
+                });
+            }
+
+            populateDashboardLists() {
+                const utilityList = document.getElementById('utilityDashboards');
+                const testList = document.getElementById('testDashboards');
+                const hybridList = document.getElementById('hybridDashboards');
+                const brokenList = document.getElementById('brokenDashboards');
+
+                utilityList.innerHTML = '';
+                testList.innerHTML = '';
+                hybridList.innerHTML = '';
+                brokenList.innerHTML = '';
+
+                for (const [id, dashboard] of this.dashboards) {
+                    const item = this.createDashboardItem(dashboard);
+
+                    if (dashboard.status === 'broken') {
+                        brokenList.appendChild(item);
+                    } else if (dashboard.type === 'utility') {
+                        utilityList.appendChild(item);
+                    } else if (dashboard.type === 'test') {
+                        testList.appendChild(item);
+                    } else if (dashboard.type === 'hybrid') {
+                        hybridList.appendChild(item);
+                    }
+                }
+            }
+
+            createDashboardItem(dashboard) {
+                const item = document.createElement('div');
+                item.className = 'dashboard-item';
+                item.onclick = () => this.loadDashboard(dashboard.id);
+
+                const name = document.createElement('div');
+                name.className = 'dashboard-name';
+                name.textContent = dashboard.name;
+
+                const status = document.createElement('div');
+                status.className = `dashboard-status status-${dashboard.type}`;
+                if (dashboard.status === 'broken') {
+                    status.className = 'dashboard-status status-broken';
+                } else if (dashboard.status === 'working') {
+                    status.className = `dashboard-status status-${dashboard.type}`;
+                }
+
+                item.appendChild(name);
+                item.appendChild(status);
+
+                return item;
+            }
+
+            loadDashboard(dashboardId) {
+                const dashboard = this.dashboards.get(dashboardId);
+                if (!dashboard) return;
+
+                this.currentDashboard = dashboard;
+                document.getElementById('viewerTitle').textContent = dashboard.name;
+
+                // Create full URL
+                const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+                const fullUrl = baseUrl + dashboard.url;
+
+                document.getElementById('dashboardFrame').src = fullUrl;
+
+                // Log dashboard load
+                this.addLogEntry(`Loading ${dashboard.name}`, 'info');
+
+                // If this is a test dashboard, start nucleus interaction
+                if (dashboard.type === 'test' || dashboard.type === 'hybrid') {
+                    this.initializeNucleusTest(dashboard);
+                }
+            }
+
+            initializeNucleusTest(dashboard) {
+                if (!this.websocket) return;
+
+                // Send test initialization command
+                const testData = {
+                    dashboard_id: dashboard.id,
+                    dashboard_type: dashboard.type,
+                    test_patterns: this.generateTestPatterns(dashboard)
+                };
+
+                this.sendWebSocketMessage('TEST_COMMAND', testData);
+                this.addLogEntry(`Initializing nucleus test for ${dashboard.name}`, 'info');
+            }
+
+            generateTestPatterns(dashboard) {
+                // Generate test patterns based on dashboard type
+                const patterns = [];
+
+                if (dashboard.id.includes('tier4')) {
+                    patterns.push({
+                        type: 'collaboration',
+                        agents: Math.floor(Math.random() * 5) + 2,
+                        complexity: Math.random()
+                    });
+                } else if (dashboard.id.includes('beat')) {
+                    patterns.push({
+                        type: 'rhythm',
+                        bpm: Math.floor(Math.random() * 60) + 80,
+                        complexity: Math.random()
+                    });
+                } else if (dashboard.id.includes('world')) {
+                    patterns.push({
+                        type: 'simulation',
+                        entities: Math.floor(Math.random() * 900) + 100,
+                        complexity: Math.random()
+                    });
+                }
+
+                return patterns;
+            }
+
+            setupWebSocket() {
+                try {
+                    this.websocket = new WebSocket('ws://localhost:8765');
+
+                    this.websocket.onopen = () => {
+                        document.getElementById('connectionStatus').textContent = 'Connected';
+                        document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+
+                        // Register this dashboard master
+                        this.sendWebSocketMessage('DASHBOARD_REGISTER', {
+                            dashboard_type: 'master_control',
+                            capabilities: ['dashboard_management', 'nucleus_control', 'system_monitoring']
+                        });
+                    };
+
+                    this.websocket.onclose = () => {
+                        document.getElementById('connectionStatus').textContent = 'Disconnected';
+                        document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+
+                        // Attempt reconnection
+                        setTimeout(() => this.setupWebSocket(), 5000);
+                    };
+
+                    this.websocket.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleWebSocketMessage(message);
+                        } catch (e) {
+                            console.error('WebSocket message parsing error:', e);
+                        }
+                    };
+
+                } catch (e) {
+                    console.error('WebSocket setup failed:', e);
+                }
+            }
+
+            sendWebSocketMessage(type, data) {
+                if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
+                    return false;
+                }
+
+                const message = {
+                    type: this.getMessageTypeId(type),
+                    dashboard_id: 'nexus_master_control',
+                    data: data,
+                    timestamp: Date.now()
+                };
+
+                this.websocket.send(JSON.stringify(message));
+                return true;
+            }
+
+            getMessageTypeId(type) {
+                const types = {
+                    'UTILITY_DATA': 0,
+                    'TEST_COMMAND': 1,
+                    'TEST_RESULT': 2,
+                    'ENGINE_STATUS': 3,
+                    'DASHBOARD_REGISTER': 4,
+                    'METRICS_REQUEST': 5,
+                    'CONTROL_COMMAND': 6
+                };
+                return types[type] || 0;
+            }
+
+            handleWebSocketMessage(message) {
+                const typeNames = ['UTILITY_DATA', 'TEST_COMMAND', 'TEST_RESULT', 'ENGINE_STATUS', 'DASHBOARD_REGISTER', 'METRICS_REQUEST', 'CONTROL_COMMAND'];
+                const typeName = typeNames[message.type] || 'UNKNOWN';
+
+                switch (message.type) {
+                    case 2: // TEST_RESULT
+                        this.handleTestResult(message.data);
+                        break;
+                    case 3: // ENGINE_STATUS
+                        this.handleEngineStatus(message.data);
+                        break;
+                    case 5: // METRICS_REQUEST (response)
+                        this.handleMetricsResponse(message.data);
+                        break;
+                }
+            }
+
+            handleTestResult(data) {
+                this.addLogEntry(`Test result: ${JSON.stringify(data).slice(0, 100)}...`, 'success');
+
+                // Update dashboard performance if applicable
+                if (this.currentDashboard && data.dashboard_id === this.currentDashboard.id) {
+                    this.currentDashboard.performance = data.success_score || 0.0;
+                    this.currentDashboard.lastTest = new Date();
+                }
+            }
+
+            handleEngineStatus(data) {
+                this.addLogEntry(`Engine status: ${data.status || 'unknown'}`, 'info');
+            }
+
+            handleMetricsResponse(data) {
+                this.updateMetricsDisplay(data);
+            }
+
+            startMetricsUpdates() {
+                setInterval(() => {
+                    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                        this.sendWebSocketMessage('METRICS_REQUEST', { type: 'system_status' });
+                    }
+                }, 5000);
+            }
+
+            updateMetricsDisplay(metrics) {
+                const content = document.getElementById('metricsContent');
+                content.innerHTML = '';
+
+                for (const [key, value] of Object.entries(metrics)) {
+                    const item = document.createElement('div');
+                    item.className = 'metric-item';
+
+                    const label = document.createElement('span');
+                    label.textContent = key.replace(/_/g, ' ').toUpperCase();
+
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'metric-value';
+                    valueSpan.textContent = value;
+
+                    item.appendChild(label);
+                    item.appendChild(valueSpan);
+                    content.appendChild(item);
+                }
+            }
+
+            addLogEntry(message, type = 'info') {
+                const log = document.getElementById('learningLog');
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+
+                const timestamp = new Date().toLocaleTimeString();
+                entry.textContent = `[${timestamp}] ${message}`;
+
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+
+                // Limit log entries
+                while (log.children.length > 100) {
+                    log.removeChild(log.firstChild);
+                }
+            }
+
+            startLearning() {
+                if (this.learningActive) {
+                    this.stopLearning();
+                    return;
+                }
+
+                this.learningActive = true;
+                document.getElementById('learningStatus').textContent = 'Learning Active';
+                document.getElementById('learningStatus').classList.add('learning-active');
+
+                // Send learning start command
+                this.sendWebSocketMessage('CONTROL_COMMAND', { command: 'restart_learning' });
+                this.addLogEntry('Nucleus self-learning activated', 'success');
+
+                // Start periodic testing of random dashboards
+                this.learningInterval = setInterval(() => {
+                    this.runRandomTest();
+                }, 10000); // Test every 10 seconds
+            }
+
+            stopLearning() {
+                this.learningActive = false;
+                document.getElementById('learningStatus').textContent = 'Learning Stopped';
+                document.getElementById('learningStatus').classList.remove('learning-active');
+
+                if (this.learningInterval) {
+                    clearInterval(this.learningInterval);
+                }
+
+                this.addLogEntry('Nucleus self-learning stopped', 'warning');
+            }
+
+            runRandomTest() {
+                const testDashboards = Array.from(this.dashboards.values()).filter(d =>
+                    d.type === 'test' || d.type === 'hybrid'
+                );
+
+                if (testDashboards.length === 0) return;
+
+                const randomDashboard = testDashboards[Math.floor(Math.random() * testDashboards.length)];
+                const testData = {
+                    dashboard_id: randomDashboard.id,
+                    test_patterns: this.generateTestPatterns(randomDashboard)
+                };
+
+                this.sendWebSocketMessage('TEST_COMMAND', testData);
+                this.addLogEntry(`Running random test on ${randomDashboard.name}`, 'info');
+            }
+        }
+
+        // Global functions for UI controls
+        function toggleMetrics() {
+            const panel = document.getElementById('metricsPanel');
+            panel.classList.toggle('visible');
+        }
+
+        function startLearning() {
+            if (window.dashboardMaster) {
+                window.dashboardMaster.startLearning();
+            }
+        }
+
+        function reloadDashboard() {
+            const frame = document.getElementById('dashboardFrame');
+            frame.src = frame.src;
+        }
+
+        function testDashboard() {
+            if (window.dashboardMaster && window.dashboardMaster.currentDashboard) {
+                const dashboard = window.dashboardMaster.currentDashboard;
+                const testData = {
+                    dashboard_id: dashboard.id,
+                    test_patterns: window.dashboardMaster.generateTestPatterns(dashboard)
+                };
+                window.dashboardMaster.sendWebSocketMessage('TEST_COMMAND', testData);
+                window.dashboardMaster.addLogEntry(`Manual test started for ${dashboard.name}`, 'info');
+            }
+        }
+
+        function repairDashboard() {
+            if (window.dashboardMaster && window.dashboardMaster.currentDashboard) {
+                const dashboard = window.dashboardMaster.currentDashboard;
+                window.dashboardMaster.addLogEntry(`Attempting to repair ${dashboard.name}...`, 'warning');
+
+                // This would trigger repair logic - for now just reload
+                setTimeout(() => {
+                    reloadDashboard();
+                    dashboard.status = 'working'; // Optimistically mark as working
+                    window.dashboardMaster.populateDashboardLists();
+                    window.dashboardMaster.addLogEntry(`Repair attempt completed for ${dashboard.name}`, 'success');
+                }, 2000);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dashboardMaster = new NexusDashboardMaster();
+        });
+    </script>
+</body>
+</html>

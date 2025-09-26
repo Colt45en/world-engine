@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Language Analysis Recovery Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: linear-gradient(135deg, #1e1e2e, #2a2a40);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .dashboard-header {
+            background: rgba(40, 40, 60, 0.9);
+            border-bottom: 3px solid #00ff88;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-title {
+            font-size: 2.2em;
+            background: linear-gradient(45deg, #00ff88, #88ffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .dashboard-subtitle {
+            color: #b0b0c0;
+            font-size: 1.1em;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .status-connected {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+
+        .status-disconnected {
+            background: rgba(255, 80, 80, 0.2);
+            color: #ff5050;
+            border: 1px solid #ff5050;
+        }
+
+        .dashboard-content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .analysis-panel {
+            background: rgba(30, 30, 50, 0.8);
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .panel-title {
+            color: #00ff88;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .input-area {
+            grid-column: 1 / -1;
+        }
+
+        .code-input {
+            width: 100%;
+            height: 200px;
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid #555;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            padding: 15px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .code-input:focus {
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .analysis-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #00ff88, #66ffaa);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #5555ff, #8888ff);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff5555, #ff8888);
+            color: white;
+        }
+
+        .language-select {
+            background: rgba(40, 40, 60, 0.9);
+            border: 1px solid #555;
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .results-grid {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .result-section {
+            background: rgba(25, 25, 45, 0.8);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            color: #88ffff;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        .analysis-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #b0b0c0;
+            margin-top: 5px;
+        }
+
+        .pattern-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .pattern-item {
+            background: rgba(30, 30, 50, 0.8);
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .pattern-type {
+            color: #88ffff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .pattern-count {
+            color: #ffaa00;
+            font-size: 0.9em;
+        }
+
+        .morphology-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .morpheme-item {
+            background: rgba(50, 30, 80, 0.6);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border-left: 3px solid #aa88ff;
+        }
+
+        .morpheme-word {
+            color: #ffaa88;
+            font-weight: bold;
+        }
+
+        .morpheme-breakdown {
+            color: #b0b0c0;
+            font-size: 0.85em;
+            margin-top: 3px;
+        }
+
+        .job-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .job-item {
+            background: rgba(40, 40, 60, 0.6);
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-id {
+            font-family: monospace;
+            color: #88ffff;
+            font-size: 0.9em;
+        }
+
+        .job-status {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-processing {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+        }
+
+        .status-completed {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .status-failed {
+            background: rgba(255, 80, 80, 0.2);
+            color: #ff5050;
+        }
+
+        .log-container {
+            grid-column: 1 / -1;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        .log-level-info {
+            color: #88ffff;
+        }
+
+        .log-level-success {
+            color: #00ff88;
+        }
+
+        .log-level-error {
+            color: #ff5050;
+        }
+
+        .training-panel {
+            grid-column: 1 / -1;
+            background: rgba(50, 30, 80, 0.6);
+            border: 2px solid #aa88ff;
+        }
+
+        .training-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .training-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="connection-status status-disconnected" id="connectionStatus">
+            ⚠️ DISCONNECTED
+        </div>
+        <h1 class="dashboard-title">🔤 NEXUS Language Analysis Recovery</h1>
+        <p class="dashboard-subtitle">Comprehensive JS/HTML Language Mapping System - Rebuilt & Enhanced</p>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Input Panel -->
+        <div class="analysis-panel input-area">
+            <h2 class="panel-title">📝 Code Analysis Input</h2>
+            <textarea
+                class="code-input"
+                id="codeInput"
+                placeholder="Paste your JavaScript, HTML, CSS, or mixed code here for comprehensive analysis...
+
+Example JavaScript:
+function processUserData(userData, options = {}) {
+    const preprocessedData = userData.map(user => ({
+        ...user,
+        fullName: `${user.firstName} ${user.lastName}`,
+        isActive: user.lastLogin > Date.now() - 30 * 24 * 60 * 60 * 1000
+    }));
+
+    return preprocessedData.filter(user =>
+        options.includeInactive || user.isActive
+    );
+}
+
+Example HTML:
+<div class='user-dashboard' data-component='dashboard'>
+    <header class='dashboard-header'>
+        <h1>User Management System</h1>
+        <nav class='main-navigation'>
+            <a href='/users'>Users</a>
+            <a href='/analytics'>Analytics</a>
+        </nav>
+    </header>
+    <main class='dashboard-content'>
+        <section class='user-list-container'>
+            <h2>Active Users</h2>
+            <div id='userListContainer'></div>
+        </section>
+    </main>
+</div>
+
+The system will analyze patterns, morphology, semantics, and structure automatically."></textarea>
+
+            <div class="analysis-controls">
+                <button class="btn" id="analyzeBtn">🔍 Analyze Code</button>
+                <button class="btn btn-secondary" id="quickAnalyzeBtn">⚡ Quick Analysis</button>
+                <select class="language-select" id="languageSelect">
+                    <option value="mixed">Auto-Detect</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                </select>
+                <button class="btn btn-secondary" id="clearBtn">🗑️ Clear</button>
+                <button class="btn btn-secondary" id="loadExampleBtn">📋 Load Example</button>
+            </div>
+        </div>
+
+        <!-- Statistics Panel -->
+        <div class="analysis-panel">
+            <h2 class="panel-title">📊 Analysis Statistics</h2>
+            <div class="analysis-stats" id="analysisStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalAnalyses">0</div>
+                    <div class="stat-label">Total Analyses</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="patternsFound">0</div>
+                    <div class="stat-label">Patterns Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="morphemesFound">0</div>
+                    <div class="stat-label">Morphemes Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="complexityScore">0</div>
+                    <div class="stat-label">Complexity Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Status Panel -->
+        <div class="analysis-panel">
+            <h2 class="panel-title">⚙️ Service Status</h2>
+            <div class="analysis-stats" id="serviceStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="jobsProcessed">0</div>
+                    <div class="stat-label">Jobs Processed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgProcessingTime">0ms</div>
+                    <div class="stat-label">Avg Processing Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="queueSize">0</div>
+                    <div class="stat-label">Queue Size</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="cacheSize">0</div>
+                    <div class="stat-label">Cache Size</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div class="results-grid">
+            <!-- Pattern Analysis Results -->
+            <div class="result-section">
+                <h3 class="section-title">🎯 Pattern Analysis</h3>
+                <ul class="pattern-list" id="patternResults"></ul>
+            </div>
+
+            <!-- Morphological Analysis Results -->
+            <div class="result-section">
+                <h3 class="section-title">🧬 Morphological Analysis</h3>
+                <div class="morphology-list" id="morphologyResults"></div>
+            </div>
+
+            <!-- Active Jobs -->
+            <div class="result-section">
+                <h3 class="section-title">⏳ Active Jobs</h3>
+                <div class="job-list" id="activeJobs"></div>
+            </div>
+
+            <!-- Analysis History -->
+            <div class="result-section">
+                <h3 class="section-title">📚 Analysis History</h3>
+                <div class="job-list" id="analysisHistory"></div>
+            </div>
+        </div>
+
+        <!-- Training Data Panel -->
+        <div class="analysis-panel training-panel">
+            <h2 class="panel-title">🧠 Self-Learning Training System</h2>
+            <div class="training-controls">
+                <button class="btn" id="generateTrainingBtn">🎯 Generate Training Data</button>
+                <button class="btn btn-secondary" id="exportDataBtn">📤 Export Analysis Data</button>
+                <button class="btn btn-secondary" id="batchAnalyzeBtn">🔄 Batch Analyze Samples</button>
+                <button class="btn btn-danger" id="clearTrainingBtn">🗑️ Clear Training Data</button>
+            </div>
+            <div class="training-stats" id="trainingStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="trainingEntries">0</div>
+                    <div class="stat-label">Training Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="uniquePatterns">0</div>
+                    <div class="stat-label">Unique Patterns</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dataQuality">0%</div>
+                    <div class="stat-label">Data Quality</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Log -->
+        <div class="log-container">
+            <h3 class="section-title" style="margin-bottom: 10px;">📋 System Log</h3>
+            <div id="systemLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // NEXUS Language Analysis Dashboard - Main Controller
+        class LanguageAnalysisDashboard {
+            constructor() {
+                this.analyzer = null;
+                this.websocket = null;
+                this.isConnected = false;
+                this.analysisCount = 0;
+                this.totalPatterns = 0;
+                this.totalMorphemes = 0;
+                this.lastComplexity = 0;
+
+                this.initializeUI();
+                this.connectToNexus();
+                this.startPeriodicUpdates();
+            }
+
+            initializeUI() {
+                // Button event listeners
+                document.getElementById('analyzeBtn').onclick = () => this.performAnalysis();
+                document.getElementById('quickAnalyzeBtn').onclick = () => this.performQuickAnalysis();
+                document.getElementById('clearBtn').onclick = () => this.clearInput();
+                document.getElementById('loadExampleBtn').onclick = () => this.loadExample();
+
+                // Training controls
+                document.getElementById('generateTrainingBtn').onclick = () => this.generateTrainingData();
+                document.getElementById('exportDataBtn').onclick = () => this.exportAnalysisData();
+                document.getElementById('batchAnalyzeBtn').onclick = () => this.batchAnalyze();
+                document.getElementById('clearTrainingBtn').onclick = () => this.clearTrainingData();
+
+                this.log('info', 'Dashboard interface initialized');
+            }
+
+            async connectToNexus() {
+                try {
+                    // Try to connect to NEXUS WebSocket
+                    if (typeof NexusWebSocketClient !== 'undefined') {
+                        this.websocket = new NexusWebSocketClient();
+                        await this.websocket.connect();
+
+                        if (typeof NexusLanguageAnalyzer !== 'undefined') {
+                            this.analyzer = new NexusLanguageAnalyzer(this.websocket);
+                            this.isConnected = true;
+                            this.updateConnectionStatus();
+                            this.log('success', 'Connected to NEXUS Language Analysis Service');
+                        }
+                    } else {
+                        this.log('error', 'NEXUS WebSocket client not available - running in demo mode');
+                        this.initializeDemoMode();
+                    }
+                } catch (error) {
+                    this.log('error', `Connection failed: ${error.message}`);
+                    this.initializeDemoMode();
+                }
+            }
+
+            initializeDemoMode() {
+                this.log('info', 'Initializing demo mode with client-side analysis only');
+                // Create a mock analyzer for demonstration
+                this.analyzer = {
+                    analyzeCode: async (code, options) => {
+                        return {
+                            immediate: this.performClientSideAnalysis(code, options),
+                            jobId: 'demo_' + Date.now(),
+                            comprehensive: Promise.resolve(null)
+                        };
+                    },
+                    getAnalysisHistory: () => [],
+                    getActiveJobs: () => [],
+                    exportTrainingData: () => []
+                };
+            }
+
+            updateConnectionStatus() {
+                const statusEl = document.getElementById('connectionStatus');
+                if (this.isConnected) {
+                    statusEl.className = 'connection-status status-connected';
+                    statusEl.innerHTML = '✅ CONNECTED';
+                } else {
+                    statusEl.className = 'connection-status status-disconnected';
+                    statusEl.innerHTML = '⚠️ DISCONNECTED';
+                }
+            }
+
+            async performAnalysis() {
+                const code = document.getElementById('codeInput').value.trim();
+                if (!code) {
+                    this.log('error', 'No code provided for analysis');
+                    return;
+                }
+
+                const language = document.getElementById('languageSelect').value;
+
+                try {
+                    this.log('info', `Starting comprehensive analysis (${language})`);
+                    this.setAnalyzeButtonState(true);
+
+                    const result = await this.analyzer.analyzeCode(code, {
+                        language: language,
+                        includePatterns: true,
+                        includeMorphology: true,
+                        includeSemantics: true,
+                        includeComplexity: true
+                    });
+
+                    this.displayAnalysisResults(result.immediate);
+                    this.updateStatistics(result.immediate);
+
+                    // Wait for comprehensive results if available
+                    if (result.comprehensive && this.isConnected) {
+                        try {
+                            const comprehensive = await result.comprehensive;
+                            if (comprehensive) {
+                                this.displayAnalysisResults(comprehensive, true);
+                                this.log('success', 'Comprehensive analysis completed');
+                            }
+                        } catch (error) {
+                            this.log('error', `Comprehensive analysis failed: ${error.message}`);
+                        }
+                    }
+
+                    this.analysisCount++;
+                    this.log('success', `Analysis completed (Job ID: ${result.jobId})`);
+
+                } catch (error) {
+                    this.log('error', `Analysis failed: ${error.message}`);
+                } finally {
+                    this.setAnalyzeButtonState(false);
+                }
+            }
+
+            async performQuickAnalysis() {
+                const code = document.getElementById('codeInput').value.trim();
+                if (!code) return;
+
+                const language = document.getElementById('languageSelect').value;
+
+                try {
+                    const result = this.performClientSideAnalysis(code, { language });
+                    this.displayAnalysisResults(result);
+                    this.updateStatistics(result);
+                    this.analysisCount++;
+                    this.log('success', 'Quick analysis completed');
+                } catch (error) {
+                    this.log('error', `Quick analysis failed: ${error.message}`);
+                }
+            }
+
+            performClientSideAnalysis(code, options) {
+                // Simplified client-side analysis
+                const patterns = this.analyzePatterns(code, options.language);
+                const morphology = this.analyzeMorphology(code);
+                const complexity = this.calculateComplexity(code);
+
+                return {
+                    timestamp: Date.now(),
+                    language: options.language,
+                    patterns: patterns,
+                    morphology: morphology,
+                    statistics: {
+                        total_chars: code.length,
+                        lines: code.split('\n').length,
+                        words: code.split(/\s+/).filter(w => w.length > 0).length,
+                        complexity_estimate: complexity
+                    }
+                };
+            }
+
+            analyzePatterns(code, language) {
+                const patterns = {};
+
+                if (language === 'javascript' || language === 'mixed') {
+                    patterns.javascript = {
+                        functions: (code.match(/function\s+\w+\s*\(|=>\s*[{(]|\w+\s*:\s*function/g) || []).length,
+                        variables: (code.match(/\b(?:const|let|var)\s+\w+/g) || []).length,
+                        classes: (code.match(/class\s+\w+/g) || []).length,
+                        keywords: (code.match(/\b(if|else|for|while|do|switch|case|return|async|await)\b/g) || []).length,
+                        comments: (code.match(/\/\/.*$|\/\*[\s\S]*?\*\//gm) || []).length
+                    };
+                }
+
+                if (language === 'html' || language === 'mixed') {
+                    patterns.html = {
+                        tags: (code.match(/<\/?[a-zA-Z][a-zA-Z0-9-]*[^>]*>/g) || []).length,
+                        attributes: (code.match(/\s[a-zA-Z-]+\s*=\s*["'][^"']*["']/g) || []).length,
+                        comments: (code.match(/<!--[\s\S]*?-->/g) || []).length,
+                        scripts: (code.match(new RegExp('<script[^>]*>[\\s\\S]*?<\\/script>', 'gi')) || []).length,
+                        styles: (code.match(new RegExp('<style[^>]*>[\\s\\S]*?<\\/style>', 'gi')) || []).length
+                    };
+                }
+
+                if (language === 'css' || language === 'mixed') {
+                    patterns.css = {
+                        selectors: (code.match(/[.#]?[a-zA-Z][\w-]*\s*(?=\{)/g) || []).length,
+                        properties: (code.match(/\s*[a-zA-Z-]+\s*:/g) || []).length,
+                        values: (code.match(/:\s*[^;}]+/g) || []).length,
+                        comments: (code.match(/\/\*[\s\S]*?\*\//g) || []).length
+                    };
+                }
+
+                return patterns;
+            }
+
+            analyzeMorphology(code) {
+                const words = code.match(/\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g) || [];
+                const uniqueWords = [...new Set(words)];
+                const morphemeMap = new Map();
+
+                for (const word of uniqueWords) {
+                    if (word.length < 3) continue;
+
+                    const morphemes = this.extractMorphemes(word);
+                    if (morphemes.length > 1) {
+                        morphemeMap.set(word, morphemes);
+                    }
+                }
+
+                return {
+                    words_analyzed: uniqueWords.length,
+                    morpheme_words: morphemeMap.size,
+                    morphemes: Array.from(morphemeMap.entries()).slice(0, 10) // Show top 10
+                };
+            }
+
+            extractMorphemes(word) {
+                const morphemes = [];
+                let remaining = word.toLowerCase();
+
+                // Common prefixes
+                const prefixes = ['un', 're', 'pre', 'post', 'auto', 'multi', 'super', 'sub'];
+                for (const prefix of prefixes) {
+                    if (remaining.startsWith(prefix) && remaining.length > prefix.length + 2) {
+                        morphemes.push(prefix);
+                        remaining = remaining.substring(prefix.length);
+                        break;
+                    }
+                }
+
+                // Common suffixes
+                const suffixes = ['ing', 'ed', 'er', 'ly', 'tion', 'able', 'ness', 'ment'];
+                for (const suffix of suffixes) {
+                    if (remaining.endsWith(suffix) && remaining.length > suffix.length + 2) {
+                        const root = remaining.substring(0, remaining.length - suffix.length);
+                        morphemes.push(root, suffix);
+                        remaining = '';
+                        break;
+                    }
+                }
+
+                if (remaining) {
+                    morphemes.push(remaining);
+                }
+
+                return morphemes;
+            }
+
+            calculateComplexity(code) {
+                let complexity = 0;
+
+                // Control structures
+                complexity += (code.match(/\b(if|else|for|while|switch|case)\b/g) || []).length;
+                complexity += (code.match(/\b(function|class)\b/g) || []).length * 0.5;
+                complexity += (code.match(/\btry\b/g) || []).length * 1.5;
+
+                // Nesting depth
+                const braces = code.match(/[{}]/g) || [];
+                let nesting = 0, maxNesting = 0;
+                for (const brace of braces) {
+                    if (brace === '{') {
+                        nesting++;
+                        maxNesting = Math.max(maxNesting, nesting);
+                    } else {
+                        nesting--;
+                    }
+                }
+                complexity += Math.pow(maxNesting, 1.2);
+
+                return Math.round(complexity);
+            }
+
+            displayAnalysisResults(analysis, isComprehensive = false) {
+                const prefix = isComprehensive ? '[COMPREHENSIVE] ' : '';
+
+                // Display patterns
+                const patternResults = document.getElementById('patternResults');
+                patternResults.innerHTML = '';
+
+                let patternCount = 0;
+                for (const [language, patterns] of Object.entries(analysis.patterns || {})) {
+                    for (const [type, count] of Object.entries(patterns)) {
+                        const li = document.createElement('li');
+                        li.className = 'pattern-item';
+                        li.innerHTML = `
+                            <div class="pattern-type">${prefix}${language.toUpperCase()}: ${type}</div>
+                            <div class="pattern-count">Found: ${count}</div>
+                        `;
+                        patternResults.appendChild(li);
+                        patternCount += typeof count === 'number' ? count : 0;
+                    }
+                }
+
+                // Display morphology
+                const morphologyResults = document.getElementById('morphologyResults');
+                morphologyResults.innerHTML = '';
+
+                if (analysis.morphology && analysis.morphology.morphemes) {
+                    for (const [word, morphemes] of analysis.morphology.morphemes) {
+                        const div = document.createElement('div');
+                        div.className = 'morpheme-item';
+                        div.innerHTML = `
+                            <div class="morpheme-word">${word}</div>
+                            <div class="morpheme-breakdown">${morphemes.join(' + ')}</div>
+                        `;
+                        morphologyResults.appendChild(div);
+                    }
+                }
+
+                this.totalPatterns = patternCount;
+                this.totalMorphemes = analysis.morphology ? analysis.morphology.morpheme_words : 0;
+                this.lastComplexity = analysis.statistics ? analysis.statistics.complexity_estimate : 0;
+            }
+
+            updateStatistics(analysis) {
+                document.getElementById('totalAnalyses').textContent = this.analysisCount;
+                document.getElementById('patternsFound').textContent = this.totalPatterns;
+                document.getElementById('morphemesFound').textContent = this.totalMorphemes;
+                document.getElementById('complexityScore').textContent = this.lastComplexity;
+            }
+
+            setAnalyzeButtonState(isProcessing) {
+                const btn = document.getElementById('analyzeBtn');
+                const quickBtn = document.getElementById('quickAnalyzeBtn');
+
+                if (isProcessing) {
+                    btn.disabled = true;
+                    btn.innerHTML = '⏳ Analyzing...';
+                    quickBtn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '🔍 Analyze Code';
+                    quickBtn.disabled = false;
+                }
+            }
+
+            clearInput() {
+                document.getElementById('codeInput').value = '';
+                document.getElementById('patternResults').innerHTML = '';
+                document.getElementById('morphologyResults').innerHTML = '';
+                this.log('info', 'Input cleared');
+            }
+
+            loadExample() {
+                const examples = [
+                    `// JavaScript Function Example
+function createUserProfile(userData, options = {}) {
+    const { validateEmail, generateId } = options;
+
+    if (validateEmail && !isValidEmail(userData.email)) {
+        throw new Error('Invalid email address');
+    }
+
+    return {
+        id: generateId ? generateUUID() : userData.id,
+        fullName: \`\${userData.firstName} \${userData.lastName}\`,
+        email: userData.email.toLowerCase(),
+        createdAt: new Date().toISOString(),
+        isActive: true,
+        preferences: {
+            theme: 'light',
+            notifications: true,
+            ...userData.preferences
+        }
+    };
+}
+
+const processUserBatch = async (users) => {
+    return Promise.all(users.map(user =>
+        createUserProfile(user, { validateEmail: true, generateId: true })
+    ));
+};`,
+
+                    `<!-- HTML Component Example -->
+<div class="dashboard-container" data-component="user-dashboard">
+    <header class="dashboard-header">
+        <h1 class="header-title">User Management System</h1>
+        <nav class="navigation-menu">
+            <a href="/users" class="nav-link active">Users</a>
+            <a href="/analytics" class="nav-link">Analytics</a>
+            <a href="/settings" class="nav-link">Settings</a>
+        </nav>
+    </header>
+
+    <main class="dashboard-content">
+        <section class="user-list-section">
+            <div class="section-header">
+                <h2>Active Users</h2>
+                <button class="btn-primary" onclick="refreshUsers()">
+                    Refresh List
+                </button>
+            </div>
+            <div id="userListContainer" class="user-grid">
+                <!-- Dynamic content loaded here -->
+            </div>
+        </section>
+
+        <aside class="sidebar-panel">
+            <div class="widget user-stats">
+                <h3>Statistics</h3>
+                <ul class="stats-list">
+                    <li>Total Users: <span id="totalUsers">0</span></li>
+                    <li>Active Today: <span id="activeToday">0</span></li>
+                </ul>
+            </div>
+        </aside>
+    </main>
+</div>`,
+
+                    `/* CSS Styling Example */
+.dashboard-container {
+    display: grid;
+    grid-template-areas:
+        "header header"
+        "content sidebar";
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+}
+
+.dashboard-header {
+    grid-area: header;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem 2rem;
+    color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navigation-menu {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.nav-link {
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: translateY(-2px);
+}`
+                ];
+
+                const randomExample = examples[Math.floor(Math.random() * examples.length)];
+                document.getElementById('codeInput').value = randomExample;
+                this.log('info', 'Example code loaded');
+            }
+
+            async generateTrainingData() {
+                this.log('info', 'Generating training data from analysis history...');
+
+                if (this.analyzer && typeof this.analyzer.exportTrainingData === 'function') {
+                    const trainingData = this.analyzer.exportTrainingData();
+                    this.updateTrainingStats(trainingData);
+                    this.log('success', `Generated ${trainingData.length} training entries`);
+                } else {
+                    this.log('info', 'Training data generation not available in demo mode');
+                }
+            }
+
+            exportAnalysisData() {
+                this.log('info', 'Exporting analysis data...');
+
+                const exportData = {
+                    session_stats: {
+                        analyses_performed: this.analysisCount,
+                        total_patterns: this.totalPatterns,
+                        total_morphemes: this.totalMorphemes,
+                        timestamp: new Date().toISOString()
+                    },
+                    analysis_history: this.analyzer ? this.analyzer.getAnalysisHistory() : []
+                };
+
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `nexus_language_analysis_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.log('success', 'Analysis data exported');
+            }
+
+            batchAnalyze() {
+                this.log('info', 'Batch analysis not implemented in demo mode');
+            }
+
+            clearTrainingData() {
+                if (this.analyzer && typeof this.analyzer.clearCache === 'function') {
+                    this.analyzer.clearCache();
+                    this.log('success', 'Training data cleared');
+                } else {
+                    this.log('info', 'Cache clearing not available in demo mode');
+                }
+            }
+
+            updateTrainingStats(trainingData) {
+                if (trainingData && trainingData.length > 0) {
+                    document.getElementById('trainingEntries').textContent = trainingData.length;
+                    document.getElementById('uniquePatterns').textContent =
+                        new Set(trainingData.map(entry => JSON.stringify(entry.output))).size;
+                    document.getElementById('dataQuality').textContent =
+                        Math.round((trainingData.filter(entry => entry.output && Object.keys(entry.output).length > 0).length / trainingData.length) * 100) + '%';
+                }
+            }
+
+            startPeriodicUpdates() {
+                setInterval(() => {
+                    if (this.analyzer) {
+                        // Update active jobs
+                        const activeJobs = this.analyzer.getActiveJobs ? this.analyzer.getActiveJobs() : [];
+                        this.displayActiveJobs(activeJobs);
+
+                        // Update analysis history
+                        const history = this.analyzer.getAnalysisHistory ? this.analyzer.getAnalysisHistory() : [];
+                        this.displayAnalysisHistory(history);
+                    }
+
+                    // Update service stats (mock for demo)
+                    this.updateServiceStats();
+                }, 2000);
+            }
+
+            displayActiveJobs(jobs) {
+                const container = document.getElementById('activeJobs');
+                container.innerHTML = '';
+
+                if (jobs.length === 0) {
+                    container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No active jobs</div>';
+                    return;
+                }
+
+                jobs.forEach(jobId => {
+                    const div = document.createElement('div');
+                    div.className = 'job-item';
+                    div.innerHTML = `
+                        <span class="job-id">${jobId}</span>
+                        <span class="job-status status-processing">Processing</span>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            displayAnalysisHistory(history) {
+                const container = document.getElementById('analysisHistory');
+                container.innerHTML = '';
+
+                if (history.length === 0) {
+                    container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No analysis history</div>';
+                    return;
+                }
+
+                history.slice(-10).forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'job-item';
+                    const time = new Date(entry.timestamp).toLocaleTimeString();
+                    div.innerHTML = `
+                        <span class="job-id">${entry.jobId} (${time})</span>
+                        <span class="job-status status-completed">Completed</span>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            updateServiceStats() {
+                // Mock service stats for demo
+                document.getElementById('jobsProcessed').textContent = this.analysisCount;
+                document.getElementById('avgProcessingTime').textContent = '150ms';
+                document.getElementById('queueSize').textContent = '0';
+                document.getElementById('cacheSize').textContent = this.analysisCount;
+            }
+
+            log(level, message) {
+                const logContainer = document.getElementById('systemLog');
+                const timestamp = new Date().toLocaleTimeString();
+
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-level-${level}"> ${level.toUpperCase()}: ${message}</span>
+                `;
+
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+
+                // Limit log entries
+                while (logContainer.children.length > 50) {
+                    logContainer.removeChild(logContainer.firstChild);
+                }
+            }
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboard = new LanguageAnalysisDashboard();
+            window.languageAnalysisDashboard = dashboard;
+            console.log('🔤 NEXUS Language Analysis Recovery Dashboard initialized');
+        });
+    </script>
+</body>
+</html>

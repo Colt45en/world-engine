@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 NEXUS HOLY BEAT - System Overview Dashboard</title>
+    <style>
+        :root {
+            --primary: #64ffda;
+            --secondary: #ff00ff;
+            --accent: #ff7bd5;
+            --world: #7dd3ff;
+            --bg: #0b0f1a;
+            --card: #0f1626;
+            --border: #1a2b46;
+            --text: #e8f0ff;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(15, 22, 38, 0.9);
+            border-bottom: 2px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .system-status {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: repeat(4, minmax(200px, auto));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .system-card {
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .system-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .system-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .holy-beat { border-color: var(--secondary); }
+        .holy-beat::before { background: linear-gradient(90deg, transparent, var(--secondary), transparent); }
+
+        .art-engine { border-color: var(--accent); }
+        .art-engine::before { background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+
+        .world-engine { border-color: var(--world); }
+        .world-engine::before { background: linear-gradient(90deg, transparent, var(--world), transparent); }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .card-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-active { background: var(--success); color: var(--bg); }
+        .status-ready { background: var(--primary); color: var(--bg); }
+        .status-training { background: var(--warning); color: var(--bg); }
+        .status-error { background: var(--error); color: white; }
+
+        .card-content {
+            line-height: 1.6;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .feature-list li {
+            padding: 5px 0;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .feature-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .metric {
+            background: rgba(100, 255, 218, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .file-tree {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            margin: 15px 0;
+        }
+
+        .file-tree-item {
+            padding: 2px 0;
+            color: var(--text);
+        }
+
+        .file-tree-folder {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .file-tree-file {
+            color: var(--accent);
+            padding-left: 20px;
+        }
+
+        .interconnection-map {
+            grid-column: 1 / -1;
+            height: 300px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .connection-node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .connection-node:hover {
+            transform: scale(1.2);
+            z-index: 10;
+        }
+
+        .node-clock { background: var(--secondary); top: 20px; left: 50%; transform: translateX(-50%); }
+        .node-audio { background: var(--secondary); top: 100px; left: 100px; }
+        .node-art { background: var(--accent); top: 100px; left: 50%; transform: translateX(-50%); }
+        .node-world { background: var(--world); top: 100px; right: 100px; }
+        .node-bus { background: var(--primary); bottom: 80px; left: 50%; transform: translateX(-50%); }
+        .node-training { background: var(--warning); bottom: 20px; left: 150px; }
+        .node-presets { background: var(--success); bottom: 20px; right: 150px; }
+
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            transform-origin: left center;
+            animation: flow 3s linear infinite;
+        }
+
+        @keyframes flow {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 25px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-btn:hover {
+            background: var(--primary);
+            color: var(--bg);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(100, 255, 218, 0.3);
+        }
+
+        .training-section {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(255, 170, 0, 0.1), rgba(255, 68, 68, 0.1));
+            border: 2px solid var(--warning);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .training-section h2 {
+            color: var(--warning);
+            margin-bottom: 15px;
+        }
+
+        .coming-soon {
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .math-formula {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Times New Roman', serif;
+            text-align: center;
+            margin: 10px 0;
+            border-left: 3px solid var(--primary);
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .system-status {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎵 NEXUS HOLY BEAT SYSTEM</h1>
+        <p>Mathematical Synthesis Engine with Clock/Bus Architecture</p>
+        <div class="system-status">
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>Clock/Bus System</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>Audio Engine</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>Art Engine</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>World Engine</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>Training Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Holy Beat Clock/Bus System -->
+        <div class="system-card holy-beat">
+            <div class="card-header">
+                <div class="card-title">⏰ Clock/Bus System</div>
+                <div class="card-status status-active">Active</div>
+            </div>
+            <div class="card-content">
+                <p>Global timing synchronization with quantized parameter updates.</p>
+                <div class="math-formula">
+                    φ(t) = fract(t / T<sub>b</sub>) where T<sub>b</sub> = 60/BPM
+                </div>
+                <ul class="feature-list">
+                    <li>Beat-locked parameter queuing</li>
+                    <li>Pub-sub event architecture</li>
+                    <li>Cross-modal feature bus</li>
+                    <li>Preset bank management</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">120</div>
+                        <div class="metric-label">BPM</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">4/4</div>
+                        <div class="metric-label">Time Sig</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Holy Beat Audio Engine -->
+        <div class="system-card holy-beat">
+            <div class="card-header">
+                <div class="card-title">🎵 Audio Synthesis</div>
+                <div class="card-status status-active">Synthesizing</div>
+            </div>
+            <div class="card-content">
+                <p>Phase-locked AM/FM synthesis with harmonic stacking.</p>
+                <div class="math-formula">
+                    s(t) = AM(t) Σ(1/n)sin(2π∫f<sub>n</sub>(τ)dτ)
+                </div>
+                <ul class="feature-list">
+                    <li>Harmonic stack synthesis</li>
+                    <li>Phase-locked LFOs</li>
+                    <li>Real-time filtering</li>
+                    <li>Spectral analysis</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">6</div>
+                        <div class="metric-label">Harmonics</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">440</div>
+                        <div class="metric-label">χ<sub>s</sub> Hz</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Art Engine -->
+        <div class="system-card art-engine">
+            <div class="card-header">
+                <div class="card-title">🌹 Parametric Art</div>
+                <div class="card-status status-active">Rendering</div>
+            </div>
+            <div class="card-content">
+                <p>Mathematical curve generation driven by audio features.</p>
+                <div class="math-formula">
+                    k = α·χ<sub>s</sub>, ρ<sub>a</sub> = γ·RMS
+                </div>
+                <ul class="feature-list">
+                    <li>Rose curve visualization</li>
+                    <li>Lissajous patterns</li>
+                    <li>Dynamic petal count</li>
+                    <li>Color palette cycling</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">8</div>
+                        <div class="metric-label">Petals</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">0.65</div>
+                        <div class="metric-label">Density</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- World Engine -->
+        <div class="system-card world-engine">
+            <div class="card-header">
+                <div class="card-title">🌍 3D World</div>
+                <div class="card-status status-active">Simulating</div>
+            </div>
+            <div class="card-content">
+                <p>Three-dimensional terrain generation with audio coupling.</p>
+                <div class="math-formula">
+                    z(x,y,t) = ρ<sub>w</sub>·sin(x·f + φ(t))·cos(y·f)
+                </div>
+                <ul class="feature-list">
+                    <li>Parametric terrain mesh</li>
+                    <li>Camera path automation</li>
+                    <li>Beat-synchronized waves</li>
+                    <li>Material color mapping</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">64x64</div>
+                        <div class="metric-label">Mesh</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">0.4</div>
+                        <div class="metric-label">ρ<sub>w</sub></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Structure -->
+        <div class="system-card">
+            <div class="card-header">
+                <div class="card-title">📁 File Organization</div>
+                <div class="card-status status-ready">Organized</div>
+            </div>
+            <div class="card-content">
+                <div class="file-tree">
+                    <div class="file-tree-folder">📂 nexus-holy-beat-system/</div>
+                    <div class="file-tree-folder">  📂 core/</div>
+                    <div class="file-tree-file">    ⚡ clock-bus.js</div>
+                    <div class="file-tree-file">    🧠 thought-processor.js</div>
+                    <div class="file-tree-folder">  📂 engines/</div>
+                    <div class="file-tree-file">    🎵 audio-synthesis.js</div>
+                    <div class="file-tree-file">    🌹 parametric-art.js</div>
+                    <div class="file-tree-file">    🌍 world-3d.js</div>
+                    <div class="file-tree-folder">  📂 demos/</div>
+                    <div class="file-tree-file">    🚀 master-demo.html</div>
+                    <div class="file-tree-folder">  📂 training/</div>
+                    <div class="file-tree-file">    📊 data-collector.js</div>
+                    <div class="file-tree-file">    🤖 ml-interface.js</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mathematical Framework -->
+        <div class="system-card">
+            <div class="card-header">
+                <div class="card-title">📐 Mathematical Core</div>
+                <div class="card-status status-ready">Equations</div>
+            </div>
+            <div class="card-content">
+                <p>Complete equation set for unified synthesis:</p>
+                <div class="math-formula" style="font-size: 12px; text-align: left;">
+                    <strong>Clock:</strong> φ(t) = fract(t·b/60)<br>
+                    <strong>LFOs:</strong> L<sub>AM</sub> = sin(2π·φ/d<sub>AM</sub>)<br>
+                    <strong>Synthesis:</strong> y(t) = F<sub>LP</sub>([1+D<sub>AM</sub>L<sub>AM</sub>]Σ(1/n)sin(∫f<sub>n</sub>))<br>
+                    <strong>Cross-modal:</strong> k = α·χ<sub>s</sub>, ρ<sub>w</sub> = γ·RMS
+                </div>
+                <ul class="feature-list">
+                    <li>Quantized parameter updates</li>
+                    <li>Phase-locked modulation</li>
+                    <li>Cross-engine feature mapping</li>
+                    <li>Safety threshold monitoring</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- System Interconnections -->
+        <div class="system-card interconnection-map">
+            <div class="card-title" style="position: absolute; top: 10px; left: 20px;">🔗 System Interconnections</div>
+
+            <!-- Connection Nodes -->
+            <div class="connection-node node-clock">CLOCK</div>
+            <div class="connection-node node-audio">AUDIO</div>
+            <div class="connection-node node-art">ART</div>
+            <div class="connection-node node-world">WORLD</div>
+            <div class="connection-node node-bus">BUS</div>
+            <div class="connection-node node-training">TRAIN</div>
+            <div class="connection-node node-presets">PRESETS</div>
+        </div>
+
+        <!-- Training Infrastructure -->
+        <div class="system-card training-section">
+            <h2>🤖 Machine Learning Training Infrastructure</h2>
+            <p>Preparing system for autonomous parameter optimization and pattern learning.</p>
+            <div class="metrics" style="max-width: 600px; margin: 20px auto;">
+                <div class="metric">
+                    <div class="metric-value">0</div>
+                    <div class="metric-label">Training Sessions</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">0</div>
+                    <div class="metric-label">Data Points</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">Ready</div>
+                    <div class="metric-label">ML Interface</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">6</div>
+                    <div class="metric-label">Feature Dimensions</div>
+                </div>
+            </div>
+            <p class="coming-soon">Training modules will enable the system to learn optimal parameter combinations and predict user preferences.</p>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="./demos/master-demo.html" class="action-btn">
+            🚀 Launch Master Demo
+        </a>
+        <a href="./training/training-interface.html" class="action-btn">
+            🤖 Start Training
+        </a>
+        <a href="#" class="action-btn" onclick="downloadSystemData()">
+            📊 Export Data
+        </a>
+        <a href="#" class="action-btn" onclick="showDocumentation()">
+            📚 Documentation
+        </a>
+    </div>
+
+    <script>
+        // Add interactive elements
+        document.querySelectorAll('.connection-node').forEach(node => {
+            node.addEventListener('mouseenter', () => {
+                // Highlight connected elements
+                highlightConnections(node.className);
+            });
+
+            node.addEventListener('mouseleave', () => {
+                // Remove highlights
+                clearHighlights();
+            });
+        });
+
+        function highlightConnections(nodeClass) {
+            // Add visual connection highlighting logic
+            document.querySelectorAll('.system-card').forEach(card => {
+                card.style.opacity = '0.5';
+            });
+
+            // Highlight relevant cards based on node type
+            if (nodeClass.includes('node-clock')) {
+                document.querySelectorAll('.holy-beat').forEach(card => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1.02)';
+                });
+            }
+            // Add more connection highlighting rules
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.system-card').forEach(card => {
+                card.style.opacity = '1';
+                card.style.transform = 'none';
+            });
+        }
+
+        function downloadSystemData() {
+            // Create system configuration export
+            const systemData = {
+                timestamp: new Date().toISOString(),
+                version: "1.0.0",
+                components: {
+                    clockBus: "active",
+                    audioEngine: "active",
+                    artEngine: "active",
+                    worldEngine: "active",
+                    training: "ready"
+                },
+                parameters: {
+                    bpm: 120,
+                    harmonics: 6,
+                    petalCount: 8,
+                    terrainRoughness: 0.4
+                }
+            };
+
+            const dataStr = JSON.stringify(systemData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'nexus-holy-beat-system-export.json';
+            link.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        function showDocumentation() {
+            alert('Documentation will open comprehensive system guide with mathematical equations, implementation details, and training protocols.');
+        }
+
+        // Add live status updates
+        setInterval(() => {
+            // Simulate live system metrics
+            const metrics = document.querySelectorAll('.metric-value');
+            const centroidMetric = Array.from(metrics).find(m => m.parentElement.querySelector('.metric-label')?.textContent.includes('χ'));
+            if (centroidMetric) {
+                const baseValue = 440;
+                const variation = Math.sin(Date.now() / 1000) * 50;
+                centroidMetric.textContent = Math.round(baseValue + variation);
+            }
+        }, 1000);
+
+        console.log('🎵 NEXUS Holy Beat System Overview Dashboard loaded');
+        console.log('📊 System Status: All components ready for integration and training');
+    </script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 NEXUS Live Audio-Visual Bridge</title>
+    <style>
+        :root {
+            --primary: #64ffda;
+            --secondary: #ff00ff;
+            --accent: #ff7bd5;
+            --world: #7dd3ff;
+            --bg: #0b0f1a;
+            --card: #0f1626;
+            --border: #1a2b46;
+            --text: #e8f0ff;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(15, 22, 38, 0.95);
+            border-bottom: 2px solid var(--primary);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            margin-top: 80px;
+            height: calc(100vh - 80px);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .panel {
+            background: rgba(15, 22, 38, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .audio-visualizer {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .spectrum-bar {
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(to top, var(--secondary), var(--primary));
+            border-radius: 2px 2px 0 0;
+            transition: height 0.1s ease;
+        }
+
+        .mode-display {
+            font-size: 2em;
+            text-align: center;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .metric {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+        }
+
+        .metric-label {
+            color: var(--primary);
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .color-swatch.active {
+            transform: scale(1.2);
+            border-color: var(--primary);
+        }
+
+        .console-output {
+            background: #000;
+            border-radius: 5px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            border: 1px solid var(--border);
+        }
+
+        .console-line {
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+
+        .console-line.new {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0;
+            animation: float 3s infinite;
+        }
+
+        @keyframes float {
+            0% {
+                opacity: 0;
+                transform: translateY(100px);
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎵 NEXUS Live Audio-Visual Bridge</h1>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Audio Panel -->
+        <div class="panel">
+            <h3>🎵 Audio Analysis</h3>
+            <div class="audio-visualizer" id="audioVisualizer"></div>
+            <div class="mode-display" id="modeDisplay">MIRROR</div>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-label">BPM</div>
+                    <div class="metric-value" id="bpmValue">128</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Amplitude</div>
+                    <div class="metric-value" id="amplitudeValue">0.0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Frequency</div>
+                    <div class="metric-value" id="frequencyValue">440Hz</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Spectral</div>
+                    <div class="metric-value" id="spectralValue">0.0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Panel -->
+        <div class="panel">
+            <h3>🎨 Visual Effects</h3>
+            <div class="color-palette" id="colorPalette"></div>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-label">Glow Intensity</div>
+                    <div class="metric-value" id="glowValue">0.8</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Petal Count</div>
+                    <div class="metric-value" id="petalValue">12</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Trail Length</div>
+                    <div class="metric-value" id="trailValue">50</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Effect</div>
+                    <div class="metric-value" id="effectValue">quantum_flow</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Panel -->
+        <div class="panel">
+            <h3>📊 System Metrics</h3>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-label">CPU Usage</div>
+                    <div class="metric-value" id="cpuValue">0%</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Memory</div>
+                    <div class="metric-value" id="memoryValue">0MB</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">FPS</div>
+                    <div class="metric-value" id="fpsValue">60</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Entities</div>
+                    <div class="metric-value" id="entitiesValue">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Thoughts</div>
+                    <div class="metric-value" id="thoughtsValue">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Resources</div>
+                    <div class="metric-value" id="resourcesValue">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="panel">
+            <h3>🎮 Controls & Console</h3>
+            <div class="controls">
+                <button class="btn" onclick="sendCommand('setMode', 0)">Mirror</button>
+                <button class="btn" onclick="sendCommand('setMode', 2)">Chaos</button>
+                <button class="btn" onclick="sendCommand('setMode', 4)">Amplify</button>
+                <button class="btn" onclick="sendCommand('reset')">Reset</button>
+            </div>
+            <div class="console-output" id="consoleOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        class NexusWebClient {
+            constructor() {
+                this.ws = null;
+                this.connected = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 10;
+                this.reconnectInterval = 2000;
+
+                this.spectrumBars = [];
+                this.consoleLines = [];
+                this.maxConsoleLines = 20;
+
+                this.initializeVisualizer();
+                this.connect();
+            }
+
+            connect() {
+                try {
+                    this.ws = new WebSocket('ws://localhost:8080');
+
+                    this.ws.onopen = () => {
+                        this.connected = true;
+                        this.reconnectAttempts = 0;
+                        this.updateConnectionStatus(true);
+                        this.addConsoleMessage('✅ Connected to NEXUS engine');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleMessage(data);
+                        } catch (e) {
+                            console.error('Failed to parse message:', e);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.connected = false;
+                        this.updateConnectionStatus(false);
+                        this.addConsoleMessage('❌ Disconnected from NEXUS engine');
+                        this.scheduleReconnect();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.addConsoleMessage('⚠️ Connection error');
+                    };
+
+                } catch (e) {
+                    console.error('Failed to connect:', e);
+                    this.scheduleReconnect();
+                }
+            }
+
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    setTimeout(() => {
+                        this.addConsoleMessage(`🔄 Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                        this.connect();
+                    }, this.reconnectInterval);
+                }
+            }
+
+            handleMessage(data) {
+                switch (data.type) {
+                    case 'audio_data':
+                        this.updateAudioData(data.payload);
+                        break;
+                    case 'visual_data':
+                        this.updateVisualData(data.payload);
+                        break;
+                    case 'system_metrics':
+                        this.updateSystemMetrics(data.payload);
+                        break;
+                    case 'heartbeat':
+                        // Keep connection alive
+                        break;
+                    default:
+                        console.log('Unknown message type:', data.type);
+                }
+            }
+
+            updateAudioData(data) {
+                document.getElementById('bpmValue').textContent = Math.round(data.bpm);
+                document.getElementById('amplitudeValue').textContent = data.amplitude.toFixed(2);
+                document.getElementById('frequencyValue').textContent = Math.round(data.frequency) + 'Hz';
+                document.getElementById('spectralValue').textContent = data.spectral_centroid.toFixed(2);
+                document.getElementById('modeDisplay').textContent = data.mode_name;
+
+                // Update spectrum visualization
+                if (data.spectrum) {
+                    this.updateSpectrum(data.spectrum);
+                }
+
+                // Create floating particles based on amplitude
+                if (data.amplitude > 0.3) {
+                    this.createFloatingParticles(Math.floor(data.amplitude * 10));
+                }
+            }
+
+            updateVisualData(data) {
+                document.getElementById('glowValue').textContent = data.glow_intensity.toFixed(1);
+                document.getElementById('petalValue').textContent = data.petal_count;
+                document.getElementById('trailValue').textContent = data.trail_length.toFixed(0);
+                document.getElementById('effectValue').textContent = data.active_effect;
+
+                // Update color palette
+                this.updateColorPalette(data.palette);
+            }
+
+            updateSystemMetrics(data) {
+                document.getElementById('cpuValue').textContent = data.cpu_usage.toFixed(1) + '%';
+                document.getElementById('memoryValue').textContent = Math.round(data.memory_usage / 1024 / 1024) + 'MB';
+                document.getElementById('fpsValue').textContent = Math.round(data.fps);
+                document.getElementById('entitiesValue').textContent = data.active_entities;
+                document.getElementById('thoughtsValue').textContent = data.active_thoughts;
+                document.getElementById('resourcesValue').textContent = data.active_resources;
+            }
+
+            updateConnectionStatus(connected) {
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
+
+                if (connected) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                } else {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'Disconnected';
+                }
+            }
+
+            initializeVisualizer() {
+                const visualizer = document.getElementById('audioVisualizer');
+                const barCount = 32;
+
+                for (let i = 0; i < barCount; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'spectrum-bar';
+                    bar.style.left = `${(i / barCount) * 100}%`;
+                    bar.style.width = `${(1 / barCount) * 90}%`;
+                    bar.style.height = '0px';
+                    visualizer.appendChild(bar);
+                    this.spectrumBars.push(bar);
+                }
+            }
+
+            updateSpectrum(spectrum) {
+                for (let i = 0; i < Math.min(spectrum.length, this.spectrumBars.length); i++) {
+                    const height = Math.min(spectrum[i] * 200, 200);
+                    this.spectrumBars[i].style.height = `${height}px`;
+                }
+            }
+
+            updateColorPalette(palette) {
+                const container = document.getElementById('colorPalette');
+                container.innerHTML = '';
+
+                palette.forEach((color, index) => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'color-swatch';
+                    swatch.style.backgroundColor = `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${color.a})`;
+
+                    if (index === 0) {
+                        swatch.classList.add('active');
+                    }
+
+                    container.appendChild(swatch);
+                });
+            }
+
+            createFloatingParticles(count) {
+                for (let i = 0; i < count && i < 5; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'floating-particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 2 + 's';
+
+                    document.body.appendChild(particle);
+
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.parentNode.removeChild(particle);
+                        }
+                    }, 3000);
+                }
+            }
+
+            addConsoleMessage(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const line = `[${timestamp}] ${message}`;
+
+                this.consoleLines.push(line);
+                if (this.consoleLines.length > this.maxConsoleLines) {
+                    this.consoleLines.shift();
+                }
+
+                const console = document.getElementById('consoleOutput');
+                console.innerHTML = this.consoleLines.map((line, index) =>
+                    `<div class="console-line ${index === this.consoleLines.length - 1 ? 'new' : ''}">${line}</div>`
+                ).join('');
+
+                console.scrollTop = console.scrollHeight;
+            }
+
+            sendCommand(command, value = null) {
+                if (!this.connected) {
+                    this.addConsoleMessage('❌ Not connected - cannot send command');
+                    return;
+                }
+
+                const message = {
+                    type: 'command',
+                    command: command,
+                    value: value,
+                    timestamp: Date.now()
+                };
+
+                try {
+                    this.ws.send(JSON.stringify(message));
+                    this.addConsoleMessage(`📤 Sent command: ${command} ${value !== null ? value : ''}`);
+                } catch (e) {
+                    this.addConsoleMessage('❌ Failed to send command');
+                }
+            }
+        }
+
+        // Global function for button clicks
+        function sendCommand(command, value) {
+            if (window.nexusClient) {
+                window.nexusClient.sendCommand(command, value);
+            }
+        }
+
+        // Initialize client when page loads
+        window.addEventListener('load', () => {
+            window.nexusClient = new NexusWebClient();
+        });
+    </script>
+</body>
+</html>

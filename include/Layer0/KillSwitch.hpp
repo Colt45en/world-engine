@@ -31,7 +31,7 @@ private:
     static bool system_terminated_;
     static std::chrono::steady_clock::time_point last_heartbeat_;
     static std::function<void(const std::string&)> logger_;
-    
+
     // Prevent instantiation - all static methods
     KillSwitch() = delete;
     KillSwitch(const KillSwitch&) = delete;
@@ -43,52 +43,52 @@ public:
      * Called once during Layer 0 initialization
      */
     static void initialize(std::function<void(const std::string&)> log_func = nullptr);
-    
+
     /**
      * Check if system is terminated
      */
     static bool isTerminated() { return system_terminated_; }
-    
+
     /**
      * Emergency termination - cannot be bypassed
      * Immediately freezes all system operations
      */
     static void trigger(KillReason reason, const std::string& context = "");
-    
+
     /**
      * Heartbeat mechanism to detect hangs
      * Must be called regularly by system components
      */
     static void heartbeat();
-    
+
     /**
      * Check if heartbeat is still active (watchdog function)
      */
     static bool isHeartbeatHealthy(int timeout_seconds = 10);
-    
+
     /**
      * Force system preservation for forensics
      * Saves current state before termination
      */
     static void preserveSystemState();
-    
+
     /**
      * Get human-readable kill reason
      */
     static std::string getKillReasonString(KillReason reason);
-    
+
     /**
      * Validate system integrity
      * Returns false if kill switch should be triggered
      */
     static bool validateSystemIntegrity();
-    
+
     /**
      * Register emergency callback
      * Called during termination for cleanup
      */
     static void registerEmergencyCallback(std::function<void()> callback);
-    
+
 private:
     static void executeTermination(const std::string& reason_msg);
     static void forensicLog(const std::string& message);
@@ -108,7 +108,7 @@ private:
 public:
     explicit CriticalSectionGuard(const std::string& name);
     ~CriticalSectionGuard();
-    
+
     void complete(); // Mark section as successfully completed
     void extend_timeout(int additional_seconds); // Extend allowed time
 };
@@ -126,7 +126,7 @@ private:
 public:
     MemoryGuard(size_t num_canaries = 16);
     ~MemoryGuard();
-    
+
     bool checkIntegrity() const;
     void forceCheck(); // Triggers kill switch if corruption detected
 };

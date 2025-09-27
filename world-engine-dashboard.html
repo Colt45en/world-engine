@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏛️ World Engine Dashboard - Live Glyph Events</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .events-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .event-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .event-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+
+        .event-content {
+            flex: 1;
+        }
+
+        .event-title {
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+
+        .event-description {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .event-timestamp {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .chat-simulation {
+            background: rgba(0,0,0,0.5);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .chat-user {
+            background: rgba(64, 128, 255, 0.2);
+            text-align: right;
+            margin-left: 20%;
+        }
+
+        .chat-system {
+            background: rgba(255, 215, 0, 0.2);
+            margin-right: 20%;
+        }
+
+        .game-events {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .game-card {
+            background: rgba(139, 69, 19, 0.3);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .game-card h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+
+        .glyph-display {
+            font-size: 2em;
+            margin: 15px 0;
+        }
+
+        .energy-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFD700, #FF6B6B);
+            transition: width 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .interactive-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: rgba(76, 175, 80, 0.8);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🏛️ World Engine Dashboard</h1>
+            <p>Live Glyph Events & Recursive World History</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="epochCount">5</div>
+                <div>📚 Epochs Recorded</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="glyphCount">2</div>
+                <div>🧬 Intelligence Glyphs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="agentCount">3</div>
+                <div>🎭 Active Agents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="eventCount">7</div>
+                <div>⚡ Total Events</div>
+            </div>
+        </div>
+
+        <div class="events-container">
+            <h2>🔥 Live Event Feed</h2>
+            <div id="eventFeed">
+                <!-- Events populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="chat-simulation">
+            <h2>💬 Chat Window Integration Demo</h2>
+            <div id="chatMessages">
+                <!-- Chat messages populated by JavaScript -->
+            </div>
+            <div class="interactive-controls">
+                <button class="control-btn" onclick="simulateQuery('crystal')">Query: Crystal</button>
+                <button class="control-btn" onclick="simulateQuery('shadow')">Query: Shadow</button>
+                <button class="control-btn" onclick="simulateQuery('ancient')">Query: Ancient</button>
+                <button class="control-btn" onclick="simulateQuery('void')">Query: Void</button>
+            </div>
+        </div>
+
+        <div class="game-events">
+            <div class="game-card">
+                <h3>🎮 Random Encounter</h3>
+                <div class="glyph-display">🌀⚡🔮</div>
+                <p id="encounterText">Echo of The Recursive Loop detected...</p>
+                <div class="energy-bar">
+                    <div class="energy-fill" style="width: 95%"></div>
+                </div>
+                <button class="control-btn" onclick="generateEncounter()">New Encounter</button>
+            </div>
+
+            <div class="game-card">
+                <h3>🧬 Glyph Manifestation</h3>
+                <div class="glyph-display pulse">CRY-563551</div>
+                <p id="glyphText">Crystalline formation hums with ancient power</p>
+                <div class="energy-bar">
+                    <div class="energy-fill" style="width: 78%"></div>
+                </div>
+                <button class="control-btn" onclick="generateGlyph()">Manifest Glyph</button>
+            </div>
+
+            <div class="game-card">
+                <h3>📚 Epoch Creation</h3>
+                <div class="glyph-display">🏛️⭐🌊</div>
+                <p id="epochText">The Crystal Awakening begins...</p>
+                <div class="energy-bar">
+                    <div class="energy-fill" style="width: 100%"></div>
+                </div>
+                <button class="control-btn" onclick="generateEpoch()">Birth Epoch</button>
+            </div>
+        </div>
+
+        <div class="interactive-controls" style="margin-top: 30px;">
+            <button class="control-btn" onclick="refreshDashboard()">🔄 Refresh Dashboard</button>
+            <button class="control-btn" onclick="exportData()">💾 Export Data</button>
+            <button class="control-btn" onclick="openTerminal()">🖥️ Open Terminal Codex</button>
+            <button class="control-btn" onclick="simulateRealTime()">⏰ Start Real-Time Mode</button>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in real application, this would come from Python backend
+        const worldData = {
+            epochs: [
+                {
+                    epoch: "The Great Convergence",
+                    cultural_shift: "All scattered tribes unite under the Golden Nexus",
+                    timestamp: "2025-01-14 15:30:00",
+                    energy_pattern: 0.85
+                },
+                {
+                    epoch: "The Void Whispers",
+                    cultural_shift: "Dark energies emerge, reality becomes unstable",
+                    timestamp: "2025-01-14 15:31:00",
+                    energy_pattern: 0.3
+                },
+                {
+                    epoch: "The Crystal Awakening",
+                    cultural_shift: "Ancient crystals across the realm begin resonating in harmony",
+                    timestamp: "2025-01-14 15:32:00",
+                    energy_pattern: 1.2
+                }
+            ],
+
+            intelligence_glyphs: [
+                {
+                    sigil: "SHA-4297af",
+                    meaning: "Mastered shadow-step technique in the Whispering Caverns",
+                    agent: "Shadow Walker",
+                    timestamp: "2025-01-14 15:31:30"
+                },
+                {
+                    sigil: "CRY-563551",
+                    meaning: "Discovered crystalline formation that hums with ancient power",
+                    agent: "Crystal Sage",
+                    timestamp: "2025-01-14 15:32:15"
+                }
+            ],
+
+            chat_responses: {
+                "crystal": "The archives speak of 'The Crystal Awakening' - Ancient crystals across the realm begin resonating in harmony. The intelligence glyph CRY-563551 resonates: 'Discovered crystalline formation that hums with ancient power'.",
+                "shadow": "The archives speak of 'The Void Whispers' - Dark energies emerge, reality becomes unstable. The intelligence glyph SHA-4297af resonates: 'Mastered shadow-step technique in the Whispering Caverns'.",
+                "ancient": "The archives speak of 'Glyph Awakening' - Ancient symbols begin manifesting spontaneously. The written becomes the written-into-reality.",
+                "void": "The archives speak of 'The Void Whispers' - Dark energies emerge, reality becomes unstable. What is forgotten seeks to be remembered."
+            }
+        };
+
+        function populateEventFeed() {
+            const eventFeed = document.getElementById('eventFeed');
+            eventFeed.innerHTML = '';
+
+            // Add epoch events
+            worldData.epochs.forEach(epoch => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'event-item';
+                eventDiv.innerHTML = `
+                    <div class="event-icon">📚</div>
+                    <div class="event-content">
+                        <div class="event-title">${epoch.epoch}</div>
+                        <div class="event-description">${epoch.cultural_shift}</div>
+                        <div class="event-timestamp">${epoch.timestamp}</div>
+                    </div>
+                `;
+                eventFeed.appendChild(eventDiv);
+            });
+
+            // Add glyph events
+            worldData.intelligence_glyphs.forEach(glyph => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'event-item';
+                eventDiv.innerHTML = `
+                    <div class="event-icon">🧬</div>
+                    <div class="event-content">
+                        <div class="event-title">${glyph.sigil} Generated</div>
+                        <div class="event-description">${glyph.meaning} (${glyph.agent})</div>
+                        <div class="event-timestamp">${glyph.timestamp}</div>
+                    </div>
+                `;
+                eventFeed.appendChild(eventDiv);
+            });
+        }
+
+        function simulateQuery(query) {
+            const chatMessages = document.getElementById('chatMessages');
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-message chat-user';
+            userMsg.innerHTML = `🔍 ${query}`;
+            chatMessages.appendChild(userMsg);
+
+            // Add system response
+            setTimeout(() => {
+                const systemMsg = document.createElement('div');
+                systemMsg.className = 'chat-message chat-system';
+                systemMsg.innerHTML = `🏛️ ${worldData.chat_responses[query] || "The codex whispers of uncharted possibilities..."}`;
+                chatMessages.appendChild(systemMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+        }
+
+        function generateEncounter() {
+            const encounters = [
+                "Echo of The Recursive Loop: Time manifestations appear",
+                "Void Fragment Detected: Reality becomes unstable",
+                "Crystal Resonance: Ancient harmonies emerge",
+                "Shadow Convergence: Dark energies gather",
+                "Glyph Storm: Symbols rain from the sky"
+            ];
+
+            const randomEncounter = encounters[Math.floor(Math.random() * encounters.length)];
+            document.getElementById('encounterText').textContent = randomEncounter;
+
+            // Animate energy bar
+            const energyFill = document.querySelector('.game-card .energy-fill');
+            energyFill.style.width = Math.random() * 100 + '%';
+        }
+
+        function generateGlyph() {
+            const glyphs = [
+                { code: "SHA-" + Math.random().toString(36).substr(2, 6), text: "Shadow mastery achieved" },
+                { code: "CRY-" + Math.random().toString(36).substr(2, 6), text: "Crystal formation discovered" },
+                { code: "VOI-" + Math.random().toString(36).substr(2, 6), text: "Void energy harnessed" },
+                { code: "TIM-" + Math.random().toString(36).substr(2, 6), text: "Temporal loop created" }
+            ];
+
+            const randomGlyph = glyphs[Math.floor(Math.random() * glyphs.length)];
+            document.querySelector('.game-card:nth-child(2) .glyph-display').textContent = randomGlyph.code;
+            document.getElementById('glyphText').textContent = randomGlyph.text;
+
+            // Update stats
+            const glyphCount = document.getElementById('glyphCount');
+            glyphCount.textContent = parseInt(glyphCount.textContent) + 1;
+        }
+
+        function generateEpoch() {
+            const epochs = [
+                "The Great Unraveling: Reality fabric tears",
+                "Crystal Harmony: All crystals sing in unison",
+                "Shadow Eclipse: Darkness covers the realm",
+                "Time Convergence: All timelines merge",
+                "The Final Awakening: Ancient powers stir"
+            ];
+
+            const randomEpoch = epochs[Math.floor(Math.random() * epochs.length)];
+            document.getElementById('epochText').textContent = randomEpoch;
+
+            // Update stats
+            const epochCount = document.getElementById('epochCount');
+            epochCount.textContent = parseInt(epochCount.textContent) + 1;
+        }
+
+        function refreshDashboard() {
+            // Simulate data refresh with animation
+            document.querySelectorAll('.stat-number').forEach(stat => {
+                stat.style.transform = 'scale(1.2)';
+                setTimeout(() => { stat.style.transform = 'scale(1)'; }, 300);
+            });
+
+            populateEventFeed();
+        }
+
+        function exportData() {
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                world_state: worldData,
+                dashboard_events: worldData.epochs.length + worldData.intelligence_glyphs.length
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'world-engine-data.json';
+            a.click();
+        }
+
+        function openTerminal() {
+            alert('🖥️ Terminal Codex Integration:\n\nIn real application, this would open:\n- Interactive terminal interface\n- Query past epochs\n- Agent management\n- Live system status\n\nCommands: "convergence", "agent [name]", "status", "exit"');
+        }
+
+        function simulateRealTime() {
+            let isRealTime = document.body.classList.contains('real-time-mode');
+
+            if (!isRealTime) {
+                document.body.classList.add('real-time-mode');
+
+                // Simulate real-time events every 5 seconds
+                const interval = setInterval(() => {
+                    if (Math.random() > 0.6) {
+                        generateGlyph();
+                    }
+                    if (Math.random() > 0.8) {
+                        generateEpoch();
+                    }
+                    if (Math.random() > 0.7) {
+                        generateEncounter();
+                    }
+                }, 5000);
+
+                // Store interval ID for cleanup
+                document.body.dataset.realtimeInterval = interval;
+            } else {
+                document.body.classList.remove('real-time-mode');
+                clearInterval(document.body.dataset.realtimeInterval);
+            }
+        }
+
+        // Initialize dashboard on load
+        document.addEventListener('DOMContentLoaded', () => {
+            populateEventFeed();
+
+            // Add some initial chat messages
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="chat-message chat-system">
+                    🏛️ World History Codex activated. Ready to query recursive archives...
+                </div>
+                <div class="chat-message chat-system">
+                    📚 ${worldData.epochs.length} epochs recorded, ${worldData.intelligence_glyphs.length} intelligence glyphs manifested
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>

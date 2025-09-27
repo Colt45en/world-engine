@@ -1,0 +1,6 @@
+git checkout -b feat/v3-1-advanced-math
+Set-Content we_v31.patch -Value (Get-Clipboard)  # if you copied the patch
+git apply we_v31.patch
+git add web/*
+git commit -m "feat(v3.1): type lattice, jacobian tracing, morph discovery hooks, distributed sync (opt-in, non-breaking)"
+

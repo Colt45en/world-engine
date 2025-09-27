@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine v2 Integration Tests</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #0f1523; --ink: #e6f0ff; --acc: #54f0b8;
+    --success: #00ff88; --warn: #ffd166; --error: #ff6b6b;
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.4 system-ui, sans-serif; padding: 20px;
+  }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 30px; }
+  .test-controls { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+  .btn {
+    border: 1px solid var(--acc); background: var(--panel); color: var(--ink);
+    border-radius: 8px; padding: 10px 20px; cursor: pointer;
+    transition: all 0.2s ease; text-decoration: none; display: inline-block;
+  }
+  .btn:hover { background: var(--acc); color: #000; }
+  .btn.success { background: var(--success); color: #000; }
+  .btn.error { background: var(--error); color: #fff; }
+  .results {
+    border: 1px solid #333; border-radius: 12px; background: var(--panel);
+    padding: 20px; margin: 20px 0; min-height: 200px;
+  }
+  .test-item {
+    border-bottom: 1px dashed #333; padding: 10px 0;
+    display: grid; grid-template-columns: 1fr 100px 60px; align-items: center; gap: 10px;
+  }
+  .test-item:last-child { border-bottom: none; }
+  .test-name { font-weight: 600; }
+  .test-details { font-size: 12px; color: #999; margin-top: 4px; }
+  .test-status { text-align: center; font-weight: 700; }
+  .status-success { color: var(--success); }
+  .status-error { color: var(--error); }
+  .summary {
+    background: linear-gradient(135deg, #1a2332, #0f1523);
+    border: 1px solid var(--acc); border-radius: 12px;
+    padding: 20px; text-align: center; margin: 20px 0;
+  }
+  .metric { display: inline-block; margin: 0 15px; }
+  .metric-value { font-size: 24px; font-weight: 800; color: var(--acc); }
+  .metric-label { font-size: 12px; color: #999; }
+  pre {
+    background: #0a0d16; border: 1px solid #333; border-radius: 8px;
+    padding: 15px; overflow: auto; font-size: 12px; margin: 10px 0;
+  }
+  .loading { text-align: center; padding: 40px; color: var(--acc); }
+  .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🧪 World Engine v2 Integration Tests</h1>
+    <p>Comprehensive testing of enhanced morphology engine, upflow v2, and HTML pipeline</p>
+  </div>
+
+  <div class="test-controls">
+    <button id="runTests" class="btn">🚀 Run All Tests</button>
+    <button id="runMorphology" class="btn">🧠 Test Morphology Only</button>
+    <button id="runUpflow" class="btn">📊 Test Upflow Only</button>
+    <button id="clearResults" class="btn">🧹 Clear Results</button>
+  </div>
+
+  <div id="summary" class="summary" style="display: none;">
+    <div class="metric">
+      <div id="totalTests" class="metric-value">0</div>
+      <div class="metric-label">Total Tests</div>
+    </div>
+    <div class="metric">
+      <div id="successfulTests" class="metric-value">0</div>
+      <div class="metric-label">Successful</div>
+    </div>
+    <div class="metric">
+      <div id="failedTests" class="metric-value">0</div>
+      <div class="metric-label">Failed</div>
+    </div>
+    <div class="metric">
+      <div id="successRate" class="metric-value">0%</div>
+      <div class="metric-label">Success Rate</div>
+    </div>
+  </div>
+
+  <div id="results" class="results">
+    <div class="loading">
+      <div>Ready to run tests</div>
+      <div style="font-size: 12px; color: #666; margin-top: 10px;">
+        Click "Run All Tests" to start the integration test suite
+      </div>
+    </div>
+  </div>
+
+  <div id="rawResults" style="display: none;">
+    <h3>Raw Test Results (JSON)</h3>
+    <pre id="jsonOutput"></pre>
+  </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div class="toast-container"></div>
+
+<script type="module">
+import { V2IntegrationTester } from './tests/v2-integration-test.js';
+
+let tester = null;
+let currentReport = null;
+
+const $ = (id) => document.getElementById(id);
+const resultsContainer = $('results');
+const summaryContainer = $('summary');
+
+// Initialize tester
+async function initTester() {
+  if (!tester) {
+    tester = new V2IntegrationTester();
+    const initialized = await tester.initialize();
+
+    if (!initialized) {
+      showError('Failed to initialize V2 systems');
+      return false;
+    }
+  }
+  return true;
+}
+
+// Show loading state
+function showLoading(message) {
+  resultsContainer.innerHTML = `
+    <div class="loading">
+      <div>${message}</div>
+      <div style="font-size: 12px; color: #666; margin-top: 10px;">
+        Please wait...
+      </div>
+    </div>
+  `;
+}
+
+// Show error
+function showError(message) {
+  resultsContainer.innerHTML = `
+    <div class="loading" style="color: var(--error);">
+      <div>❌ Error: ${message}</div>
+    </div>
+  `;
+}
+
+// Update results display
+function displayResults(report) {
+  currentReport = report;
+
+  // Update summary
+  $('totalTests').textContent = report.summary.total;
+  $('successfulTests').textContent = report.summary.successful;
+  $('failedTests').textContent = report.summary.failed;
+  $('successRate').textContent = report.summary.successRate;
+  summaryContainer.style.display = 'block';
+
+  // Update detailed results
+  let html = '';
+  report.details.forEach(test => {
+    html += `
+      <div class="test-item">
+        <div>
+          <div class="test-name">${test.test.replace(/_/g, ' ').toUpperCase()}</div>
+          <div class="test-details">
+            Input: ${test.input || 'N/A'}
+            ${test.details ? Object.entries(test.details).map(([k,v]) => `${k}: ${v}`).join(', ') : ''}
+          </div>
+        </div>
+        <div class="test-status ${test.success ? 'status-success' : 'status-error'}">
+          ${test.success ? '✅ PASS' : '❌ FAIL'}
+        </div>
+        <div style="text-align: center;">
+          ${test.success ? test.result ? '📊' : '✓' : '❌'}
+        </div>
+      </div>
+    `;
+  });
+
+  resultsContainer.innerHTML = html;
+
+  // Update raw JSON
+  $('jsonOutput').textContent = JSON.stringify(report, null, 2);
+  $('rawResults').style.display = 'block';
+}
+
+// Event handlers
+$('runTests').addEventListener('click', async () => {
+  showLoading('Initializing V2 systems...');
+
+  if (await initTester()) {
+    showLoading('Running comprehensive test suite...');
+    const report = await tester.runAllTests();
+    displayResults(report);
+  }
+});
+
+$('runMorphology').addEventListener('click', async () => {
+  showLoading('Testing morphology engine only...');
+
+  if (await initTester()) {
+    await tester.testMorphologyAnalysis();
+    const report = {
+      summary: {
+        total: tester.testResults.length,
+        successful: tester.testResults.filter(t => t.success).length,
+        failed: tester.testResults.filter(t => !t.success).length,
+        successRate: `${Math.round((tester.testResults.filter(t => t.success).length / tester.testResults.length) * 100)}%`
+      },
+      details: tester.testResults,
+      timestamp: new Date().toISOString()
+    };
+    displayResults(report);
+  }
+});
+
+$('runUpflow').addEventListener('click', async () => {
+  showLoading('Testing upflow integration only...');
+
+  if (await initTester()) {
+    await tester.testUpflowIntegration();
+    const report = {
+      summary: {
+        total: tester.testResults.length,
+        successful: tester.testResults.filter(t => t.success).length,
+        failed: tester.testResults.filter(t => !t.success).length,
+        successRate: `${Math.round((tester.testResults.filter(t => t.success).length / tester.testResults.length) * 100)}%`
+      },
+      details: tester.testResults,
+      timestamp: new Date().toISOString()
+    };
+    displayResults(report);
+  }
+});
+
+$('clearResults').addEventListener('click', () => {
+  resultsContainer.innerHTML = `
+    <div class="loading">
+      <div>Results cleared</div>
+      <div style="font-size: 12px; color: #666; margin-top: 10px;">
+        Ready to run new tests
+      </div>
+    </div>
+  `;
+  summaryContainer.style.display = 'none';
+  $('rawResults').style.display = 'none';
+  currentReport = null;
+  if (tester) {
+    tester.testResults = [];
+  }
+});
+
+// Auto-run if ?autotest parameter is present
+if (window.location.search.includes('autotest=true')) {
+  setTimeout(() => $('runTests').click(), 1000);
+}
+
+console.log('🧪 V2 Integration Test Page Ready');
+console.log('Available global: window.currentReport, window.tester');
+
+window.tester = tester;
+window.getCurrentReport = () => currentReport;
+</script>
+
+</body>
+</html>

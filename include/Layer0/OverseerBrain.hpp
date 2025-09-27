@@ -76,19 +76,19 @@ public:
      * Can only be called once, before sealing
      */
     static bool initialize();
-    
+
     /**
      * Seal the Layer 0 system - makes it immutable
      * Once sealed, no modifications are possible
      */
     static bool seal();
-    
+
     /**
      * Check if system is initialized and sealed
      */
     static bool isSealed() { return sealed_; }
     static bool isInitialized() { return initialized_; }
-    
+
     /**
      * Get system identity information
      */
@@ -96,16 +96,16 @@ public:
     static std::string getSystemName() { return SystemConstants::SYSTEM_NAME; }
     static std::string getVersion() { return SystemConstants::VERSION; }
     static std::chrono::system_clock::time_point getBirthTime() { return birth_time_; }
-    
+
     /**
      * Slot Management (Registration Phase Only)
      */
-    static bool registerSlot(const std::string& path, int layer_id, 
+    static bool registerSlot(const std::string& path, int layer_id,
                            const std::string& module_name, const std::string& checksum = "");
     static bool validateSlotIntegrity();
     static std::vector<SlotEntry> getSlotRegistry();
     static bool isSlotRegistered(const std::string& path);
-    
+
     /**
      * Layer Management
      */
@@ -113,41 +113,41 @@ public:
     static LayerInfo getLayerInfo(int layer_id);
     static std::vector<LayerInfo> getAllLayers();
     static bool isLayerValid(int layer_id) { return layer_id >= 0 && layer_id <= SystemConstants::MAX_LAYERS; }
-    
+
     /**
      * Runtime Validation (Always Available)
      */
     static bool validateSystemState();
     static bool enforceLayerBoundaries(int requesting_layer, int target_layer);
     static bool canLayerModify(int source_layer, int target_layer);
-    
+
     /**
      * Self-Repair Functions (Within Layer 0 Boundaries)
      */
     static bool detectFaults();
     static std::vector<std::string> proposeFixes();
     static bool executeSafeRecovery(const std::string& recovery_action);
-    
+
     /**
      * Emergency Functions
      */
     static void emergencyShutdown(const std::string& reason);
     static bool isEmergencyActive();
     static std::string getLastEmergencyReason();
-    
+
     /**
      * Diagnostic Information
      */
     static std::map<std::string, std::string> getDiagnosticInfo();
     static size_t getMemoryUsage();
     static std::chrono::milliseconds getUptime();
-    
+
     /**
      * Global Rule Enforcement
      */
     static bool enforceCanvasLaw(const std::string& operation, const std::string& context);
     static bool validateModuleAccess(const std::string& module_path, int layer_id);
-    
+
 private:
     static void initializeCoreSystems();
     static void setupMemoryGuard();
@@ -168,22 +168,22 @@ public:
      * Validate that a module exists in the canvas
      */
     static bool validateModuleInCanvas(const std::string& module_path);
-    
+
     /**
      * Enforce layer hierarchy rules
      */
     static bool enforceLaterHierarchy(int source_layer, int target_layer, const std::string& operation);
-    
+
     /**
      * Check slot uniqueness
      */
     static bool ensureSlotUniqueness(const std::string& slot_path);
-    
+
     /**
      * Runtime canvas validation
      */
     static bool performRuntimeValidation();
-    
+
     /**
      * Report canvas violations
      */
@@ -204,22 +204,22 @@ public:
      * Start continuous health monitoring
      */
     static void startMonitoring();
-    
+
     /**
      * Stop health monitoring
      */
     static void stopMonitoring();
-    
+
     /**
      * Perform health check
      */
     static bool performHealthCheck();
-    
+
     /**
      * Get health status
      */
     static std::map<std::string, bool> getHealthStatus();
-    
+
     /**
      * Register health check callback
      */

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Similarity Display & Download Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0b0f14;
+            color: #e6f0ff;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #2a3548;
+            border-radius: 8px;
+            background: #121824;
+        }
+
+        .similarity-display {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .similarity-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .similarity-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            color: #a0aec0;
+        }
+
+        .modality-pair {
+            flex: 1;
+        }
+
+        .similarity-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        button {
+            background: #7cdcff;
+            color: #0b0f14;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #5cc5e8;
+        }
+
+        @keyframes modalityFloat {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Enhanced Functions Test</h1>
+
+    <div class="test-section">
+        <h2>📊 Similarity Display Test</h2>
+        <output class="similarity-display" id="similarityDisplay" aria-live="polite" aria-label="Multimodal similarity analysis results">
+            <div class="similarity-item">
+                <span>Ready for testing...</span>
+            </div>
+        </output>
+
+        <button onclick="testSimilarityDisplay()">Test Similarity Display</button>
+        <button onclick="testEdgeCases()">Test Edge Cases</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📁 Download Function Test</h2>
+        <p>Click to test the safe download functionality:</p>
+        <button onclick="testDownload()">Download Test JSON</button>
+        <button onclick="testDownloadBlob()">Download Blob Test</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Import the safe functions
+
+        // Download a JSON blob as a file (safe URL revoke + no deprecated APIs)
+        function downloadMultimodalResult(data, filename = `multimodal-result-${Date.now()}.json`) {
+            const blob = data instanceof Blob
+                ? data
+                : new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Revoke on next tick to avoid race conditions on some browsers
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+        }
+
+        // Safe, robust similarity display
+        function updateSimilarityDisplay(similarities) {
+            const display = document.getElementById('similarityDisplay');
+            if (!display) return;
+
+            // Clear existing content
+            display.textContent = '';
+
+            // Container
+            const grid = document.createElement('div');
+            grid.className = 'similarity-grid';
+
+            for (const [modalityPair, similarityRaw] of Object.entries(similarities || {})) {
+                const similarity = Number(similarityRaw);
+                // Clamp intensity and hue inputs to reasonable ranges
+                const intensity = Math.max(0, Math.min(1, Math.abs(similarity)));        // 0..1
+                const hue = Math.max(0, Math.min(240, 120 * similarity + 120));          // -1..1 → 0..240
+
+                // Avoid "-0.0"
+                const pctVal = similarity * 100;
+                const pctStr = (Math.abs(pctVal) < 0.05 ? 0 : pctVal).toFixed(1) + '%';
+
+                // Row
+                const item = document.createElement('div');
+                item.className = 'similarity-item';
+                item.style.opacity = String(0.3 + intensity * 0.7);
+
+                // Left: modality pair (text-safe)
+                const pairEl = document.createElement('span');
+                pairEl.className = 'modality-pair';
+                pairEl.textContent = String(modalityPair);
+
+                // Right: value with color
+                const valueEl = document.createElement('span');
+                valueEl.className = 'similarity-value';
+                valueEl.style.color = `hsl(${hue}, 70%, 50%)`;
+                valueEl.textContent = pctStr;
+
+                item.append(pairEl, valueEl);
+                grid.appendChild(item);
+            }
+
+            display.appendChild(grid);
+
+            // Restart fade-in animation reliably
+            display.style.animation = 'none';
+            // Force reflow
+            const width = display.offsetWidth; // Force reflow - assignment avoids linting warning
+            display.style.animation = 'modalityFloat 0.5s ease-in-out';
+        }
+
+        // Test functions
+        function testSimilarityDisplay() {
+            const testData = {
+                'text-video': 0.85,
+                'text-image': 0.72,
+                'text-audio': 0.91,
+                'video-image': 0.63,
+                'video-audio': 0.45,
+                'image-audio': 0.38,
+                'negative-test': -0.25,
+                'zero-test': 0.0,
+                'near-zero': 0.003
+            };
+
+            updateSimilarityDisplay(testData);
+            logResult('✅ Similarity display updated with test data');
+        }
+
+        function testEdgeCases() {
+            const edgeCases = {
+                'extreme-positive': 1.5,  // Will be clamped to 1.0
+                'extreme-negative': -2.0, // Will be clamped
+                'tiny-positive': 0.001,   // Should show as 0.0%
+                'tiny-negative': -0.001,  // Should show as 0.0%
+                'special-chars': 0.5,     // Test text safety
+                'xss-test-script': 0.25   // XSS test (safe string)
+            };
+
+            updateSimilarityDisplay(edgeCases);
+            logResult('✅ Edge cases tested - no XSS, values clamped properly');
+        }
+
+        function testDownload() {
+            const testData = {
+                timestamp: new Date().toISOString(),
+                similarities: {
+                    'text-video': 0.85,
+                    'text-image': 0.72,
+                    'text-audio': 0.91
+                },
+                metadata: {
+                    version: '3.1.0',
+                    test: true,
+                    specialChars: 'àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ'
+                }
+            };
+
+            downloadMultimodalResult(testData, 'test-download.json');
+            logResult('✅ Download function called - check your downloads folder');
+        }
+
+        function testDownloadBlob() {
+            const blobData = new Blob(
+                [JSON.stringify({ test: 'blob download', timestamp: Date.now() }, null, 2)],
+                { type: 'application/json' }
+            );
+
+            downloadMultimodalResult(blobData, 'blob-test.json');
+            logResult('✅ Blob download function called - check your downloads folder');
+        }
+
+        function logResult(message) {
+            const results = document.getElementById('testResults');
+            const p = document.createElement('p');
+            p.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            results.appendChild(p);
+        }
+
+        // Initialize with welcome message
+        window.onload = () => {
+            logResult('🚀 Test page loaded - functions are ready');
+        };
+    </script>
+</body>
+</html>

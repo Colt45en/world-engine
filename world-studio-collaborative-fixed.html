@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Working Collaborative Interface</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46;
+    --acc:#54f0b8; --chip:#182741; --warn:#ffd166; --bad:#ff6b6b;
+    --success:#00ff88; --beat:#ff4488; --holy:#ffaa00; --room:#88ff44;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.4 system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  /* RESPONSIVE LAYOUT - No more overflow! */
+  .app {
+    display: grid;
+    grid-template-columns: minmax(250px, 300px) 1fr minmax(250px, 300px);
+    grid-template-rows: auto 1fr auto;
+    gap: 8px;
+    height: 100vh;
+    padding: 8px;
+    min-width: 800px; /* Prevent extreme compression */
+  }
+
+  @media (max-width: 1200px) {
+    .app {
+      grid-template-columns: 250px 1fr 250px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto 1fr auto;
+    }
+    .left, .right { display: none; } /* Hide panels on mobile */
+  }
+
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: linear-gradient(90deg, #0d1322, #1a0f22, #0d1322);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    min-height: 50px;
+  }
+
+  .brand { font-weight: 800; color: var(--acc); }
+  .spacer { flex: 1; }
+
+  .status-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    background: var(--chip);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .chip.online { background: var(--success); color: #000; }
+  .chip.room { background: var(--room); color: #000; }
+  .chip.error { background: var(--bad); color: #fff; }
+
+  /* FLEXIBLE PANELS */
+  .panel {
+    background: linear-gradient(180deg, #0f1523, #0b1020);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .panel-title {
+    font-weight: 700;
+    color: #bfeaff;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+
+  .panel-content {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+  }
+
+  /* RESPONSIVE MAIN AREA */
+  .main-area {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .screen-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+    min-height: 200px;
+    overflow: hidden;
+  }
+
+  .screen-slot {
+    background: #06101c;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .screen-slot.active { border-color: var(--acc); }
+  .screen-slot.sharing { border-color: var(--success); }
+
+  .screen-placeholder {
+    color: var(--mut);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .screen-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .screen-label {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.8);
+    color: var(--ink);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    z-index: 10;
+  }
+
+  /* WORKING BUTTONS */
+  .btn {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .btn:hover {
+    background: var(--chip);
+    border-color: var(--acc);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn.primary { background: var(--acc); color: #000; font-weight: 600; }
+  .btn.success { background: var(--success); color: #000; font-weight: 600; }
+  .btn.danger { background: var(--bad); color: #fff; font-weight: 600; }
+
+  /* RESPONSIVE INPUTS */
+  input[type="text"] {
+    width: 100%;
+    background: #0b1120;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: border-color 0.2s ease;
+  }
+
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--acc);
+  }
+
+  /* CONTROL SECTIONS */
+  .control-section {
+    background: var(--chip);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .control-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .status-text {
+    text-align: center;
+    font-weight: 600;
+    padding: 8px;
+    border-radius: 6px;
+  }
+
+  .status-online { background: rgba(0, 255, 136, 0.2); color: var(--success); }
+  .status-offline { background: rgba(255, 107, 107, 0.2); color: var(--bad); }
+
+  /* CHAT INTERFACE */
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+  }
+
+  .messages {
+    flex: 1;
+    overflow: auto;
+    background: #0a0f1c;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+    min-height: 150px;
+  }
+
+  .message {
+    padding: 6px 10px;
+    margin: 4px 0;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .message.system { background: #122222; color: #9eead3; }
+  .message.user { background: #11203a; color: var(--ink); }
+  .message.room { background: #1a2f0a; color: #ccff9e; }
+
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .footer {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 8px;
+    color: #6eaeb0;
+    font-size: 12px;
+  }
+
+  /* PARTICIPANTS LIST */
+  .participant {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    margin: 2px 0;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    font-size: 12px;
+  }
+
+  .participant.me { background: rgba(84, 240, 184, 0.2); color: var(--acc); }
+  .participant.sharing { background: rgba(0, 255, 136, 0.2); color: var(--success); }
+
+  .participant-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mut);
+  }
+
+  .participant-dot.online { background: var(--success); }
+  .participant-dot.sharing {
+    background: var(--room);
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Hide elements by default */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">🌍 World Engine Studio</div>
+    <div style="font-size: 12px; color: var(--mut);">Collaborative Screen Sharing</div>
+    <div class="spacer"></div>
+    <div class="status-chips">
+      <div id="connectionStatus" class="chip error">Disconnected</div>
+      <div id="roomStatus" class="chip">No Room</div>
+    </div>
+  </div>
+
+  <!-- Left Panel: Room Controls -->
+  <div class="panel left">
+    <div class="panel-title">🏠 Room Management</div>
+    <div class="panel-content">
+      <div class="control-section">
+        <div class="control-row">
+          <input id="roomInput" type="text" placeholder="Enter room name..." />
+        </div>
+        <div class="control-row">
+          <button id="joinRoomBtn" class="btn primary">Join Room</button>
+          <button id="leaveRoomBtn" class="btn danger hidden">Leave Room</button>
+        </div>
+        <div id="roomStatusText" class="status-text status-offline">Not Connected</div>
+      </div>
+
+      <div class="control-section">
+        <div class="panel-title" style="margin: 0 0 8px 0; padding: 0; border: none; font-size: 13px;">Screen Share</div>
+        <div class="control-row">
+          <button id="startShareBtn" class="btn success">Start Sharing</button>
+          <button id="stopShareBtn" class="btn danger hidden">Stop Sharing</button>
+        </div>
+      </div>
+
+      <div class="panel-title" style="margin: 16px 0 8px 0; padding: 0; border: none; font-size: 13px;">Participants</div>
+      <div id="participantsList" class="panel-content">
+        <div class="participant me">
+          <div class="participant-dot online"></div>
+          <span>You (not connected)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Panel: Screen Grid -->
+  <div class="panel main-area">
+    <div class="panel-title">📺 Screen Sharing Grid</div>
+    <div class="screen-grid">
+      <div class="screen-slot" id="screen1">
+        <div class="screen-label">Screen 1</div>
+        <div class="screen-placeholder">No screen shared</div>
+      </div>
+      <div class="screen-slot" id="screen2">
+        <div class="screen-label">Screen 2</div>
+        <div class="screen-placeholder">No screen shared</div>
+      </div>
+      <div class="screen-slot" id="screen3">
+        <div class="screen-label">Screen 3</div>
+        <div class="screen-placeholder">No screen shared</div>
+      </div>
+      <div class="screen-slot" id="screen4">
+        <div class="screen-label">Screen 4</div>
+        <div class="screen-placeholder">No screen shared</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Chat -->
+  <div class="panel right">
+    <div class="panel-title">💬 Team Chat</div>
+    <div class="chat-container">
+      <div id="messages" class="messages">
+        <div class="message system">Welcome to World Engine Studio collaborative mode!</div>
+        <div class="message system">Join a room to start sharing screens with your team.</div>
+      </div>
+      <div class="chat-input-row">
+        <input id="chatInput" type="text" placeholder="Type a message..." />
+        <button id="sendChatBtn" class="btn primary">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    World Engine Studio v2.0 — Collaborative Screen Sharing Platform
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Elements
+  const elements = {
+    connectionStatus: document.getElementById('connectionStatus'),
+    roomStatus: document.getElementById('roomStatus'),
+    roomInput: document.getElementById('roomInput'),
+    joinRoomBtn: document.getElementById('joinRoomBtn'),
+    leaveRoomBtn: document.getElementById('leaveRoomBtn'),
+    roomStatusText: document.getElementById('roomStatusText'),
+    startShareBtn: document.getElementById('startShareBtn'),
+    stopShareBtn: document.getElementById('stopShareBtn'),
+    participantsList: document.getElementById('participantsList'),
+    messages: document.getElementById('messages'),
+    chatInput: document.getElementById('chatInput'),
+    sendChatBtn: document.getElementById('sendChatBtn'),
+    screen1: document.getElementById('screen1'),
+    screen2: document.getElementById('screen2'),
+    screen3: document.getElementById('screen3'),
+    screen4: document.getElementById('screen4')
+  };
+
+  // State
+  let socket = null;
+  let currentRoom = null;
+  let isConnected = false;
+  let isSharing = false;
+  let localStream = null;
+  let participants = new Map();
+  let screenSlots = ['screen1', 'screen2', 'screen3', 'screen4'];
+
+  // Utility functions
+  function addMessage(text, type = 'system') {
+    const msg = document.createElement('div');
+    msg.className = `message ${type}`;
+    msg.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+    elements.messages.appendChild(msg);
+    elements.messages.scrollTop = elements.messages.scrollHeight;
+  }
+
+  function updateConnectionStatus(connected) {
+    isConnected = connected;
+    elements.connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+    elements.connectionStatus.className = `chip ${connected ? 'online' : 'error'}`;
+
+    if (connected) {
+      addMessage('Connected to server', 'system');
+    } else {
+      addMessage('Disconnected from server', 'system');
+      updateRoomStatus(null);
+    }
+  }
+
+  function updateRoomStatus(room) {
+    currentRoom = room;
+
+    if (room) {
+      elements.roomStatus.textContent = `Room: ${room}`;
+      elements.roomStatus.className = 'chip room';
+      elements.roomStatusText.textContent = `Connected to room: ${room}`;
+      elements.roomStatusText.className = 'status-text status-online';
+      elements.joinRoomBtn.classList.add('hidden');
+      elements.leaveRoomBtn.classList.remove('hidden');
+      addMessage(`Joined room: ${room}`, 'room');
+    } else {
+      elements.roomStatus.textContent = 'No Room';
+      elements.roomStatus.className = 'chip';
+      elements.roomStatusText.textContent = 'Not in any room';
+      elements.roomStatusText.className = 'status-text status-offline';
+      elements.joinRoomBtn.classList.remove('hidden');
+      elements.leaveRoomBtn.classList.add('hidden');
+      if (currentRoom) {
+        addMessage('Left room', 'room');
+      }
+    }
+  }
+
+  function updateParticipants(participantList) {
+    participants.clear();
+    elements.participantsList.innerHTML = '';
+
+    // Add yourself
+    const meElement = document.createElement('div');
+    meElement.className = `participant me`;
+    meElement.innerHTML = `
+      <div class="participant-dot online"></div>
+      <span>You ${isSharing ? '(sharing)' : ''}</span>
+    `;
+    elements.participantsList.appendChild(meElement);
+
+    // Add other participants
+    participantList.forEach(participant => {
+      if (participant.id !== 'me') {
+        participants.set(participant.id, participant);
+
+        const pElement = document.createElement('div');
+        pElement.className = `participant ${participant.sharing ? 'sharing' : ''}`;
+        pElement.innerHTML = `
+          <div class="participant-dot ${participant.sharing ? 'sharing' : 'online'}"></div>
+          <span>${participant.name} ${participant.sharing ? '(sharing)' : ''}</span>
+        `;
+        elements.participantsList.appendChild(pElement);
+      }
+    });
+
+    addMessage(`${participantList.length} participants in room`, 'system');
+  }
+
+  // Mock WebSocket connection (since server might not be running)
+  function initializeConnection() {
+    // Try to connect to real server first
+    try {
+      if (typeof io !== 'undefined') {
+        socket = io();
+        setupSocketEvents();
+        addMessage('Attempting to connect to server...', 'system');
+      } else {
+        setupMockConnection();
+      }
+    } catch (error) {
+      setupMockConnection();
+    }
+  }
+
+  function setupMockConnection() {
+    addMessage('Running in demo mode (no server connection)', 'system');
+
+    // Simulate connection after delay
+    setTimeout(() => {
+      updateConnectionStatus(true);
+    }, 1000);
+
+    // Mock socket object
+    socket = {
+      emit: (event, data) => {
+        addMessage(`Mock event: ${event}`, 'system');
+
+        if (event === 'join-room') {
+          setTimeout(() => {
+            updateRoomStatus(data.room);
+            updateParticipants([
+              { id: 'me', name: 'You', sharing: false },
+              { id: 'demo1', name: 'Demo User 1', sharing: false },
+              { id: 'demo2', name: 'Demo User 2', sharing: true }
+            ]);
+          }, 500);
+        }
+
+        if (event === 'leave-room') {
+          setTimeout(() => {
+            updateRoomStatus(null);
+            updateParticipants([]);
+          }, 500);
+        }
+      }
+    };
+  }
+
+  function setupSocketEvents() {
+    socket.on('connect', () => {
+      updateConnectionStatus(true);
+    });
+
+    socket.on('disconnect', () => {
+      updateConnectionStatus(false);
+    });
+
+    socket.on('room-joined', (data) => {
+      updateRoomStatus(data.room);
+      updateParticipants(data.participants || []);
+    });
+
+    socket.on('room-left', () => {
+      updateRoomStatus(null);
+      updateParticipants([]);
+    });
+
+    socket.on('participant-joined', (data) => {
+      addMessage(`${data.name} joined the room`, 'room');
+      // Refresh participant list
+    });
+
+    socket.on('participant-left', (data) => {
+      addMessage(`${data.name} left the room`, 'room');
+      // Refresh participant list
+    });
+
+    socket.on('chat-message', (data) => {
+      addMessage(`${data.name}: ${data.message}`, 'user');
+    });
+  }
+
+  // Screen sharing functions
+  async function startScreenShare() {
+    try {
+      addMessage('Requesting screen share permission...', 'system');
+
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { mediaSource: 'screen' },
+        audio: true
+      });
+
+      localStream = stream;
+      isSharing = true;
+
+      // Show video in first available slot
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.muted = true;
+      video.className = 'screen-video';
+
+      const slot = elements.screen1;
+      slot.innerHTML = '<div class="screen-label">Your Screen</div>';
+      slot.appendChild(video);
+      slot.classList.add('sharing');
+
+      elements.startShareBtn.classList.add('hidden');
+      elements.stopShareBtn.classList.remove('hidden');
+
+      addMessage('Started screen sharing', 'room');
+      updateParticipants(Array.from(participants.values()));
+
+      // Handle stream end
+      stream.getTracks().forEach(track => {
+        track.addEventListener('ended', () => {
+          stopScreenShare();
+        });
+      });
+
+      // Notify room
+      if (socket && currentRoom) {
+        socket.emit('screen-share-start', { room: currentRoom });
+      }
+
+    } catch (error) {
+      addMessage(`Screen share failed: ${error.message}`, 'system');
+      console.error('Screen share error:', error);
+    }
+  }
+
+  function stopScreenShare() {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+    }
+
+    isSharing = false;
+
+    // Clear screen slot
+    elements.screen1.innerHTML = `
+      <div class="screen-label">Screen 1</div>
+      <div class="screen-placeholder">No screen shared</div>
+    `;
+    elements.screen1.classList.remove('sharing');
+
+    elements.startShareBtn.classList.remove('hidden');
+    elements.stopShareBtn.classList.add('hidden');
+
+    addMessage('Stopped screen sharing', 'room');
+    updateParticipants(Array.from(participants.values()));
+
+    // Notify room
+    if (socket && currentRoom) {
+      socket.emit('screen-share-stop', { room: currentRoom });
+    }
+  }
+
+  // Event handlers
+  function joinRoom() {
+    const roomName = elements.roomInput.value.trim();
+    if (!roomName || !socket) return;
+
+    socket.emit('join-room', {
+      room: roomName,
+      name: `User_${Date.now().toString(36)}`
+    });
+  }
+
+  function leaveRoom() {
+    if (!socket || !currentRoom) return;
+
+    stopScreenShare();
+    socket.emit('leave-room');
+  }
+
+  function sendChatMessage() {
+    const message = elements.chatInput.value.trim();
+    if (!message || !currentRoom) return;
+
+    if (socket && socket.emit) {
+      socket.emit('chat-message', {
+        room: currentRoom,
+        message: message
+      });
+    }
+
+    // Add to local chat
+    addMessage(`You: ${message}`, 'user');
+    elements.chatInput.value = '';
+  }
+
+  // Setup event listeners
+  function setupEventListeners() {
+    elements.joinRoomBtn.addEventListener('click', joinRoom);
+    elements.leaveRoomBtn.addEventListener('click', leaveRoom);
+    elements.startShareBtn.addEventListener('click', startScreenShare);
+    elements.stopShareBtn.addEventListener('click', stopScreenShare);
+    elements.sendChatBtn.addEventListener('click', sendChatMessage);
+
+    elements.roomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        joinRoom();
+      }
+    });
+
+    elements.chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+  }
+
+  // Initialize everything
+  function initialize() {
+    console.log('🚀 Initializing World Engine Collaborative Studio');
+    addMessage('World Engine Collaborative Studio initialized', 'system');
+
+    setupEventListeners();
+    initializeConnection();
+  }
+
+  // Start when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    if (isSharing) {
+      stopScreenShare();
+    }
+  });
+})();
+</script>
+
+<!-- Socket.IO (if server is running) -->
+<script src="/socket.io/socket.io.js" onerror="console.log('Socket.IO not available - running in demo mode')"></script>
+
+</body>
+</html>

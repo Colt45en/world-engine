@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Collaborative Screen Sharing</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46; --acc:#54f0b8; --chip:#182741;
+    --warn:#ffd166; --bad:#ff6b6b; --success:#00ff88; --beat:#ff4488; --holy:#ffaa00; --room:#88ff44;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden}
+
+  /* Collaborative Layout */
+  .collaborative{display:grid;grid-template-columns:280px 1fr 280px;grid-template-rows:auto 1fr auto;gap:8px;height:100%;padding:8px}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(90deg,#0d1322,#1a0f22,#0d1322)}
+  .brand{font-weight:800;color:var(--acc)} .sp{flex:1}
+  .col{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);overflow:hidden;min-height:0;display:grid;gap:8px;padding:8px}
+  .left{grid-template-rows:auto auto 1fr}
+  .center{grid-template-rows:auto 1fr}
+  .right{grid-template-rows:auto auto 1fr}
+
+  /* Components */
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .mini{font-size:12px;color:var(--mut)}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;transition:all 0.2s ease}
+  .btn:hover{background:var(--chip);border-color:var(--acc)}
+  .btn.primary{background:var(--acc);color:#000;font-weight:600}
+  .btn.success{background:var(--success);color:#000;font-weight:600}
+  .btn.room{background:var(--room);color:#000;font-weight:600}
+  .btn.danger{background:var(--bad);color:#fff;font-weight:600}
+  .chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12px}
+  .chip.online{background:var(--success);color:#000}
+  .chip.room{background:var(--room);color:#000}
+
+  /* Room Controls */
+  .room-controls{background:var(--chip);border-radius:8px;padding:8px;margin-bottom:8px}
+  .room-status{text-align:center;margin:6px 0;font-weight:600}
+  .room-online{color:var(--success)}
+  .room-offline{color:var(--bad)}
+
+  /* Screen Grid - Enhanced for Linking */
+  .screen-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;min-height:0}
+  .screen-slot{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#06101c;position:relative;min-height:150px;transition:all 0.3s ease}
+  .screen-slot.active{border-color:var(--acc);box-shadow:0 0 10px var(--acc)}
+  .screen-slot.sharing{border-color:var(--success);box-shadow:0 0 10px var(--success)}
+  .screen-slot.linked{border-color:var(--holy);box-shadow:0 0 15px var(--holy);animation:link-pulse 2s infinite}
+  .screen-slot.requesting{border-color:var(--warn);box-shadow:0 0 10px var(--warn)}
+  .screen-slot video{width:100%;height:100%;object-fit:cover}
+  .screen-label{position:absolute;top:6px;left:10px;font-size:11px;background:#0008;padding:2px 6px;border-radius:4px;z-index:10;backdrop-filter:blur(4px)}
+  .screen-label.linked{background:var(--holy);color:#000;font-weight:600}
+  .screen-controls{position:absolute;bottom:6px;right:6px;display:flex;gap:4px;z-index:10}
+  .screen-btn{padding:4px 8px;font-size:11px;border-radius:4px;border:1px solid var(--line);background:#0008;color:var(--ink);cursor:pointer;backdrop-filter:blur(4px);transition:all 0.2s ease}
+  .screen-btn:hover{background:var(--acc);color:#000;border-color:var(--acc)}
+  .screen-btn.link{background:var(--holy);color:#000;border-color:var(--holy)}
+  .screen-btn.unlink{background:var(--bad);color:#fff;border-color:var(--bad)}
+
+  /* Link Status Indicator */
+  .link-status{position:absolute;top:25px;left:10px;font-size:10px;padding:1px 4px;border-radius:3px;z-index:10}
+  .link-status.active{background:var(--holy);color:#000}
+  .link-status.pending{background:var(--warn);color:#000;animation:blink 1s infinite}
+
+  /* Screen Overlay for Interactions */
+  .screen-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:20}
+  .screen-overlay.active{display:flex}
+  .overlay-content{text-align:center;color:var(--ink);padding:20px}
+  .overlay-title{font-size:16px;font-weight:600;margin-bottom:10px}
+  .overlay-text{font-size:12px;color:var(--mut);margin-bottom:15px}
+  .overlay-actions{display:flex;gap:8px;justify-content:center}
+
+  @keyframes link-pulse{0%,100%{box-shadow:0 0 15px var(--holy)} 50%{box-shadow:0 0 25px var(--holy),0 0 35px rgba(255,170,0,0.3)}}
+  @keyframes blink{0%,100%{opacity:1} 50%{opacity:0.4}}
+
+  /* Participant List */
+  .participants{max-height:200px;overflow:auto}
+  .participant{display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;margin:4px 0;background:var(--chip)}
+  .participant.me{background:var(--acc);color:#000}
+  .participant.sharing{background:var(--success);color:#000}
+  .participant-dot{width:8px;height:8px;border-radius:999px;background:var(--mut)}
+  .participant-dot.online{background:var(--success)}
+  .participant-dot.sharing{background:var(--room);animation:pulse 1s infinite}
+
+  /* Chat Interface */
+  .chat{display:grid;grid-template-rows:1fr auto;gap:8px;min-height:0}
+  .msgs{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:8px;overflow:auto;min-height:0}
+  .msg{margin:6px 0;padding:8px;border-radius:10px;white-space:pre-wrap;font-size:13px}
+  .me{background:#11203a} .ai{background:#0f1a2f} .sys{background:#122222;color:#9eead3}
+  .room{background:#1a2f0a;color:#ccff9e;border-left:4px solid var(--room)}
+  .share{background:#0a2f2f;color:#9effff;border-left:4px solid var(--acc)}
+
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);transition:border-color 0.2s ease}
+  input[type=text]:focus{outline:none;border-color:var(--acc)}
+
+  .footer{padding:6px;text-align:center;color:#6eaeb0;grid-column:1/-1}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+
+  @keyframes pulse{0%,100%{opacity:1} 50%{opacity:0.5}}
+</style>
+</head>
+<body>
+  <div class="collaborative">
+    <!-- Header -->
+    <div class="top">
+      <div class="brand">🌍 World Engine Studio</div>
+      <div class="mini">Collaborative Screen Sharing — Multi-user IDE Environment</div>
+      <div class="sp"></div>
+      <span id="roomChip" class="chip">Room: Not Connected</span>
+      <span id="statusChip" class="chip">Status: Offline</span>
+    </div>
+
+    <!-- Left Panel: Room & Participants -->
+    <section class="col left">
+      <div class="title">🏠 Room Controls</div>
+      <div class="room-controls">
+        <div class="row">
+          <input id="roomInput" type="text" placeholder="Enter room name..." style="flex:1"/>
+          <button id="joinBtn" class="btn room">Join</button>
+        </div>
+        <div id="roomStatus" class="room-status room-offline">Not Connected</div>
+      </div>
+
+      <div class="title">👥 Participants (<span id="participantCount">0</span>)</div>
+      <div id="participantsList" class="participants">
+        <div class="participant me">
+          <div class="participant-dot online"></div>
+          <span>You (not sharing)</span>
+        </div>
+      </div>
+
+      <div class="title">🎮 Screen Controls</div>
+      <div class="row">
+        <button id="shareBtn" class="btn success">Share Screen</button>
+        <button id="stopBtn" class="btn danger" style="display:none">Stop Share</button>
+      </div>
+      <div class="row">
+        <button id="watchBtn" class="btn primary">Watch Mode</button>
+        <button id="muteBtn" class="btn">Mute All</button>
+      </div>
+
+      <div class="title">🔗 Screen Linking</div>
+      <div class="row">
+        <button id="linkModeBtn" class="btn primary">Link Mode</button>
+        <button id="unlinkAllBtn" class="btn danger">Unlink All</button>
+      </div>
+      <div id="linkStatus" class="mini" style="margin:8px 0;color:var(--mut)">Select screens to link them together</div>
+    </section>
+
+    <!-- Center Panel: Screen Grid -->
+    <section class="col center">
+      <div class="title">📺 Collaborative Screens</div>
+      <div class="screen-grid">
+        <div id="screen1" class="screen-slot" data-screen="1">
+          <div class="screen-label">Screen 1: Available</div>
+          <div class="link-status" style="display:none">Not Linked</div>
+          <video id="video1" autoplay muted style="display:none"></video>
+          <div class="screen-overlay">
+            <div class="overlay-content">
+              <div class="overlay-title">Screen Link Request</div>
+              <div class="overlay-text">Link this screen with others?</div>
+              <div class="overlay-actions">
+                <button class="btn success" onclick="confirmLink(1)">Link</button>
+                <button class="btn" onclick="cancelLink(1)">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div class="screen-controls">
+            <button class="screen-btn" onclick="requestScreen(1)">Request</button>
+            <button class="screen-btn" onclick="toggleScreenLink(1)">Link</button>
+            <button class="screen-btn" onclick="fullscreenScreen(1)">Full</button>
+          </div>
+        </div>
+        <div id="screen2" class="screen-slot" data-screen="2">
+          <div class="screen-label">Screen 2: Available</div>
+          <div class="link-status" style="display:none">Not Linked</div>
+          <video id="video2" autoplay muted style="display:none"></video>
+          <div class="screen-overlay">
+            <div class="overlay-content">
+              <div class="overlay-title">Screen Link Request</div>
+              <div class="overlay-text">Link this screen with others?</div>
+              <div class="overlay-actions">
+                <button class="btn success" onclick="confirmLink(2)">Link</button>
+                <button class="btn" onclick="cancelLink(2)">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div class="screen-controls">
+            <button class="screen-btn" onclick="requestScreen(2)">Request</button>
+            <button class="screen-btn" onclick="toggleScreenLink(2)">Link</button>
+            <button class="screen-btn" onclick="fullscreenScreen(2)">Full</button>
+          </div>
+        </div>
+        <div id="screen3" class="screen-slot" data-screen="3">
+          <div class="screen-label">Screen 3: Available</div>
+          <div class="link-status" style="display:none">Not Linked</div>
+          <video id="video3" autoplay muted style="display:none"></video>
+          <div class="screen-overlay">
+            <div class="overlay-content">
+              <div class="overlay-title">Screen Link Request</div>
+              <div class="overlay-text">Link this screen with others?</div>
+              <div class="overlay-actions">
+                <button class="btn success" onclick="confirmLink(3)">Link</button>
+                <button class="btn" onclick="cancelLink(3)">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div class="screen-controls">
+            <button class="screen-btn" onclick="requestScreen(3)">Request</button>
+            <button class="screen-btn" onclick="toggleScreenLink(3)">Link</button>
+            <button class="screen-btn" onclick="fullscreenScreen(3)">Full</button>
+          </div>
+        </div>
+        <div id="screen4" class="screen-slot" data-screen="4">
+          <div class="screen-label">Screen 4: Available</div>
+          <div class="link-status" style="display:none">Not Linked</div>
+          <video id="video4" autoplay muted style="display:none"></video>
+          <div class="screen-overlay">
+            <div class="overlay-content">
+              <div class="overlay-title">Screen Link Request</div>
+              <div class="overlay-text">Link this screen with others?</div>
+              <div class="overlay-actions">
+                <button class="btn success" onclick="confirmLink(4)">Link</button>
+                <button class="btn" onclick="cancelLink(4)">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div class="screen-controls">
+            <button class="screen-btn" onclick="requestScreen(4)">Request</button>
+            <button class="screen-btn" onclick="toggleScreenLink(4)">Link</button>
+            <button class="screen-btn" onclick="fullscreenScreen(4)">Full</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Chat & Logs -->
+    <section class="col right">
+      <div class="title">💬 Room Chat</div>
+      <div class="chat">
+        <div id="msgs" class="msgs" aria-live="polite"></div>
+        <div class="row">
+          <input id="chatInput" type="text" placeholder="Type message..."/>
+          <button id="sendBtn" class="btn primary">Send</button>
+        </div>
+      </div>
+
+      <div class="title">📊 Connection Stats</div>
+      <div id="statsDisplay">
+        <div class="mini">
+          Ping: <span id="pingDisplay">-- ms</span><br>
+          Quality: <span id="qualityDisplay">Unknown</span><br>
+          Bandwidth: <span id="bandwidthDisplay">-- Mbps</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer mini">
+      🌍 World Engine Studio — Collaborative Screen Sharing v2.0<br>
+      Share IDE screens • Watch teammates • Real-time collaboration
+    </div>
+  </div>
+
+  <!-- Studio Bridge -->
+  <script src="studio-bridge.js"></script>
+
+  <!-- Socket.IO for real-time communication -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Collaborative Screen Sharing Logic -->
+  <script>
+  (function(){
+    'use strict';
+
+    let socket = null;
+    let localStream = null;
+    let isSharing = false;
+    let currentRoom = null;
+    let participants = new Map();
+    let peerConnections = new Map();
+
+    // Screen Linking System
+    let linkedScreens = new Set();
+    let linkMode = false;
+    let pendingLinks = new Map();
+    let screenLinks = new Map(); // screenId -> Set of linked screenIds
+
+    const $ = (id) => document.getElementById(id);
+    const msgs = $('msgs');
+    const chatInput = $('chatInput');
+    const roomInput = $('roomInput');
+
+    // Initialize Socket.IO with room support
+    function initializeSocket() {
+      socket = io();
+
+      socket.on('connect', () => {
+        console.log('🔌 Connected to collaborative server');
+        say('Connected to server', 'sys share');
+        updateStatus('Connected', 'online');
+      });
+
+      socket.on('disconnect', () => {
+        console.log('🔌 Disconnected from server');
+        say('Disconnected from server', 'sys');
+        updateStatus('Disconnected', 'offline');
+        leaveRoom();
+      });
+
+      // Room events
+      socket.on('room-joined', (data) => {
+        currentRoom = data.room;
+        participants.clear();
+        data.participants.forEach(p => participants.set(p.id, p));
+        updateRoomStatus(data.room, 'online');
+        updateParticipantsList();
+        say(`Joined room: ${data.room}`, 'room');
+      });
+
+      socket.on('room-left', () => {
+        if (currentRoom) {
+          say(`Left room: ${currentRoom}`, 'room');
+          currentRoom = null;
+          participants.clear();
+          updateRoomStatus(null, 'offline');
+          updateParticipantsList();
+          stopScreenShare();
+        }
+      });
+
+      socket.on('participant-joined', (participant) => {
+        participants.set(participant.id, participant);
+        updateParticipantsList();
+        say(`${participant.name} joined the room`, 'room');
+      });
+
+      socket.on('participant-left', (participantId) => {
+        const participant = participants.get(participantId);
+        if (participant) {
+          participants.delete(participantId);
+          updateParticipantsList();
+          say(`${participant.name} left the room`, 'room');
+
+          // Clean up their screen
+          cleanupParticipantScreen(participantId);
+        }
+      });
+
+      // Screen sharing events
+      socket.on('screen-share-started', (data) => {
+        handleRemoteScreenShare(data);
+      });
+
+      socket.on('screen-share-stopped', (participantId) => {
+        handleRemoteScreenStop(participantId);
+      });
+
+      // WebRTC signaling
+      socket.on('webrtc-offer', async (data) => {
+        await handleWebRTCOffer(data);
+      });
+
+      socket.on('webrtc-answer', async (data) => {
+        await handleWebRTCAnswer(data);
+      });
+
+      socket.on('webrtc-ice-candidate', async (data) => {
+        await handleICECandidate(data);
+      });
+
+      // Screen linking events
+      socket.on('screen-link-request', (data) => {
+        handleScreenLinkRequest(data);
+      });
+
+      socket.on('screen-link-accepted', (data) => {
+        handleScreenLinkAccepted(data);
+      });
+
+      socket.on('screen-link-rejected', (data) => {
+        handleScreenLinkRejected(data);
+      });
+
+      socket.on('screen-unlinked', (data) => {
+        handleScreenUnlinked(data);
+      });
+
+      socket.on('linked-screens-updated', (data) => {
+        updateLinkedScreensDisplay(data);
+      });
+
+      // Chat messages
+      socket.on('chat-message', (data) => {
+        displayChatMessage(data.from, data.message, 'room');
+      });
+
+      socket.on('error', (error) => {
+        console.error('Socket error:', error);
+        say('Connection error: ' + error.message, 'sys');
+      });
+    }
+
+    // Room management
+    async function joinRoom(roomName) {
+      if (!socket || !roomName.trim()) return;
+
+      say(`Joining room: ${roomName}`, 'sys share');
+      socket.emit('join-room', {
+        room: roomName.trim(),
+        name: 'User_' + Date.now().toString(36)
+      });
+    }
+
+    function leaveRoom() {
+      if (!socket || !currentRoom) return;
+
+      stopScreenShare();
+      socket.emit('leave-room');
+    }
+
+    // Screen sharing
+    async function startScreenShare() {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { mediaSource: 'screen' },
+          audio: true
+        });
+
+        localStream = stream;
+        isSharing = true;
+
+        // Update UI
+        $('shareBtn').style.display = 'none';
+        $('stopBtn').style.display = 'inline-block';
+        updateParticipantsList();
+
+        // Notify room
+        if (socket && currentRoom) {
+          socket.emit('start-screen-share', {
+            room: currentRoom
+          });
+        }
+
+        // Set up peer connections for all participants
+        for (let [participantId] of participants) {
+          if (participantId !== socket.id) {
+            await createPeerConnection(participantId, true);
+          }
+        }
+
+        say('Started screen sharing', 'share');
+
+        // Handle stream end
+        stream.getTracks().forEach(track => {
+          track.addEventListener('ended', () => {
+            stopScreenShare();
+          });
+        });
+
+      } catch (error) {
+        console.error('Screen share error:', error);
+        say('Failed to start screen sharing: ' + error.message, 'sys');
+      }
+    }
+
+    function stopScreenShare() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+
+      isSharing = false;
+      $('shareBtn').style.display = 'inline-block';
+      $('stopBtn').style.display = 'none';
+      updateParticipantsList();
+
+      // Clean up peer connections
+      peerConnections.forEach(pc => pc.close());
+      peerConnections.clear();
+
+      // Notify room
+      if (socket && currentRoom) {
+        socket.emit('stop-screen-share', {
+          room: currentRoom
+        });
+      }
+
+      say('Stopped screen sharing', 'share');
+    }
+
+    // WebRTC peer connections
+    async function createPeerConnection(participantId, isInitiator) {
+      const config = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      };
+
+      const pc = new RTCPeerConnection(config);
+      peerConnections.set(participantId, pc);
+
+      // Add local stream if sharing
+      if (localStream && isInitiator) {
+        localStream.getTracks().forEach(track => {
+          pc.addTrack(track, localStream);
+        });
+      }
+
+      // Handle incoming stream
+      pc.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        displayRemoteScreen(participantId, remoteStream);
+      };
+
+      // Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socket) {
+          socket.emit('webrtc-ice-candidate', {
+            to: participantId,
+            candidate: event.candidate
+          });
+        }
+      };
+
+      // Create offer if initiator
+      if (isInitiator) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        socket.emit('webrtc-offer', {
+          to: participantId,
+          offer: offer
+        });
+      }
+
+      return pc;
+    }
+
+    // Handle WebRTC signaling
+    async function handleWebRTCOffer(data) {
+      const pc = await createPeerConnection(data.from, false);
+
+      await pc.setRemoteDescription(data.offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      socket.emit('webrtc-answer', {
+        to: data.from,
+        answer: answer
+      });
+    }
+
+    async function handleWebRTCAnswer(data) {
+      const pc = peerConnections.get(data.from);
+      if (pc) {
+        await pc.setRemoteDescription(data.answer);
+      }
+    }
+
+    async function handleICECandidate(data) {
+      const pc = peerConnections.get(data.from);
+      if (pc) {
+        await pc.addIceCandidate(data.candidate);
+      }
+    }
+
+    // ===== SCREEN LINKING SYSTEM =====
+
+    function toggleLinkMode() {
+      linkMode = !linkMode;
+      const btn = $('linkModeBtn');
+      const status = $('linkStatus');
+
+      if (linkMode) {
+        btn.textContent = 'Exit Link Mode';
+        btn.className = 'btn warn';
+        status.textContent = 'Link Mode: Click screens to link them together';
+        status.style.color = 'var(--holy)';
+
+        // Add click handlers to all screens
+        for (let i = 1; i <= 4; i++) {
+          const screen = $(`screen${i}`);
+          screen.style.cursor = 'pointer';
+          screen.addEventListener('click', handleScreenLinkClick);
+        }
+      } else {
+        btn.textContent = 'Link Mode';
+        btn.className = 'btn primary';
+        status.textContent = 'Select screens to link them together';
+        status.style.color = 'var(--mut)';
+
+        // Remove click handlers
+        for (let i = 1; i <= 4; i++) {
+          const screen = $(`screen${i}`);
+          screen.style.cursor = 'default';
+          screen.removeEventListener('click', handleScreenLinkClick);
+        }
+
+        clearPendingLinks();
+      }
+    }
+
+    function handleScreenLinkClick(event) {
+      if (!linkMode) return;
+
+      const screenNum = parseInt(event.currentTarget.dataset.screen);
+      const screen = $(`screen${screenNum}`);
+
+      if (linkedScreens.has(screenNum)) {
+        // Already linked - show options
+        showScreenLinkOptions(screenNum);
+      } else if (pendingLinks.has(screenNum)) {
+        // Cancel pending link
+        pendingLinks.delete(screenNum);
+        screen.classList.remove('requesting');
+        updateLinkStatus();
+      } else {
+        // Add to pending links
+        pendingLinks.set(screenNum, Date.now());
+        screen.classList.add('requesting');
+        updateLinkStatus();
+
+        // Auto-process if we have 2+ pending
+        if (pendingLinks.size >= 2) {
+          processPendingLinks();
+        }
+      }
+    }
+
+    function processPendingLinks() {
+      if (pendingLinks.size < 2) return;
+
+      const screenIds = Array.from(pendingLinks.keys());
+      const linkId = 'link_' + Date.now();
+
+      // Create link locally
+      screenIds.forEach(screenId => {
+        linkedScreens.add(screenId);
+        if (!screenLinks.has(screenId)) {
+          screenLinks.set(screenId, new Set());
+        }
+
+        // Link to all other screens in this group
+        screenIds.forEach(otherId => {
+          if (otherId !== screenId) {
+            screenLinks.get(screenId).add(otherId);
+          }
+        });
+      });
+
+      // Update UI
+      updateLinkedScreensUI(screenIds, linkId);
+
+      // Notify room
+      if (socket && currentRoom) {
+        socket.emit('create-screen-link', {
+          room: currentRoom,
+          screenIds: screenIds,
+          linkId: linkId
+        });
+      }
+
+      clearPendingLinks();
+      say(`Linked screens: ${screenIds.join(', ')}`, 'share');
+    }
+
+    function updateLinkedScreensUI(screenIds, linkId) {
+      screenIds.forEach(screenId => {
+        const screen = $(`screen${screenId}`);
+        const label = screen.querySelector('.screen-label');
+        const linkStatus = screen.querySelector('.link-status');
+
+        screen.classList.remove('requesting');
+        screen.classList.add('linked');
+        screen.dataset.linkId = linkId;
+
+        label.classList.add('linked');
+        linkStatus.style.display = 'block';
+        linkStatus.textContent = `Linked: ${screenIds.length} screens`;
+        linkStatus.className = 'link-status active';
+      });
+    }
+
+    function clearPendingLinks() {
+      pendingLinks.forEach((_, screenId) => {
+        $(`screen${screenId}`).classList.remove('requesting');
+      });
+      pendingLinks.clear();
+      updateLinkStatus();
+    }
+
+    function updateLinkStatus() {
+      const status = $('linkStatus');
+      if (pendingLinks.size === 0) {
+        status.textContent = linkMode ? 'Link Mode: Click screens to link them together' : 'Select screens to link them together';
+      } else if (pendingLinks.size === 1) {
+        status.textContent = `Selected 1 screen - click another to link them`;
+      } else {
+        status.textContent = `Selected ${pendingLinks.size} screens - processing link...`;
+      }
+    }
+
+    function unlinkAllScreens() {
+      linkedScreens.clear();
+      screenLinks.clear();
+
+      for (let i = 1; i <= 4; i++) {
+        const screen = $(`screen${i}`);
+        const label = screen.querySelector('.screen-label');
+        const linkStatus = screen.querySelector('.link-status');
+
+        screen.classList.remove('linked', 'requesting');
+        delete screen.dataset.linkId;
+
+        label.classList.remove('linked');
+        linkStatus.style.display = 'none';
+        linkStatus.className = 'link-status';
+      }
+
+      // Notify room
+      if (socket && currentRoom) {
+        socket.emit('unlink-all-screens', {
+          room: currentRoom
+        });
+      }
+
+      say('Unlinked all screens', 'share');
+    }
+
+    function showScreenLinkOptions(screenId) {
+      const overlay = $(`screen${screenId}`).querySelector('.screen-overlay');
+      overlay.classList.add('active');
+    }
+
+    // Screen linking socket event handlers
+    function handleScreenLinkRequest(data) {
+      const { from, screenIds, linkId } = data;
+      const participant = participants.get(from);
+
+      say(`${participant?.name || 'Someone'} wants to link screens: ${screenIds.join(', ')}`, 'share');
+
+      // Auto-accept for now (could add confirmation dialog)
+      if (socket) {
+        socket.emit('accept-screen-link', {
+          room: currentRoom,
+          linkId: linkId,
+          to: from
+        });
+      }
+    }
+
+    function handleScreenLinkAccepted(data) {
+      const { linkId, screenIds } = data;
+      updateLinkedScreensUI(screenIds, linkId);
+      say('Screen link accepted!', 'share');
+    }
+
+    function handleScreenLinkRejected(data) {
+      say('Screen link was rejected', 'share');
+    }
+
+    function handleScreenUnlinked(data) {
+      const { screenIds } = data;
+
+      screenIds.forEach(screenId => {
+        const screen = $(`screen${screenId}`);
+        const label = screen.querySelector('.screen-label');
+        const linkStatus = screen.querySelector('.link-status');
+
+        screen.classList.remove('linked');
+        delete screen.dataset.linkId;
+
+        label.classList.remove('linked');
+        linkStatus.style.display = 'none';
+
+        linkedScreens.delete(screenId);
+        screenLinks.delete(screenId);
+      });
+
+      say(`Screens unlinked: ${screenIds.join(', ')}`, 'share');
+    }
+
+    function updateLinkedScreensDisplay(data) {
+      const { links } = data;
+
+      // Update local state based on server data
+      linkedScreens.clear();
+      screenLinks.clear();
+
+      links.forEach(link => {
+        // Process each screen in the link
+        link.screenIds.forEach(screenId => {
+          linkedScreens.add(screenId);
+          if (!screenLinks.has(screenId)) {
+            screenLinks.set(screenId, new Set());
+          }
+        });
+
+        // Create bidirectional links
+        link.screenIds.forEach(screenId => {
+          const screenLinkSet = screenLinks.get(screenId);
+          link.screenIds.forEach(otherId => {
+            if (otherId !== screenId) {
+              screenLinkSet.add(otherId);
+            }
+          });
+        });
+
+        updateLinkedScreensUI(link.screenIds, link.linkId);
+      });
+    }
+
+    // UI updates
+    function updateStatus(status, type) {
+      const chip = $('statusChip');
+      chip.textContent = `Status: ${status}`;
+      chip.className = `chip ${type === 'online' ? 'online' : ''}`;
+    }
+
+    function updateRoomStatus(room, status) {
+      const chip = $('roomChip');
+      const statusEl = $('roomStatus');
+
+      if (room && status === 'online') {
+        chip.textContent = `Room: ${room}`;
+        chip.className = 'chip room';
+        statusEl.textContent = `Connected to: ${room}`;
+        statusEl.className = 'room-status room-online';
+      } else {
+        chip.textContent = 'Room: Not Connected';
+        chip.className = 'chip';
+        statusEl.textContent = 'Not Connected';
+        statusEl.className = 'room-status room-offline';
+      }
+    }
+
+    function updateParticipantsList() {
+      const list = $('participantsList');
+      const count = $('participantCount');
+
+      list.innerHTML = '';
+      count.textContent = participants.size + 1; // +1 for self
+
+      // Add self
+      const selfEl = document.createElement('div');
+      selfEl.className = `participant me ${isSharing ? 'sharing' : ''}`;
+      selfEl.innerHTML = `
+        <div class="participant-dot ${isSharing ? 'sharing' : 'online'}"></div>
+        <span>You ${isSharing ? '(sharing)' : '(watching)'}</span>
+      `;
+      list.appendChild(selfEl);
+
+      // Add other participants
+      participants.forEach((participant, id) => {
+        const el = document.createElement('div');
+        el.className = `participant ${participant.sharing ? 'sharing' : ''}`;
+        el.innerHTML = `
+          <div class="participant-dot ${participant.sharing ? 'sharing' : 'online'}"></div>
+          <span>${participant.name} ${participant.sharing ? '(sharing)' : '(watching)'}</span>
+        `;
+        list.appendChild(el);
+      });
+    }
+
+    function displayRemoteScreen(participantId, stream) {
+      // Find available screen slot
+      for (let i = 1; i <= 4; i++) {
+        const slot = $(`screen${i}`);
+        const video = $(`video${i}`);
+        const label = slot.querySelector('.screen-label');
+
+        if (!video.srcObject) {
+          video.srcObject = stream;
+          video.style.display = 'block';
+          video.play();
+
+          const participant = participants.get(participantId);
+          label.textContent = `Screen ${i}: ${participant?.name || 'Unknown'}`;
+          slot.classList.add('active');
+          slot.dataset.participantId = participantId;
+          break;
+        }
+      }
+    }
+
+    function cleanupParticipantScreen(participantId) {
+      for (let i = 1; i <= 4; i++) {
+        const slot = $(`screen${i}`);
+        const video = $(`video${i}`);
+        const label = slot.querySelector('.screen-label');
+
+        if (slot.dataset.participantId === participantId) {
+          video.srcObject = null;
+          video.style.display = 'none';
+          label.textContent = `Screen ${i}: Available`;
+          slot.classList.remove('active');
+          delete slot.dataset.participantId;
+        }
+      }
+    }
+
+    // Chat functions
+    function say(text, className = 'ai') {
+      const div = document.createElement('div');
+      div.className = 'msg ' + className;
+      div.textContent = text;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function displayChatMessage(from, message, className = 'room') {
+      say(`${from}: ${message}`, className);
+    }
+
+    function sendChatMessage() {
+      const message = chatInput.value.trim();
+      if (!message || !currentRoom) return;
+
+      chatInput.value = '';
+      socket.emit('chat-message', {
+        room: currentRoom,
+        message: message
+      });
+
+      say(`You: ${message}`, 'me');
+    }
+
+    // Global functions for screen controls
+    window.requestScreen = function(screenNum) {
+      say(`Requested access to Screen ${screenNum}`, 'share');
+
+      if (socket && currentRoom) {
+        socket.emit('request-screen-access', {
+          room: currentRoom,
+          screenId: screenNum
+        });
+      }
+    };
+
+    window.toggleScreenLink = function(screenNum) {
+      if (!linkMode) {
+        toggleLinkMode();
+        return;
+      }
+
+      // Simulate click for link mode
+      const event = { currentTarget: $(`screen${screenNum}`) };
+      handleScreenLinkClick(event);
+    };
+
+    window.fullscreenScreen = function(screenNum) {
+      const video = $(`video${screenNum}`);
+      if (video.srcObject) {
+        if (video.requestFullscreen) {
+          video.requestFullscreen();
+        }
+      }
+    };
+
+    window.confirmLink = function(screenNum) {
+      const overlay = $(`screen${screenNum}`).querySelector('.screen-overlay');
+      overlay.classList.remove('active');
+
+      // Add to pending if not already there
+      if (!pendingLinks.has(screenNum)) {
+        pendingLinks.set(screenNum, Date.now());
+        $(`screen${screenNum}`).classList.add('requesting');
+
+        if (pendingLinks.size >= 2) {
+          processPendingLinks();
+        }
+      }
+
+      updateLinkStatus();
+    };
+
+    window.cancelLink = function(screenNum) {
+      const overlay = $(`screen${screenNum}`).querySelector('.screen-overlay');
+      overlay.classList.remove('active');
+    };
+
+    // Event handlers
+    $('joinBtn').addEventListener('click', () => {
+      const room = roomInput.value.trim();
+      if (room) {
+        joinRoom(room);
+      }
+    });
+
+    roomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const room = roomInput.value.trim();
+        if (room) {
+          joinRoom(room);
+        }
+      }
+    });
+
+    $('shareBtn').addEventListener('click', startScreenShare);
+    $('stopBtn').addEventListener('click', stopScreenShare);
+
+    $('sendBtn').addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+
+    $('watchBtn').addEventListener('click', () => {
+      say('Switched to watch mode', 'share');
+    });
+
+    $('muteBtn').addEventListener('click', () => {
+      say('Muted all audio', 'share');
+    });
+
+    // Screen linking event listeners
+    $('linkModeBtn').addEventListener('click', toggleLinkMode);
+    $('unlinkAllBtn').addEventListener('click', unlinkAllScreens);
+
+    // Initialize everything
+    function initialize() {
+      console.log('🚀 Initializing Collaborative World Engine Studio');
+      say('🌍 Welcome to Collaborative World Engine Studio', 'sys share');
+      say('Join a room to start screen sharing with teammates', 'sys');
+
+      initializeSocket();
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (isSharing) {
+        stopScreenShare();
+      }
+      if (currentRoom) {
+        leaveRoom();
+      }
+      if (linkMode) {
+        unlinkAllScreens();
+      }
+    });
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+      initialize();
+    }
+  })();
+  </script>
+</body>
+</html>

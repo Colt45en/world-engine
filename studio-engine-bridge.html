@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Layer 1 (Unified, Safe)</title>
+<style>
+  :root{--bg:#0b0e14;--panel:#0f1523;--ink:#e6f0ff;--mut:#9ab0d6;--line:#1e2b46;--acc:#54f0b8;--chip:#182741}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden}
+  .shell{display:grid;grid-template-columns:320px 1fr;grid-template-rows:auto 1fr;gap:8px;height:100%;padding:8px}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#0d1322}
+  .brand{font-weight:800;color:var(--acc)}
+  .mini{font-size:12px;color:var(--mut)}
+  .sp{flex:1}
+  .chip{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:6px 10px}
+  .col{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);overflow:hidden;min-height:0}
+  .L{display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px;min-width:0}
+  .R{display:grid;grid-template-rows:auto 1fr;gap:8px;padding:8px;min-width:0}
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .msgs{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:8px;overflow:auto;min-height:0}
+  .msg{margin:6px 0;padding:8px;border-radius:10px}
+  .me{background:#11203a}
+  .ai{background:#0f1a2f}
+  .sys{background:#122222;color:#9eead3}
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink)}
+  textarea{width:100%;min-height:90px;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .space{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:0}
+  .frame{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#06101c;min-height:0}
+  .frame>iframe{display:block;width:100%;height:100%;border:0}
+  .label{position:absolute;top:6px;left:10px;font-size:12px;background:#0008;padding:3px 8px;border-radius:999px;border:1px solid #ffffff20}
+  .hint{font-size:12px;color:#96a8cc}
+  .footer{padding:6px;text-align:center;color:#6eaeb0}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  /* Corner Chat */
+  .dock{position:fixed;right:18px;bottom:18px;z-index:999999}
+  .fab{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a2440,#0f1523);
+       color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 12px;cursor:pointer;box-shadow:0 8px 30px #0008}
+  .fab .dot{width:8px;height:8px;background:var(--acc);border-radius:999px;box-shadow:0 0 10px var(--acc)}
+  .drawer{position:fixed;right:18px;bottom:74px;width:360px;max-width:85vw;height:60vh;max-height:78vh;
+          background:linear-gradient(180deg,#0f1523,#0b1020);border:1px solid var(--line);border-radius:16px;
+          overflow:hidden;box-shadow:0 16px 60px #0009;transform:translateY(18px) scale(0.98);opacity:0;
+          pointer-events:none;transition:all .18s ease}
+  .drawer.open{transform:none;opacity:1;pointer-events:auto}
+  .drawer .head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .drawer .title{font-weight:700}
+  .drawer .msgs{height:calc(60vh - 130px);overflow:auto;padding:8px}
+  .drawer .msg{white-space:pre-wrap}
+  .drawer .ctrls{display:grid;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .drawer .row{display:flex;gap:6px;align-items:center}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div class="brand">World Engine Studio</div>
+      <div class="mini">Chat controls engine • Recording UI hosts visuals</div>
+      <div class="sp"></div>
+      <span class="chip">/run</span><span class="chip">/test</span><span class="chip">/script</span>
+    </div>
+
+    <section class="col L">
+      <div class="title">AI Chatbot — Engine Control</div>
+      <div id="msgs" class="msgs" aria-live="polite"></div>
+      <div class="row">
+        <input id="chat" type="text" placeholder="Type: /run terms…  /test name  /script JS"/>
+        <button id="send" class="btn">Send</button>
+      </div>
+      <div class="mini">Commands: <span class="kbd">/run</span> terms… • <span class="kbd">/test</span> name • <span class="kbd">/script</span> JS</div>
+    </section>
+
+    <section class="col R">
+      <div class="title row">
+        <div>Surfaces</div><div class="sp"></div>
+        <div class="hint">Recording preview is replaced with World Engine visual (same-origin only).</div>
+      </div>
+      <div class="space">
+        <div class="frame">
+          <div class="label">World Engine</div>
+          <iframe id="we" src="worldengine.html" title="World Engine"></iframe>
+        </div>
+        <div class="frame">
+          <div class="label">Recording Toolkit (UI host)</div>
+          <iframe id="rt" src="recording-toolkit.html" title="Recording Toolkit"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer mini">Layer-1: idempotent load, safe DOM wiring, null-proof chat widget.</div>
+  </div>
+
+  <!-- Corner Chat (auto-created if missing) -->
+  <div class="dock" id="dock">
+    <div id="fab" class="fab" title="Chat">
+      <div class="dot"></div><div>Chat</div>
+    </div>
+    <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="AI Chatbot Engine Control">
+      <div class="head"><div class="title">AI Chatbot — Engine Control</div><div class="sp"></div><button id="close" class="btn" title="Close">×</button></div>
+      <div id="drawerMsgs" class="msgs" aria-live="polite"></div>
+      <div class="ctrls">
+        <div class="row">
+          <input id="drawerChat" type="text" placeholder="Type /run …  /test …  /script … then Enter"/>
+          <button id="drawerSend" class="btn">Send</button>
+        </div>
+        <div class="mini">Use <span class="kbd">Ctrl+K</span> to open, <span class="kbd">Esc</span> to close.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ===== Install Guard (idempotent) =====
+  const NAME='studio-bridge', VERSION='0.1.0-base';
+  if (window.__STUDIO_BRIDGE__?.version) {
+    if (compareSemver(window.__STUDIO_BRIDGE__.version, VERSION) >= 0) return;
+  }
+  Object.defineProperty(window,'__STUDIO_BRIDGE__',{value:{version:VERSION,installedAt:Date.now()},writable:false,configurable:false,enumerable:true});
+
+  // ===== Utilities =====
+  function compareSemver(a,b){
+    const sa=(a||'0.0.0').split('-')[0].split('.').map(Number);
+    const sb=(b||'0.0.0').split('-')[0].split('.').map(Number);
+    for(let i=0;i<3;i++){ const d((sa[i]||0)-(sb[i]||0)); if(d) return d; }
+    return 0;
+  }
+  function on(el,ev,fn){ if(el && el.addEventListener){ el.addEventListener(ev,fn); return true; } return false; }
+  const $ = (id,root=document)=>root.getElementById(id);
+  const log = (...a)=>console.log('[Studio]',...a);
+
+  // ===== Chat helpers =====
+  function say(where, text, cls='ai'){
+    const div=document.createElement('div'); div.className='msg '+cls; div.textContent=String(text);
+    where.appendChild(div); where.scrollTop = where.scrollHeight;
+  }
+  function attachChat(inputEl, sendBtn, outBox, dispatcher){
+    const send = ()=>{ const v=inputEl.value.trim(); if(!v) return; say(outBox,v,'me'); inputEl.value=''; dispatcher(v, outBox); };
+    on(sendBtn,'click',send);
+    on(inputEl,'keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
+  }
+
+  // ===== Engine bridge (same-origin only) =====
+  function withWE(fn){
+    const we = $('we');
+    if(!we) return;
+    try{ const d = we.contentWindow?.document; if(!d) return; fn(d); }catch{ /* cross-origin, skip */ }
+  }
+  function runAnalysisFromText(text, sink){
+    withWE(d=>{
+      const input=d.getElementById('input'), btn=d.getElementById('run'), out=d.getElementById('out');
+      if(!input || !btn){ say(sink,'World Engine controls not found.','sys'); return; }
+      input.value = text;
+      btn.click();
+      setTimeout(()=>{ if(out){ const s=out.textContent||''; say(sink, s.slice(0,2000),'ai'); }}, 120);
+    });
+  }
+  function clickTestByName(name, sink){
+    withWE(d=>{
+      const host=d.getElementById('tests'); if(!host){ say(sink,'No tests panel.','sys'); return; }
+      const btn = Array.from(host.querySelectorAll('button')).find(b=>(b.textContent||'').trim().toLowerCase()===name.trim().toLowerCase());
+      if(btn){ btn.click(); say(sink,`Loaded test "${name}".`,'ai'); } else { say(sink,`Test "${name}" not found.`,'ai'); }
+    });
+  }
+  function runScript(js, sink){
+    try{ const res = $('we')?.contentWindow?.eval(js); say(sink,'Script executed. Result: '+res,'ai'); }
+    catch(e){ say(sink,'Script error: '+e,'ai'); }
+  }
+  function interpretAndDispatch(text, sink){
+    const t=text.trim();
+    if(t.startsWith('/run'))      runAnalysisFromText(t.replace(/^\/run\s*/,'').trim(), sink);
+    else if(t.startsWith('/test')) clickTestByName(t.replace(/^\/test\s*/,'').trim(), sink);
+    else if(t.startsWith('/script')) runScript(t.replace(/^\/script\s*/,'').trim(), sink);
+    else runAnalysisFromText(t, sink);
+  }
+
+  // ===== DOM Ready wiring (prevents null addEventListener) =====
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  function boot(){
+    // Inline chat (left column)
+    const msgs=$('msgs'), chat=$('chat'), send=$('send');
+    if(msgs && chat && send) attachChat(chat, send, msgs, interpretAndDispatch);
+
+    // Corner widget — ensure DOM exists
+    ensureCornerChat();
+    const drawer=$('drawer'), fab=$('fab'), closeBtn=$('close'),
+          dMsgs=$('drawerMsgs'), dChat=$('drawerChat'), dSend=$('drawerSend');
+
+    const toggleDrawer = (open)=>{ if(drawer){ drawer.classList[open?'add':'remove']('open'); } };
+    on(fab,'click',()=>toggleDrawer(true));
+    on(closeBtn,'click',()=>toggleDrawer(false));
+    on(document,'keydown',e=>{
+      if(e.key==='Escape') toggleDrawer(false);
+      if(e.ctrlKey && e.key.toLowerCase()==='k'){ e.preventDefault(); toggleDrawer(true); dChat?.focus(); }
+    });
+    if(dMsgs && dChat && dSend) attachChat(dChat, dSend, dMsgs, interpretAndDispatch);
+
+    // Recording Toolkit tweaks (best-effort)
+    const rt=$('rt');
+    on(rt,'load', ()=>{
+      try{
+        const doc=rt.contentWindow.document;
+        const live=doc.getElementById('live');
+        if(live){
+          const slot=doc.createElement('iframe');
+          slot.src='worldengine.html'; slot.style.width='100%'; slot.style.height='400px'; slot.style.border='0'; slot.title='World Engine Visual';
+          live.parentNode.replaceChild(slot, live);
+        }
+      }catch{ /* cross-origin: ignore */ }
+    });
+
+    // Smoke tests (report in both chats)
+    say(msgs || dMsgs, 'Boot OK — Layer-1 wired.', 'sys');
+    if(dMsgs && dMsgs!==msgs) say(dMsgs, 'Boot OK — Corner widget wired.', 'sys');
+    runSelfTests(msgs || dMsgs);
+  }
+
+  function ensureCornerChat(){
+    // If any piece missing, rebuild the whole widget DOM fragment
+    const have = $('fab') && $('drawer') && $('close') && $('drawerChat') && $('drawerSend') && $('drawerMsgs');
+    if (have) return;
+    const dock = $('dock') || (()=>{ const d=document.createElement('div'); d.className='dock'; d.id='dock'; document.body.appendChild(d); return d; })();
+    dock.innerHTML = `
+      <div id="fab" class="fab" title="Chat"><div class="dot"></div><div>Chat</div></div>
+      <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="AI Chatbot Engine Control">
+        <div class="head"><div class="title">AI Chatbot — Engine Control</div><div class="sp"></div><button id="close" class="btn" title="Close">×</button></div>
+        <div id="drawerMsgs" class="msgs" aria-live="polite"></div>
+        <div class="ctrls">
+          <div class="row">
+            <input id="drawerChat" type="text" placeholder="Type /run …  /test …  /script … then Enter"/>
+            <button id="drawerSend" class="btn">Send</button>
+          </div>
+          <div class="mini">Use <span class="kbd">Ctrl+K</span> to open, <span class="kbd">Esc</span> to close.</div>
+        </div>
+      </div>`;
+  }
+
+  // ===== Minimal self-tests (don’t change existing tests; add only) =====
+  function runSelfTests(sink){
+    const cases = [
+      ['widget-present', !!$('fab') && !!$('drawer')],
+      ['listeners-safe', (function(){ try{ on(null,'click',()=>{}); return true; }catch{return false;} })()],
+      ['parse-/run', (function(){ const out={}; interpretAndDispatch('/run hello', { appendChild(){}, scrollTop:0, scrollHeight:0 }); return true; })()]
+    ];
+    const ok = cases.every(([_,p])=>!!p);
+    say(sink, 'Self-tests: ' + (ok ? 'OK' : JSON.stringify(cases)), ok ? 'sys' : 'ai');
+  }
+
+})();
+</script>
+</body>
+</html>

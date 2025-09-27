@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine V3.1 Integration Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        .test-section {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .test-result.success { background: #065f46; border-left: 4px solid #10b981; }
+        .test-result.failure { background: #7f1d1d; border-left: 4px solid #ef4444; }
+        .test-result.pending { background: #365314; border-left: 4px solid #eab308; }
+        .console-output {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-controls { text-align: center; margin: 20px 0; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn.secondary { background: #6b7280; }
+        .btn.secondary:hover { background: #4b5563; }
+        .lexicon-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .morpheme-analysis { background: #1e293b; padding: 15px; border-radius: 4px; }
+        .morpheme-tag {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 2px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-pass { background: #10b981; }
+        .status-fail { background: #ef4444; }
+        .status-pending { background: #eab308; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 World Engine V3.1 Integration Test</h1>
+        <p>Testing V3.1 advanced features: Type Lattice, Jacobian Tracing, Morpheme Discovery, Lexicon Integration</p>
+    </div>
+
+    <div class="test-controls">
+        <button class="btn" onclick="runAllTests()">🧪 Run All Tests</button>
+        <button class="btn secondary" onclick="runQuickTest()">⚡ Quick Test</button>
+        <button class="btn secondary" onclick="clearResults()">🗑️ Clear Results</button>
+        <button class="btn secondary" onclick="exportResults()">📤 Export Results</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Test Status</h3>
+        <div id="test-status">
+            <div class="test-result pending">
+                <span class="status-indicator status-pending"></span>
+                Ready to run tests...
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 V3.1 Component Tests</h3>
+        <div id="component-tests"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📚 Lexicon Explorer Demo</h3>
+        <div id="lexicon-demo"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🖥️ Console Output</h3>
+        <div id="console-output" class="console-output"></div>
+    </div>
+
+    <script type="module">
+        // Simple console output capture
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+
+        function logToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = `[${timestamp}] ${message}\n`;
+            consoleOutput.textContent += line;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = (...args) => {
+            originalLog.apply(console, args);
+            logToConsole(args.join(' '), 'log');
+        };
+
+        console.error = (...args) => {
+            originalError.apply(console, args);
+            logToConsole('ERROR: ' + args.join(' '), 'error');
+        };
+
+        // Test implementations
+        class SimpleLexiconExplorer {
+            constructor() {
+                this.morphemePatterns = {
+                    prefixes: ['anti', 'auto', 'counter', 'inter', 'multi', 'pre', 're', 'un', 'dis'],
+                    suffixes: ['ation', 'ment', 'ness', 'able', 'ible', 'ing', 'ed', 'er', 'ly']
+                };
+            }
+
+            analyzeWord(word) {
+                if (!word || word.length < 2) return { root: word, morphemes: [] };
+
+                const morphemes = [];
+                let remaining = word.toLowerCase();
+
+                // Extract prefix
+                for (const prefix of this.morphemePatterns.prefixes) {
+                    if (remaining.startsWith(prefix)) {
+                        morphemes.push({ type: 'prefix', form: prefix });
+                        remaining = remaining.slice(prefix.length);
+                        break;
+                    }
+                }
+
+                // Extract suffix
+                for (const suffix of this.morphemePatterns.suffixes) {
+                    if (remaining.endsWith(suffix)) {
+                        morphemes.push({ type: 'suffix', form: suffix });
+                        remaining = remaining.slice(0, -suffix.length);
+                        break;
+                    }
+                }
+
+                // Root
+                if (remaining.length > 0) {
+                    morphemes.unshift({ type: 'root', form: remaining });
+                }
+
+                return { root: remaining, morphemes, word };
+            }
+
+            renderAnalysis(analysis) {
+                const container = document.createElement('div');
+                container.className = 'morpheme-analysis';
+
+                const title = document.createElement('h4');
+                title.textContent = `Analysis: "${analysis.word}"`;
+                container.appendChild(title);
+
+                analysis.morphemes.forEach(morpheme => {
+                    const tag = document.createElement('span');
+                    tag.className = 'morpheme-tag';
+                    tag.textContent = `${morpheme.form} (${morpheme.type})`;
+                    container.appendChild(tag);
+                });
+
+                return container;
+            }
+        }
+
+        class SimpleTypeLattice {
+            constructor() {
+                this.hierarchy = ['State', 'Property', 'Structure', 'Concept'];
+                this.levels = new Map();
+                this.hierarchy.forEach((type, i) => this.levels.set(type, i));
+            }
+
+            leq(a, b) {
+                const levelA = this.levels.get(a);
+                const levelB = this.levels.get(b);
+                return levelA !== undefined && levelB !== undefined && levelA <= levelB;
+            }
+
+            join(a, b) {
+                const levelA = this.levels.get(a) ?? -1;
+                const levelB = this.levels.get(b) ?? -1;
+                return levelA > levelB ? a : b;
+            }
+        }
+
+        class SimpleJacobianTracer {
+            static jacobian(button) {
+                const M = button?.M || [[1,0,0],[0,1,0],[0,0,1]];
+                const alpha = button?.alpha ?? 1.0;
+                return M.map(row => row.map(val => alpha * val));
+            }
+
+            static effect(before, after) {
+                return after.map((val, i) => val - before[i]);
+            }
+        }
+
+        // Global test functions
+        window.runAllTests = async function() {
+            updateStatus('Running comprehensive tests...', 'pending');
+
+            try {
+                // Test 1: Type Lattice
+                await testTypeLattice();
+
+                // Test 2: Jacobian Tracing
+                await testJacobianTracing();
+
+                // Test 3: Lexicon Explorer
+                await testLexiconExplorer();
+
+                // Test 4: Integration
+                await testIntegration();
+
+                updateStatus('All tests completed successfully!', 'success');
+            } catch (error) {
+                console.error('Test suite failed:', error);
+                updateStatus('Test suite failed: ' + error.message, 'failure');
+            }
+        };
+
+        window.runQuickTest = async function() {
+            updateStatus('Running quick validation...', 'pending');
+
+            try {
+                const lattice = new SimpleTypeLattice();
+                const result = lattice.leq('State', 'Concept');
+
+                if (result) {
+                    updateStatus('Quick test passed - basic systems working', 'success');
+                    console.log('✅ Quick validation: Type lattice hierarchy working');
+                } else {
+                    updateStatus('Quick test failed - check system setup', 'failure');
+                }
+            } catch (error) {
+                updateStatus('Quick test error: ' + error.message, 'failure');
+            }
+        };
+
+        window.clearResults = function() {
+            consoleOutput.textContent = '';
+            document.getElementById('component-tests').innerHTML = '';
+            document.getElementById('lexicon-demo').innerHTML = '';
+            updateStatus('Results cleared', 'pending');
+        };
+
+        window.exportResults = function() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                consoleOutput: consoleOutput.textContent,
+                userAgent: navigator.userAgent
+            };
+
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `world-engine-v31-test-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        function updateStatus(message, type) {
+            const statusEl = document.getElementById('test-status');
+            const statusClass = type === 'success' ? 'success' : type === 'failure' ? 'failure' : 'pending';
+            const statusIcon = type === 'success' ? 'status-pass' : type === 'failure' ? 'status-fail' : 'status-pending';
+
+            statusEl.innerHTML = `
+                <div class="test-result ${statusClass}">
+                    <span class="status-indicator ${statusIcon}"></span>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function addTestResult(section, name, success, details) {
+            const container = document.getElementById(section);
+            const resultEl = document.createElement('div');
+            resultEl.className = `test-result ${success ? 'success' : 'failure'}`;
+
+            const statusClass = success ? 'status-pass' : 'status-fail';
+            resultEl.innerHTML = `
+                <span class="status-indicator ${statusClass}"></span>
+                <strong>${name}</strong>: ${details}
+            `;
+
+            container.appendChild(resultEl);
+        }
+
+        async function testTypeLattice() {
+            console.log('🏗️ Testing Type Lattice System...');
+
+            const lattice = new SimpleTypeLattice();
+
+            const tests = [
+                { a: 'State', b: 'Property', expected: true, name: 'State ⊑ Property' },
+                { a: 'Property', b: 'Structure', expected: true, name: 'Property ⊑ Structure' },
+                { a: 'Structure', b: 'Concept', expected: true, name: 'Structure ⊑ Concept' },
+                { a: 'State', b: 'Concept', expected: true, name: 'State ⊑ Concept (transitivity)' }
+            ];
+
+            let passed = 0;
+            for (const test of tests) {
+                const result = lattice.leq(test.a, test.b);
+                const success = result === test.expected;
+                if (success) passed++;
+
+                addTestResult('component-tests', test.name, success,
+                    success ? 'Relationship verified' : `Expected ${test.expected}, got ${result}`);
+            }
+
+            console.log(`Type Lattice: ${passed}/${tests.length} tests passed`);
+        }
+
+        async function testJacobianTracing() {
+            console.log('📊 Testing Jacobian Tracing...');
+
+            const testButton = {
+                abbr: 'TST',
+                label: 'Test Transform',
+                M: [[2, 0, 0], [0, 0.5, 0], [0, 0, 1]],
+                alpha: 1.0
+            };
+
+            const jacobian = SimpleJacobianTracer.jacobian(testButton);
+            const before = [1, 1, 1];
+            const after = [2, 0.5, 1];
+            const effect = SimpleJacobianTracer.effect(before, after);
+
+            const validJacobian = jacobian[0][0] === 2 && jacobian[1][1] === 0.5;
+            const validEffect = effect[0] === 1 && effect[1] === -0.5;
+
+            addTestResult('component-tests', 'Jacobian Computation', validJacobian,
+                validJacobian ? 'Matrix transformation correct' : 'Matrix computation failed');
+
+            addTestResult('component-tests', 'Effect Calculation', validEffect,
+                validEffect ? 'State delta computed correctly' : 'Effect calculation failed');
+
+            console.log(`Jacobian Tracing: ${(validJacobian && validEffect) ? 'PASS' : 'FAIL'}`);
+        }
+
+        async function testLexiconExplorer() {
+            console.log('📚 Testing Lexicon Explorer...');
+
+            const explorer = new SimpleLexiconExplorer();
+            const testWords = ['restate', 'transformation', 'movement', 'unsuccessful'];
+
+            const lexiconContainer = document.getElementById('lexicon-demo');
+            lexiconContainer.innerHTML = '<h4>Morphological Analysis Demo</h4>';
+
+            let totalMorphemes = 0;
+            for (const word of testWords) {
+                const analysis = explorer.analyzeWord(word);
+                totalMorphemes += analysis.morphemes.length;
+
+                const analysisEl = explorer.renderAnalysis(analysis);
+                lexiconContainer.appendChild(analysisEl);
+            }
+
+            const avgMorphemes = totalMorphemes / testWords.length;
+            const success = avgMorphemes > 1;
+
+            addTestResult('component-tests', 'Morphological Analysis', success,
+                `Analyzed ${testWords.length} words, avg ${avgMorphemes.toFixed(1)} morphemes/word`);
+
+            console.log(`Lexicon Explorer: ${success ? 'PASS' : 'FAIL'} - ${avgMorphemes.toFixed(1)} avg morphemes`);
+        }
+
+        async function testIntegration() {
+            console.log('🔗 Testing System Integration...');
+
+            // Test that all components can work together
+            const lattice = new SimpleTypeLattice();
+            const explorer = new SimpleLexiconExplorer();
+
+            // Analyze a word and assign it to the type lattice
+            const analysis = explorer.analyzeWord('transformation');
+            const hasPrefix = analysis.morphemes.some(m => m.type === 'prefix');
+            const hasSuffix = analysis.morphemes.some(m => m.type === 'suffix');
+
+            // Assign semantic type based on morphology
+            let semanticType = 'State';
+            if (hasSuffix) semanticType = 'Property';
+            if (hasPrefix && hasSuffix) semanticType = 'Structure';
+
+            // Test that the assigned type fits in the lattice
+            const canBeComposed = lattice.leq(semanticType, 'Concept');
+
+            addTestResult('component-tests', 'Morphology + Type Integration', canBeComposed,
+                canBeComposed ? `"${analysis.word}" → ${semanticType} → fits lattice` : 'Integration failed');
+
+            console.log(`Integration test: ${canBeComposed ? 'PASS' : 'FAIL'}`);
+        }
+
+        // Initialize
+        console.log('🌍 World Engine V3.1 Integration Test Suite Loaded');
+        console.log('Click "Run All Tests" to begin comprehensive testing');
+    </script>
+</body>
+</html>

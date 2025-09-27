@@ -1,0 +1,36 @@
+{
+  "name": "world-engine-studio",
+  "version": "2.0.0",
+  "description": "World Engine Advanced Systems Studio Interface with Backend API",
+  "type": "module",
+  "main": "world-engine-studio-server.js",
+  "scripts": {
+    "start": "node world-engine-studio-server.js",
+    "dev": "nodemon world-engine-studio-server.js",
+    "test": "node world-engine-integration-test.js",
+    "install-deps": "npm install"
+  },
+  "keywords": [
+    "world-engine",
+    "morphology",
+    "nlp",
+    "indexing",
+    "studio",
+    "advanced-systems",
+    "unified-scaffold",
+    "nexus-beat-system"
+  ],
+  "author": "World Engine Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "socket.io": "^4.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

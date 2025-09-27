@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-09-24T19:07:09.162Z",
+  "version": "v3.1",
+  "dimensions": 3,
+  "system": "World Engine V3.1",
+  "type": "lexicon",
+  "morphemes": [
+    "re",
+    "pre",
+    "un",
+    "trans",
+    "anti"
+  ],
+  "roots": [
+    "state",
+    "form",
+    "move",
+    "trace",
+    "struct"
+  ],
+  "patterns": {
+    "re+*": "transformation",
+    "un+*": "negation"
+  }
+}

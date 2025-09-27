@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Holy Beat Mathematical Synthesis</title>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #00ff88;
+            overflow: hidden;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 300px;
+        }
+
+        .equation-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #ff0088;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 400px;
+            font-size: 12px;
+            color: #ff0088;
+        }
+
+        .parameter-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            align-items: center;
+        }
+
+        .parameter-row label {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .parameter-row input {
+            flex: 1;
+            margin-left: 10px;
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 4px;
+        }
+
+        .beat-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+            transition: all 0.1s ease;
+        }
+
+        .beat-active {
+            background: #ff0088;
+            box-shadow: 0 0 10px #ff0088;
+        }
+
+        .beat-inactive {
+            background: #333;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .math-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.3);
+            text-align: center;
+            pointer-events: none;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .status-display {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            padding: 10px;
+            border-radius: 8px;
+            color: #00ffff;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <h3>🎵 Holy Beat Mathematical Engine</h3>
+
+        <div class="parameter-row">
+            <label>BPM (b):</label>
+            <input type="number" id="bpm" value="120" min="60" max="200">
+        </div>
+
+        <div class="parameter-row">
+            <label>AM Division (d_AM):</label>
+            <input type="number" id="amDiv" value="4" min="1" max="16">
+        </div>
+
+        <div class="parameter-row">
+            <label>FM Division (d_FM):</label>
+            <input type="number" id="fmDiv" value="8" min="1" max="32">
+        </div>
+
+        <div class="parameter-row">
+            <label>AM Depth (D_AM):</label>
+            <input type="range" id="amDepth" min="0" max="1" step="0.05" value="0.2">
+            <span id="amDepthVal">0.2</span>
+        </div>
+
+        <div class="parameter-row">
+            <label>FM Depth (D_FM):</label>
+            <input type="range" id="fmDepth" min="0" max="20" step="0.5" value="6">
+            <span id="fmDepthVal">6</span>
+        </div>
+
+        <div class="parameter-row">
+            <label>Harmonics (N):</label>
+            <input type="number" id="harmonics" value="6" min="1" max="12">
+        </div>
+
+        <div class="parameter-row">
+            <label>Base Freq (f₀):</label>
+            <input type="number" id="baseFreq" value="220" min="80" max="800">
+        </div>
+
+        <div class="parameter-row">
+            <button id="startBtn">▶ Start Engine</button>
+            <button id="stopBtn">⏹ Stop Engine</button>
+        </div>
+
+        <div style="margin-top: 10px;">
+            <span class="beat-indicator beat-inactive" id="beat0"></span>
+            <span class="beat-indicator beat-inactive" id="beat1"></span>
+            <span class="beat-indicator beat-inactive" id="beat2"></span>
+            <span class="beat-indicator beat-inactive" id="beat3"></span>
+            <span style="margin-left: 10px;">φ(t) = <span id="beatPhase">0.000</span></span>
+        </div>
+    </div>
+
+    <!-- Equation Display -->
+    <div class="equation-display">
+        <h4>Core Equations</h4>
+        <div style="font-size: 10px; line-height: 1.4;">
+            <strong>Clock:</strong> φ(t) = fract(t / (60/b))<br>
+            <strong>AM LFO:</strong> L_AM(t) = sin(2π φ(t)/d_AM)<br>
+            <strong>FM LFO:</strong> L_FM(t) = sin(2π φ(t)/d_FM)<br>
+            <strong>Synthesis:</strong> s(t) = [1 + D_AM·L_AM(t)] Σ(1/n)sin(2π∫f_n(τ)dτ)<br>
+            <strong>Frequency:</strong> f_n(t) = n·f₀ + D_FM·L_FM(t)·κ_n<br>
+            <strong>Filter:</strong> y(t) = F_LP(s(t); f_c)
+        </div>
+
+        <div style="margin-top: 10px; font-size: 11px;">
+            <div>L_AM: <span id="amValue">0.000</span></div>
+            <div>L_FM: <span id="fmValue">0.000</span></div>
+            <div>χ_s (Centroid): <span id="centroid">220</span> Hz</div>
+            <div>RMS: <span id="rms">0.000</span></div>
+        </div>
+    </div>
+
+    <!-- Mathematical Overlay -->
+    <div class="math-overlay" id="mathOverlay">
+        <div style="font-size: 24px; margin-bottom: 10px;">
+            y(t) = F<sub>LP</sub>([1 + D<sub>AM</sub>L<sub>AM</sub>(t)] Σ(1/n)sin(2π∫f<sub>n</sub>(τ)dτ))
+        </div>
+        <div style="font-size: 18px;">
+            where φ(t) = fract(t·b/60) ∈ [0,1)
+        </div>
+    </div>
+
+    <!-- Status Display -->
+    <div class="status-display">
+        <div>Engine Status: <span id="engineStatus">Stopped</span></div>
+        <div>Safety Mode: <span id="safetyMode">Off</span></div>
+        <div>Beat: <span id="currentBeat">0</span> | Bar: <span id="currentBar">0</span></div>
+        <div>Spectral Centroid: <span id="spectralCentroid">220.0</span> Hz</div>
+        <div>Terrain Coupling: <span id="terrainCoupling">0.00</span></div>
+    </div>
+
+    <!-- Canvases -->
+    <canvas id="visualCanvas" width="1920" height="1080"></canvas>
+    <canvas id="waveformCanvas" width="1920" height="200" style="top: auto; bottom: 0;"></canvas>
+
+    <script src="nexus_holy_beat_math_engine.js"></script>
+    <script>
+        // Global state
+        let holyBeatEngine = null;
+        let audioContext = null;
+        let analyserNode = null;
+        let gainNode = null;
+        let isRunning = false;
+        let animationId = null;
+
+        // Canvas contexts
+        const visualCanvas = document.getElementById('visualCanvas');
+        const visualCtx = visualCanvas.getContext('2d');
+        const waveformCanvas = document.getElementById('waveformCanvas');
+        const waveformCtx = waveformCanvas.getContext('2d');
+
+        // Resize canvases
+        function resizeCanvases() {
+            visualCanvas.width = window.innerWidth;
+            visualCanvas.height = window.innerHeight;
+            waveformCanvas.width = window.innerWidth;
+            waveformCanvas.height = 200;
+        }
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+
+        // Initialize Holy Beat Mathematical Engine
+        async function initializeEngine() {
+            try {
+                // Create audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create Holy Beat engine
+                holyBeatEngine = new NexusHolyBeatMathEngine();
+
+                // Create audio nodes
+                analyserNode = audioContext.createAnalyser();
+                analyserNode.fftSize = 2048;
+
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.3;
+
+                // Connect: source -> gain -> analyser -> destination
+                gainNode.connect(analyserNode);
+                analyserNode.connect(audioContext.destination);
+
+                console.log('🎵 Holy Beat Mathematical Engine initialized');
+                setupEventListeners();
+
+            } catch (error) {
+                console.error('Failed to initialize engine:', error);
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Start/Stop buttons
+            document.getElementById('startBtn').addEventListener('click', startEngine);
+            document.getElementById('stopBtn').addEventListener('click', stopEngine);
+
+            // Parameter controls with quantized updates
+            const paramControls = {
+                'bpm': 'clock.bpm',
+                'amDiv': 'lfo.amDivision',
+                'fmDiv': 'lfo.fmDivision',
+                'amDepth': 'lfo.amDepth',
+                'fmDepth': 'lfo.fmDepth',
+                'harmonics': 'synth.harmonics',
+                'baseFreq': 'synth.baseFreq'
+            };
+
+            Object.entries(paramControls).forEach(([controlId, paramPath]) => {
+                const control = document.getElementById(controlId);
+                control.addEventListener('change', () => {
+                    const value = parseFloat(control.value);
+
+                    if (holyBeatEngine && isRunning) {
+                        // Queue parameter update for next beat boundary
+                        holyBeatEngine.queueParameterUpdate(paramPath, value);
+                        console.log(`🔄 Queued ${paramPath} = ${value} for next beat`);
+                    } else if (holyBeatEngine) {
+                        // Apply immediately if engine is stopped
+                        holyBeatEngine.setParameterImmediate(paramPath, value);
+                    }
+
+                    // Update display
+                    if (controlId === 'amDepth') {
+                        document.getElementById('amDepthVal').textContent = value.toFixed(2);
+                    } else if (controlId === 'fmDepth') {
+                        document.getElementById('fmDepthVal').textContent = value.toFixed(1);
+                    }
+                });
+            });
+        }
+
+        // Start the Holy Beat engine
+        async function startEngine() {
+            if (isRunning) return;
+
+            try {
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                const currentTime = audioContext.currentTime;
+                holyBeatEngine.start(currentTime);
+
+                isRunning = true;
+                document.getElementById('engineStatus').textContent = 'Running';
+
+                // Start audio synthesis
+                startAudioSynthesis();
+
+                // Start visual rendering
+                animate();
+
+                console.log('🎵 Holy Beat engine started');
+
+            } catch (error) {
+                console.error('Failed to start engine:', error);
+            }
+        }
+
+        // Stop the Holy Beat engine
+        function stopEngine() {
+            if (!isRunning) return;
+
+            holyBeatEngine.stop();
+            isRunning = false;
+            document.getElementById('engineStatus').textContent = 'Stopped';
+
+            // Stop synthesis
+            if (scriptProcessor) {
+                scriptProcessor.disconnect();
+            }
+
+            // Stop animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            // Clear beat indicators
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`beat${i}`).className = 'beat-indicator beat-inactive';
+            }
+
+            console.log('🔇 Holy Beat engine stopped');
+        }
+
+        let scriptProcessor = null;
+
+        // Start audio synthesis using the mathematical engine
+        function startAudioSynthesis() {
+            // Create script processor for real-time synthesis
+            scriptProcessor = audioContext.createScriptProcessor(1024, 0, 1);
+
+            scriptProcessor.onaudioprocess = function(event) {
+                if (!holyBeatEngine || !isRunning) return;
+
+                const outputBuffer = event.outputBuffer;
+                const outputData = outputBuffer.getChannelData(0);
+                const currentTime = audioContext.currentTime;
+
+                // Update engine state (thought-process algorithm)
+                const engineState = holyBeatEngine.tick(currentTime);
+
+                // Generate samples using harmonic stack synthesis
+                const samples = holyBeatEngine.synthesizeHarmonicStack(
+                    outputData.length,
+                    audioContext.sampleRate
+                );
+
+                // Copy synthesized samples to output
+                for (let i = 0; i < outputData.length; i++) {
+                    outputData[i] = samples[i];
+                }
+
+                // Update UI with current state
+                updateEngineUI(engineState);
+            };
+
+            // Connect script processor
+            scriptProcessor.connect(gainNode);
+        }
+
+        // Update UI with engine state
+        function updateEngineUI(state) {
+            // Update beat phase display
+            document.getElementById('beatPhase').textContent = state.clockState.beatPhase.toFixed(3);
+            document.getElementById('currentBeat').textContent = state.clockState.beat;
+            document.getElementById('currentBar').textContent = state.clockState.bar;
+
+            // Update beat indicators
+            for (let i = 0; i < 4; i++) {
+                const indicator = document.getElementById(`beat${i}`);
+                if (i === state.clockState.beat) {
+                    indicator.className = 'beat-indicator beat-active';
+                } else {
+                    indicator.className = 'beat-indicator beat-inactive';
+                }
+            }
+
+            // Update LFO values
+            document.getElementById('amValue').textContent = state.lfoState.amPhase.toFixed(3);
+            document.getElementById('fmValue').textContent = state.lfoState.fmPhase.toFixed(3);
+
+            // Update feature displays
+            document.getElementById('centroid').textContent = Math.round(state.features.spectralCentroid);
+            document.getElementById('rms').textContent = state.features.rmsEnergy.toFixed(3);
+            document.getElementById('spectralCentroid').textContent = state.features.spectralCentroid.toFixed(1);
+            document.getElementById('terrainCoupling').textContent = state.features.terrainRoughness.toFixed(2);
+
+            // Update safety status
+            document.getElementById('safetyMode').textContent = state.safety.stabilityMode ? 'On' : 'Off';
+        }
+
+        // Visual rendering with mathematical visualization
+        function animate() {
+            if (!isRunning) return;
+
+            animationId = requestAnimationFrame(animate);
+
+            if (!holyBeatEngine) return;
+
+            const mathState = holyBeatEngine.getMathematicalState();
+
+            // Clear canvas
+            visualCtx.fillStyle = 'rgba(15, 15, 35, 0.1)';
+            visualCtx.fillRect(0, 0, visualCanvas.width, visualCanvas.height);
+
+            renderQuantumHarmonics(mathState);
+            renderPhaseVisualizations(mathState);
+            renderSpectralVisualization();
+
+            // Update math overlay opacity based on beat phase
+            const mathOverlay = document.getElementById('mathOverlay');
+            const opacity = 0.1 + 0.2 * Math.abs(mathState.amLFO);
+            mathOverlay.style.opacity = opacity;
+        }
+
+        // Render quantum harmonic visualization
+        function renderQuantumHarmonics(mathState) {
+            const centerX = visualCanvas.width * 0.3;
+            const centerY = visualCanvas.height * 0.5;
+            const baseRadius = 100;
+
+            // Draw harmonic orbits with AM/FM modulation
+            for (let n = 1; n <= mathState.harmonicCount; n++) {
+                const radius = baseRadius * (1 + mathState.amLFO * 0.3) / Math.sqrt(n);
+                const angle = mathState.beatPhase * 2 * Math.PI * n + mathState.fmLFO * 0.5;
+
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+
+                // Color based on spectral centroid
+                const hue = (mathState.spectralCentroid / 1000) * 360;
+                const alpha = 0.3 + 0.4 * (1/n);
+
+                visualCtx.beginPath();
+                visualCtx.arc(x, y, 8/Math.sqrt(n), 0, Math.PI * 2);
+                visualCtx.fillStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+                visualCtx.fill();
+
+                // Connect to center with phase-modulated lines
+                visualCtx.beginPath();
+                visualCtx.moveTo(centerX, centerY);
+                visualCtx.lineTo(x, y);
+                visualCtx.strokeStyle = `hsla(${hue}, 50%, 40%, 0.2)`;
+                visualCtx.lineWidth = 1;
+                visualCtx.stroke();
+            }
+        }
+
+        // Render phase and LFO visualizations
+        function renderPhaseVisualizations(mathState) {
+            const rightX = visualCanvas.width * 0.7;
+            const topY = visualCanvas.height * 0.3;
+            const bottomY = visualCanvas.height * 0.7;
+            const size = 80;
+
+            // AM LFO visualization
+            visualCtx.beginPath();
+            visualCtx.arc(rightX, topY, size * (0.5 + mathState.amLFO * 0.5), 0, Math.PI * 2);
+            visualCtx.strokeStyle = '#ff0088';
+            visualCtx.lineWidth = 2;
+            visualCtx.stroke();
+
+            // FM LFO visualization
+            const fmRadius = size * 0.8;
+            const fmPoints = 32;
+            visualCtx.beginPath();
+            for (let i = 0; i <= fmPoints; i++) {
+                const angle = (i / fmPoints) * Math.PI * 2;
+                const modRadius = fmRadius * (1 + mathState.fmLFO * 0.3);
+                const x = rightX + Math.cos(angle) * modRadius;
+                const y = bottomY + Math.sin(angle) * modRadius;
+                if (i === 0) {
+                    visualCtx.moveTo(x, y);
+                } else {
+                    visualCtx.lineTo(x, y);
+                }
+            }
+            visualCtx.strokeStyle = '#0088ff';
+            visualCtx.lineWidth = 2;
+            visualCtx.stroke();
+
+            // Beat phase indicator
+            const phaseAngle = mathState.beatPhase * Math.PI * 2 - Math.PI/2;
+            const phaseX = rightX + Math.cos(phaseAngle) * (size + 20);
+            const phaseY = (topY + bottomY) / 2 + Math.sin(phaseAngle) * (size + 20);
+
+            visualCtx.beginPath();
+            visualCtx.arc(phaseX, phaseY, 8, 0, Math.PI * 2);
+            visualCtx.fillStyle = '#00ff88';
+            visualCtx.fill();
+        }
+
+        // Render spectral visualization (waveform canvas)
+        function renderSpectralVisualization() {
+            if (!analyserNode) return;
+
+            const bufferLength = analyserNode.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyserNode.getByteFrequencyData(dataArray);
+
+            waveformCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+
+            const barWidth = (waveformCanvas.width / bufferLength) * 2.5;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255.0) * waveformCanvas.height * 0.8;
+
+                const hue = (i / bufferLength) * 360;
+                waveformCtx.fillStyle = `hsla(${hue}, 70%, 50%, 0.7)`;
+
+                waveformCtx.fillRect(x, waveformCanvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+
+        // Initialize everything when page loads
+        window.addEventListener('load', initializeEngine);
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isRunning) {
+                // Pause audio context when page is hidden
+                if (audioContext && audioContext.state === 'running') {
+                    audioContext.suspend();
+                }
+            } else if (!document.hidden && isRunning) {
+                // Resume audio context when page is visible
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            }
+        });
+
+        console.log('🎵 NEXUS Holy Beat Mathematical Synthesis System loaded');
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dashboard Loading</title>
+    <script>
+        function testNexusDashboard() {
+            console.log('Testing NEXUS Dashboard...');
+
+            // Check if dashboard loads
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.src = 'nexus_master_dashboard.html';
+
+            iframe.onload = function() {
+                console.log('Dashboard loaded successfully!');
+
+                // Try to access the dashboard master
+                setTimeout(() => {
+                    try {
+                        const dashboardWindow = iframe.contentWindow;
+                        const dashboardMaster = dashboardWindow.dashboardMaster;
+
+                        if (dashboardMaster) {
+                            console.log('Dashboard Master found!');
+                            console.log('Dashboards:', Array.from(dashboardMaster.dashboards.keys()));
+
+                            // Check educational dashboards
+                            const educationalDashboards = Array.from(dashboardMaster.dashboards.values())
+                                .filter(d => d.type === 'educational');
+                            console.log('Educational dashboards:', educationalDashboards);
+
+                        } else {
+                            console.log('Dashboard Master not found');
+                        }
+                    } catch (e) {
+                        console.log('Cross-origin access blocked or error:', e.message);
+                    }
+                }, 2000);
+            };
+
+            iframe.onerror = function(e) {
+                console.log('Error loading dashboard:', e);
+            };
+
+            document.body.appendChild(iframe);
+        }
+
+        window.onload = testNexusDashboard;
+    </script>
+</head>
+<body>
+    <h1>NEXUS Dashboard Test</h1>
+    <p>Check console for results...</p>
+    <div id="test-results"></div>
+</body>
+</html>

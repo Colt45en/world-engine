@@ -15,39 +15,44 @@
             font-family: 'Consolas', 'Monaco', monospace;
             background: linear-gradient(135deg, #1e1e2e, #2a2a40);
             color: #e0e0e0;
-            min-height: 100vh;
+            height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .dashboard-header {
             background: rgba(40, 40, 60, 0.9);
             border-bottom: 3px solid #00ff88;
-            padding: 20px;
+            padding: 15px 20px;
             text-align: center;
             backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .dashboard-title {
-            font-size: 2.2em;
+            font-size: 1.8em;
             background: linear-gradient(45deg, #00ff88, #88ffff);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .dashboard-subtitle {
             color: #b0b0c0;
-            font-size: 1.1em;
+            font-size: 0.9em;
         }
 
         .connection-status {
             position: absolute;
-            top: 20px;
+            top: 15px;
             right: 20px;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: 15px;
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
 
         .status-connected {
@@ -63,20 +68,24 @@
         }
 
         .dashboard-content {
-            padding: 20px;
+            padding: 15px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 15px;
             max-width: 1400px;
             margin: 0 auto;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
         }
 
         .analysis-panel {
             background: rgba(30, 30, 50, 0.8);
             border: 1px solid #444;
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 8px;
+            padding: 15px;
             backdrop-filter: blur(5px);
+            max-height: 500px;
+            overflow-y: auto;
         }
 
         .panel-title {
@@ -93,14 +102,14 @@
 
         .code-input {
             width: 100%;
-            height: 200px;
+            height: 150px;
             background: rgba(20, 20, 35, 0.9);
             border: 1px solid #555;
             border-radius: 8px;
             color: #e0e0e0;
             font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 14px;
-            padding: 15px;
+            font-size: 12px;
+            padding: 12px;
             resize: vertical;
             outline: none;
             transition: border-color 0.3s;
@@ -174,9 +183,9 @@
         .result-section {
             background: rgba(25, 25, 45, 0.8);
             border: 1px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-            max-height: 400px;
+            border-radius: 6px;
+            padding: 12px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
@@ -309,12 +318,12 @@
             grid-column: 1 / -1;
             background: rgba(20, 20, 30, 0.9);
             border: 1px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-            max-height: 200px;
+            border-radius: 6px;
+            padding: 12px;
+            max-height: 150px;
             overflow-y: auto;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .log-entry {
@@ -361,10 +370,48 @@
         @media (max-width: 1200px) {
             .dashboard-content {
                 grid-template-columns: 1fr;
+                max-height: calc(100vh - 100px);
             }
 
             .results-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .dashboard-title {
+                font-size: 1.5em;
+            }
+
+            .analysis-panel {
+                max-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-content {
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .connection-status {
+                position: relative;
+                top: auto;
+                right: auto;
+                display: inline-block;
+                margin-bottom: 10px;
+            }
+
+            .dashboard-header {
+                padding: 10px;
+            }
+
+            .analysis-panel {
+                padding: 12px;
+                max-height: 350px;
+            }
+
+            .code-input {
+                height: 120px;
+                font-size: 11px;
             }
         }
     </style>
@@ -725,7 +772,7 @@ The system will analyze patterns, morphology, semantics, and structure automatic
                         attributes: (code.match(/\s[a-zA-Z-]+\s*=\s*["'][^"']*["']/g) || []).length,
                         comments: (code.match(/<!--[\s\S]*?-->/g) || []).length,
                         scripts: (code.match(new RegExp('<script[^>]*>[\\s\\S]*?<\\/script>', 'gi')) || []).length,
-                        styles: (code.match(new RegExp('<style[^>]*>[\\s\\S]*?<\\/style>', 'gi')) || []).length
+                        styles: (code.match(/<style[^>]*>[\s\S]*?<\\/style>/gi) || []).length
                     };
                 }
 

@@ -25,6 +25,7 @@ The NEXUS Holy Beat System is a groundbreaking fusion of sophisticated C++ game 
 ## 🎯 Key Features
 
 ### 🚀 **NEXUS Core Engine**
+
 - **Entity-Component-System (ECS)** architecture for maximum flexibility
 - **Advanced Resource Management** with LOD (Level of Detail) optimization
 - **Cross-platform Support** (Windows, macOS, Linux)
@@ -32,24 +33,28 @@ The NEXUS Holy Beat System is a groundbreaking fusion of sophisticated C++ game 
 - **Comprehensive Logging System** with multiple output formats
 
 ### 🌀 **Quantum Protocol Processing**
+
 - **8 Processing Modes**: Each with unique mathematical characteristics
 - **Dynamic Mode Switching**: Automatic or manual quantum state transitions
 - **Audio Feature Extraction**: Real-time analysis of amplitude, frequency, and harmonics
 - **State Callbacks**: Programmable responses to quantum transitions
 
 ### 🎨 **Sacred Geometry Visualization**
+
 - **Procedural Generation**: Mandala patterns, sacred spirals, and geometric forms
 - **Audio-Reactive Elements**: Visual elements that pulse and transform with music
 - **Golden Ratio Mathematics**: Patterns based on divine proportions (φ = 1.618...)
 - **3D Sacred Structures**: Towers, crystals, and energy fields in 3D space
 
 ### 🧠 **Cognitive Recursive Engine**
+
 - **Thought Processing**: AI-driven analysis of system states and events
 - **Memory Formation**: Persistent storage of insights and patterns
 - **Concept Association**: Dynamic linking between ideas and experiences
 - **Temporal Analysis**: Understanding of patterns over time
 
 ### 🌐 **Real-time Web Integration**
+
 - **WebSocket Bridge**: Live streaming of audio, visual, and system data
 - **3D Web Visualization**: Three.js-powered sacred geometry in the browser
 - **Interactive Dashboard**: Real-time monitoring and control interface
@@ -60,6 +65,7 @@ The NEXUS Holy Beat System is a groundbreaking fusion of sophisticated C++ game 
 ## 🛠 System Requirements
 
 ### **Minimum Requirements**
+
 - **OS**: Windows 10, macOS 10.15, or Ubuntu 18.04+
 - **CPU**: Quad-core processor (2.5GHz+)
 - **Memory**: 8 GB RAM
@@ -67,6 +73,7 @@ The NEXUS Holy Beat System is a groundbreaking fusion of sophisticated C++ game 
 - **Storage**: 2 GB available space
 
 ### **Recommended Requirements**
+
 - **OS**: Windows 11, macOS 12+, or Ubuntu 20.04+
 - **CPU**: 8-core processor (3.0GHz+)
 - **Memory**: 16 GB RAM
@@ -74,6 +81,7 @@ The NEXUS Holy Beat System is a groundbreaking fusion of sophisticated C++ game 
 - **Storage**: 4 GB available space (SSD recommended)
 
 ### **Development Tools**
+
 - **CMake** 3.16 or later
 - **C++ Compiler** (MSVC 2019+, GCC 9+, or Clang 10+)
 - **Node.js** 16+ (optional, for web server features)
@@ -86,11 +94,13 @@ The NEXUS Holy Beat System is a groundbreaking fusion of sophisticated C++ game 
 ### **Automated Deployment**
 
 #### Windows (PowerShell)
+
 ```powershell
 .\deploy.ps1
 ```
 
 #### macOS/Linux (Bash)
+
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
@@ -99,12 +109,14 @@ chmod +x deploy.sh
 ### **Manual Build**
 
 1. **Clone the Repository**
+
    ```bash
    git clone <repository-url>
    cd nexus-holy-beat-system
    ```
 
 2. **Build C++ Components**
+
    ```bash
    cd game-logic
    mkdir build && cd build
@@ -113,12 +125,14 @@ chmod +x deploy.sh
    ```
 
 3. **Install Node.js Dependencies** (Optional)
+
    ```bash
    cd ../..
    npm install
    ```
 
 4. **Run the System**
+
    ```bash
    cd game-logic/build
    ./holy_beat_demo
@@ -131,25 +145,33 @@ chmod +x deploy.sh
 ### **Running Demos**
 
 #### **Holy Beat Demo** (Full Integration)
+
 The complete NEXUS experience with web integration:
+
 ```bash
 ./holy_beat_demo
 ```
+
 - Features: Sacred geometry, quantum processing, cognitive analysis, WebSocket streaming
 - Duration: 120 seconds (configurable)
 - Web Interface: Open `nexus-live-bridge.html` in your browser during execution
 
 #### **Resource Demo** (Core Engine)
+
 Original demonstration of the resource management system:
+
 ```bash
 ./nexus_resource_demo
 ```
+
 - Features: Basic resource loading, LOD system, audio reactivity
 - Duration: 60 seconds
 - Output: Console-based performance metrics
 
 #### **3D Visualization** (Web-based)
+
 Stunning Three.js visualization connected to the engine:
+
 1. Start the C++ engine: `./holy_beat_demo`
 2. Open `nexus-3d-visualization.html` in your browser
 3. Experience real-time sacred geometry synchronized with the engine
@@ -157,6 +179,7 @@ Stunning Three.js visualization connected to the engine:
 ### **Interactive Controls**
 
 The web interfaces provide real-time control over:
+
 - **Visualization Modes**: Sacred geometry, quantum fields, harmonic waves
 - **Camera Controls**: Orbit, sacred spiral, free-fly modes
 - **Audio Sensitivity**: Adjust responsiveness to audio input
@@ -210,6 +233,7 @@ NEXUS Holy Beat System
 ## 🔧 Configuration
 
 ### **Engine Parameters**
+
 The system can be configured through various parameters:
 
 ```cpp
@@ -227,6 +251,7 @@ resourceEngine.enableArtSync = true;                    // Artistic pattern sync
 ```
 
 ### **Web Configuration**
+
 ```javascript
 // WebSocket Settings
 const WEBSOCKET_PORT = 8080;         // C++ engine WebSocket port
@@ -243,6 +268,7 @@ const SACRED_SPIRAL_RATE = 2.399;    // Golden angle for spiral camera
 ## 📊 Performance
 
 ### **Optimization Features**
+
 - **Level of Detail (LOD)**: Automatic quality adjustment based on distance
 - **Frustum Culling**: Only render objects within camera view
 - **Async Loading**: Non-blocking resource streaming
@@ -250,7 +276,9 @@ const SACRED_SPIRAL_RATE = 2.399;    // Golden angle for spiral camera
 - **Multi-threading**: Concurrent processing where possible
 
 ### **Benchmark Results**
+
 Typical performance on recommended hardware:
+
 - **Frame Rate**: 60+ FPS consistently
 - **Memory Usage**: ~200-400 MB depending on world complexity
 - **CPU Usage**: ~15-25% on 8-core systems
@@ -264,21 +292,25 @@ Typical performance on recommended hardware:
 The NEXUS Holy Beat System incorporates profound mathematical principles:
 
 ### **Golden Ratio (φ = 1.618...)**
+
 - Spiral camera movements follow golden angle (2.399 radians)
 - Petal arrangements in sacred geometry
 - Frequency ratios in harmonic synthesis
 
 ### **Fibonacci Sequences**
+
 - Dynamic petal count variations
 - Resource placement patterns
 - Quantum mode progression timing
 
 ### **Harmonic Series**
+
 - Audio synthesis with natural overtones
 - Color palette generation
 - Geometric proportion calculations
 
 ### **Sacred Geometry Patterns**
+
 - Flower of Life formations
 - Mandala arrangements
 - Platonic solid representations
@@ -289,13 +321,16 @@ The NEXUS Holy Beat System incorporates profound mathematical principles:
 ## 🧠 Cognitive Features
 
 ### **AI-Driven Insights**
+
 The Cognitive Recursive Engine generates meaningful thoughts based on:
+
 - **System State Analysis**: Current engine performance and modes
 - **Pattern Recognition**: Recurring mathematical and audio patterns
 - **Temporal Correlation**: Understanding of changes over time
 - **Conceptual Association**: Linking ideas across different domains
 
 ### **Example Generated Thoughts**
+
 - *"Contemplating harmonic_resonance while experiencing 3 quantum mode at 142.3 BPM"*
 - *"Observing sacred geometry transitions in mathematical space"*
 - *"High amplitude detected: experiencing vibrational healing patterns"*
@@ -308,6 +343,7 @@ The Cognitive Recursive Engine generates meaningful thoughts based on:
 ### **WebSocket Messages**
 
 #### **Audio Data**
+
 ```json
 {
     "type": "audio",
@@ -320,6 +356,7 @@ The Cognitive Recursive Engine generates meaningful thoughts based on:
 ```
 
 #### **Visual Data**
+
 ```json
 {
     "type": "visual",
@@ -332,6 +369,7 @@ The Cognitive Recursive Engine generates meaningful thoughts based on:
 ```
 
 #### **System Metrics**
+
 ```json
 {
     "type": "system",
@@ -344,6 +382,7 @@ The Cognitive Recursive Engine generates meaningful thoughts based on:
 ```
 
 #### **Cognitive Insights**
+
 ```json
 {
     "type": "cognitive",
@@ -361,22 +400,27 @@ The Cognitive Recursive Engine generates meaningful thoughts based on:
 ### **Common Issues**
 
 #### **Build Errors**
+
 - **CMake not found**: Install CMake 3.16+ from [cmake.org](https://cmake.org)
 - **Compiler errors**: Ensure C++17 support (MSVC 2019+, GCC 9+, Clang 10+)
 - **Missing OpenGL**: Install graphics drivers and development libraries
 
 #### **Runtime Issues**
+
 - **WebSocket connection failed**: Check firewall settings for port 8080
 - **Audio synthesis problems**: Verify system audio output capabilities
 - **Performance issues**: Reduce world complexity or enable performance mode
 
 #### **Web Interface Problems**
+
 - **3D visualization not loading**: Ensure modern browser with WebGL 2.0 support
 - **Real-time data not updating**: Check WebSocket connection status
 - **Controls not responsive**: Verify JavaScript is enabled
 
 ### **Debug Mode**
+
 Enable detailed logging for troubleshooting:
+
 ```bash
 ./holy_beat_demo --debug --verbose --log-file debug.log
 ```
@@ -388,6 +432,7 @@ Enable detailed logging for troubleshooting:
 We welcome contributions to the NEXUS Holy Beat System! Please see our contribution guidelines:
 
 ### **Development Setup**
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes and test thoroughly
@@ -396,6 +441,7 @@ We welcome contributions to the NEXUS Holy Beat System! Please see our contribut
 6. Create a Pull Request
 
 ### **Code Standards**
+
 - **C++**: Follow Modern C++17 practices
 - **JavaScript**: Use ES6+ features
 - **Documentation**: Include comprehensive comments

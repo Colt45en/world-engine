@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Process Engine Dashboard v2.0</title>
+    <style>
+        /* =========================== DESIGN SYSTEM =========================== */
+        :root {
+            /* Core Colors */
+            --bg-primary: #0a0d15;
+            --bg-secondary: #0f1419;
+            --bg-tertiary: #141922;
+            --surface-primary: #1a1f2e;
+            --surface-secondary: #212738;
+            --surface-tertiary: #283040;
+
+            /* Accent Colors */
+            --accent-primary: #00d4ff;
+            --accent-secondary: #7c3aed;
+            --accent-tertiary: #06ffa5;
+            --accent-warning: #fbbf24;
+            --accent-error: #ef4444;
+            --accent-success: #10b981;
+
+            /* Text */
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --text-muted: #64748b;
+
+            /* Borders & Shadows */
+            --border-primary: #334155;
+            --border-secondary: #475569;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+            /* Sacred Geometry */
+            --golden-ratio: 1.618;
+            --fibonacci-sm: 8px;
+            --fibonacci-md: 13px;
+            --fibonacci-lg: 21px;
+            --fibonacci-xl: 34px;
+        }
+
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'SF Pro Text', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        /* =========================== LAYOUT SYSTEM =========================== */
+        .dashboard-container {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "sidebar main-content performance-panel"
+                "sidebar test-panel test-scores";
+            grid-template-columns: 280px 1fr 320px;
+            grid-template-rows: 60px 1fr 300px;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border-primary);
+        }
+
+        .dashboard-header {
+            grid-area: header;
+            background: var(--surface-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--fibonacci-lg);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .dashboard-sidebar {
+            grid-area: sidebar;
+            background: var(--surface-secondary);
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .main-content {
+            grid-area: main-content;
+            background: var(--bg-secondary);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .performance-panel {
+            grid-area: performance-panel;
+            background: var(--surface-primary);
+            overflow-y: auto;
+        }
+
+        .test-panel {
+            grid-area: test-panel;
+            background: var(--surface-secondary);
+            overflow-y: auto;
+        }
+
+        .test-scores {
+            grid-area: test-scores;
+            background: var(--surface-primary);
+            overflow-y: auto;
+        }
+
+        /* =========================== COMPONENT SYSTEM =========================== */
+        .header-logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--fibonacci-sm);
+        }
+
+        .header-logo::before {
+            content: "⬡";
+            font-size: 24px;
+            color: var(--accent-tertiary);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: var(--fibonacci-md);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.active { background: var(--accent-success); }
+        .status-indicator.warning { background: var(--accent-warning); }
+        .status-indicator.error { background: var(--accent-error); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        /* Module Cards */
+        .module-section {
+            padding: var(--fibonacci-lg);
+        }
+
+        .module-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--fibonacci-md);
+            display: flex;
+            align-items: center;
+            gap: var(--fibonacci-sm);
+        }
+
+        .module-grid {
+            display: grid;
+            gap: var(--fibonacci-sm);
+        }
+
+        .module-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--fibonacci-sm);
+            padding: var(--fibonacci-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .module-card:hover {
+            background: var(--surface-tertiary);
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .module-card.active {
+            background: var(--surface-tertiary);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 1px var(--accent-primary);
+        }
+
+        .module-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .module-status {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Performance Metrics */
+        .metric-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--fibonacci-sm);
+            padding: var(--fibonacci-md);
+            margin-bottom: var(--fibonacci-sm);
+        }
+
+        .metric-header {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--fibonacci-sm);
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            line-height: 1;
+        }
+
+        .metric-trend {
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .metric-trend.up { color: var(--accent-success); }
+        .metric-trend.down { color: var(--accent-error); }
+        .metric-trend.stable { color: var(--text-tertiary); }
+
+        /* Test Interface */
+        .test-runner {
+            padding: var(--fibonacci-lg);
+        }
+
+        .test-controls {
+            display: flex;
+            gap: var(--fibonacci-sm);
+            margin-bottom: var(--fibonacci-lg);
+        }
+
+        .btn {
+            background: var(--surface-tertiary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-primary);
+            padding: var(--fibonacci-sm) var(--fibonacci-md);
+            border-radius: var(--fibonacci-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: var(--bg-tertiary);
+        }
+
+        .btn.danger {
+            background: var(--accent-error);
+            border-color: var(--accent-error);
+        }
+
+        .test-output {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--fibonacci-sm);
+            padding: var(--fibonacci-md);
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            height: 200px;
+            overflow-y: auto;
+            color: var(--text-secondary);
+        }
+
+        /* Test Scores */
+        .score-summary {
+            padding: var(--fibonacci-lg);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .score-chart {
+            height: 60px;
+            background: var(--bg-tertiary);
+            border-radius: var(--fibonacci-sm);
+            margin: var(--fibonacci-sm) 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-bars {
+            display: flex;
+            align-items: end;
+            height: 100%;
+            padding: 4px;
+            gap: 2px;
+        }
+
+        .score-bar {
+            background: var(--accent-primary);
+            border-radius: 1px;
+            opacity: 0.8;
+            transition: all 0.2s ease;
+            min-height: 4px;
+        }
+
+        .score-bar:hover {
+            opacity: 1;
+            background: var(--accent-tertiary);
+        }
+
+        .score-history {
+            padding: var(--fibonacci-md);
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--fibonacci-sm) 0;
+            border-bottom: 1px solid var(--border-primary);
+            font-size: 12px;
+        }
+
+        .score-item:last-child {
+            border-bottom: none;
+        }
+
+        .score-grade {
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .score-grade.excellent { background: var(--accent-success); color: white; }
+        .score-grade.good { background: var(--accent-primary); color: white; }
+        .score-grade.fair { background: var(--accent-warning); color: var(--bg-primary); }
+        .score-grade.poor { background: var(--accent-error); color: white; }
+
+        /* Main Content Canvas */
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: radial-gradient(circle at center, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background: linear-gradient(45deg,
+                transparent 0%,
+                rgba(0, 212, 255, 0.03) 25%,
+                transparent 50%,
+                rgba(124, 58, 237, 0.03) 75%,
+                transparent 100%);
+            animation: shimmer 8s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Sacred Geometry Patterns */
+        .sacred-pattern {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            opacity: 0.1;
+            animation: rotate 20s linear infinite;
+        }
+
+        .sacred-pattern.center {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .sacred-pattern.corner-tl {
+            top: 10%;
+            left: 10%;
+        }
+
+        .sacred-pattern.corner-br {
+            bottom: 10%;
+            right: 10%;
+            animation-direction: reverse;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .dashboard-container {
+                grid-template-columns: 260px 1fr 280px;
+                grid-template-rows: 60px 1fr 280px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-container {
+                grid-template-areas:
+                    "header header"
+                    "sidebar main-content"
+                    "test-panel performance-panel";
+                grid-template-columns: 240px 1fr;
+                grid-template-rows: 60px 1fr 320px;
+            }
+
+            .test-scores {
+                display: none;
+            }
+        }
+
+        /* Custom Scrollbars */
+        .dashboard-sidebar::-webkit-scrollbar,
+        .performance-panel::-webkit-scrollbar,
+        .test-panel::-webkit-scrollbar,
+        .test-scores::-webkit-scrollbar,
+        .test-output::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .dashboard-sidebar::-webkit-scrollbar-track,
+        .performance-panel::-webkit-scrollbar-track,
+        .test-panel::-webkit-scrollbar-track,
+        .test-scores::-webkit-scrollbar-track,
+        .test-output::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        .dashboard-sidebar::-webkit-scrollbar-thumb,
+        .performance-panel::-webkit-scrollbar-thumb,
+        .test-panel::-webkit-scrollbar-thumb,
+        .test-scores::-webkit-scrollbar-thumb,
+        .test-output::-webkit-scrollbar-thumb {
+            background: var(--border-secondary);
+            border-radius: 2px;
+        }
+
+        .dashboard-sidebar::-webkit-scrollbar-thumb:hover,
+        .performance-panel::-webkit-scrollbar-thumb:hover,
+        .test-panel::-webkit-scrollbar-thumb:hover,
+        .test-scores::-webkit-scrollbar-thumb:hover,
+        .test-output::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        /* Loading States */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(0, 212, 255, 0.2) 50%,
+                transparent 100%);
+            animation: loading-sweep 1.5s infinite;
+        }
+
+        @keyframes loading-sweep {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Notification System */
+        .notification-stack {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .notification {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--fibonacci-sm);
+            padding: var(--fibonacci-md);
+            margin-bottom: var(--fibonacci-sm);
+            box-shadow: var(--shadow-md);
+            min-width: 300px;
+            pointer-events: auto;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-logo">
+                NEXUS Process Engine v2.0
+            </div>
+            <div class="system-status">
+                <div class="status-indicator active" title="Engine Status: Active"></div>
+                <div class="status-indicator active" title="Test Runner: Ready"></div>
+                <div class="status-indicator warning" title="Performance: Monitoring"></div>
+                <span style="font-size: 12px; color: var(--text-tertiary);">All Systems Operational</span>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <!-- Core Modules -->
+            <div class="module-section">
+                <div class="module-title">
+                    <span>⚡</span> Core Modules
+                </div>
+                <div class="module-grid">
+                    <div class="module-card active" data-module="engine">
+                        <div class="module-name">Process Engine</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            Running | 94% Efficiency
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="quantum">
+                        <div class="module-name">Quantum Processor</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            8-Mode Active
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="neural">
+                        <div class="module-name">Neural Network</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            Learning Phase
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Systems -->
+            <div class="module-section">
+                <div class="module-title">
+                    <span>🎵</span> Audio Systems
+                </div>
+                <div class="module-grid">
+                    <div class="module-card" data-module="synth">
+                        <div class="module-name">FM/AM Synthesizer</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            120 BPM Lock
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="tts">
+                        <div class="module-name">Voice Synthesis</div>
+                        <div class="module-status">
+                            <div class="status-indicator warning"></div>
+                            Training Model
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="spatial">
+                        <div class="module-name">Spatial Audio</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            3D Processing
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Systems -->
+            <div class="module-section">
+                <div class="module-title">
+                    <span>🎨</span> Visual Systems
+                </div>
+                <div class="module-grid">
+                    <div class="module-card" data-module="geometry">
+                        <div class="module-name">Sacred Geometry</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            Real-time Gen
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="fractals">
+                        <div class="module-name">Fractal Engine</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            GPU Accelerated
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="shaders">
+                        <div class="module-name">Shader Pipeline</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            6 Active Modes
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IDE Integration -->
+            <div class="module-section">
+                <div class="module-title">
+                    <span>🔧</span> IDE Integration
+                </div>
+                <div class="module-grid">
+                    <div class="module-card" data-module="vscode">
+                        <div class="module-name">VS Code Bridge</div>
+                        <div class="module-status">
+                            <div class="status-indicator active"></div>
+                            Connected
+                        </div>
+                    </div>
+                    <div class="module-card" data-module="debugger">
+                        <div class="module-name">Debugger Interface</div>
+                        <div class="module-status">
+                            <div class="status-indicator warning"></div>
+                            Standby
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="canvas-container" id="mainCanvas">
+                <div class="canvas-overlay"></div>
+
+                <!-- Sacred Geometry Patterns -->
+                <svg class="sacred-pattern center" viewBox="0 0 200 200">
+                    <defs>
+                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="0.5"/>
+                        </pattern>
+                    </defs>
+                    <rect width="200" height="200" fill="url(#grid)" />
+                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+                    <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(124,58,237,0.2)" stroke-width="1"/>
+                    <circle cx="100" cy="100" r="40" fill="none" stroke="rgba(6,255,165,0.2)" stroke-width="1"/>
+                    <path d="M 100 20 L 180 100 L 100 180 L 20 100 Z" fill="none" stroke="rgba(0,212,255,0.15)" stroke-width="1"/>
+                </svg>
+
+                <svg class="sacred-pattern corner-tl" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="50" fill="none" stroke="rgba(6,255,165,0.1)" stroke-width="1"/>
+                    <polygon points="100,50 150,100 100,150 50,100" fill="none" stroke="rgba(124,58,237,0.1)" stroke-width="1"/>
+                </svg>
+
+                <svg class="sacred-pattern corner-br" viewBox="0 0 200 200">
+                    <path d="M 50 50 Q 100 25 150 50 Q 175 100 150 150 Q 100 175 50 150 Q 25 100 50 50"
+                          fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="1"/>
+                </svg>
+            </div>
+        </main>
+
+        <!-- Performance Panel -->
+        <aside class="performance-panel">
+            <div class="module-section">
+                <div class="module-title">
+                    <span>📊</span> Performance Metrics
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">CPU Usage</div>
+                    <div class="metric-value" id="cpu-usage">23%</div>
+                    <div class="metric-trend stable">Stable</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">Memory</div>
+                    <div class="metric-value" id="memory-usage">1.2GB</div>
+                    <div class="metric-trend up">+5% from baseline</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">Frame Rate</div>
+                    <div class="metric-value" id="frame-rate">60 FPS</div>
+                    <div class="metric-trend stable">Consistent</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">Network I/O</div>
+                    <div class="metric-value" id="network-io">15.2 KB/s</div>
+                    <div class="metric-trend down">-12% from peak</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">Audio Latency</div>
+                    <div class="metric-value" id="audio-latency">4.2ms</div>
+                    <div class="metric-trend stable">Optimal</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">Test Coverage</div>
+                    <div class="metric-value" id="test-coverage">87%</div>
+                    <div class="metric-trend up">+3% this session</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Test Panel -->
+        <section class="test-panel">
+            <div class="test-runner">
+                <div class="module-title">
+                    <span>🧪</span> Integrated Test Runner
+                </div>
+
+                <div class="test-controls">
+                    <button class="btn" id="run-all-tests">
+                        <span>▶</span> Run All Tests
+                    </button>
+                    <button class="btn secondary" id="run-unit-tests">
+                        <span>🔬</span> Unit Tests
+                    </button>
+                    <button class="btn secondary" id="run-integration-tests">
+                        <span>🔗</span> Integration
+                    </button>
+                    <button class="btn danger" id="stop-tests">
+                        <span>⏹</span> Stop
+                    </button>
+                </div>
+
+                <div class="test-output" id="test-output">
+                    <div style="color: var(--accent-success);">✓ NEXUS Process Engine Test Runner v2.0</div>
+                    <div style="color: var(--text-tertiary);">Ready to execute tests...</div>
+                    <div style="color: var(--text-tertiary);">Use controls above to start testing session</div>
+                    <div style="margin-top: 1em; color: var(--accent-primary);">Available Test Suites:</div>
+                    <div style="color: var(--text-secondary);">  • Core Engine Tests (47 tests)</div>
+                    <div style="color: var(--text-secondary);">  • Audio System Tests (23 tests)</div>
+                    <div style="color: var(--text-secondary);">  • Visual Pipeline Tests (31 tests)</div>
+                    <div style="color: var(--text-secondary);">  • Integration Tests (15 tests)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Test Scores -->
+        <section class="test-scores">
+            <div class="score-summary">
+                <div class="module-title">
+                    <span>🎯</span> Test Score Analytics
+                </div>
+
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: var(--fibonacci-sm);">
+                    Last 24 hours performance trend
+                </div>
+
+                <div class="score-chart">
+                    <div class="score-bars" id="score-chart">
+                        <div class="score-bar" style="height: 85%;" title="Score: 85% - 2 hours ago"></div>
+                        <div class="score-bar" style="height: 92%;" title="Score: 92% - 4 hours ago"></div>
+                        <div class="score-bar" style="height: 88%;" title="Score: 88% - 6 hours ago"></div>
+                        <div class="score-bar" style="height: 94%;" title="Score: 94% - 8 hours ago"></div>
+                        <div class="score-bar" style="height: 91%;" title="Score: 91% - 10 hours ago"></div>
+                        <div class="score-bar" style="height: 89%;" title="Score: 89% - 12 hours ago"></div>
+                        <div class="score-bar" style="height: 95%;" title="Score: 95% - 14 hours ago"></div>
+                        <div class="score-bar" style="height: 87%;" title="Score: 87% - 16 hours ago"></div>
+                        <div class="score-bar" style="height: 93%;" title="Score: 93% - 18 hours ago"></div>
+                        <div class="score-bar" style="height: 96%;" title="Score: 96% - 20 hours ago"></div>
+                        <div class="score-bar" style="height: 90%;" title="Score: 90% - 22 hours ago"></div>
+                        <div class="score-bar" style="height: 92%;" title="Score: 92% - 24 hours ago"></div>
+                    </div>
+                </div>
+
+                <div style="font-size: 14px; font-weight: 600; color: var(--accent-success);">
+                    Current Score: <span id="current-score">94%</span>
+                    <span style="font-size: 11px; color: var(--text-tertiary); margin-left: 8px;">↑ +2% from yesterday</span>
+                </div>
+            </div>
+
+            <div class="score-history">
+                <div class="score-item">
+                    <span>Core Engine Suite</span>
+                    <span class="score-grade excellent">95%</span>
+                </div>
+                <div class="score-item">
+                    <span>Audio Processing</span>
+                    <span class="score-grade good">89%</span>
+                </div>
+                <div class="score-item">
+                    <span>Visual Pipeline</span>
+                    <span class="score-grade excellent">97%</span>
+                </div>
+                <div class="score-item">
+                    <span>Integration Tests</span>
+                    <span class="score-grade fair">78%</span>
+                </div>
+                <div class="score-item">
+                    <span>Performance Tests</span>
+                    <span class="score-grade good">91%</span>
+                </div>
+                <div class="score-item">
+                    <span>Memory Tests</span>
+                    <span class="score-grade excellent">99%</span>
+                </div>
+                <div class="score-item">
+                    <span>Network Tests</span>
+                    <span class="score-grade good">86%</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Notification Stack -->
+    <div class="notification-stack" id="notifications"></div>
+
+    <script>
+        // =========================== NEXUS PROCESS ENGINE v2.0 =========================== //
+
+        class NexusProcessEngine {
+            constructor() {
+                this.modules = new Map();
+                this.testRunner = null;
+                this.performanceMonitor = null;
+                this.ideConnector = null;
+                this.eventBus = new EventTarget();
+
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.initializeModules();
+                this.startPerformanceMonitoring();
+                this.connectToIDE();
+                this.loadTestHistory();
+
+                this.notify('success', 'NEXUS Process Engine v2.0 Initialized', 'All systems operational');
+            }
+
+            // =========================== MODULE SYSTEM =========================== //
+
+            registerModule(name, module) {
+                this.modules.set(name, module);
+                this.eventBus.dispatchEvent(new CustomEvent('moduleRegistered', { detail: { name, module } }));
+            }
+
+            getModule(name) {
+                return this.modules.get(name);
+            }
+
+            initializeModules() {
+                // Core Engine Module
+                this.registerModule('engine', {
+                    status: 'active',
+                    efficiency: 94,
+                    processes: ['quantum-processor', 'neural-network', 'pattern-engine'],
+                    start: () => this.notify('success', 'Process Engine Started'),
+                    stop: () => this.notify('warning', 'Process Engine Stopped'),
+                    optimize: () => this.optimizeEngine()
+                });
+
+                // Audio Systems
+                this.registerModule('synth', {
+                    status: 'active',
+                    bpm: 120,
+                    modes: ['FM', 'AM', 'Phase'],
+                    latency: 4.2
+                });
+
+                this.registerModule('tts', {
+                    status: 'training',
+                    model: 'FastPitch',
+                    quality: 4.2,
+                    voices: ['neutral-female', 'neutral-male']
+                });
+
+                // Visual Systems
+                this.registerModule('geometry', {
+                    status: 'active',
+                    patterns: ['mandala', 'spiral', 'fractal'],
+                    realtime: true
+                });
+
+                // IDE Integration
+                this.registerModule('vscode', {
+                    status: 'connected',
+                    version: '1.82.0',
+                    extensions: ['nexus-bridge', 'test-runner', 'performance-monitor']
+                });
+            }
+
+            // =========================== TEST SYSTEM =========================== //
+
+            initTestRunner() {
+                this.testRunner = {
+                    running: false,
+                    currentSuite: null,
+                    results: [],
+                    history: [],
+
+                    runAllTests: () => this.executeTestSuite('all'),
+                    runUnitTests: () => this.executeTestSuite('unit'),
+                    runIntegrationTests: () => this.executeTestSuite('integration'),
+                    stop: () => this.stopTests()
+                };
+            }
+
+            executeTestSuite(type) {
+                if (this.testRunner.running) {
+                    this.notify('warning', 'Tests Already Running', 'Please wait for current tests to complete');
+                    return;
+                }
+
+                this.testRunner.running = true;
+                this.testRunner.currentSuite = type;
+
+                const output = document.getElementById('test-output');
+                output.innerHTML = `<div style="color: var(--accent-primary);">🚀 Starting ${type} test suite...</div>`;
+
+                this.notify('info', `Starting ${type.toUpperCase()} Tests`, 'Test execution initiated');
+
+                // Simulate test execution
+                this.simulateTestExecution(type, output);
+            }
+
+            simulateTestExecution(type, output) {
+                const tests = this.getTestSuite(type);
+                let completed = 0;
+                let passed = 0;
+                let failed = 0;
+
+                const runTest = (test, index) => {
+                    setTimeout(() => {
+                        const success = Math.random() > 0.15; // 85% pass rate
+                        completed++;
+
+                        if (success) {
+                            passed++;
+                            output.innerHTML += `<div style="color: var(--accent-success);">✓ ${test.name} (${test.duration}ms)</div>`;
+                        } else {
+                            failed++;
+                            output.innerHTML += `<div style="color: var(--accent-error);">✗ ${test.name} - ${test.error}</div>`;
+                        }
+
+                        output.scrollTop = output.scrollHeight;
+
+                        if (completed === tests.length) {
+                            this.completeTestSuite(type, passed, failed, output);
+                        }
+                    }, index * 200 + Math.random() * 300);
+                };
+
+                tests.forEach(runTest);
+            }
+
+            completeTestSuite(type, passed, failed, output) {
+                const total = passed + failed;
+                const score = Math.round((passed / total) * 100);
+
+                output.innerHTML += `<div style="margin-top: 1em; color: var(--accent-primary);">Test Suite Complete!</div>`;
+                output.innerHTML += `<div style="color: var(--text-secondary);">Passed: ${passed}, Failed: ${failed}, Score: ${score}%</div>`;
+
+                this.testRunner.running = false;
+                this.testRunner.currentSuite = null;
+
+                // Update score history
+                this.updateTestScore(type, score);
+
+                this.notify('success', `${type.toUpperCase()} Tests Complete`, `Score: ${score}% (${passed}/${total} passed)`);
+            }
+
+            getTestSuite(type) {
+                const baseSuites = {
+                    unit: [
+                        { name: 'Engine Initialization', duration: 45, error: 'Timeout exceeded' },
+                        { name: 'Quantum State Management', duration: 32, error: 'State transition failed' },
+                        { name: 'Audio Buffer Processing', duration: 28, error: 'Buffer overflow' },
+                        { name: 'FM Synthesis Pipeline', duration: 41, error: 'Frequency calculation error' },
+                        { name: 'Sacred Geometry Generation', duration: 52, error: 'Invalid coordinates' },
+                        { name: 'Fractal Computation', duration: 67, error: 'Iteration limit exceeded' },
+                        { name: 'Memory Management', duration: 38, error: 'Leak detected' },
+                        { name: 'Performance Metrics', duration: 29, error: 'Metric collection failed' }
+                    ],
+                    integration: [
+                        { name: 'Engine-Audio Integration', duration: 89, error: 'Sync mismatch' },
+                        { name: 'Audio-Visual Coupling', duration: 76, error: 'Timing offset detected' },
+                        { name: 'IDE Communication Bridge', duration: 43, error: 'Connection refused' },
+                        { name: 'WebSocket Data Flow', duration: 55, error: 'Protocol violation' },
+                        { name: 'Real-time Rendering Pipeline', duration: 92, error: 'Frame drop detected' }
+                    ],
+                    all: []
+                };
+
+                if (type === 'all') {
+                    return [...baseSuites.unit, ...baseSuites.integration];
+                }
+
+                return baseSuites[type] || baseSuites.unit;
+            }
+
+            updateTestScore(suite, score) {
+                // Update current score display
+                document.getElementById('current-score').textContent = `${score}%`;
+
+                // Add to score chart
+                this.addScoreToChart(score);
+
+                // Store in history
+                const timestamp = new Date().toLocaleTimeString();
+                if (!this.testRunner.history) this.testRunner.history = [];
+                this.testRunner.history.unshift({ suite, score, timestamp });
+
+                // Keep only last 50 results
+                if (this.testRunner.history.length > 50) {
+                    this.testRunner.history.pop();
+                }
+            }
+
+            addScoreToChart(score) {
+                const chart = document.getElementById('score-chart');
+                const newBar = document.createElement('div');
+                newBar.className = 'score-bar';
+                newBar.style.height = `${score}%`;
+                newBar.title = `Score: ${score}% - just now`;
+
+                chart.appendChild(newBar);
+
+                // Remove oldest bar if more than 20
+                if (chart.children.length > 20) {
+                    chart.removeChild(chart.firstChild);
+                }
+            }
+
+            stopTests() {
+                if (!this.testRunner.running) return;
+
+                this.testRunner.running = false;
+                this.testRunner.currentSuite = null;
+
+                const output = document.getElementById('test-output');
+                output.innerHTML += `<div style="color: var(--accent-warning);">⚠ Test execution stopped by user</div>`;
+
+                this.notify('warning', 'Tests Stopped', 'Test execution halted by user request');
+            }
+
+            // =========================== PERFORMANCE MONITORING =========================== //
+
+            startPerformanceMonitoring() {
+                this.performanceMonitor = {
+                    metrics: {
+                        cpu: 0,
+                        memory: 0,
+                        fps: 60,
+                        network: 0,
+                        audioLatency: 4.2,
+                        testCoverage: 87
+                    },
+
+                    update: () => this.updatePerformanceMetrics(),
+                    optimize: () => this.optimizePerformance()
+                };
+
+                // Update metrics every 2 seconds
+                setInterval(() => {
+                    this.performanceMonitor.update();
+                }, 2000);
+
+                // Initial update
+                this.performanceMonitor.update();
+            }
+
+            updatePerformanceMetrics() {
+                const metrics = this.performanceMonitor.metrics;
+
+                // Simulate realistic metric changes
+                metrics.cpu = Math.max(10, Math.min(95, metrics.cpu + (Math.random() - 0.5) * 10));
+                metrics.memory = Math.max(0.8, Math.min(3.2, metrics.memory + (Math.random() - 0.5) * 0.2));
+                metrics.fps = Math.max(30, Math.min(60, metrics.fps + (Math.random() - 0.5) * 5));
+                metrics.network = Math.max(5, Math.min(100, metrics.network + (Math.random() - 0.5) * 20));
+                metrics.audioLatency = Math.max(2.1, Math.min(8.5, metrics.audioLatency + (Math.random() - 0.5) * 1));
+
+                // Update UI
+                document.getElementById('cpu-usage').textContent = `${Math.round(metrics.cpu)}%`;
+                document.getElementById('memory-usage').textContent = `${metrics.memory.toFixed(1)}GB`;
+                document.getElementById('frame-rate').textContent = `${Math.round(metrics.fps)} FPS`;
+                document.getElementById('network-io').textContent = `${metrics.network.toFixed(1)} KB/s`;
+                document.getElementById('audio-latency').textContent = `${metrics.audioLatency.toFixed(1)}ms`;
+                document.getElementById('test-coverage').textContent = `${metrics.testCoverage}%`;
+            }
+
+            // =========================== IDE INTEGRATION =========================== //
+
+            connectToIDE() {
+                this.ideConnector = {
+                    connected: false,
+                    vscodeAPI: null,
+
+                    connect: () => this.establishIDEConnection(),
+                    sendCommand: (cmd) => this.sendIDECommand(cmd),
+                    receiveData: (data) => this.handleIDEData(data)
+                };
+
+                // Simulate IDE connection
+                setTimeout(() => {
+                    this.ideConnector.connected = true;
+                    this.notify('success', 'IDE Connected', 'VS Code bridge established');
+                }, 1000);
+            }
+
+            establishIDEConnection() {
+                // In a real implementation, this would connect to VS Code via extension API
+                try {
+                    this.ideConnector.vscodeAPI = {
+                        runTests: (suite) => this.executeTestSuite(suite),
+                        getMetrics: () => this.performanceMonitor.metrics,
+                        optimize: () => this.optimizeEngine()
+                    };
+                    return true;
+                } catch (error) {
+                    this.notify('error', 'IDE Connection Failed', error.message);
+                    return false;
+                }
+            }
+
+            // =========================== OPTIMIZATION ENGINE =========================== //
+
+            optimizeEngine() {
+                this.notify('info', 'Optimization Started', 'Analyzing system performance...');
+
+                setTimeout(() => {
+                    const improvements = [
+                        'Memory allocation optimized',
+                        'Audio buffer size adjusted',
+                        'Render pipeline streamlined',
+                        'Network throttling applied'
+                    ];
+
+                    const improvement = improvements[Math.floor(Math.random() * improvements.length)];
+                    this.notify('success', 'Optimization Complete', improvement);
+
+                    // Slightly improve metrics
+                    const engine = this.getModule('engine');
+                    if (engine) {
+                        engine.efficiency = Math.min(100, engine.efficiency + Math.random() * 5);
+                    }
+                }, 3000);
+            }
+
+            // =========================== EVENT SYSTEM =========================== //
+
+            setupEventListeners() {
+                // Module cards
+                document.querySelectorAll('.module-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        document.querySelectorAll('.module-card').forEach(c => c.classList.remove('active'));
+                        card.classList.add('active');
+
+                        const moduleName = card.dataset.module;
+                        this.loadModuleInterface(moduleName);
+                    });
+                });
+
+                // Test controls
+                document.getElementById('run-all-tests')?.addEventListener('click', () => {
+                    this.executeTestSuite('all');
+                });
+
+                document.getElementById('run-unit-tests')?.addEventListener('click', () => {
+                    this.executeTestSuite('unit');
+                });
+
+                document.getElementById('run-integration-tests')?.addEventListener('click', () => {
+                    this.executeTestSuite('integration');
+                });
+
+                document.getElementById('stop-tests')?.addEventListener('click', () => {
+                    this.stopTests();
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch (e.key) {
+                            case '1':
+                                e.preventDefault();
+                                this.executeTestSuite('unit');
+                                break;
+                            case '2':
+                                e.preventDefault();
+                                this.executeTestSuite('integration');
+                                break;
+                            case '3':
+                                e.preventDefault();
+                                this.executeTestSuite('all');
+                                break;
+                            case 'o':
+                                e.preventDefault();
+                                this.optimizeEngine();
+                                break;
+                        }
+                    }
+                });
+            }
+
+            loadModuleInterface(moduleName) {
+                const module = this.getModule(moduleName);
+                if (!module) return;
+
+                // In a real implementation, this would load module-specific interfaces
+                this.notify('info', `${moduleName} Module Selected`, 'Interface loaded');
+            }
+
+            loadTestHistory() {
+                // Simulate loading test history from storage
+                this.testRunner = { history: [] };
+                this.initTestRunner();
+            }
+
+            // =========================== NOTIFICATION SYSTEM =========================== //
+
+            notify(type, title, message = '') {
+                const container = document.getElementById('notifications');
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+
+                const colors = {
+                    success: 'var(--accent-success)',
+                    warning: 'var(--accent-warning)',
+                    error: 'var(--accent-error)',
+                    info: 'var(--accent-primary)'
+                };
+
+                const icons = {
+                    success: '✓',
+                    warning: '⚠',
+                    error: '✗',
+                    info: 'ℹ'
+                };
+
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: flex-start; gap: var(--fibonacci-sm);">
+                        <div style="color: ${colors[type]}; font-weight: bold; font-size: 16px;">
+                            ${icons[type]}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">
+                                ${title}
+                            </div>
+                            ${message ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${message}</div>` : ''}
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()"
+                                style="background: none; border: none; color: var(--text-tertiary); cursor: pointer; margin-left: auto;">
+                            ×
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(notification);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize NEXUS Process Engine
+        window.nexusEngine = new NexusProcessEngine();
+
+        // Add some demo notifications
+        setTimeout(() => {
+            window.nexusEngine.notify('info', 'System Ready', 'All modules initialized successfully');
+        }, 1500);
+
+        setTimeout(() => {
+            window.nexusEngine.notify('success', 'Performance Optimized', 'Audio latency reduced to 4.2ms');
+        }, 3000);
+
+        console.log('🚀 NEXUS Process Engine v2.0 - Fully Operational');
+        console.log('📋 Available Commands:');
+        console.log('  • Ctrl+1: Run Unit Tests');
+        console.log('  • Ctrl+2: Run Integration Tests');
+        console.log('  • Ctrl+3: Run All Tests');
+        console.log('  • Ctrl+O: Optimize Engine');
+    </script>
+</body>
+</html>

@@ -1,8 +1,22 @@
 // EngineRoom.tsx - React component wrapper for Tier-4 Engine Room integration
+// Enhanced with clock debugging and WebSocket synchronization
 
 import React, { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { createTier4RoomBridge, Tier4RoomBridge } from './tier4_room_integration';
+import { createTier4RoomBridge, Tier4RoomBridge } from '../demo/tier4_room_integration';
 import { Tier4State } from './roomAdapter';
+
+// Import clock debugging utilities
+import { ClockBugDetector } from './clock-bug';
+
+// Enhanced clock debugging utilities from global context
+const ClockDebugUtils = typeof window !== 'undefined' && window.ClockDebug ?
+  window.ClockDebug :
+  { ClockBugDetector: null, ClockDebugOverlay: null };
+
+// Import WebSocket clock sync if available
+const WebSocketClockSync = typeof window !== 'undefined' && window.WebSocketClockSync ?
+  window.WebSocketClockSync :
+  null;
 
 export interface EngineRoomProps {
   /** URL to the Engine Room HTML file */
@@ -20,6 +34,12 @@ export interface EngineRoomProps {
   /** Initial Tier-4 state */
   initialState?: Tier4State;
 
+  /** Enable clock debugging */
+  enableClockDebug?: boolean;
+
+  /** BPM for clock synchronization */
+  bpm?: number;
+
   /** Callback when an operator is applied */
   onOperatorApplied?: (operator: string, previousState: Tier4State, newState: Tier4State) => void;
 
@@ -31,6 +51,16 @@ export interface EngineRoomProps {
 
   /** Callback for WebSocket connection status changes */
   onConnectionStatus?: (connected: boolean) => void;
+
+  /** Callback for clock events (beats, bars, phase updates) */
+  onClockEvent?: (event: {
+    type: 'beat' | 'bar' | 'phase';
+    bar: number;
+    beat: number;
+    phase: number;
+    bpm: number;
+    timestamp: number;
+  }) => void;
 
   /** Custom CSS styles for the iframe container */
   className?: string;
@@ -77,6 +107,17 @@ export interface EngineRoomRef {
 
   /** Check if WebSocket is connected */
   isConnected: () => boolean;
+
+  /** Get clock debugging statistics (if enabled) */
+  getClockStats: () => {
+    averageLatency: number;
+    jitter: number;
+    drift: number;
+    lastBeat: { bar: number; beat: number; timestamp: number } | null;
+  } | null;
+
+  /** Reset clock debugging statistics */
+  resetClockStats: () => void;
 }
 
 const EngineRoom = forwardRef<EngineRoomRef, EngineRoomProps>(({
@@ -85,10 +126,13 @@ const EngineRoom = forwardRef<EngineRoomRef, EngineRoomProps>(({
   sessionId,
   title = 'Tier-4 Engine Room',
   initialState = { x: [0, 0.5, 0.4, 0.6], kappa: 0.6, level: 0 },
+  enableClockDebug = false,
+  bpm = 120,
   onOperatorApplied,
   onStateLoaded,
   onRoomReady,
   onConnectionStatus,
+  onClockEvent,
   className = '',
   style = {},
   debug = false
@@ -98,6 +142,13 @@ const EngineRoom = forwardRef<EngineRoomRef, EngineRoomProps>(({
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clockBugDetector] = useState(() => enableClockDebug ? new ClockBugDetector() : null);
+
+  useEffect(() => {
+    if (clockBugDetector && bpm) {
+      clockBugDetector.setBPM(bpm);
+    }
+  }, [clockBugDetector, bpm]);
 
   const log = useCallback((message: string, ...args: any[]) => {
     if (debug) {
@@ -191,15 +242,44 @@ const EngineRoom = forwardRef<EngineRoomRef, EngineRoomProps>(({
       }
     };
 
+    // Listen for clock events if clock debugging is enabled
+    const handleClockEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && onClockEvent && clockBugDetector) {
+        const { type, bar, beat, phase, bpm: eventBpm, timestamp } = customEvent.detail;
+
+        // Update clock bug detector
+        clockBugDetector.recordBeat(timestamp, bar, beat);
+
+        // Forward to callback
+        onClockEvent({
+          type,
+          bar,
+          beat,
+          phase,
+          bpm: eventBpm || bpm,
+          timestamp
+        });
+      }
+    };
+
     window.addEventListener('tier4-operator-applied', handleOperatorEvent);
     window.addEventListener('tier4-load-state', handleStateLoadEvent);
+
+    if (enableClockDebug && onClockEvent) {
+      window.addEventListener('tier4-clock-event', handleClockEvent);
+    }
 
     return () => {
       clearInterval(connectionInterval);
       window.removeEventListener('tier4-operator-applied', handleOperatorEvent);
       window.removeEventListener('tier4-load-state', handleStateLoadEvent);
+
+      if (enableClockDebug && onClockEvent) {
+        window.removeEventListener('tier4-clock-event', handleClockEvent);
+      }
     };
-  }, [isConnected, onConnectionStatus, onOperatorApplied, onStateLoaded, log]);
+  }, [isConnected, onConnectionStatus, onOperatorApplied, onStateLoaded, onClockEvent, enableClockDebug, clockBugDetector, bpm, log]);
 
   // Expose methods through ref
   useImperativeHandle(ref, () => ({

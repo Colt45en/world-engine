@@ -2,10 +2,11 @@
 // Usage: .\kernel_step3.exe | node tier4_ws_relay.js
 // Now supports: NDJSON → Tier-4 operators + collaborative sessions
 
-const WebSocket = require("ws");
-const readline = require("readline");
-const fs = require("fs");
-const path = require("path");
+const WebSocket = require('ws');
+const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
 
 class Tier4EnhancedRelay {
   constructor(port = 9000) {
@@ -14,6 +15,8 @@ class Tier4EnhancedRelay {
     this.sessions = new Map(); // sessionId -> session data
     this.eventBuffer = [];
     this.maxBufferSize = 1000;
+    this.assetClients = new Set();
+    this.assetProc = null;
 
     // Tier-4 specific mappings
     this.nucleusToOperator = new Map([
@@ -33,6 +36,7 @@ class Tier4EnhancedRelay {
     this.setupWebSocketServer();
     this.setupStdinReader();
     this.setupPeriodicSave();
+    this.setupAssetBridge();
   }
 
   setupWebSocketServer() {
@@ -41,7 +45,7 @@ class Tier4EnhancedRelay {
       clientTracking: true
     });
 
-    this.wss.on("connection", (ws, request) => {
+    this.wss.on('connection', (ws, request) => {
       const clientId = this.generateClientId();
       const clientInfo = {
         id: clientId,
@@ -53,10 +57,13 @@ class Tier4EnhancedRelay {
       };
 
       this.clients.set(ws, clientInfo);
+      if (this.assetProc) {
+        this.assetClients.add(ws);
+      }
 
       // Send welcome message with current buffer
       this.sendToClient(ws, {
-        type: "tier4_welcome",
+        type: 'tier4_welcome',
         clientId: clientId,
         bufferSize: this.eventBuffer.length,
         availableSessions: Array.from(this.sessions.keys()),
@@ -73,25 +80,25 @@ class Tier4EnhancedRelay {
         });
       }
 
-      ws.on("message", (message) => {
+      ws.on('message', (message) => {
         try {
           const data = JSON.parse(message.toString());
           this.handleClientMessage(ws, data);
         } catch (error) {
-          console.error("Invalid JSON from client:", error.message);
+          console.error('Invalid JSON from client:', error.message);
         }
       });
 
-      ws.on("close", () => {
+      ws.on('close', () => {
         this.handleClientDisconnect(ws);
       });
 
-      ws.on("error", (error) => {
-        console.error("Client error:", error.message);
+      ws.on('error', (error) => {
+        console.error('Client error:', error.message);
       });
 
       this.logEvent({
-        type: "client_connected",
+        type: 'client_connected',
         clientId: clientId,
         ts: new Date().toISOString(),
         totalClients: this.clients.size
@@ -99,18 +106,18 @@ class Tier4EnhancedRelay {
     });
 
     this.logEvent({
-      type: "relay_status",
+      type: 'relay_status',
       ts: new Date().toISOString(),
       port: this.port,
-      status: "listening",
-      features: ["tier4_integration", "collaborative_sessions", "event_buffering"]
+      status: 'listening',
+      features: ['tier4_integration', 'collaborative_sessions', 'event_buffering']
     });
   }
 
   setupStdinReader() {
     this.rl = readline.createInterface({ input: process.stdin });
 
-    this.rl.on("line", (line) => {
+    this.rl.on('line', (line) => {
       try {
         const event = JSON.parse(line);
         this.processIncomingEvent(event);
@@ -142,7 +149,7 @@ class Tier4EnhancedRelay {
     const enhanced = { ...event };
 
     // Add Tier-4 operator mappings
-    if (event.type === "nucleus_exec" && event.role) {
+    if (event.type === 'nucleus_exec' && event.role) {
       const operator = this.nucleusToOperator.get(event.role);
       if (operator) {
         enhanced.tier4_operator = operator;
@@ -150,7 +157,7 @@ class Tier4EnhancedRelay {
       }
     }
 
-    if (event.type === "memory_store" && event.tag) {
+    if (event.type === 'memory_store' && event.tag) {
       const operator = this.tagToOperator.get(event.tag);
       if (operator) {
         enhanced.tier4_operator = operator;
@@ -159,11 +166,11 @@ class Tier4EnhancedRelay {
     }
 
     // Add cycle-based macro suggestions
-    if (event.type === "cycle_start") {
+    if (event.type === 'cycle_start') {
       enhanced.tier4_suggested_macro = this.suggestMacroForCycle(event.cycle, event.total);
     }
 
-    if (event.type === "loop_back") {
+    if (event.type === 'loop_back') {
       enhanced.tier4_macro = this.mapLoopBackToMacro(event.from, event.to);
     }
 
@@ -171,35 +178,35 @@ class Tier4EnhancedRelay {
   }
 
   suggestMacroForCycle(cycle, total) {
-    if (total <= 1) return "IDE_A"; // Single cycle → Analysis
-    if (cycle === 1) return "IDE_A"; // First cycle → Analysis
-    if (cycle === total) return "IDE_C"; // Last cycle → Build
-    return "IDE_B"; // Middle cycles → Constraints
+    if (total <= 1) return 'IDE_A'; // Single cycle → Analysis
+    if (cycle === 1) return 'IDE_A'; // First cycle → Analysis
+    if (cycle === total) return 'IDE_C'; // Last cycle → Build
+    return 'IDE_B'; // Middle cycles → Constraints
   }
 
   mapLoopBackToMacro(from, to) {
     const mapping = {
-      "seed->energy": "IDE_A",    // Analysis path
-      "energy->refined": "IDE_B", // Constraint path
-      "refined->condition": "IDE_C", // Build path
-      "condition->seed": "MERGE_ABC"  // Full integration
+      'seed->energy': 'IDE_A',    // Analysis path
+      'energy->refined': 'IDE_B', // Constraint path
+      'refined->condition': 'IDE_C', // Build path
+      'condition->seed': 'MERGE_ABC'  // Full integration
     };
 
     const key = `${from}->${to}`;
-    return mapping[key] || "OPTIMIZE";
+    return mapping[key] || 'OPTIMIZE';
   }
 
   processCollaborativeEvent(event) {
     // Handle Tier-4 collaborative events
-    if (event.type === "tier4_state_update") {
+    if (event.type === 'tier4_state_update') {
       this.handleTier4StateUpdate(event);
     }
 
-    if (event.type === "tier4_session_join") {
+    if (event.type === 'tier4_session_join') {
       this.handleSessionJoin(event);
     }
 
-    if (event.type === "tier4_session_leave") {
+    if (event.type === 'tier4_session_leave') {
       this.handleSessionLeave(event);
     }
   }
@@ -208,26 +215,39 @@ class Tier4EnhancedRelay {
     const clientInfo = this.clients.get(ws);
     clientInfo.lastSeen = new Date().toISOString();
 
+    if (message && typeof message.type === 'string' && message.type.startsWith('ASSET_')) {
+      if (this.assetProc) {
+        this.forwardAssetMessage(message);
+      } else {
+        this.sendToClient(ws, {
+          type: 'ASSET_EVENT',
+          kind: 'error',
+          payload: { reason: 'asset bridge unavailable', request: message }
+        });
+      }
+      return;
+    }
+
     switch (message.type) {
-      case "tier4_join_session":
-        this.joinClientToSession(ws, message.sessionId, message.userId);
-        break;
+    case 'tier4_join_session':
+      this.joinClientToSession(ws, message.sessionId, message.userId);
+      break;
 
-      case "tier4_state_update":
-        this.broadcastStateUpdate(ws, message);
-        break;
+    case 'tier4_state_update':
+      this.broadcastStateUpdate(ws, message);
+      break;
 
-      case "tier4_operator_request":
-        this.handleOperatorRequest(ws, message);
-        break;
+    case 'tier4_operator_request':
+      this.handleOperatorRequest(ws, message);
+      break;
 
-      case "ping":
-        this.sendToClient(ws, { type: "pong", ts: new Date().toISOString() });
-        break;
+    case 'ping':
+      this.sendToClient(ws, { type: 'pong', ts: new Date().toISOString() });
+      break;
 
-      default:
-        // Forward client messages to other clients
-        this.broadcastToOtherClients(ws, message);
+    default:
+      // Forward client messages to other clients
+      this.broadcastToOtherClients(ws, message);
     }
   }
 
@@ -251,7 +271,7 @@ class Tier4EnhancedRelay {
     session.participants.add(userId);
 
     this.sendToClient(ws, {
-      type: "tier4_session_joined",
+      type: 'tier4_session_joined',
       sessionId: sessionId,
       participants: Array.from(session.participants),
       ts: new Date().toISOString()
@@ -259,7 +279,7 @@ class Tier4EnhancedRelay {
 
     // Notify other session participants
     this.broadcastToSession(sessionId, {
-      type: "tier4_participant_joined",
+      type: 'tier4_participant_joined',
       sessionId: sessionId,
       userId: userId,
       participants: Array.from(session.participants),
@@ -267,7 +287,7 @@ class Tier4EnhancedRelay {
     }, ws);
 
     this.logEvent({
-      type: "session_join",
+      type: 'session_join',
       sessionId: sessionId,
       userId: userId,
       totalParticipants: session.participants.size,
@@ -279,7 +299,7 @@ class Tier4EnhancedRelay {
     // Process Tier-4 operator request from client
     const enhancedRequest = {
       ...message,
-      type: "tier4_operator_applied",
+      type: 'tier4_operator_applied',
       ts: new Date().toISOString(),
       processed_by_relay: true
     };
@@ -351,7 +371,7 @@ class Tier4EnhancedRelay {
 
           // Notify other participants
           this.broadcastToSession(clientInfo.tier4Session, {
-            type: "tier4_participant_left",
+            type: 'tier4_participant_left',
             sessionId: clientInfo.tier4Session,
             userId: clientInfo.userId,
             participants: Array.from(session.participants),
@@ -362,7 +382,7 @@ class Tier4EnhancedRelay {
           if (session.participants.size === 0) {
             this.sessions.delete(clientInfo.tier4Session);
             this.logEvent({
-              type: "session_cleanup",
+              type: 'session_cleanup',
               sessionId: clientInfo.tier4Session,
               ts: new Date().toISOString()
             });
@@ -371,7 +391,7 @@ class Tier4EnhancedRelay {
       }
 
       this.logEvent({
-        type: "client_disconnected",
+        type: 'client_disconnected',
         clientId: clientInfo.id,
         duration: Date.now() - new Date(clientInfo.connectedAt).getTime(),
         ts: new Date().toISOString(),
@@ -379,13 +399,15 @@ class Tier4EnhancedRelay {
       });
     }
 
+    this.assetClients.delete(ws);
+
     this.clients.delete(ws);
   }
 
   processRawInput(line) {
     // Handle non-JSON input as raw event
     const rawEvent = {
-      type: "raw_input",
+      type: 'raw_input',
       content: line,
       ts: new Date().toISOString()
     };
@@ -397,6 +419,109 @@ class Tier4EnhancedRelay {
     setInterval(() => {
       this.saveState();
     }, 30000); // Save every 30 seconds
+  }
+
+  setupAssetBridge() {
+    const daemonPath = path.resolve(__dirname, '..', 'assets_bridge', 'assets_daemon.py');
+    if (!fs.existsSync(daemonPath)) {
+      this.logEvent({
+        type: 'asset_bridge_status',
+        status: 'missing',
+        path: daemonPath,
+        ts: new Date().toISOString()
+      });
+      return;
+    }
+
+    const pythonCmd = process.env.ASSET_BRIDGE_PYTHON || 'python';
+    try {
+      this.assetProc = spawn(pythonCmd, [daemonPath], { stdio: ['pipe', 'pipe', 'inherit'] });
+    } catch (error) {
+      this.logEvent({
+        type: 'asset_bridge_error',
+        error: error.message,
+        command: pythonCmd,
+        path: daemonPath,
+        ts: new Date().toISOString()
+      });
+      this.assetProc = null;
+      return;
+    }
+
+    this.assetProc.stdout.setEncoding('utf8');
+    let buffer = '';
+    this.assetProc.stdout.on('data', (chunk) => {
+      buffer += chunk;
+      let idx = buffer.indexOf('\n');
+      while (idx >= 0) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (line.length === 0) {
+          idx = buffer.indexOf('\n');
+          continue;
+        }
+        try {
+          const parsed = JSON.parse(line);
+          this.broadcastAssetEvent(parsed);
+        } catch (error) {
+          this.logEvent({
+            type: 'asset_bridge_error',
+            error: error.message,
+            raw: line,
+            ts: new Date().toISOString()
+          });
+        }
+        idx = buffer.indexOf('\n');
+      }
+    });
+
+    this.assetProc.on('exit', (code) => {
+      this.logEvent({
+        type: 'asset_bridge_exit',
+        code,
+        ts: new Date().toISOString()
+      });
+      this.assetProc = null;
+    });
+
+    this.logEvent({
+      type: 'asset_bridge_status',
+      status: 'started',
+      command: pythonCmd,
+      path: daemonPath,
+      ts: new Date().toISOString()
+    });
+  }
+
+  forwardAssetMessage(message) {
+    if (!this.assetProc || !this.assetProc.stdin.writable) {
+      this.logEvent({
+        type: 'asset_bridge_error',
+        error: 'asset daemon unavailable',
+        payload: message,
+        ts: new Date().toISOString()
+      });
+      return;
+    }
+    this.assetProc.stdin.write(`${JSON.stringify(message)}\n`);
+  }
+
+  broadcastAssetEvent(message) {
+    const serialized = JSON.stringify(message);
+    if (this.assetClients.size > 0) {
+      for (const ws of this.assetClients) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(serialized);
+        }
+      }
+      return;
+    }
+
+    for (const ws of this.clients.keys()) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(serialized);
+      }
+    }
   }
 
   saveState() {
@@ -454,7 +579,7 @@ const relay = new Tier4EnhancedRelay(process.env.PORT || 9000);
 // Handle graceful shutdown
 process.on('SIGINT', () => {
   console.log(JSON.stringify({
-    type: "relay_shutdown",
+    type: 'relay_shutdown',
     ts: new Date().toISOString(),
     stats: relay.getStats()
   }));

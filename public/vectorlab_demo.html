@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VectorLab World Engine - Comprehensive Demo</title>
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --panel: #0f1523;
+            --ink: #e6f0ff;
+            --acc: #54f0b8;
+            --heart: #ff69b4;
+            --line: #1e2b46;
+            --radius: 12px;
+            --gap: 8px;
+            --pad: 12px;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .demo-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: var(--gap);
+            padding: var(--gap);
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, var(--panel), #1a2332);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            padding: 0 var(--pad);
+            gap: var(--gap);
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--acc), var(--heart));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls-panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: var(--gap);
+            overflow-y: auto;
+        }
+
+        .demo-canvas {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: var(--acc);
+            margin-bottom: var(--gap);
+            font-size: 14px;
+        }
+
+        .world-canvas {
+            width: 100%;
+            height: 100%;
+            background: #06101c;
+            border-radius: var(--radius);
+        }
+
+        .btn {
+            background: var(--acc);
+            color: var(--bg);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin: 2px 0;
+        }
+
+        .btn:hover {
+            background: #46d158;
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: var(--panel);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .status-value {
+            color: var(--acc);
+            font-weight: 600;
+            font-family: 'Consolas', monospace;
+        }
+
+        .log-area {
+            background: #06101c;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            height: 120px;
+            overflow-y: auto;
+            color: var(--ink);
+        }
+
+        .heart-viz {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto;
+            position: relative;
+            background: radial-gradient(circle, rgba(255,105,180,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .heart-viz.pulsing {
+            animation: heartbeat 1s ease-in-out;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .timeline-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin: 8px 0;
+            position: relative;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--acc), var(--heart));
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+
+        .glyph-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .glyph-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            padding: 8px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .glyph-btn:hover {
+            background: var(--acc);
+            color: var(--bg);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .overlay-info {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(11, 14, 20, 0.9);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">⚡ VectorLab World Engine - Comprehensive Demo</div>
+            <div style="margin-left: auto; font-size: 12px; opacity: 0.7;">
+                Heart ❤️ Timeline ⏰ Codex 📜 Glyphs ✨ Terrain 🌍
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <!-- Heart Engine Section -->
+            <div class="section">
+                <div class="section-title">💓 Heart Engine</div>
+                <div class="heart-viz" id="heartViz">💓</div>
+                <div style="text-align: center; margin: 8px 0;">
+                    <div>Resonance: <span class="status-value" id="heartResonance">0.000</span></div>
+                    <div>State: <span class="status-value" id="heartState">idle</span></div>
+                </div>
+                <button class="btn" onclick="demo.pulseHeart(0.2)">Pulse (+0.2)</button>
+                <button class="btn secondary" onclick="demo.heartEcho()">Echo</button>
+            </div>
+
+            <!-- Timeline Section -->
+            <div class="section">
+                <div class="section-title">⏰ Timeline Engine</div>
+                <div>Frame: <span class="status-value" id="currentFrame">0000</span></div>
+                <div class="timeline-bar">
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                </div>
+                <button class="btn" id="timelineToggle" onclick="demo.toggleTimeline()">⏸ Pause</button>
+                <button class="btn secondary" onclick="demo.createSnapshot()">📸 Snapshot</button>
+            </div>
+
+            <!-- Glyph Activation -->
+            <div class="section">
+                <div class="section-title">✨ Active Glyphs</div>
+                <div class="glyph-grid">
+                    <button class="glyph-btn" onclick="demo.activateGlyph('Soul Thread')">🧵<br>Soul Thread</button>
+                    <button class="glyph-btn" onclick="demo.activateGlyph('Echo Pulse')">🔊<br>Echo Pulse</button>
+                    <button class="glyph-btn" onclick="demo.activateGlyph('Golden Return')">✨<br>Golden Return</button>
+                    <button class="glyph-btn" onclick="demo.activateGlyph('Fracture Point')">💥<br>Fracture Point</button>
+                    <button class="glyph-btn" onclick="demo.activateGlyph('Aether Lock')">🔒<br>Aether Lock</button>
+                    <button class="glyph-btn" onclick="demo.activateGlyph('Glyph of Convergence')">🜂<br>Convergence</button>
+                </div>
+            </div>
+
+            <!-- World Manipulation -->
+            <div class="section">
+                <div class="section-title">🌍 World Controls</div>
+                <button class="btn" onclick="demo.generateTerrain()">Generate Terrain</button>
+                <button class="btn" onclick="demo.spawnMemoryEcho()">Spawn Memory</button>
+                <button class="btn" onclick="demo.createStorm()">Create Storm</button>
+                <button class="btn secondary" onclick="demo.resetWorld()">Reset World</button>
+            </div>
+
+            <!-- System Status -->
+            <div class="section">
+                <div class="section-title">📊 System Status</div>
+                <div class="stats-grid">
+                    <div>Objects: <span class="status-value" id="objectCount">0</span></div>
+                    <div>Terrain: <span class="status-value" id="terrainCount">0</span></div>
+                    <div>Memory: <span class="status-value" id="memoryCount">0</span></div>
+                    <div>Events: <span class="status-value" id="eventCount">0</span></div>
+                    <div>Violations: <span class="status-value" id="violations">0</span></div>
+                    <div>Glyphs: <span class="status-value" id="glyphCount">6</span></div>
+                </div>
+            </div>
+
+            <!-- Event Log -->
+            <div class="section">
+                <div class="section-title">📝 Event Log</div>
+                <div class="log-area" id="eventLog"></div>
+                <button class="btn secondary" onclick="demo.clearLog()">Clear Log</button>
+            </div>
+        </div>
+
+        <!-- Main Canvas -->
+        <div class="demo-canvas">
+            <canvas class="world-canvas" id="worldCanvas"></canvas>
+            <div class="overlay-info">
+                <div>VectorLab World Engine v1.0</div>
+                <div>FPS: <span id="fps">60</span></div>
+                <div>Camera: (0, 0, 10)</div>
+                <div id="debugInfo">Ready...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the VectorLab World Engine -->
+    <script src="vectorlab_world_engine.js"></script>
+
+    <script>
+        // Comprehensive Demo System
+        class VectorLabDemo {
+            constructor() {
+                this.worldEngine = null;
+                this.logEntries = [];
+                this.lastFrameTime = 0;
+                this.fps = 60;
+
+                this.initializeEngine();
+                this.bindEvents();
+                this.startUpdateLoop();
+                this.setupDemoScenario();
+            }
+
+            initializeEngine() {
+                // Initialize the world engine
+                this.worldEngine = new VectorLabWorldEngine('worldCanvas');
+
+                // Setup canvas
+                const canvas = document.getElementById('worldCanvas');
+                const container = canvas.parentElement;
+
+                const resizeCanvas = () => {
+                    const rect = container.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                };
+
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                // Start the engine
+                this.worldEngine.start();
+
+                this.log('🚀 VectorLab World Engine initialized');
+                this.log('💫 All systems online and ready');
+            }
+
+            setupDemoScenario() {
+                // Create initial terrain from glyphs
+                this.worldEngine.generateTerrainFromGlyphs();
+
+                // Add some initial memory echoes
+                for (let i = 0; i < 3; i++) {
+                    const pos = new Vector3(
+                        Math.random() * 8 - 4,
+                        0,
+                        Math.random() * 8 - 4
+                    );
+                    this.worldEngine.createMemoryEcho(pos);
+                }
+
+                // Schedule some temporal events
+                this.worldEngine.timelineEngine.addTemporalEvent(100, {
+                    type: 'auto_pulse',
+                    execute: () => {
+                        this.worldEngine.heartEngine.pulse(0.3);
+                        this.log('⚡ Scheduled heart pulse triggered');
+                    }
+                });
+
+                this.worldEngine.timelineEngine.addTemporalEvent(300, {
+                    type: 'terrain_shift',
+                    execute: () => {
+                        this.worldEngine.generateTerrainFromGlyphs();
+                        this.log('🌍 Scheduled terrain regeneration');
+                    }
+                });
+
+                this.log('🎬 Demo scenario initialized');
+                this.log('🎯 Click glyph buttons to see effects');
+            }
+
+            bindEvents() {
+                // Canvas click interaction
+                const canvas = document.getElementById('worldCanvas');
+                canvas.addEventListener('click', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 20;
+                    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 20;
+
+                    const position = new Vector3(x, 0, y);
+                    this.worldEngine.createMemoryEcho(position);
+                    this.log(`🧠 Memory echo spawned at (${x.toFixed(1)}, ${y.toFixed(1)})`);
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    switch(e.code) {
+                        case 'Space':
+                            e.preventDefault();
+                            this.toggleTimeline();
+                            break;
+                        case 'KeyH':
+                            this.pulseHeart(0.2);
+                            break;
+                        case 'KeyT':
+                            this.generateTerrain();
+                            break;
+                        case 'KeyS':
+                            this.createStorm();
+                            break;
+                        case 'KeyR':
+                            this.resetWorld();
+                            break;
+                    }
+                });
+
+                this.log('⌨️ Keyboard shortcuts: Space=Timeline, H=Heart, T=Terrain, S=Storm, R=Reset');
+            }
+
+            // Heart Engine Controls
+            pulseHeart(intensity = 0.2) {
+                const resonance = this.worldEngine.heartEngine.pulse(intensity);
+                const heartViz = document.getElementById('heartViz');
+                heartViz.classList.add('pulsing');
+                setTimeout(() => heartViz.classList.remove('pulsing'), 1000);
+
+                this.log(`💓 Heart pulse: +${intensity.toFixed(2)} → ${resonance.toFixed(3)}`);
+                return resonance;
+            }
+
+            heartEcho() {
+                const resonance = this.worldEngine.heartEngine.echo();
+                this.log(`🔁 Heart echo: ${resonance.toFixed(3)}`);
+                return resonance;
+            }
+
+            // Timeline Controls
+            toggleTimeline() {
+                const isPlaying = this.worldEngine.timelineEngine.togglePlay();
+                document.getElementById('timelineToggle').innerHTML = isPlaying ? '⏸ Pause' : '▶ Play';
+                this.log(`⏰ Timeline ${isPlaying ? 'resumed' : 'paused'}`);
+                return isPlaying;
+            }
+
+            createSnapshot() {
+                const worldState = {
+                    objects: Array.from(this.worldEngine.worldObjects.entries()),
+                    terrain: Array.from(this.worldEngine.terrainNodes.entries()),
+                    heartResonance: this.worldEngine.heartEngine.resonance
+                };
+                this.worldEngine.timelineEngine.createMemorySnapshot(worldState);
+                this.log(`📸 Memory snapshot created at frame ${this.worldEngine.timelineEngine.currentFrame}`);
+            }
+
+            // Glyph Activation
+            activateGlyph(glyphName, context = {}) {
+                const defaultContext = {
+                    position: new Vector3(Math.random() * 6 - 3, 0, Math.random() * 6 - 3),
+                    timestamp: Date.now(),
+                    demo: true
+                };
+
+                const finalContext = { ...defaultContext, ...context };
+                const result = this.worldEngine.activateGlyph(glyphName, finalContext);
+
+                if (result) {
+                    this.log(`✨ ${glyphName} activated successfully`);
+                    // Trigger heart pulse based on glyph activation
+                    const glyph = this.worldEngine.glyphRegistry.search(glyphName)[0];
+                    if (glyph) {
+                        this.worldEngine.heartEngine.pulse(glyph.intensity * 0.15);
+                    }
+                } else {
+                    this.log(`⚠️ Failed to activate ${glyphName}`);
+                }
+
+                return result;
+            }
+
+            // World Manipulation
+            generateTerrain() {
+                this.worldEngine.generateTerrainFromGlyphs();
+                this.log('🌍 Terrain regenerated from active glyphs');
+            }
+
+            spawnMemoryEcho() {
+                const position = new Vector3(
+                    Math.random() * 8 - 4,
+                    0,
+                    Math.random() * 8 - 4
+                );
+                this.worldEngine.createMemoryEcho(position);
+                this.log(`🧠 Memory echo spawned at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`);
+            }
+
+            createStorm() {
+                const center = [
+                    Math.random() * 6 - 3,
+                    0,
+                    Math.random() * 6 - 3
+                ];
+                const eventId = this.worldEngine.spawnEnvironmentalEvent('storm', center, 0.8, 150);
+                this.log(`🌪️ Storm created at [${center.map(c => c.toFixed(1)).join(', ')}]`);
+                return eventId;
+            }
+
+            resetWorld() {
+                // Clear all objects and terrain
+                this.worldEngine.worldObjects.clear();
+                this.worldEngine.terrainNodes.clear();
+                this.worldEngine.environmentalEvents = [];
+
+                // Reset engines
+                this.worldEngine.heartEngine.resonance = 0;
+                this.worldEngine.heartEngine.state = "idle";
+                this.worldEngine.timelineEngine.currentFrame = 0;
+
+                // Regenerate initial state
+                this.setupDemoScenario();
+
+                this.log('🔄 World reset to initial state');
+            }
+
+            // Demo Sequences
+            runHeartSequence() {
+                this.log('🎭 Starting heart resonance sequence...');
+
+                let pulseCount = 0;
+                const pulseInterval = setInterval(() => {
+                    if (pulseCount >= 5) {
+                        clearInterval(pulseInterval);
+                        this.log('💖 Heart sequence complete');
+                        return;
+                    }
+
+                    const intensity = 0.1 + Math.random() * 0.2;
+                    this.pulseHeart(intensity);
+                    pulseCount++;
+                }, 1000);
+            }
+
+            runGlyphSequence() {
+                this.log('🎭 Starting glyph activation sequence...');
+
+                const glyphs = ['Soul Thread', 'Echo Pulse', 'Golden Return', 'Fracture Point'];
+                let glyphIndex = 0;
+
+                const glyphInterval = setInterval(() => {
+                    if (glyphIndex >= glyphs.length) {
+                        clearInterval(glyphInterval);
+                        this.log('✨ Glyph sequence complete');
+                        return;
+                    }
+
+                    this.activateGlyph(glyphs[glyphIndex]);
+                    glyphIndex++;
+                }, 2000);
+            }
+
+            runFullDemo() {
+                this.log('🎬 Starting full demonstration sequence...');
+
+                setTimeout(() => this.runHeartSequence(), 1000);
+                setTimeout(() => this.generateTerrain(), 3000);
+                setTimeout(() => this.createStorm(), 5000);
+                setTimeout(() => this.runGlyphSequence(), 8000);
+                setTimeout(() => {
+                    this.log('🎉 Full demonstration complete!');
+                    this.log('🎮 Continue experimenting with the controls');
+                }, 20000);
+            }
+
+            // UI Updates
+            updateUI() {
+                const heart = this.worldEngine.heartEngine;
+                const timeline = this.worldEngine.timelineEngine;
+                const codex = this.worldEngine.codexEngine.getViolationSummary();
+
+                // Heart status
+                document.getElementById('heartResonance').textContent = heart.resonance.toFixed(3);
+                document.getElementById('heartState').textContent = heart.getEmotionalState();
+
+                // Timeline status
+                document.getElementById('currentFrame').textContent =
+                    timeline.currentFrame.toString().padStart(4, '0');
+                const progress = (timeline.currentFrame % 1000) / 1000;
+                document.getElementById('timelineProgress').style.width = `${progress * 100}%`;
+
+                // World statistics
+                document.getElementById('objectCount').textContent = this.worldEngine.worldObjects.size;
+                document.getElementById('terrainCount').textContent = this.worldEngine.terrainNodes.size;
+                document.getElementById('memoryCount').textContent =
+                    Array.from(this.worldEngine.worldObjects.values())
+                        .filter(obj => obj.type === 'memory_echo').length;
+                document.getElementById('eventCount').textContent = this.worldEngine.environmentalEvents.length;
+                document.getElementById('violations').textContent = codex.globalViolations;
+
+                // Debug info
+                document.getElementById('debugInfo').textContent =
+                    `Frame: ${timeline.currentFrame}, Heart: ${heart.state}, Objects: ${this.worldEngine.worldObjects.size}`;
+            }
+
+            // Logging
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${message}`;
+
+                this.logEntries.push(logEntry);
+                if (this.logEntries.length > 100) {
+                    this.logEntries.shift();
+                }
+
+                const logArea = document.getElementById('eventLog');
+                if (logArea) {
+                    logArea.textContent = this.logEntries.slice(-20).join('\n');
+                    logArea.scrollTop = logArea.scrollHeight;
+                }
+
+                console.log(logEntry);
+            }
+
+            clearLog() {
+                this.logEntries = [];
+                document.getElementById('eventLog').textContent = '';
+                this.log('📝 Event log cleared');
+            }
+
+            // Main update loop
+            startUpdateLoop() {
+                const update = (currentTime) => {
+                    // Calculate FPS
+                    if (this.lastFrameTime) {
+                        const deltaTime = currentTime - this.lastFrameTime;
+                        this.fps = Math.round(1000 / deltaTime);
+                        document.getElementById('fps').textContent = this.fps;
+                    }
+                    this.lastFrameTime = currentTime;
+
+                    // Update UI
+                    this.updateUI();
+
+                    // Continue loop
+                    requestAnimationFrame(update);
+                };
+
+                requestAnimationFrame(update);
+            }
+        }
+
+        // Initialize the demo
+        let demo;
+        document.addEventListener('DOMContentLoaded', () => {
+            demo = new VectorLabDemo();
+
+            // Add demo controls to window for console access
+            window.demo = demo;
+
+            // Start auto demo after 3 seconds
+            setTimeout(() => {
+                if (confirm('Would you like to run the full automated demonstration?')) {
+                    demo.runFullDemo();
+                } else {
+                    demo.log('🎮 Manual mode - use controls or keyboard shortcuts');
+                }
+            }, 3000);
+        });
+
+        // Global functions for easy console access
+        window.pulseHeart = (intensity) => demo.pulseHeart(intensity);
+        window.activateGlyph = (name, context) => demo.activateGlyph(name, context);
+        window.getWorldState = () => demo.worldEngine.exportWorldState();
+        window.resetDemo = () => demo.resetWorld();
+    </script>
+</body>
+</html>

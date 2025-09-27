@@ -1,0 +1,915 @@
+<!--
+```
+FOUNDATION LAYER — BOOK FOLD LEXICON ENGINE (Checkpoint Run v3 — fixed)
+Anchors (ordered, weak → strong). Each sowing appends below.
+1) Layout Shell: two-pane (book fold) — Left=Controls/Johnson; Right=Visual (primary).
+2) Safety: no document.write; textContent only; guard null refs; run at end-of-body.
+3) Space Saving: compact UI, small font, single-screen; only tests area scrolls.
+4) Persistence: localStorage for left width, input, options, live toggle.
+5) Lexicon Core: mine prefix/root/suffix, detect compounds/hyphens/underscores, POS guess, behavior flags.
+6) Tests: keep existing; add more (append-only). Click to load.
+7) Johnson = JSON on left with Copy/Download. Visual on right (no tabs).
+8) Performance: pure JS, no libs; O(n) scan; debounced input.
+9) Accessibility: focus rings, keyboardable controls.
+```
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Lexicon Engine — Book Fold (Checkpoint v3 • fixed)</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46; --acc:#54f0b8;
+    --tiny:11px; --small:12px; --base:13px; --radius:10px; --gap:6px; --pad:8px; --thin:10px;
+    --left: 340px; /* saved */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:var(--base)/1.25 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;overflow:hidden}
+  .top{height:42px;display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);background:#0d1322}
+  .brand{font-weight:700;color:var(--acc)}
+  .sp{flex:1}
+  .btn, .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 9px;cursor:pointer;font-size:var(--small)}
+  .chip{opacity:.85}
+  .wrap{position:absolute;inset:42px 0 0 0;display:grid;grid-template-columns:minmax(260px, var(--left)) 1fr;gap:8px;padding:8px}
+  .col{height:100%;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);position:relative;overflow:hidden}
+  .L{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px;padding:8px}
+  .R{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;padding:8px;overflow:hidden;position:relative}
+  .sec{border:1px solid var(--line);border-radius:10px;padding:8px;background:rgba(255,255,255,.03)}
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px;font-size:var(--small)}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink);font-size:var(--small)}
+  textarea{width:100%;min-height:80px;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink);font:var(--small)/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  .mini{font-size:var(--tiny);opacity:.85}
+  .out{white-space:pre;overflow:auto;height:100%;max-height:none;font:12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0a0f1c;border:1px solid var(--line);border-radius:10px;padding:8px}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  .gutter{position:absolute;top:42px;bottom:0;left:calc(var(--left) + 4px);width:6px;cursor:col-resize}
+  .gutter::after{content:"";position:absolute;top:50%;left:1px;right:1px;height:38px;border-radius:6px;border:1px solid var(--line);background:#102036;opacity:.6;transform:translateY(-50%)}
+  .info{position:relative}
+
+  /* Hide Johnson JSON section to prevent overflow */
+  #johnson-json-section { display: none !important; }
+  .info:hover .tip{opacity:1;transform:translateY(-2px)}
+  .tip{position:absolute;right:0;top:100%;margin-top:6px;max-width:320px;background:#0a1222;border:1px solid var(--line);padding:8px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:all .12s ease;pointer-events:none;font-size:var(--tiny)}
+  .dock{display:flex;gap:6px;flex-wrap:wrap}
+  .ok{color:#8affc7}
+  .bad{color:#ff9e9e}
+  .R::after{content:"";position:absolute;left:8px;right:8px;bottom:6px;height:2px;background:linear-gradient(90deg,transparent,rgba(84,240,184,.35),transparent);pointer-events:none}
+  /* visual canvas */
+  .viz{display:block;width:100%;height:100%;border:1px solid var(--line);border-radius:10px;background:#06101c}
+  /* tests area scroll */
+  #tests{max-height:160px;overflow:auto}
+  /* collapsible */
+  details > summary{cursor:pointer;list-style:none}
+  details > summary::-webkit-details-marker{display:none}
+  .caret{display:inline-block;border:4px solid transparent;border-left-color:#9ab0d6;margin-right:6px;transform:translateY(1px)}
+  details[open] .caret{transform:rotate(90deg) translateY(-1px)}
+  .mt-6 { margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <span class="brand">Lexicon Engine</span>
+    <span class="mini">• Book Fold Checkpoint</span>
+    <div class="sp"></div>
+    <button class="chip" id="save">Save</button>
+    <button class="chip" id="restore">Restore</button>
+  </div>
+
+  <div class="wrap">
+    <!-- Left: Controls / Johnson -->
+    <section class="col L">
+      <div class="sec">
+        <div class="title row">Query
+          <span class="info kbd">i
+            <span class="tip">Type one term per line or a short phrase. Engine will mine prefix/root/suffix, detect compounds (hyphens/underscores), and guess part of speech.</span>
+          </span>
+        </div>
+        <div class="row mt-6">
+          <textarea id="input" placeholder="Enter terms or phrases, one per line"></textarea>
+          <details>
+            <summary class="mini"><span class="caret"></span>Actions</summary>
+            <div class="row mt-6">
+            <div class="row" style="margin-top:6px">
+              <button class="btn" id="run">Analyze</button>
+              <button class="btn" id="clear">Clear</button>
+              <label class="mini"><input type="checkbox" id="live"/> live</label>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="sec">
+        <details open>
+          <summary class="title"><span class="caret"></span>Options</summary>
+          <div class="row">
+            <label class="mini"><input type="checkbox" id="optCase" checked/> case-insensitive</label>
+            <label class="mini"><input type="checkbox" id="optCompound" checked/> detect compounds</label>
+            <label class="mini"><input type="checkbox" id="optPOS" checked/> guess POS</label>
+            <label class="mini"><input type="checkbox" id="optBehavior" checked/> behavior hints</label>
+          </div>
+        </details>
+      </div>
+
+      <div class="sec" id="johnson-json-section">
+        <div class="title">Johnson (JSON)</div>
+        <div style="display:grid;grid-template-rows:minmax(0,1fr) auto;gap:6px;min-height:160px">
+          <pre id="out" class="out" aria-live="polite">(ready)</pre>
+          <div class="row mini">
+            <span>Summary:</span>
+            <span id="sum" class="ok">—</span>
+            <div class="sp"></div>
+            <button class="chip" id="copy">Copy</button>
+            <button class="chip" id="download">Download</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="title row">Tests
+          <span class="info kbd">?
+            <span class="tip">Never remove existing tests. Additive only. Click a case to load it into input.</span>
+          </span>
+        </div>
+        <div id="tests" class="dock"></div>
+      </div>
+
+      <div class="sec mini">
+        <details>
+          <summary class="title"><span class="caret"></span>Notes</summary>
+          <div>• No <code>document.write</code>, safe <code>textContent</code> only. • Guards for null refs. • Debounced live mode.</div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Right: Visual (priority) -->
+    <section class="col R">
+      <div class="sec row">
+        <div class="title">Visual</div>
+        <div class="sp"></div>
+      </div>
+      <div id="panelVisual" style="display:block;min-height:0;">
+        <canvas id="viz" class="viz" aria-label="Morphology visual"></canvas>
+        <div class="row mini" style="margin-top:6px">
+          <span class="ghost">Visual: bubbles = prefix/root/suffix • dashed = compound parts</span>
+          <div class="sp"></div>
+          <span id="vizCount" class="mini">—</span>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="gutter" id="gut" title="Drag to resize left column"></div>
+
+<script>
+(function(){
+  'use strict';
+  // ---------- Utilities ----------
+  const cssVar = function(k,v){ document.documentElement.style.setProperty(k,v); };
+  const getVar = function(k){ return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); };
+  const clamp = function(n,a,b){ return Math.max(a,Math.min(b,n)); };
+  const saveKey = 'lexicon-bookfold-v3-fixed';
+  const save = function(data){ localStorage.setItem(saveKey, JSON.stringify(data)); };
+  const load = function(){ try{ return JSON.parse(localStorage.getItem(saveKey)||'{}'); }catch(e){ return {}; } };
+
+  // ---------- Engine: prefixes/suffixes ----------
+  const PREFIXES = ['anti','auto','bi','co','counter','de','dis','down','en','em','ex','extra','fore','hetero','homo','hyper','il','im','in','inter','intra','ir','macro','micro','mid','mis','mono','multi','non','omni','over','post','pre','pro','re','retro','semi','sub','super','tele','trans','tri','ultra','un','under','up'];
+  const SUFFIXES = ['able','ably','age','al','ally','ance','ant','ary','ate','ation','dom','ed','ee','en','ence','ent','er','ern','ery','es','ess','est','ful','hood','ial','ian','ible','ibly','ic','ical','ify','ing','ion','ious','ise','ish','ism','ist','ity','ive','ize','less','ling','ly','ment','ness','ology','ous','ship','sion','some','tion','ty','ward','wards','wise','y'];
+  const POS_GUESSES = [
+    { test:/^(un|in|im|ir|il).*(able|ible|al|ous|ful|less|ish|ive|ic|ical)$/i, pos:'adjective' },
+    { test:/(tion|sion|ment|ness|ship|dom|hood|ism|ity|ence|ance|ery|ary|ology)$/i, pos:'noun' },
+    { test:/(ize|ise|ify|ing|ed)$/i, pos:'verb' },
+    { test:/^(pre|re|post|over|under).+(ing|ed)$/i, pos:'verb' }
+  ];
+
+  function extractPrefix(alpha) {
+    for (const p of PREFIXES) {
+      if (alpha.startsWith(p) && alpha.length > p.length + 2) {
+        return { prefix: p, root: alpha.slice(p.length) };
+      }
+    }
+    return { prefix: '', root: alpha };
+  }
+
+  function extractSuffix(alpha) {
+    let bestS = '';
+    for (const s of SUFFIXES) {
+      if (alpha.endsWith(s) && alpha.length > s.length + 1) {
+        if (s.length > bestS.length) bestS = s;
+      }
+    }
+    if (bestS) {
+      return { suffix: bestS, root: alpha.slice(0, alpha.length - bestS.length) };
+    }
+    return { suffix: '', root: alpha };
+  }
+
+  function guessPOS(alpha) {
+    for (const g of POS_GUESSES) {
+      if (g.test.test(alpha)) return g.pos;
+    }
+    if (/^(the|a|an)$/i.test(alpha)) return 'article';
+    return 'unknown';
+  }
+
+  function getBehavior(original, alpha, isCompound) {
+    return {
+      hyphenated: /-/.test(original),
+      underscored: /_/.test(original),
+      compound: isCompound,
+      capitalized: /^[A-Z]/.test(original),
+      acronym: /^[A-Z]{2,}$/.test(original),
+      endsWithLy: /ly$/i.test(alpha),
+      comparativeSuperlative: /(er|est)$/i.test(alpha)
+    };
+  }
+
+  function mineTerm(raw, opts){
+    const original = String(raw||'');
+    const term = opts.caseI ? original.toLowerCase() : original;
+    const parts = term.split(/[-_]/g).filter(Boolean);
+    const isCompound = opts.compound && parts.length > 1;
+    const alpha = term.replace(/[^a-z']/gi,'');
+
+    // Prefix
+    const { prefix, root: rootAfterPrefix } = extractPrefix(alpha);
+
+    // Suffix (prefer longest)
+    const { suffix, root: root1 } = extractSuffix(rootAfterPrefix);
+
+    // Heuristic tweak for doubled consonant before -ing
+    let root = root1;
+    if (suffix === 'ing' && /([b-df-hj-np-tv-z])\1ing$/i.test(alpha)) {
+      root = alpha.replace(/([b-df-hj-np-tv-z])\1ing$/i, '$1');
+    }
+
+    // Part of speech guess
+    const pos = guessPOS(alpha);
+
+    // Behavior flags
+    const behavior = getBehavior(original, alpha, isCompound);
+
+    return { original: original, normalized: alpha, isCompound: isCompound, parts: parts, prefix: prefix, root: root, suffix: suffix, pos: pos, behavior: behavior };
+  }
+
+  function analyzeLines(text, opts){
+    const lines = String(text||'').split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+    const items = lines.map(function(w){ return mineTerm(w, opts); });
+    return { count: items.length, items: items };
+  }
+
+  // ---------- UI binding ----------
+  var lastRes = { count:0, items:[] };
+  function qs(id){ return document.getElementById(id); }
+  const elIn = qs('input');
+  const elOut = qs('out');
+  const elSum = qs('sum');
+  const opts = { caseI:true, compound:true, pos:true, behavior:true };
+  const syncOpts = function(){
+    opts.caseI = qs('optCase').checked;
+    opts.compound = qs('optCompound').checked;
+    opts.pos = qs('optPOS').checked;
+    opts.behavior = qs('optBehavior').checked;
+  };
+
+  function render(res){
+    try{
+      const json = JSON.stringify(res, null, 2);
+      if (elOut) elOut.textContent = json;
+      if (elSum) elSum.textContent = String(res.count) + ' item(s)';
+    }catch(e){ if(elOut) elOut.textContent = 'Render error'; if(elSum) elSum.textContent='!'; }
+    lastRes = res; rebuildVisual(); startVisual();
+  }
+
+  function run(){
+    syncOpts();
+    const res = analyzeLines(elIn.value, opts);
+    render(res);
+    persist();
+  }
+
+  function persist(){ save({ left:getVar('--left'), input:elIn.value, opts:opts, live:qs('live').checked }); }
+  function restore(){
+    const s=load(); if(!s) return;
+    if(s.left) cssVar('--left', s.left);
+    if(s.input) elIn.value=s.input;
+    if(s.opts){
+      qs('optCase').checked=s.opts.caseI!==false;
+      qs('optCompound').checked=s.opts.compound!==false;
+      qs('optPOS').checked=s.opts.pos!==false;
+      qs('optBehavior').checked=s.opts.behavior!==false;
+    }
+    if(s.live) qs('live').checked=true;
+  }
+
+  // Tests (append-only)
+  const TESTS = [
+    'state-of-the-art',
+    'restate',
+    'unbelievable',
+    'precondition',
+    'status',
+    'condition',
+    'state',
+    'redo',
+    'happiness',
+    'illegal',
+    'microservice',
+    'overachieving',
+    'AI',
+    'co-operate',
+    'read-only',
+    // Added cases:
+    'caution',
+    'present',
+    'roots',
+    'cooperate',
+    'de-escalate',
+    'postmodern',
+    'AI-driven',
+    'state_machine',
+    // New extra cases for coverage:
+    'co-creator',
+    'user_friendly',
+    'present-day'
+  ];
+
+  function initTests(){
+    const host = qs('tests'); if(!host) return;
+    host.textContent='';
+    TESTS.forEach(function(t){
+      const b=document.createElement('button'); b.className='chip'; b.textContent=t; b.onclick=function(){ elIn.value = t; run(); }; host.appendChild(b);
+    });
+  }
+
+  // Copy / Download
+  const copyBtn = qs('copy'); if(copyBtn){ copyBtn.onclick = function(){ try{ navigator.clipboard.writeText(elOut ? elOut.textContent : ''); if(elSum){ elSum.textContent='copied'; setTimeout(function(){ elSum.textContent='—'; },800); } }catch(e){} }; }
+  const dlBtn = qs('download'); if(dlBtn){ dlBtn.onclick = function(){ try{ const blob = new Blob([elOut ? elOut.textContent : ''], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='lexicon.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0); }catch(e){} }; }
+
+  // Live input debounce
+  var to=null; function deb(fn,ms){ return function(){ clearTimeout(to); to=setTimeout(fn,ms); }; }
+  elIn.addEventListener('input', deb(function(){ if(qs('live').checked) run(); }, 180));
+
+  // Column resize
+  (function(){
+    const g = qs('gut'); if(!g) return; var down=false, startX=0, start=0;
+    g.addEventListener('mousedown', function(e){ down=true; startX=e.clientX; start=parseFloat(getVar('--left'))||340; e.preventDefault(); });
+    window.addEventListener('mousemove', function(e){ if(!down) return; const dx=e.clientX-startX; const val=clamp(start+dx, 260, 560); cssVar('--left', String(val)+'px'); });
+    window.addEventListener('mouseup', function(){ if(down){ down=false; persist(); } });
+  })();
+
+  // Buttons
+  const saveBtn = qs('save'); if(saveBtn) saveBtn.onclick = persist;
+  const restoreBtn = qs('restore'); if(restoreBtn) restoreBtn.onclick = function(){ restore(); run(); };
+  const runBtn = qs('run'); if(runBtn) runBtn.onclick = run;
+  const clearBtn = qs('clear'); if(clearBtn) clearBtn.onclick = function(){ elIn.value=''; run(); };
+
+  // Visual renderer (compact)
+  // === Animated visual patch: orbiting prefix/root/suffix with compounds ===
+let VIZ_RAF = 0, VIZ_T0 = 0;
+function rebuildVisual(){ /* reserved for precompute */ }
+function startVisual(){
+  cancelAnimationFrame(VIZ_RAF);
+  VIZ_T0 = performance.now();
+  const step = (now)=>{ drawVisual(now - VIZ_T0); VIZ_RAF = requestAnimationFrame(step); };
+  VIZ_RAF = requestAnimationFrame(step);
+}
+function drawVisual(elapsedMs){
+  const c = document.getElementById('viz'); if(!c) return;
+  const dpr = Math.min(2, window.devicePixelRatio||1);
+  const r = c.getBoundingClientRect();
+  const W = Math.max(100, r.width|0), H = Math.max(100, r.height|0);
+  if (c.width !== W*dpr || c.height !== H*dpr){ c.width=W*dpr; c.height=H*dpr; }
+  const g = c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+
+  // background + rings
+  g.fillStyle = '#06101c'; g.fillRect(0,0,W,H);
+  g.strokeStyle = '#13243a'; g.lineWidth = 1;
+  [90,160,230,300].forEach(rr=>{ g.beginPath(); g.arc(W/2,H/2,rr,0,Math.PI*2); g.stroke(); });
+
+  const t = (elapsedMs||0)/1000;
+  const rows = (lastRes.items||[]).slice(0,36);
+  const cx = W/2, cy = H/2;
+
+  function orbitFor(i, total){
+    const layer = 1 + (i % 4);
+    const radius = 80 + layer*60;
+    const base = (i/Math.max(1,total)) * Math.PI*2;
+    const speed = 0.2 + layer*0.08;
+    const ang = base + t*speed;
+    return {radius, ang};
+  }
+  function drawSquare(x,y,s,fill,stroke){ const r=s/2; g.fillStyle=fill; g.strokeStyle=stroke; g.lineWidth=1.3; g.beginPath(); g.moveTo(x-r,y-r); g.lineTo(x+r,y-r); g.lineTo(x+r,y+r); g.lineTo(x-r,y+r); g.closePath(); g.fill(); g.stroke(); }
+  function drawTriangle(x,y,s,fill,stroke){ const h=s*Math.sqrt(3)/2; g.fillStyle=fill; g.strokeStyle=stroke; g.lineWidth=1.3; g.beginPath(); g.moveTo(x, y-h/1.2); g.lineTo(x-s/2, y+h/2); g.lineTo(x+s/2, y+h/2); g.closePath(); g.fill(); g.stroke(); }
+  function drawCircle(x,y,r,fill,stroke){ g.fillStyle=fill; g.strokeStyle=stroke; g.lineWidth=1.3; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); g.stroke(); }
+  function label(x,y,text){ g.fillStyle='#cfe3ff'; g.font='11px ui-monospace'; g.fillText(String(text||''), x+8, y+4); }
+
+  const colP = '#54f0b8', colR = '#bfeaff', colS = '#9ab0d6', edge = '#193457';
+
+  rows.forEach((it,i)=>{
+    const {radius, ang} = orbitFor(i, rows.length);
+    const rx = cx + radius*Math.cos(ang);
+    const ry = cy + radius*Math.sin(ang);
+
+    const hasP = !!it.prefix, hasS = !!it.suffix;
+    const subR = 18;
+    const px = rx + (hasP ? subR*Math.cos(ang*1.6 + 0.7) : 0);
+    const py = ry + (hasP ? subR*Math.sin(ang*1.6 + 0.7) : 0);
+    const sx = rx + (hasS ? subR*Math.cos(ang*1.3 - 0.6) : 0);
+    const sy = ry + (hasS ? subR*Math.sin(ang*1.3 - 0.6) : 0);
+
+    // connectors
+    g.strokeStyle=edge; g.lineWidth=1;
+    if(hasP){ g.beginPath(); g.moveTo(px,py); g.lineTo(rx,ry); g.stroke(); }
+    if(hasS){ g.beginPath(); g.moveTo(rx,ry); g.lineTo(sx,sy); g.stroke(); }
+
+    // root ▲
+    drawTriangle(rx, ry, 12, colR, edge); label(rx, ry, it.root || it.normalized || it.original);
+    // prefix ▢
+    if(hasP) drawSquare(px, py, 10, colP, edge);
+    // suffix ●
+    if(hasS) drawCircle(sx, sy, 5, colS, edge);
+
+    // compound dashed links
+    if (it.isCompound && it.parts && it.parts.length>1){
+      g.setLineDash([5,3]); g.strokeStyle='#355a82'; g.lineWidth=1;
+      const n = it.parts.length;
+      for(let k=0;k<n-1;k++){
+        const a = k/n * Math.PI*2 + ang*0.4;
+        const b = (k+1)/n * Math.PI*2 + ang*0.4;
+        const ra = radius - 24, rb = radius - 24;
+        const ax = cx + ra*Math.cos(a), ay = cy + ra*Math.sin(a);
+        const bx = cx + rb*Math.cos(b), by = cy + rb*Math.sin(b);
+        g.beginPath(); g.moveTo(ax,ay); g.lineTo(bx,by); g.stroke();
+      }
+      g.setLineDash([]);
+    }
+  });
+
+  const vc = document.getElementById('vizCount'); if (vc) vc.textContent = String(lastRes.count||0) + ' parsed • animated';
+}
+window.addEventListener('resize', ()=> startVisual());
+
+/* ============================
+   Engine Room Message Bus (Tier-4)
+   ============================ */
+
+// Simple in-room KV (use IndexedDB later; localStorage for demo)
+const KV_KEY = "gridroom.store.v1";
+const Store = {
+  load() { try { return JSON.parse(localStorage.getItem(KV_KEY) || "{}"); } catch { return {}; } },
+  save(obj) { localStorage.setItem(KV_KEY, JSON.stringify(obj)); },
+};
+let ROOM_STATE = Store.load();
+
+// Message schema (from IDE → Room)
+/// {type:"INIT", payload:{sessionId, title?}}
+/// {type:"SNAPSHOT", payload:{cid, state, parentCid, timestamp}}
+/// {type:"EVENT", payload:{id, button, inputCid, outputCid, timestamp, meta?}}
+/// {type:"SET_PANEL_HTML", payload:{panelId, html}}
+/// {type:"ADD_PANEL", payload:{wall, x,y,w,h, title, html?}}
+/// {type:"REMOVE_PANEL", payload:{panelId}}
+/// {type:"FOCUS_PANEL", payload:{panelId}}
+/// {type:"TOAST", payload:{msg}}
+/// {type:"LOAD_SESSION", payload:{events, snapshots, currentCid}}
+/// {type:"REQUEST", payload:{op:"GET_STATE"|"LIST_PANELS"}}
+
+const ROOM_ORIGIN = "*"; // tighten if you know the IDE origin
+
+function sendToIDE(msg) {
+  // If the room is embedded as an iframe, parent is the IDE
+  window.parent?.postMessage({ room: "gridroom", ...msg }, ROOM_ORIGIN);
+}
+
+// Enhanced toast function for the room
+function toast(msg, type = 'info') {
+  const existingToast = document.querySelector('.room-toast');
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'room-toast';
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 10000;
+    background: ${type === 'error' ? '#67060c' : '#0d4f3c'};
+    border: 1px solid ${type === 'error' ? '#da3633' : '#238636'};
+    color: ${type === 'error' ? '#f85149' : '#46d158'};
+    padding: 12px 16px; border-radius: 8px; font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
+    transform: translateX(100%);
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.style.transform = 'translateX(0)', 10);
+  setTimeout(() => {
+    toast.style.transform = 'translateX(100%)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Virtual panel system for managing content areas
+const virtualPanels = new Map();
+let panelIdCounter = 1000;
+
+function addPanel({ wall, x, y, w, h, title }) {
+  const id = panelIdCounter++;
+  const panel = { id, wall, x, y, w, h, title, created: Date.now() };
+  virtualPanels.set(id, panel);
+
+  // Create actual DOM element for the panel
+  createPanelElement(panel);
+  return panel;
+}
+
+function createPanelElement(panel) {
+  const existing = document.getElementById(`panel-${panel.id}`);
+  if (existing) return existing;
+
+  const element = document.createElement('div');
+  element.id = `panel-${panel.id}`;
+  element.className = 'room-panel';
+  element.style.cssText = `
+    position: absolute;
+    left: ${Math.max(0, panel.x)}px;
+    top: ${Math.max(0, panel.y)}px;
+    width: ${panel.w}px;
+    height: ${panel.h}px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = `
+    background: #1a2332; padding: 6px 12px; border-bottom: 1px solid var(--line);
+    font-size: 12px; font-weight: 600; color: var(--acc); cursor: move;
+    display: flex; align-items: center; justify-content: space-between;
+  `;
+  header.innerHTML = `
+    <span>${panel.title}</span>
+    <button onclick="removePanel(${panel.id})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 0 4px;">×</button>
+  `;
+
+  const content = document.createElement('div');
+  content.id = `panel-content-${panel.id}`;
+  content.style.cssText = `
+    height: calc(100% - 32px); overflow: auto;
+    padding: 8px; background: var(--bg);
+  `;
+
+  element.appendChild(header);
+  element.appendChild(content);
+  document.body.appendChild(element);
+
+  // Make draggable
+  makeDraggable(element, header);
+  return element;
+}
+
+function makeDraggable(element, handle) {
+  let isDragging = false;
+  let currentX, currentY, initialX, initialY;
+
+  handle.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    initialX = e.clientX - element.offsetLeft;
+    initialY = e.clientY - element.offsetTop;
+    element.style.zIndex = '1000';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+    element.style.left = Math.max(0, currentX) + 'px';
+    element.style.top = Math.max(0, currentY) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    element.style.zIndex = '100';
+  });
+}
+
+function removePanel(panelId) {
+  const element = document.getElementById(`panel-${panelId}`);
+  if (element) element.remove();
+  virtualPanels.delete(panelId);
+}
+
+function setPanelHTML(panelId, html) {
+  const content = document.getElementById(`panel-content-${panelId}`);
+  if (!content) return;
+
+  // Create iframe for safe HTML rendering
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: transparent;';
+  iframe.srcdoc = html;
+  content.innerHTML = '';
+  content.appendChild(iframe);
+}
+
+// Register commands
+const Commands = {
+  INIT({ sessionId, title }) {
+    ROOM_STATE.sessionId = sessionId || ("session:" + Date.now());
+    if (title) document.title = title + " • Engine Room";
+    Store.save(ROOM_STATE);
+    toast(`Session: ${ROOM_STATE.sessionId.slice(0, 12)}...`);
+
+    // Initialize core panels
+    setTimeout(() => {
+      ensureEventsPanel();
+      ensureSnapshotsPanel();
+      ensureNucleusPanel();
+    }, 500);
+  },
+
+  SNAPSHOT({ cid, state, parentCid, timestamp }) {
+    ROOM_STATE.snapshots = ROOM_STATE.snapshots || {};
+    ROOM_STATE.snapshots[cid] = { cid, state, parentCid, timestamp };
+    ROOM_STATE.currentCid = cid;
+    Store.save(ROOM_STATE);
+
+    ensureSnapshotsPanel();
+    renderSnapshotsPanel();
+
+    // Update nucleus with new state
+    updateNucleusState(state);
+  },
+
+  EVENT(evt) {
+    ROOM_STATE.events = [evt, ...(ROOM_STATE.events || [])].slice(0, 1000);
+    Store.save(ROOM_STATE);
+    ensureEventsPanel();
+    renderEventsPanel();
+
+    // Trigger visual update on the main canvas
+    if (evt.button && evt.button.startsWith('Tier4_')) {
+      highlightOperation(evt.button);
+    }
+  },
+
+  SET_PANEL_HTML({ panelId, html }) {
+    setPanelHTML(panelId, html);
+  },
+
+  ADD_PANEL({ wall, x, y, w, h, title, html }) {
+    const p = addPanel({ wall: wall || 'front', x: x || 100, y: y || 100, w: w || 300, h: h || 200, title: title || "Panel" });
+    if (html) setPanelHTML(p.id, html);
+    toast(`Panel ${p.id} added`);
+    sendToIDE({ type: "ROOM_ACK", payload: { op: "ADD_PANEL", panelId: p.id }});
+  },
+
+  REMOVE_PANEL({ panelId }) {
+    removePanel(panelId);
+    toast(`Panel ${panelId} removed`);
+  },
+
+  FOCUS_PANEL({ panelId }) {
+    const element = document.getElementById(`panel-${panelId}`);
+    if (element) {
+      element.style.zIndex = '999';
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    toast(`Focused panel ${panelId}`);
+  },
+
+  TOAST({ msg }) {
+    toast(msg || "Notice");
+  },
+
+  LOAD_SESSION({ events = [], snapshots = {}, currentCid }) {
+    ROOM_STATE.events = events;
+    ROOM_STATE.snapshots = snapshots;
+    ROOM_STATE.currentCid = currentCid;
+    Store.save(ROOM_STATE);
+
+    ensureEventsPanel();   renderEventsPanel();
+    ensureSnapshotsPanel(); renderSnapshotsPanel();
+    ensureNucleusPanel();   renderNucleusPanel();
+
+    toast("Session loaded");
+  },
+
+  REQUEST({ op }) {
+    if (op === "GET_STATE") {
+      sendToIDE({
+        type: "ROOM_STATE",
+        payload: {
+          sessionId: ROOM_STATE.sessionId,
+          panelCount: virtualPanels.size,
+          events: (ROOM_STATE.events || []).length,
+          snapshots: ROOM_STATE.snapshots ? Object.keys(ROOM_STATE.snapshots).length : 0,
+          currentCid: ROOM_STATE.currentCid || null,
+        }
+      });
+    }
+    if (op === "LIST_PANELS") {
+      sendToIDE({
+        type: "ROOM_PANELS",
+        payload: Array.from(virtualPanels.values()).map(p => ({
+          id: p.id, wall: p.wall, x: p.x, y: p.y, w: p.w, h: p.h, title: p.title
+        }))
+      });
+    }
+  }
+};
+
+// Listener for postMessage commands
+window.addEventListener("message", (e) => {
+  const data = e.data || {};
+  if (data?.room !== "gridroom" || !data.type) return;
+  const fn = Commands[data.type];
+  if (fn) try { fn(data.payload || {}); } catch (err) { console.error(err); toast("Command error", 'error'); }
+});
+
+// Core panel management
+let _eventsPid = null, _snapsPid = null, _nucleusPid = null;
+
+function ensureEventsPanel() {
+  if (_eventsPid && virtualPanels.has(_eventsPid)) return;
+  const p = addPanel({ wall: 'left', x: 60, y: 260, w: 420, h: 260, title: "Tier-4 Events" });
+  _eventsPid = p.id;
+}
+
+function ensureSnapshotsPanel() {
+  if (_snapsPid && virtualPanels.has(_snapsPid)) return;
+  const p = addPanel({ wall: 'right', x: window.innerWidth - 480, y: 260, w: 420, h: 260, title: "State Snapshots" });
+  _snapsPid = p.id;
+}
+
+function ensureNucleusPanel() {
+  if (_nucleusPid && virtualPanels.has(_nucleusPid)) return;
+  const p = addPanel({ wall: 'front', x: window.innerWidth / 2 - 200, y: 50, w: 400, h: 300, title: "Nucleus Monitor" });
+  _nucleusPid = p.id;
+}
+
+function renderEventsPanel() {
+  if (!_eventsPid) return;
+  const evts = ROOM_STATE.events || [];
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#0b1418;color:#cfe;font:12px ui-monospace}
+    .row{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between}
+    .meta{opacity:.7;font-size:11px}
+    .operator{color:#54f0b8;font-weight:600}
+    .nucleus{color:#ff9f43}
+  </style>
+  ${evts.slice(0, 64).map(function(e) {
+    var row = '<div class="row">';
+    row += '<div>';
+    row += '<span class="' + (e.button && e.button.startsWith('Tier4_') ? 'operator' : 'nucleus') + '">' + (e.button || e.type) + '</span>';
+    if (e.inputCid && e.outputCid) {
+      row += '<span class="meta">' + e.inputCid.slice(0,8) + ' → ' + e.outputCid.slice(0,8) + '</span>';
+    }
+    row += '</div>';
+    row += '<div class="meta">' + new Date(e.timestamp).toLocaleTimeString() + '</div>';
+    row += '</div>';
+    return row;
+  }).join("")}
+  `;
+  setPanelHTML(_eventsPid, html);
+}
+
+function renderSnapshotsPanel() {
+  if (!_snapsPid) return;
+  const snaps = ROOM_STATE.snapshots || {};
+  const list = Object.values(snaps).sort((a,b)=> (b.timestamp||0) - (a.timestamp||0)).slice(0, 64);
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#0b1418;color:#cfe;font:12px ui-monospace}
+    .row{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
+    button{background:#0c2230;color:#9fd6ff;border:1px solid #244;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px}
+    button:hover{background:#1a3a55}
+    .state-info{font-size:11px;opacity:0.8}
+    .current{border-left:3px solid #54f0b8;padding-left:8px}
+  </style>
+  ${list.map(function(s) {
+    var rowClass = s.cid === ROOM_STATE.currentCid ? 'current' : '';
+    var cidShort = s.cid.slice(0,12) + '…';
+    var kappa = (s.state.kappa||0).toFixed(2);
+    var level = s.state.level||0;
+    var dim = (s.state.x && s.state.x.length) ? s.state.x.length : 4;
+    var btn = '<button onclick="parent.postMessage({room:\'gridroom\',type:\'REQUEST_LOAD_CID\',payload:{cid:\'' + s.cid + '\'}},\'*\')">Load</button>';
+    return '<div class="row ' + rowClass + '">'
+      + '<div>'
+      + '<div><strong>' + cidShort + '</strong></div>'
+      + '<div class="state-info">&#954;:' + kappa + ' lv:' + level + ' dim:' + dim + '</div>'
+      + '</div>'
+      + btn
+      + '</div>';
+  }).join("")}
+  `;
+  setPanelHTML(_snapsPid, html);
+}
+
+function renderNucleusPanel() {
+  if (!_nucleusPid) return;
+  const currentSnapshot = ROOM_STATE.currentCid ? ROOM_STATE.snapshots?.[ROOM_STATE.currentCid] : null;
+  const state = currentSnapshot?.state || { x: [0, 0.5, 0.4, 0.6], kappa: 0.6, level: 0 };
+  const recentEvents = (ROOM_STATE.events || []).slice(0, 5);
+
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#0b1418;color:#cfe;font:12px ui-monospace;padding:12px}
+    .state-vector{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+    .vector-item{text-align:center;padding:8px;background:#1a2332;border-radius:6px}
+    .nucleus-viz{width:100%;height:80px;background:#06101c;border:1px solid #2a3548;border-radius:6px;margin:8px 0}
+    .recent-event{padding:4px 8px;background:#0f1523;border-radius:4px;margin:2px 0;font-size:11px}
+    .glow{animation:pulse 2s infinite}
+    @keyframes pulse{0%{opacity:1}50%{opacity:0.6}100%{opacity:1}}
+  </style>
+  <div><strong>State Vector [p, i, g, c]</strong></div>
+  <div class="state-vector">
+    <div class="vector-item">p<br><strong>${(state.x?.[0] || 0).toFixed(3)}</strong></div>
+    <div class="vector-item">i<br><strong>${(state.x?.[1] || 0.5).toFixed(3)}</strong></div>
+    <div class="vector-item">g<br><strong>${(state.x?.[2] || 0.4).toFixed(3)}</strong></div>
+    <div class="vector-item">c<br><strong>${(state.x?.[3] || 0.6).toFixed(3)}</strong></div>
+  </div>
+  <div>κ: <strong>${(state.kappa || 0.6).toFixed(3)}</strong> | Level: <strong>${state.level || 0}</strong></div>
+  <canvas class="nucleus-viz glow" id="nucleus-canvas"></canvas>
+  <div><strong>Recent Activity:</strong></div>
+  ${recentEvents.map(e => `<div class="recent-event">${e.button || e.type} (${new Date(e.timestamp).toLocaleTimeString()})</div>`).join("")}
+  <script>
+    const canvas = document.getElementById('nucleus-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 80;
+
+    function drawNucleus() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const time = Date.now() / 1000;
+
+      // Draw nucleus core
+      const coreRadius = 12 + Math.sin(time * 3) * 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, coreRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#54f0b8';
+      ctx.fill();
+
+      // Draw orbiting particles
+      for (let i = 0; i < 4; i++) {
+        const angle = time + (i * Math.PI / 2);
+        const radius = 25;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#9fd6ff';
+        ctx.fill();
+      }
+    }
+
+    setInterval(drawNucleus, 50);
+  </scr"+"ipt>`;
+  setPanelHTML(_nucleusPid, html);
+}
+
+function updateNucleusState(state) {
+  // Update the main visualization with new state
+  if (typeof startVisual === 'function') {
+    // Trigger a refresh of the main canvas
+    setTimeout(startVisual, 100);
+  }
+
+  // Re-render nucleus panel
+  renderNucleusPanel();
+}
+
+function highlightOperation(operation) {
+  // Add visual feedback for operations
+  toast(`${operation.replace('Tier4_', '')} applied`, 'info');
+
+  // Flash the main visualization
+  const viz = document.querySelector('.viz');
+  if (viz) {
+    viz.style.boxShadow = '0 0 20px rgba(84, 240, 184, 0.6)';
+    setTimeout(() => viz.style.boxShadow = '', 300);
+  }
+}
+
+// On first load, rebuild panels if there is saved state
+(function hydrate() {
+  if (ROOM_STATE.snapshots) { ensureSnapshotsPanel(); renderSnapshotsPanel(); }
+  if (ROOM_STATE.events)    { ensureEventsPanel(); renderEventsPanel(); }
+  if (ROOM_STATE.sessionId) { ensureNucleusPanel(); renderNucleusPanel(); }
+})();
+
+// Send ready signal to parent
+setTimeout(() => {
+  sendToIDE({ type: "ROOM_READY", payload: { sessionId: ROOM_STATE.sessionId || "new" } });
+}, 1000);
+
+  // Startup
+  restore(); initTests(); if(!elIn.value) elIn.value = TESTS.join('\n'); run();
+})();
+</script>
+</body>
+</html>

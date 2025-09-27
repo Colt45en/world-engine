@@ -46,7 +46,11 @@
         "build",
         "**/*.min.js",
         "**/*.test.js",
-        "**/*.spec.js"
+        "**/*.spec.js",
+        "src/nucleus/**/*.tsx",
+        "src/**/*.tsx",
+        "demo/**/*",
+        "archive/**/*"
     ],
     "ts-node": {
         "esm": true

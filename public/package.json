@@ -1,0 +1,21 @@
+{
+  "name": "world-engine-synthetic",
+  "version": "1.0.0",
+  "description": "Synthetic directive system for World Engine Studio",
+  "main": "index.js",
+  "scripts": {
+    "synthetic": "npx ts-node synthetic/cli.ts .",
+    "synthetic:watch": "npx chokidar \"**/*.{js,ts}\" -c \"npm run synthetic\"",
+    "test:synthetic": "npx ts-node synthetic/cli.ts . && echo 'Synthetic tests complete'"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
+    "chokidar-cli": "^3.0.0"
+  },
+  "dependencies": {},
+  "keywords": ["world-engine", "synthetic", "testing", "mathematical"],
+  "author": "World Engine Studio",
+  "license": "MIT"
+}

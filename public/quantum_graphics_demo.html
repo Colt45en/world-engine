@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Graphics Engine Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0b0e14;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            color: #e6f0ff;
+        }
+
+        #quantumCanvas {
+            display: block;
+            cursor: crosshair;
+            background: radial-gradient(circle at center, #1a1f2e 0%, #0b0e14 100%);
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 43, 70, 0.9);
+            border: 1px solid #54f0b8;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 280px;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #3d4b66;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            color: #54f0b8;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, #54f0b8, #4299d1);
+            border: none;
+            border-radius: 4px;
+            color: #0b0e14;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .control-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(84, 240, 184, 0.4);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+        }
+
+        .control-button.danger {
+            background: linear-gradient(135deg, #ff6b9d, #ff4757);
+        }
+
+        .control-button.warning {
+            background: linear-gradient(135deg, #ffa726, #ff9800);
+        }
+
+        .control-slider {
+            width: 120px;
+            height: 4px;
+            background: #3d4b66;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #54f0b8;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .stat-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #9ab0d6;
+            margin: 4px 0;
+        }
+
+        .stat-value {
+            color: #e6f0ff;
+            font-weight: bold;
+        }
+
+        .math-function-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .math-function-btn {
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 3px;
+            border: 1px solid transparent;
+        }
+
+        .math-function-btn.mirror {
+            background: linear-gradient(135deg, #00ffff, #ffffff);
+            color: #000;
+        }
+
+        .math-function-btn.cosine {
+            background: linear-gradient(135deg, #ff00ff, #ffff00);
+            color: #000;
+        }
+
+        .math-function-btn.chaos {
+            background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff);
+            color: #fff;
+        }
+
+        .math-function-btn.absorb {
+            background: linear-gradient(135deg, #666666, #000000);
+            color: #fff;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-indicator.active {
+            background: #54f0b8;
+            box-shadow: 0 0 6px #54f0b8;
+        }
+
+        .status-indicator.inactive {
+            background: #666;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(30, 43, 70, 0.9);
+            border: 1px solid #54f0b8;
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 350px;
+            backdrop-filter: blur(10px);
+        }
+
+        .instruction-item {
+            margin: 6px 0;
+            font-size: 12px;
+            color: #bfeaff;
+        }
+
+        .instruction-key {
+            background: #3d4b66;
+            color: #54f0b8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #54f0b8;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #54f0b8;
+        }
+
+        .performance-graph {
+            width: 100%;
+            height: 60px;
+            background: #1a1f2e;
+            border-radius: 4px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 18px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #3d4b66;
+            transition: .4s;
+            border-radius: 18px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #9ab0d6;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #54f0b8;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(16px);
+            background-color: #0b0e14;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        🌌 QUANTUM GRAPHICS ENGINE
+    </div>
+
+    <canvas id="quantumCanvas"></canvas>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <!-- System Status -->
+        <div class="control-section">
+            <div class="section-title">System Status</div>
+            <div class="stat-display">
+                <span>Engine:</span>
+                <span class="stat-value">
+                    <span class="status-indicator active"></span>ACTIVE
+                </span>
+            </div>
+            <div class="stat-display">
+                <span>FPS:</span>
+                <span class="stat-value" id="fpsDisplay">60</span>
+            </div>
+            <div class="stat-display">
+                <span>Frame Time:</span>
+                <span class="stat-value" id="frameTimeDisplay">16.67ms</span>
+            </div>
+        </div>
+
+        <!-- VectorLab Integration -->
+        <div class="control-section">
+            <div class="section-title">VectorLab Heart</div>
+            <div class="stat-display">
+                <span>Resonance:</span>
+                <span class="stat-value" id="resonanceDisplay">0.000</span>
+            </div>
+            <div class="stat-display">
+                <span>State:</span>
+                <span class="stat-value" id="heartStateDisplay">idle</span>
+            </div>
+            <div class="control-row">
+                <button class="control-button" onclick="quantumEngine.vectorLab.heartEngine.pulse(0.3)">
+                    💓 Pulse
+                </button>
+                <button class="control-button" onclick="quantumEngine.vectorLab.heartEngine.echo()">
+                    🔁 Echo
+                </button>
+            </div>
+        </div>
+
+        <!-- Quantum Events -->
+        <div class="control-section">
+            <div class="section-title">Quantum Events</div>
+            <div class="control-row">
+                <button class="control-button" onclick="quantumEngine.triggerRandomCollapse()">
+                    💥 Agent Collapse
+                </button>
+            </div>
+            <div class="control-row">
+                <button class="control-button warning" onclick="quantumEngine.triggerGlobalCollapse()">
+                    🌌 Global Collapse
+                </button>
+            </div>
+            <div class="control-row">
+                <button class="control-button" onclick="quantumEngine.triggerFunctionChange()">
+                    🔄 Function Change
+                </button>
+            </div>
+            <div class="control-row">
+                <button class="control-button" onclick="quantumEngine.createRandomGhostJourney()">
+                    👻 Memory Ghost
+                </button>
+            </div>
+        </div>
+
+        <!-- Math Functions -->
+        <div class="control-section">
+            <div class="section-title">Math Functions</div>
+            <div class="math-function-grid">
+                <button class="control-button math-function-btn mirror" onclick="setActiveMathFunction('mirror')">
+                    Mirror
+                </button>
+                <button class="control-button math-function-btn cosine" onclick="setActiveMathFunction('cosine')">
+                    Cosine
+                </button>
+                <button class="control-button math-function-btn chaos" onclick="setActiveMathFunction('chaos')">
+                    Chaos
+                </button>
+                <button class="control-button math-function-btn absorb" onclick="setActiveMathFunction('absorb')">
+                    Absorb
+                </button>
+            </div>
+        </div>
+
+        <!-- Resource Management -->
+        <div class="control-section">
+            <div class="section-title">Resource System</div>
+            <div class="stat-display">
+                <span>Chunks Loaded:</span>
+                <span class="stat-value" id="chunksLoadedDisplay">0</span>
+            </div>
+            <div class="stat-display">
+                <span>Memory Usage:</span>
+                <span class="stat-value" id="memoryUsageDisplay">0KB</span>
+            </div>
+            <div class="control-row">
+                <span>View Distance:</span>
+                <input type="range" class="control-slider" min="100" max="500" value="300"
+                       onchange="updateViewDistance(this.value)" id="viewDistanceSlider">
+            </div>
+        </div>
+
+        <!-- Visual Effects -->
+        <div class="control-section">
+            <div class="section-title">Visual Effects</div>
+            <div class="control-row">
+                <span>Particles:</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="toggleEffect('particles')">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="control-row">
+                <span>Trails:</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="toggleEffect('trails')">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="control-row">
+                <span>Memory Ghosts:</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="toggleEffect('memoryGhosts')">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="control-row">
+                <button class="control-button danger" onclick="quantumEngine.visualEffects.clear()">
+                    🧹 Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Performance Graph -->
+        <div class="control-section">
+            <div class="section-title">Performance</div>
+            <canvas id="performanceGraph" width="250" height="60" class="performance-graph"></canvas>
+        </div>
+    </div>
+
+    <!-- Instructions Panel -->
+    <div class="instructions">
+        <div class="section-title">Controls</div>
+        <div class="instruction-item">
+            <span class="instruction-key">Click</span>Trigger quantum agent collapse
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-key">SPACE</span>Global collapse cascade
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-key">F</span>Change math function
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-key">G</span>Create memory ghost
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-key">C</span>Clear all effects
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-key">R</span>Random agent collapse
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-key">W/A/S/D</span>Move camera
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="vectorlab_world_engine.js"></script>
+    <script src="quantum_graphics_engine.js"></script>
+
+    <script>
+        // Global variables
+        let quantumEngine;
+        let vectorLabEngine;
+        let activeMathFunction = 'cosine';
+        let performanceHistory = [];
+
+        // Initialize engines
+        function initializeEngines() {
+            console.log('🚀 Initializing Quantum Graphics Demo...');
+
+            // Initialize VectorLab World Engine
+            vectorLabEngine = new VectorLabWorldEngine('quantumCanvas');
+
+            // Initialize Quantum Graphics Engine with VectorLab integration
+            quantumEngine = new QuantumGraphicsEngine('quantumCanvas', vectorLabEngine);
+            quantumEngine.connectVectorLab(vectorLabEngine);
+
+            // Start both engines
+            vectorLabEngine.start();
+            quantumEngine.start();
+
+            console.log('✅ Both engines initialized and running');
+
+            // Setup keyboard controls
+            setupKeyboardControls();
+
+            // Setup performance monitoring
+            setupPerformanceMonitoring();
+
+            // Create initial demo effects
+            createInitialDemo();
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                switch (e.code) {
+                    case 'Space':
+                        e.preventDefault();
+                        quantumEngine.triggerGlobalCollapse();
+                        break;
+                    case 'KeyF':
+                        quantumEngine.triggerFunctionChange();
+                        break;
+                    case 'KeyG':
+                        quantumEngine.createRandomGhostJourney();
+                        break;
+                    case 'KeyC':
+                        quantumEngine.visualEffects.clear();
+                        break;
+                    case 'KeyR':
+                        quantumEngine.triggerRandomCollapse();
+                        break;
+                    case 'KeyW':
+                        moveCamera(0, -20);
+                        break;
+                    case 'KeyS':
+                        moveCamera(0, 20);
+                        break;
+                    case 'KeyA':
+                        moveCamera(-20, 0);
+                        break;
+                    case 'KeyD':
+                        moveCamera(20, 0);
+                        break;
+                }
+            });
+        }
+
+        function setupPerformanceMonitoring() {
+            const performanceCanvas = document.getElementById('performanceGraph');
+            const ctx = performanceCanvas.getContext('2d');
+
+            setInterval(() => {
+                if (quantumEngine) {
+                    const stats = quantumEngine.getSystemStats();
+
+                    // Update UI displays
+                    document.getElementById('fpsDisplay').textContent = stats.fps;
+                    document.getElementById('frameTimeDisplay').textContent =
+                        stats.performance.frameTime.toFixed(2) + 'ms';
+
+                    if (vectorLabEngine) {
+                        document.getElementById('resonanceDisplay').textContent =
+                            vectorLabEngine.heartEngine.resonance.toFixed(3);
+                        document.getElementById('heartStateDisplay').textContent =
+                            vectorLabEngine.heartEngine.getEmotionalState();
+                    }
+
+                    document.getElementById('chunksLoadedDisplay').textContent =
+                        stats.resources.chunksLoaded;
+                    document.getElementById('memoryUsageDisplay').textContent =
+                        stats.resources.memoryUsage.toFixed(1) + 'KB';
+
+                    // Update performance graph
+                    performanceHistory.push(stats.performance.frameTime);
+                    if (performanceHistory.length > 100) {
+                        performanceHistory.shift();
+                    }
+
+                    drawPerformanceGraph(ctx, performanceHistory);
+                }
+            }, 100);
+        }
+
+        function drawPerformanceGraph(ctx, data) {
+            const width = 250;
+            const height = 60;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (data.length < 2) return;
+
+            const maxTime = Math.max(33.33, ...data); // At least 30 FPS reference
+            const step = width / (data.length - 1);
+
+            // Draw 60 FPS reference line
+            const fps60Line = height - (16.67 / maxTime) * height;
+            ctx.strokeStyle = '#54f0b8';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(0, fps60Line);
+            ctx.lineTo(width, fps60Line);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw performance line
+            ctx.strokeStyle = '#4299d1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            for (let i = 0; i < data.length; i++) {
+                const x = i * step;
+                const y = height - (data[i] / maxTime) * height;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // Draw current frame time text
+            const currentTime = data[data.length - 1];
+            ctx.fillStyle = '#e6f0ff';
+            ctx.font = '10px monospace';
+            ctx.fillText(`${currentTime.toFixed(1)}ms`, width - 40, 12);
+        }
+
+        function createInitialDemo() {
+            // Create a welcome burst
+            setTimeout(() => {
+                quantumEngine.eventOrchestrator.emitAgentCollapse(
+                    'welcome_agent',
+                    { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+                    {
+                        mathType: 'cosine',
+                        intensity: 0.8
+                    }
+                );
+
+                // Create some memory ghosts after the welcome
+                setTimeout(() => {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            quantumEngine.createRandomGhostJourney();
+                        }, i * 1000);
+                    }
+                }, 2000);
+
+            }, 500);
+        }
+
+        // Control functions
+        function setActiveMathFunction(mathType) {
+            activeMathFunction = mathType;
+            console.log(`🔄 Active math function changed to: ${mathType}`);
+        }
+
+        function updateViewDistance(value) {
+            if (quantumEngine) {
+                const currentCamera = quantumEngine.resourceRenderer.camera;
+                quantumEngine.resourceRenderer.updateCamera(
+                    currentCamera.x,
+                    currentCamera.y,
+                    parseInt(value)
+                );
+            }
+        }
+
+        function toggleEffect(effectType) {
+            if (quantumEngine) {
+                quantumEngine.visualEffects.toggleEffect(effectType);
+            }
+        }
+
+        function moveCamera(dx, dy) {
+            if (quantumEngine) {
+                const camera = quantumEngine.resourceRenderer.camera;
+                quantumEngine.resourceRenderer.updateCamera(
+                    camera.x + dx,
+                    camera.y + dy,
+                    camera.viewDistance
+                );
+            }
+        }
+
+        // Enhanced canvas click handler with active math function
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('quantumCanvas');
+
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (quantumEngine) {
+                    quantumEngine.eventOrchestrator.emitAgentCollapse(
+                        `user_click_${Date.now()}`,
+                        { x, y },
+                        {
+                            mathType: activeMathFunction,
+                            intensity: 0.5 + Math.random() * 0.5
+                        }
+                    );
+                }
+            });
+
+            // Initialize engines
+            initializeEngines();
+        });
+
+        // Auto-demo mode (optional)
+        let autoDemoInterval;
+        function startAutoDemo() {
+            autoDemoInterval = setInterval(() => {
+                if (Math.random() < 0.3) {
+                    quantumEngine.triggerRandomCollapse();
+                } else if (Math.random() < 0.1) {
+                    quantumEngine.createRandomGhostJourney();
+                } else if (Math.random() < 0.05) {
+                    quantumEngine.triggerFunctionChange();
+                }
+            }, 2000);
+        }
+
+        function stopAutoDemo() {
+            if (autoDemoInterval) {
+                clearInterval(autoDemoInterval);
+                autoDemoInterval = null;
+            }
+        }
+
+        // Expose for debugging
+        window.quantumEngine = quantumEngine;
+        window.vectorLabEngine = vectorLabEngine;
+        window.startAutoDemo = startAutoDemo;
+        window.stopAutoDemo = stopAutoDemo;
+    </script>
+</body>
+</html>

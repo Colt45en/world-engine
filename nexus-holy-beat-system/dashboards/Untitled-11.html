@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Nexus Deck — One-Screen Dashboard</title>
+<style>
+  :root{
+    --bg:#07140F;         /* canvas */
+    --panel:#0B1E17;      /* card */
+    --panel-2:#0A1A14;    /* darker */
+    --line:#123126;       /* outlines */
+    --ink:#C9F7DB;        /* text */
+    --mut:#8FDAAF;        /* muted text */
+    --accent:#28F49B;     /* neon */
+    --accent-2:#7CFCCB;   /* soft neon */
+    --shadow:0 6px 20px rgba(0,0,0,.35);
+
+    /* Layout sizes saved/restored via JS (px) */
+    --col1:300px;   /* left rail */
+    --col3:380px;   /* right inspector */
+    --row1:58vh;    /* top band */
+    --dockH:44px;   /* bottom dock */
+    --topH:48px;    /* top bar */
+
+    /* Gutter size */
+    --gut:10px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 600px at 70% -20%, #0f2a21 0%, #07140F 55%) fixed;
+    color:var(--ink);
+    font:14px/1.35 ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+    overflow:hidden; /* one-screen */
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Top bar --------------------------------------------------------- */
+  .topbar{
+    height:var(--topH);
+    display:flex; align-items:center; gap:12px; padding:8px 12px 8px 10px;
+    backdrop-filter:saturate(140%) blur(6px);
+    background:rgba(8,18,14,.6);
+    border-bottom:1px solid var(--line);
+  }
+  .burger{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:var(--panel); border:1px solid var(--line); cursor:pointer}
+  .brand{font-weight:700; letter-spacing:.2px; color:var(--accent)}
+  .pill{
+    flex:1; height:32px; border-radius:12px; background:var(--panel); border:1px solid var(--line);
+    display:flex; align-items:center; gap:8px; padding:0 12px;
+  }
+  .pill input{flex:1; background:transparent; border:0; outline:none; color:var(--ink)}
+  .hint{color:var(--mut); font-size:12px}
+
+  /* Grid frame ------------------------------------------------------ */
+  .frame{position:absolute; inset:var(--topH) 0 var(--dockH) 0; padding:10px;}
+  .grid{
+    height:100%; width:100%;
+    display:grid; gap:var(--gut);
+    grid-template-columns: var(--col1) var(--gut) minmax(320px, 1fr) var(--gut) var(--col3);
+    grid-template-rows: var(--row1) var(--gut) minmax(140px, 1fr);
+    grid-template-areas:
+      "nav v1 view v2 insp"
+      "nav v1 h1   v2 insp"
+      "proj v1 auto v2 work";
+  }
+
+  .card{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* Areas ----------------------------------------------------------- */
+  .nav  { grid-area:nav;  }
+  .view { grid-area:view; display:flex; flex-direction:column; }
+  .insp { grid-area:insp; }
+  .proj { grid-area:proj; }
+  .auto { grid-area:auto; }
+  .work { grid-area:work; }
+
+  /* Gutter strips (click-drag) ------------------------------------- */
+  .v1, .v2, .h1{
+    background:transparent; /* keep gaps visible */
+    position:relative;
+  }
+  .v1{ grid-area:v1; cursor:col-resize; }
+  .v2{ grid-area:v2; cursor:col-resize; }
+  .h1{ grid-area:h1; cursor:row-resize; }
+
+  /* Visible handles centered inside gutters */
+  .handle{
+    position:absolute; inset:0; display:grid; place-items:center; pointer-events:none;
+  }
+  .handle > div{
+    pointer-events:auto;
+    background:color-mix(in srgb, var(--accent) 36%, transparent);
+    border:1px solid var(--line);
+    border-radius:8px;
+    transition:opacity .15s ease, transform .15s ease;
+    opacity:.4;
+  }
+  .v1 .handle > div, .v2 .handle > div{ width:4px; height:42%; }
+  .h1 .handle > div{ height:4px; width:42%; }
+  .v1:hover .handle > div, .v2:hover .handle > div, .h1:hover .handle > div{
+    opacity:.9; transform:scale(1.04);
+  }
+
+  /* Simple section headers ----------------------------------------- */
+  .section-title{
+    font-weight:700; color:var(--accent-2);
+    padding:10px 12px; border-bottom:1px solid var(--line);
+  }
+  .pad{ padding:10px 12px; color:var(--mut) }
+
+  /* Bottom dock ----------------------------------------------------- */
+  .dock{
+    position:absolute; left:0; right:0; bottom:0; height:var(--dockH);
+    background:linear-gradient(180deg, rgba(8,18,14,.2), rgba(8,18,14,.5));
+    border-top:1px solid var(--line);
+    display:flex; align-items:center; gap:10px; padding:6px 10px;
+    backdrop-filter:saturate(140%) blur(6px);
+  }
+  .dock .tab{
+    height:32px; padding:0 12px; display:grid; place-items:center;
+    border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink);
+    cursor:pointer;
+  }
+  .spacer{flex:1}
+  .meter{height:8px; width:160px; border-radius:999px; background:#0d2c22; border:1px solid var(--line); overflow:hidden}
+  .meter > i{display:block; height:100%; width:40%; background:linear-gradient(90deg, var(--accent), var(--accent-2))}
+
+  /* Tiny demo content styles --------------------------------------- */
+  .list{ padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
+  .item{
+    padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.02);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .btn{
+    height:28px; padding:0 10px; border:1px solid var(--line); border-radius:8px;
+    background:var(--panel); color:var(--ink); cursor:pointer;
+  }
+  .ghost{opacity:.6}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px}
+</style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="burger" id="restoreBtn" title="Restore layout">☰</div>
+    <div class="brand">Nexus Deck</div>
+    <div class="pill">
+      <span class="ghost">⌘K</span>
+      <input placeholder="Universal command…" />
+      <span class="hint">type to jump</span>
+    </div>
+    <button class="btn" id="saveBtn" title="Save layout">Save</button>
+  </div>
+
+  <!-- Main Frame -->
+  <div class="frame">
+    <div class="grid">
+      <!-- Left rail -->
+      <div class="card nav">
+        <div class="section-title">Navigator</div>
+        <div class="list">
+          <div class="item"><span>Inbox</span><button class="btn">Open</button></div>
+          <div class="item"><span>Scenes</span><button class="btn">Browse</button></div>
+          <div class="item"><span>Assets</span><button class="btn">Manage</button></div>
+          <div class="item"><span>Exports</span><button class="btn">Show</button></div>
+        </div>
+      </div>
+
+      <!-- Vertical gutter 1 -->
+      <div class="v1">
+        <div class="handle"><div id="gV1"></div></div>
+      </div>
+
+      <!-- Center view (top) -->
+      <div class="card view">
+        <div class="section-title">Main View</div>
+        <div class="pad">
+          <div class="mono">grid-area: <b>view</b></div>
+          <div class="ghost">Drop your canvas, charts, or timeline here.</div>
+        </div>
+      </div>
+
+      <!-- Vertical gutter 2 -->
+      <div class="v2">
+        <div class="handle"><div id="gV2"></div></div>
+      </div>
+
+      <!-- Right inspector (top) -->
+      <div class="card insp">
+        <div class="section-title">Inspector</div>
+        <div class="pad">
+          <div class="item"><span>Mode</span><button class="btn">Edit</button></div>
+          <div class="item"><span>Layer</span><button class="btn">Top</button></div>
+          <div class="item"><span>Theme</span><button class="btn">Neon</button></div>
+        </div>
+      </div>
+
+      <!-- Horizontal gutter -->
+      <div class="h1">
+        <div class="handle"><div id="gH1"></div></div>
+      </div>
+
+      <!-- Bottom left (projects) -->
+      <div class="card proj">
+        <div class="section-title">Projects</div>
+        <div class="list">
+          <div class="item"><span>Avatar v1 Pipeline</span><button class="btn">Open</button></div>
+          <div class="item"><span>Mask → Mesh Deck</span><button class="btn">Open</button></div>
+          <div class="item"><span>Shader Forge</span><button class="btn">Open</button></div>
+        </div>
+      </div>
+
+      <!-- Bottom center (auto/feeds) -->
+      <div class="card auto">
+        <div class="section-title">Activity / Logs</div>
+        <div class="pad mono" id="log">• ready</div>
+      </div>
+
+      <!-- Bottom right (workbench) -->
+      <div class="card work">
+        <div class="section-title">Workbench</div>
+        <div class="pad">
+          <button class="btn" id="growLeft">Grow Left</button>
+          <button class="btn" id="growRight">Grow Right</button>
+          <button class="btn" id="growTop">Grow Top</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Dock -->
+  <div class="dock">
+    <div class="tab" id="smallerDock">▾ Dock</div>
+    <div class="tab">Console</div>
+    <div class="tab">Tasks</div>
+    <div class="tab">Shortcuts</div>
+    <div class="spacer"></div>
+    <div class="meter"><i></i></div>
+    <div class="tab" id="biggerDock">▴</div>
+  </div>
+
+<script>
+  // ---------- Helpers ----------
+  const $ = sel => document.querySelector(sel);
+  const css = (k,v) => document.documentElement.style.setProperty(k, v);
+  const getVarPx = name => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  const log = (...a) => { const el = $('#log'); el && (el.textContent = (el.textContent + '\\n• ' + a.join(' ')).slice(-1200)); };
+
+  const KEYS = { col1:'--col1', col3:'--col3', row1:'--row1', dockH:'--dockH' };
+  const STORE_KEY = 'nexus-deck-layout-v1';
+
+  function saveLayout(){
+    const data = {
+      col1: getComputedStyle(document.documentElement).getPropertyValue('--col1').trim(),
+      col3: getComputedStyle(document.documentElement).getPropertyValue('--col3').trim(),
+      row1: getComputedStyle(document.documentElement).getPropertyValue('--row1').trim(),
+      dockH: getComputedStyle(document.documentElement).getPropertyValue('--dockH').trim()
+    };
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    log('saved', JSON.stringify(data));
+  }
+  function restoreLayout(){
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) { log('no saved layout'); return; }
+    try{
+      const data = JSON.parse(raw);
+      Object.entries(data).forEach(([k,v])=> css('--'+k, v));
+      log('restored', raw);
+    }catch(e){ log('restore failed'); }
+  }
+
+  // ---------- Drag logic for gutters ----------
+  function bindVerticalGutter(handleId, side){
+    // side: 'left' (col1) or 'right' (col3)
+    const el = document.getElementById(handleId);
+    let down=false, startX=0, startVal=0;
+    el.addEventListener('mousedown', (e)=>{ down=true; startX=e.clientX; startVal = getVarPx(side==='left'? KEYS.col1: KEYS.col3); e.preventDefault(); });
+    window.addEventListener('mousemove', (e)=>{
+      if(!down) return;
+      const dx = e.clientX - startX;
+      const newPx = side==='left' ? clamp(startVal + dx, 160, 520)
+                                   : clamp(startVal - dx, 240, 640);
+      css(side==='left'? KEYS.col1: KEYS.col3, Math.round(newPx)+'px');
+    });
+    window.addEventListener('mouseup', ()=>{ if(down){ down=false; saveLayout(); } });
+  }
+  function bindHorizontalGutter(handleId){
+    const el = document.getElementById(handleId);
+    let down=false, startY=0, startVal=0;
+    el.addEventListener('mousedown', (e)=>{ down=true; startY=e.clientY; startVal = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(KEYS.row1)); e.preventDefault(); });
+    window.addEventListener('mousemove', (e)=>{
+      if(!down) return;
+      const dy = e.clientY - startY;
+      // row1 is in vh by default; convert to px baseline, then back to vh for persistence feel.
+      const basePx = window.innerHeight * 0.58; // initial 58vh
+      const currentPx = (String(getComputedStyle(document.documentElement).getPropertyValue(KEYS.row1)).includes('vh'))
+        ? basePx : startVal;
+      const newPx = clamp(currentPx + dy, 180, window.innerHeight - 220);
+      css(KEYS.row1, newPx + 'px');
+    });
+    window.addEventListener('mouseup', ()=>{ if(down){ down=false; saveLayout(); } });
+  }
+
+  // Dock size controls
+  $('#smallerDock').addEventListener('click', ()=>{
+    const h = getVarPx(KEYS.dockH);
+    css(KEYS.dockH, clamp(h - 8, 24, 160) + 'px');
+    saveLayout();
+  });
+  $('#biggerDock').addEventListener('click', ()=>{
+    const h = getVarPx(KEYS.dockH);
+    css(KEYS.dockH, clamp(h + 8, 24, 160) + 'px');
+    saveLayout();
+  });
+
+  // Buttons
+  $('#saveBtn').addEventListener('click', saveLayout);
+  $('#restoreBtn').addEventListener('click', restoreLayout);
+
+  // Bind gutters
+  bindVerticalGutter('gV1', 'left');   // adjusts --col1
+  bindVerticalGutter('gV2', 'right');  // adjusts --col3
+  bindHorizontalGutter('gH1');         // adjusts --row1
+
+  // Demo grow buttons (nudges columns/rows)
+  $('#growLeft').addEventListener('click', ()=>{
+    css(KEYS.col1, clamp(getVarPx(KEYS.col1)+20, 160, 520)+'px'); saveLayout();
+  });
+  $('#growRight').addEventListener('click', ()=>{
+    css(KEYS.col3, clamp(getVarPx(KEYS.col3)+20, 240, 640)+'px'); saveLayout();
+  });
+  $('#growTop').addEventListener('click', ()=>{
+    const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(KEYS.row1));
+    css(KEYS.row1, clamp(px+24, 180, window.innerHeight-220)+'px'); saveLayout();
+  });
+
+  // First paint: try to restore; if none, keep defaults
+  restoreLayout();
+  log('ready');
+</script>
+</body>
+</html>
+
+
+
+class LineManager {    constructor(containerElement) {        // Main container for drawing lines        this.container = containerElement;                // Line drawing states        this.isDrawing = false;        this.startPoint = null;        this.currentLine = null;                // Line storage and management        this.lines = [];                // Drawing modes        this.modes = {            CLICK_TO_CONNECT: 'click',            DRAG_DRAW: 'drag',            PIN_DRAW: 'pin'        };        this.currentMode = this.modes.CLICK_TO_CONNECT;                // Styling defaults        this.lineStyle = {            stroke: 'black',            strokeWidth: 2,            color: 'rgba(0,0,0,0.7)'        };                // Initialize event listeners        this.setupEventListeners();    }        // Core line creation method    createLine(x1, y1, x2, y2) {        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');                // Set line attributes        line.setAttribute('x1', x1);        line.setAttribute('y1', y1);        line.setAttribute('x2', x2);        line.setAttribute('y2', y2);                // Apply styling        line.setAttribute('stroke', this.lineStyle.stroke);        line.setAttribute('stroke-width', this.lineStyle.strokeWidth);                // Add interactivity        this.addLineInteractivity(line);                return line;    }        // Event setup for different drawing modes    setupEventListeners() {        this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));        this.container.addEventListener('mousemove', this.handleMouseMove.bind(this));        this.container.addEventListener('mouseup', this.handleMouseUp.bind(this));    }        // Mouse interaction handlers    handleMouseDown(event) {        // Get relative coordinates        const { x, y } = this.getRelativeCoordinates(event);                switch(this.currentMode) {            case this.modes.CLICK_TO_CONNECT:                this.handleClickToConnect(x, y);                break;            case this.modes.DRAG_DRAW:                this.startDragDraw(x, y);                break;            case this.modes.PIN_DRAW:                this.startPinDraw(x, y);                break;        }    }        handleMouseMove(event) {        const { x, y } = this.getRelativeCoordinates(event);                if (this.isDrawing) {            switch(this.currentMode) {                case this.modes.DRAG_DRAW:                    this.updateDragLine(x, y);                    break;                case this.modes.PIN_DRAW:                    this.continuePinDraw(x, y);                    break;            }        }    }        handleMouseUp(event) {        const { x, y } = this.getRelativeCoordinates(event);                switch(this.currentMode) {            case this.modes.CLICK_TO_CONNECT:                // Finish connection                this.finishClickConnect(x, y);                break;            case this.modes.DRAG_DRAW:                this.finishDragLine(x, y);                break;            case this.modes.PIN_DRAW:                this.finishPinDraw(x, y);                break;        }    }        // Click-to-Connect Mode    handleClickToConnect(x, y) {        if (!this.startPoint) {            // First point of connection            this.startPoint = { x, y };            this.createTemporaryMarker(x, y);        }    }        finishClickConnect(x, y) {        if (this.startPoint) {            // Create line between two clicked points            const line = this.createLine(                this.startPoint.x,                 this.startPoint.y,                 x,                 y            );                        this.container.appendChild(line);            this.lines.push(line);                        // Reset drawing state            this.clearTemporaryMarker();            this.startPoint = null;        }    }        // Drag Draw Mode    startDragDraw(x, y) {        this.isDrawing = true;        this.startPoint = { x, y };                // Create temporary line        this.currentLine = this.createLine(x, y, x, y);        this.container.appendChild(this.currentLine);    }        updateDragLine(x, y) {        if (this.currentLine) {            this.currentLine.setAttribute('x2', x);            this.currentLine.setAttribute('y2', y);        }    }        finishDragLine(x, y) {        this.isDrawing = false;        this.lines.push(this.currentLine);        this.currentLine = null;    }        // Pin Draw Mode (continuous line drawing)    startPinDraw(x, y) {        this.isDrawing = true;        this.startPoint = { x, y };                // Start a new path for continuous drawing        this.currentLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');        this.currentLine.setAttribute('points', `${x},${y}`);        this.currentLine.setAttribute('fill', 'none');        this.currentLine.setAttribute('stroke', this.lineStyle.stroke);        this.currentLine.setAttribute('stroke-width', this.lineStyle.strokeWidth);                this.container.appendChild(this.currentLine);    }        continuePinDraw(x, y) {        if (this.isDrawing && this.currentLine) {            const currentPoints = this.currentLine.getAttribute('points');            this.currentLine.setAttribute('points', `${currentPoints} ${x},${y}`);        }    }        finishPinDraw() {        this.isDrawing = false;        this.lines.push(this.currentLine);        this.currentLine = null;    }        // Utility Methods    getRelativeCoordinates(event) {        const rect = this.container.getBoundingClientRect();        return {            x: event.clientX - rect.left,            y: event.clientY - rect.top        };    }        createTemporaryMarker(x, y) {        // Create a small marker at the start point        this.tempMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');        this.tempMarker.setAttribute('cx', x);        this.tempMarker.setAttribute('cy', y);        this.tempMarker.setAttribute('r', 5);        this.tempMarker.setAttribute('fill', 'red');        this.container.appendChild(this.tempMarker);    }        clearTemporaryMarker() {        if (this.tempMarker) {            this.container.removeChild(this.tempMarker);            this.tempMarker = null;        }    }        // Line Interactivity    addLineInteractivity(line) {        line.addEventListener('click', () => {            // Toggle line selection or perform actions            line.classList.toggle('selected');        });    }        // Mode Switching    setDrawingMode(mode) {        this.currentMode = mode;        // Reset any ongoing drawing        this.isDrawing = false;        this.startPoint = null;        this.currentLine = null;    }        // Line Management    clearAllLines() {        this.lines.forEach(line => this.container.removeChild(line));        this.lines = [];    }        // Export and Import Lines    exportLines() {        return this.lines.map(line => {            if (line.tagName === 'line') {                return {                    type: 'line',                    x1: line.getAttribute('x1'),                    y1: line.getAttribute('y1'),                    x2: line.getAttribute('x2'),                    y2: line.getAttribute('y2')                };            } else if (line.tagName === 'polyline') {                return {                    type: 'polyline',                    points: line.getAttribute('points')                };            }        });    }        importLines(lineData) {        lineData.forEach(data => {            let importedLine;            if (data.type === 'line') {                importedLine = this.createLine(                    data.x1,                     data.y1,                     data.x2,                     data.y2                );            } else if (data.type === 'polyline') {                importedLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');                importedLine.setAttribute('points', data.points);                importedLine.setAttribute('fill', 'none');                importedLine.setAttribute('stroke', this.lineStyle.stroke);                importedLine.setAttribute('stroke-width', this.lineStyle.strokeWidth);            }                        this.container.appendChild(importedLine);            this.lines.push(importedLine);        });    }}// Example HTML and Initialization/*<div id="drawing-container">    <svg width="800" height="600"></svg></div><div id="controls">    <button onclick="lineManager.setDrawingMode('click')">Click Connect</button>    <button onclick="lineManager.setDrawingMode('drag')">Drag Draw</button>    <button onclick="lineManager.setDrawingMode('pin')">Pin Draw</button>    <button onclick="lineManager.clearAllLines()">Clear Lines</button></div><script>    const container = document.querySelector('#drawing-container svg');    const lineManager = new LineManager(container);</script>*/// 1. Basic Button Selection and Event Handling// ==========================================// Method 1: Direct DOM Selectionfunction selectButtonByID() {    // Select button by its unique ID    const button = document.getElementById('myButton');        // Add click event listener    button.addEventListener('click', () => {        console.log('Button clicked!');    });}// Method 2: Query Selector Selectionfunction selectButtonByClass() {    // Select button by class name    const buttons = document.querySelectorAll('.action-button');        // Add event to multiple buttons    buttons.forEach(button => {        button.addEventListener('click', (event) => {            console.log('Clicked button:', event.target);        });    });}// 2. Linking Buttons to Different Objects/Elements// ================================================class ButtonLinker {    constructor() {        // Object to store button-target mappings        this.buttonTargets = new Map();    }    // Link a button to a specific target element    linkButtonToTarget(buttonId, targetId, action = 'show') {        const button = document.getElementById(buttonId);        const target = document.getElementById(targetId);                if (!button || !target) {            console.error('Button or target not found');            return;        }        // Store the mapping        this.buttonTargets.set(buttonId, {            target: target,            action: action        });        // Add click event listener        button.addEventListener('click', () => this.handleButtonClick(buttonId));    }    // Handle button click based on predefined actions    handleButtonClick(buttonId) {        const mapping = this.buttonTargets.get(buttonId);        if (!mapping) return;        switch(mapping.action) {            case 'show':                mapping.target.style.display = 'block';                break;            case 'hide':                mapping.target.style.display = 'none';                break;            case 'toggle':                mapping.target.style.display =                     mapping.target.style.display === 'none' ? 'block' : 'none';                break;            case 'custom':                // Custom action implementation                this.customAction(mapping.target);                break;        }    }    // Custom action example    customAction(target) {        target.classList.toggle('highlighted');    }}// 3. Advanced Button Interaction Example// =======================================class InteractiveButtonManager {    constructor() {        // Mapping of buttons to their interaction types        this.interactions = {            'moveButton': this.moveElement,            'resizeButton': this.resizeElement,            'colorButton': this.changeColor        };    }    // Initialize button interactions    initializeInteractions() {        Object.keys(this.interactions).forEach(buttonId => {            const button = document.getElementById(buttonId);            if (button) {                button.addEventListener('click', () => {                    const targetId = button.dataset.target;                    const target = document.getElementById(targetId);                                        if (target) {                        // Call the specific interaction method                        this.interactions[buttonId].call(this, target);                    }                });            }        });    }    // Example interaction methods    moveElement(target) {        const currentX = parseInt(target.style.left || 0);        target.style.left = `${currentX + 50}px`;    }    resizeElement(target) {        const currentWidth = parseInt(target.style.width || 100);        target.style.width = `${currentWidth + 20}px`;    }    changeColor(target) {        const colors = ['red', 'blue', 'green', 'purple'];        const randomColor = colors[Math.floor(Math.random() * colors.length)];        target.style.backgroundColor = randomColor;    }}// 4. Usage Examples// =================function setupButtonInteractions() {    // Create button linker instance    const linker = new ButtonLinker();    // Link buttons to targets    linker.linkButtonToTarget('showDetailsButton', 'detailsSection', 'show');    linker.linkButtonToTarget('hideDetailsButton', 'detailsSection', 'hide');    linker.linkButtonToTarget('toggleDetailsButton', 'detailsSection', 'toggle');    // Initialize interactive button manager    const interactiveManager = new InteractiveButtonManager();    interactiveManager.initializeInteractions();}// Example HTML structure to accompany this code/*<button id="showDetailsButton">Show Details</button><button id="hideDetailsButton">Hide Details</button><button id="toggleDetailsButton">Toggle Details</button><div id="detailsSection">    Additional content here</div><button id="moveButton" data-target="movableElement">Move</button><button id="resizeButton" data-target="movableElement">Resize</button><button id="colorButton" data-target="movableElement">Change Color</button><div id="movableElement" style="width: 100px; height: 100px; background-color: gray;">    Interactive Element</div>*/// Initialize on page loaddocument.addEventListener('DOMContentLoaded', setupButtonInteractions);
+
+
+class GeometricGraphManager {    constructor(container, options = {}) {        // Container for rendering        this.container = container;                // Graph configuration        this.config = {            nodeRadius: options.nodeRadius || 10,            connectionType: options.connectionType || 'delaunay',            gridSpacing: options.gridSpacing || 50,            graphTypes: {                GRID: 'grid',                RADIAL: 'radial',                DELAUNAY: 'delaunay',                VORONOI: 'voronoi'            }        };                // Graph data structures        this.nodes = [];        this.edges = [];                // Geometry utilities        this.geometryUtils = {            // Calculate distance between two points            distance: (p1, p2) =>                 Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)),                        // Generate points in a geometric sequence            geometricSequence: (start, ratio, count) =>                 Array.from({length: count}, (_, i) => start * Math.pow(ratio, i)),                        // Fibonacci-based point generation            fibonacciSpiral: (count) => {                const phi = 1.618033988749895 (1 + Math.sqrt(5)) / 2;                return Array.from({length: count}, (_, i) => {                    const angle = i * 2 * Math.PI / phi;                    const radius = Math.sqrt(i) * 10;                    return {                        x: radius * Math.cos(angle),                        y: radius * Math.sin(angle)                    };                });            }        };    }        // Advanced graph generation methods    generateGraph(type, params = {}) {        switch(type) {            case this.config.graphTypes.GRID:                return this.generateGridGraph(params);            case this.config.graphTypes.RADIAL:                return this.generateRadialGraph(params);            case this.config.graphTypes.DELAUNAY:                return this.generateDelaunayGraph(params);            case this.config.graphTypes.VORONOI:                return this.generateVoronoiGraph(params);        }    }        // Grid-based graph generation    generateGridGraph(options = {}) {        const {            width = 500,            height = 500,            rows = 5,            cols = 5        } = options;                // Clear previous graph        this.nodes = [];        this.edges = [];                // Generate grid nodes        for (let row = 0; row < rows; row++) {            for (let col = 0; col < cols; col++) {                const node = {                    id: `node-${row}-${col}`,                    x: col * (width / (cols - 1)),                    y: row * (height / (rows - 1)),                    row,                    col                };                this.nodes.push(node);                                // Connect to adjacent nodes                if (col > 0) {                    this.createEdge(                        this.nodes[this.nodes.length - 2],                         node                    );                }                if (row > 0) {                    const prevRowNode = this.nodes.find(                        n => n.row === row - 1 && n.col === col                    );                    this.createEdge(prevRowNode, node);                }            }        }                return { nodes: this.nodes, edges: this.edges };    }        // Radial graph with geometric sequencing    generateRadialGraph(options = {}) {        const {            center = { x: 250, y: 250 },            rings = 3,            nodesPerRing = 6        } = options;                this.nodes = [];        this.edges = [];                // Generate radial sequences        const radiusSequence = this.geometryUtils.geometricSequence(50, 1.5, rings);                radiusSequence.forEach((radius, ringIndex) => {            const angleStep = (2 * Math.PI) / (nodesPerRing * (ringIndex + 1));                        for (let i = 0; i < nodesPerRing * (ringIndex + 1); i++) {                const angle = i * angleStep;                const node = {                    id: `radial-${ringIndex}-${i}`,                    x: center.x + radius * Math.cos(angle),                    y: center.y + radius * Math.sin(angle),                    ring: ringIndex                };                                this.nodes.push(node);                                // Connect to center and adjacent nodes                if (ringIndex > 0) {                    const centerNode = this.nodes[0];                    this.createEdge(centerNode, node);                                        // Connect to previous ring's nodes                    const prevRingNodes = this.nodes.filter(n => n.ring === ringIndex - 1);                    prevRingNodes.forEach(prevNode => {                        if (this.geometryUtils.distance(prevNode, node) < radius * 2) {                            this.createEdge(prevNode, node);                        }                    });                }            }        });                return { nodes: this.nodes, edges: this.edges };    }        // Create edge between two nodes    createEdge(node1, node2, weight = null) {        const edge = {            id: `edge-${node1.id}-${node2.id}`,            source: node1,            target: node2,            weight: weight || this.geometryUtils.distance(node1, node2)        };        this.edges.push(edge);        return edge;    }        // Path finding and graph traversal    findShortestPath(startNode, endNode) {        // Dijkstra's algorithm implementation        const distances = new Map();        const previous = new Map();        const unvisited = new Set(this.nodes);                // Initialize distances        this.nodes.forEach(node => {            distances.set(node, node === startNode ? 0 : Infinity);        });                while (unvisited.size > 0) {            // Find unvisited node with minimum distance            const currentNode = Array.from(unvisited).reduce((minNode, node) =>                 distances.get(node) < distances.get(minNode) ? node : minNode            );                        unvisited.delete(currentNode);                        // Find connections            const connections = this.edges.filter(                edge => edge.source === currentNode || edge.target === currentNode            );                        connections.forEach(edge => {                const neighborNode = edge.source === currentNode ? edge.target : edge.source;                                if (unvisited.has(neighborNode)) {                    const tentativeDistance = distances.get(currentNode) + edge.weight;                                        if (tentativeDistance < distances.get(neighborNode)) {                        distances.set(neighborNode, tentativeDistance);                        previous.set(neighborNode, currentNode);                    }                }            });                        // Early termination if end node is reached            if (currentNode === endNode) break;        }                // Reconstruct path        const path = [];        let current = endNode;        while (current) {            path.unshift(current);            current = previous.get(current);        }                return {            path,            distance: distances.get(endNode)        };    }        // Advanced graph analysis    analyzeGraphProperties() {        return {            nodeCount: this.nodes.length,            edgeCount: this.edges.length,            density: this.edges.length / (this.nodes.length * (this.nodes.length - 1) / 2),            averageNodeDegree: this.edges.length * 2 / this.nodes.length        };    }}// Usage Examplefunction demonstrateGeometricGraphs() {    const container = document.getElementById('graph-container');    const graphManager = new GeometricGraphManager(container);        // Generate different graph types    const gridGraph = graphManager.generateGraph('grid', {        rows: 6,        cols: 6    });        const radialGraph = graphManager.generateGraph('radial', {        rings: 4,        nodesPerRing: 8    });        // Path finding example    const startNode = gridGraph.nodes[0];    const endNode = gridGraph.nodes[gridGraph.nodes.length - 1];    const shortestPath = graphManager.findShortestPath(startNode, endNode);        // Graph analysis    const graphProperties = graphManager.analyzeGraphProperties();        console.log('Grid Graph:', gridGraph);    console.log('Radial Graph:', radialGraph);    console.log('Shortest Path:', shortestPath);    console.log('Graph Properties:', graphProperties);}
+
+
+
+// MOD keep everything; no change required for features below
+ {
+   "name": "grid-drawing-app",
+   "version": "1.0.0",
+   "description": "Desktop grid drawing application with circle and line tools",
+   "main": "main.js",
+   "scripts": {
+     "start": "electron .",
+     "package": "electron-builder build",
+     "pack": "electron-builder --dir",
+     "dist": "electron-builder"
+   },
+   "author": "Your Name",
+   "license": "MIT",
+   "devDependencies": {
+     "electron": "^29.1.0",
+     "electron-builder": "^24.13.1"
+   },
+   "build": {
+     "appId": "com.yourname.griddrawingapp",
+     "productName": "Grid Drawing App",
+     "directories": { "output": "dist" },
+     "win": { "target": "nsis", "icon": "assets/icon.ico" },
+     "mac": { "target": "dmg", "icon": "assets/icon.icns" },
+     "linux": { "target": "AppImage", "icon": "assets/icon.png" }
+   }
+ }
+
+
+
+// ADD preload.js
++const { contextBridge, ipcRenderer } = require('electron');
++
++contextBridge.exposeInMainWorld('electronAPI', {
++  saveText: (content) => ipcRenderer.invoke('save-text', content),
++  openText: () => ipcRenderer.invoke('open-text'),
++  chooseSource: () => ipcRenderer.invoke('choose-source'),
++  setWatchPath: (p) => ipcRenderer.send('set-watch-path', p),
++  watchStart: () => ipcRenderer.invoke('watch-start'),
++  watchStop: () => ipcRenderer.invoke('watch-stop'),
++  onHotpatch: (cb) => ipcRenderer.on('hotpatch:content', (_e, payload) => cb(payload))
++});
+
+
+
+
+
+// ADD index.html
++<!DOCTYPE html>
++<html lang="en">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Rune Grid – Electron</title>
++  <!-- Strict CSP for local app -->
++  <meta http-equiv="Content-Security-Policy" content="
++    default-src 'self';
++    script-src 'self';
++    style-src 'self' 'unsafe-inline';
++    img-src 'self' data:;
++    connect-src 'self';
++    font-src 'self';
++    object-src 'none';
++    base-uri 'self';
++    form-action 'self';
++    frame-ancestors 'none';
++  ">
++  <style>
++    :root{ --bg:#0b0b0d; --panel:#0e0e10; --panel-odd:#0d0d0f; --grid:#303037; --hdr:#121216; --text:#e7e7ea; --accent:#7fb3ff;
++           --fs:10px; --py:2px; --px:4px; --chipY:0px; --chipX:3px; }
++    html,body{height:100%}
++    body{margin:0;background:var(--bg);color:var(--text);font:var(--fs)/1.28 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;-webkit-font-smoothing:antialiased;font-variant-ligatures:none}
++    .tb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--grid);background:linear-gradient(180deg,#0f0f11,#0a0a0b);position:sticky;top:0;z-index:5}
++    .tb button{background:#101015;border:1px solid var(--grid);color:var(--text);border-radius:8px;padding:4px 8px;cursor:pointer}
++    .tb button:hover{outline:1px solid var(--accent)}
++    .wrap{padding:10px;position:relative}
++    table{width:100%;border-collapse:collapse;table-layout:fixed}
++    thead th{position:sticky;top:34px;background:var(--hdr);z-index:4}
++    th,td{border:1px solid var(--grid);padding:var(--py) var(--px);vertical-align:middle}
++    tbody tr:nth-child(odd) td{background:var(--panel)}
++    tbody tr:nth-child(even) td{background:var(--panel-odd)}
++    .rownums{position:sticky;left:0;background:#0c0c0e}
++    .chips{ display:flex; flex-wrap:wrap; gap:1px 2px; align-items:center }
++    .chip{ display:inline-block; padding:var(--chipY) var(--chipX); border:1px solid var(--grid); border-radius:5px; white-space:nowrap; line-height:1.12 }
++    .lang-JS .chip{border-color:#4cc3ff} .lang-TS .chip{border-color:#a78bfa}
++    .lang-R3C .chip{border-color:#34d399} .lang-REACT .chip{border-color:#61dafb}
++    .lang-CSS .chip{border-color:#f59e0b} .lang-CPP .chip{border-color:#f87171} .lang-PY .chip{border-color:#ffd166}
++    svg#wires{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
++    .pick{outline:1px dashed var(--accent)}
++    textarea{width:100%;min-height:96px;background:#0a0a0c;border:1px solid var(--grid);color:var(--text);border-radius:8px;padding:8px}
++    .hidden{display:none}
++  </style>
++</head>
++<body>
++  <div class="tb" style="gap:4px">
++    <button id="btnLoad"  title="Open (Ctrl/Cmd+O)">Open</button>
++    <button id="btnSave"  title="Save (Ctrl/Cmd+S)">Save</button>
++    <button id="btnConnect" title="Connect mode (K)">Conn</button>
++    <button id="btnClear" title="Clear wires">Clr</button>
++    <button id="btnHot"   title="Hot Patch (H)">Hot:Off</button>
++    <button id="btnReload" title="Re-arm watcher">Reload</button>
++    <span id="hpStatus" style="font-size:9px;opacity:.75;margin-left:6px"></span>
++  </div>
++  <div class="wrap">
++    <table id="grid" aria-label="Rune Squares Grid">
++      <thead>
++        <tr>
++          <th class="rownums">#</th><th>LANG</th><th>STATE</th><th>TAG</th><th>ExactIdentifier</th><th>plain English</th><th>use</th><th>req</th>
++        </tr>
++      </thead>
++      <tbody></tbody>
++    </table>
++    <svg id="wires" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
++    <textarea id="io" class="hidden" placeholder="[JS]-[FN]-[TC] = toggleCompanion = spawn/despawn (use: toggleCompanion())"></textarea>
++  </div>
++
++  <script>
++    // ===== tiny grid helpers =====
++    const grid = document.getElementById('grid'), tbody = grid.querySelector('tbody');
++    const HEAD = ["#","LANG","STATE","TAG","ExactIdentifier","plain English","use","req"];
++    function addRow(values){
++      const tr = document.createElement('tr');
++      const n = document.createElement('td'); n.textContent = String(tbody.children.length+1); n.className='rownums'; tr.appendChild(n);
++      for(let j=0;j<7;j++){ const td=document.createElement('td'); td.contentEditable='true'; td.spellcheck=false; td.dataset.col=HEAD[j+1]; if(values) td.textContent=values[j]??''; tr.appendChild(td); }
++      tbody.appendChild(tr);
++    }
++    function readRow(tr){ return Array.from(tr.querySelectorAll('td')).slice(1).map(td=>td.textContent); }
++    function parseLine(line){
++      const rx = /^\\s*\\[(?<lang>[A-Z]+)\\]-\\[(?<state>[A-Z]+)\\]-\\[(?<tag>[A-Z]{2,4})\\]\\s*=\\s*(?<id>[^=]+?)\\s*=\\s*(?<plain>.*?)(?:\\s*\\(use:\\s*(?<use>[^)]*?)\\))?(?:\\s*\\[req:\\s*(?<req>[^\\]]*?)\\])?\\s*$/;
++      const m=line.match(rx); if(!m) return null;
++      const {lang,state,tag,id,plain} = m.groups; const use=(m.groups.use||'').trim(), req=(m.groups.req||'').trim();
++      return [lang,state,tag,id.trim(),plain.trim(),use,req];
++    }
++    function exportLine(c){ const [L,S,T,ID,PL,USE,REQ]=c.map(x=>(x||'').trim()); return \`[\${L}]-[\${S}]-[\${T}] = \${ID} = \${PL}\${USE?` (use: ${USE})`:''}\${REQ?` [req: ${REQ}]`:''}\`; }
++    function importLines(str){ tbody.innerHTML=''; str.split(/\\r?\\n/).map(s=>s.trim()).filter(Boolean).forEach(l=>{ const v=parseLine(l); if(v) addRow(v); }); chipifyAll(true); }
++
++    // ===== wire overlay =====
++    const svg = document.getElementById('wires');
++    class WireOverlay {
++      constructor(container){ this.container = container; this.lines = []; } // {startTd,endTd,el}
++      createLine(x1,y1,x2,y2){
++        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
++        line.setAttribute("x1", x1); line.setAttribute("y1", y1);
++        line.setAttribute("x2", x2); line.setAttribute("y2", y2);
++        line.setAttribute("stroke", "cyan"); line.setAttribute("stroke-width", 2);
++        this.container.appendChild(line);
++        return line;
++      }
++      connectNodes(start,end){ const el=this.createLine(start.x,start.y,end.x,end.y); this.lines.push({startTd:null,endTd:null,el}); }
++      connectCells(startTd,endTd){ const a=centerOfCell(startTd), b=centerOfCell(endTd); const el=this.createLine(a.x,a.y,b.x,b.y); this.lines.push({startTd,endTd,el}); }
++      clear(){ this.lines.forEach(w=>w.el.remove()); this.lines.length=0; }
++    }
++    const wires = new WireOverlay(svg);
++
++    // ===== LimbVector =====
++    class LimbVector {
++      constructor(startPoint, length){ this.start = startPoint; this.length = length; this.angle = 0; }
++      calculateEndPoint(){ return { x: this.start.x + this.length * Math.cos(this.angle), y: this.start.y + this.length * Math.sin(this.angle) }; }
++      oscillate(time, speed=0.05, maxAngle=Math.PI/6){ this.angle = Math.sin(time * speed) * maxAngle; return this.calculateEndPoint(); }
++    }
++
++    // ===== chips =====
++    let chipsOn = true;
++    function chipifyCell(td){
++      const txt=(td.textContent||'').trim(); td.dataset.text=txt; td.contentEditable='false';
++      const col=td.dataset.col||''; const toks=(col==='LANG'||col==='STATE'||col==='TAG')?[txt]:txt.split(/\\s+/);
++      td.innerHTML = '<span class="chips">'+ toks.map(t=>`<span class="chip" data-col="${col}">${t.replace(/</g,'&lt;')}</span>`).join(' ') +'</span>';
++    }
++    function unchipifyCell(td){ const t=td.dataset.text||td.textContent; td.textContent=t; td.contentEditable='true'; }
++    function chipifyAll(on){
++      Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
++        const tds=Array.from(tr.querySelectorAll('td')).slice(1);
++        tds.forEach(td=> on?chipifyCell(td):unchipifyCell(td));
++        const lang=tds[0]?.textContent?.trim();
++        tr.classList.remove('lang-JS','lang-TS','lang-R3C','lang-REACT','lang-CSS','lang-CPP','lang-PY');
++        if(lang) tr.classList.add('lang-'+lang);
++      });
++      chipsOn=on;
++    }
++
++    // ===== connect mode =====
++    let connectMode=false, pending=null;
++    function centerOfCell(td){ const r=td.getBoundingClientRect(), s=svg.getBoundingClientRect(); return { x:r.left+r.width/2-s.left, y:r.top+r.height/2-s.top }; }
++    grid.addEventListener('click', (e)=>{
++      if(!connectMode) return;
++      const td = e.target.closest('td'); if(!td || td.classList.contains('rownums')) return;
++      if(!pending){ pending=td; td.classList.add('pick'); }
++      else if(td!==pending){ wires.connectCells(pending, td); pending.classList.remove('pick'); pending=null; }
++    });
++    window.addEventListener('resize', ()=>{/* manual reconnect if needed */});
++
++    // ===== toolbar & IO =====
++    const io = document.getElementById('io');
++    const isElectron = typeof window.electronAPI !== 'undefined';
++    const hp = { on:false, path:null };
++    const hpStatus = document.getElementById('hpStatus');
++    const btnHot = document.getElementById('btnHot');
++    const btnReload = document.getElementById('btnReload');
++
++    const exportAll = ()=> {
++      const rows=Array.from(tbody.querySelectorAll('tr'));
++      return rows.map(tr=> exportLine(readRow(tr))).join('\\n');
++    };
++
++    // === Hot Patch helpers + auto-prune ===
++    function rowKeyFromTr(tr){ const cells = readRow(tr); return [cells[0]||'',cells[1]||'',cells[2]||'',cells[3]||''].join('|'); }
++    function captureWireKeys(){
++      return wires.lines
++        .filter(w => w.startTd && w.endTd)
++        .map(w => ({
++          from: { key: rowKeyFromTr(w.startTd.closest('tr')), col: w.startTd.dataset.col },
++          to:   { key: rowKeyFromTr(w.endTd.closest('tr')),   col: w.endTd.dataset.col }
++        }));
++    }
++    function getCellByKeyAndCol(key, col){
++      const rows = Array.from(tbody.querySelectorAll('tr'));
++      for(const tr of rows){
++        if (rowKeyFromTr(tr) === key) {
++          const tds = Array.from(tr.querySelectorAll('td')).slice(1);
++          return tds.find(td => td.dataset.col === col) || null;
++        }
++      }
++      return null;
++    }
++    function restoreWiresByKeys(pairs){
++      wires.clear();
++      for(const p of pairs){
++        const a = getCellByKeyAndCol(p.from.key, p.from.col);
++        const b = getCellByKeyAndCol(p.to.key,   p.to.col);
++        if(a && b) wires.connectCells(a,b);
++      }
++    }
++    function mergeImport(text){
++      const before = captureWireKeys();
++      const lines = text.split(/\\r?\\n/).map(s=>s.trim()).filter(Boolean);
++      const parsed = lines.map(parseLine).filter(Boolean);
++      const map = new Map(parsed.map(r => [[r[0],r[1],r[2],r[3]].join('|'), r]));
++      const incomingKeys = new Set([...map.keys()]);
++      const existingRows = Array.from(tbody.querySelectorAll('tr'));
++      const seen = new Set();
++      for(const tr of existingRows){
++        const key = rowKeyFromTr(tr);
++        if(map.has(key)){
++          const r = map.get(key);
++          const tds = Array.from(tr.querySelectorAll('td')).slice(1);
++          r.forEach((v,i)=> tds[i].textContent = v);
++          seen.add(key);
++        }
++      }
++      for(const [key, r] of map.entries()){
++        if(!seen.has(key)) addRow(r);
++      }
++      // Auto-prune if incoming is authoritative
++      const existKeys = new Set(Array.from(tbody.querySelectorAll('tr')).map(tr=>rowKeyFromTr(tr)));
++      let missing = 0, total=0;
++      for(const k of existKeys){ total++; if(!incomingKeys.has(k)) missing++; }
++      if(total>0 && missing/total >= 0.15){
++        Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
++          const k = rowKeyFromTr(tr);
++          if(!incomingKeys.has(k)) tr.remove();
++        });
++      }
++      chipifyAll(chipsOn);
++      restoreWiresByKeys(before);
++    }
++    async function chooseAndWatch(){
++      const p = await window.electronAPI?.chooseSource();
++      if(!p) return;
++      await window.electronAPI?.setWatchPath(p);
++      await window.electronAPI?.watchStart();
++      hp.path = p; hp.on = true;
++      btnHot.textContent = 'Hot:On';
++      hpStatus.textContent = p;
++    }
++    if(isElectron){
++      window.electronAPI.onHotpatch(({path, content})=>{
++        hp.path = path; hpStatus.textContent = path;
++        mergeImport(content);
++      });
++      btnHot.onclick = async ()=>{
++        if(!hp.on){ await chooseAndWatch(); }
++        else { await window.electronAPI?.watchStop(); hp.on=false; btnHot.textContent='Hot:Off'; hpStatus.textContent=''; }
++      };
++      if (btnReload) {
++        btnReload.onclick = async ()=>{
++          if(hp.path){
++            await window.electronAPI?.setWatchPath(hp.path);
++            await window.electronAPI?.watchStart();
++          } else {
++            await chooseAndWatch();
++          }
++        };
++      }
++    }
++
++    // ===== Electron save/open =====
++    document.getElementById('btnSave').onclick = async ()=>{
++      if(!io.value.trim()){ io.value = exportAll(); }
++      await window.electronAPI?.saveText(io.value);
++    };
++    document.getElementById('btnLoad').onclick = async ()=>{
++      const txt = await window.electronAPI?.openText();
++      if(typeof txt === 'string'){ io.value = txt; mergeImport(txt); }
++    };
++    document.getElementById('btnConnect').onclick = ()=>{
++      connectMode = !connectMode;
++      document.getElementById('btnConnect').textContent = connectMode? 'Conn*':'Conn';
++      if(!connectMode && pending){ pending.classList.remove('pick'); pending=null; }
++    };
++    document.getElementById('btnClear').onclick = ()=> wires.clear();
++
++    // ===== Boot sample + RAF =====
++    const limb = new LimbVector({x:80, y:80}, 70);
++    let limbLine = null, t0 = performance.now();
++    function centerOfCell(td){ const r=td.getBoundingClientRect(), s=svg.getBoundingClientRect(); return { x:r.left+r.width/2-s.left, y:r.top+r.height/2-s.top }; }
++    function raf(now){
++      const end = limb.oscillate((now - t0), 0.06, Math.PI/5);
++      if(!limbLine){ limbLine = wires.createLine(limb.start.x, limb.start.y, end.x, end.y); }
++      else{
++        limbLine.setAttribute('x1', limb.start.x); limbLine.setAttribute('y1', limb.start.y);
++        limbLine.setAttribute('x2', end.x); limbLine.setAttribute('y2', end.y);
++      }
++      requestAnimationFrame(raf);
++    }
++    for(let i=0;i<6;i++) addRow(["JS","FN","TC","toggleCompanion","spawn/despawn","toggleCompanion()",""]);
++    chipifyAll(true);
++    requestAnimationFrame(raf);
++
++    // ===== Hotkeys =====
++    window.addEventListener('keydown', async (e)=>{
++      const k = e.key.toLowerCase();
++      if((e.ctrlKey||e.metaKe
+
+
+
+🧪 Refined SVG Line-Creation Toolkit
+🔧 1. Attribute Setter Helper
+
+javascript
+CopyEdit
+const setAttributes = (el, attrs) => {
+  Object.entries(attrs).forEach(([key, value]) => {
+    el.setAttribute(key, value);
+  });
+};
+🧱 2. Element Creator
+
+javascript
+CopyEdit
+class zintSvgUtil {
+  static createSVGElement(type, attrs) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", type);
+    setAttributes(el, attrs);
+    return el;
+  }
+}
+🌀 3. Usage Example
+
+javascript
+CopyEdit
+const svgParent = zintSvgUtil.createSVGElement("svg", {
+  width: 1000,
+  height: 400,
+  viewBox: "0 0 1000 400"
+});
+const lineOne = zintSvgUtil.createSVGElement("line", {
+  x1: 0,
+  y1: 0,
+  x2: 600,
+  y2: 200,
+  stroke: "green",
+  "stroke-width": 8
+});
+const lineTwo = zintSvgUtil.createSVGElement("line", {
+  x1: 700,
+  y1: 450,
+  x2: 200,
+  y2: 100,
+  stroke: "red",
+  "stroke-width": 2
+});
+document.getElementById("container").appendChild(svgParent);
+svgParent.appendChild(lineOne);
+svgParent.appendChild(lineTwo);
+
+✅ VortexLabEngine is now live and modular — a self-contained React component you can drop into any system.
+📦 Features:
+	• Plug-and-play SVG animation engine
+	• Powered by LimbVector oscillation
+	• Clean separation of logic and rendering
+	• Auto-refresh animation loop
+	• Ready for fractal spawning, AI signals, or ritual visuals
+🔧 Drop-in Usage:
+
+jsx
+CopyEdit
+import VortexLabEngine from './VortexLabEngine';
+function App() {
+  return (
+    <div>
+      <VortexLabEngine />
+    </div>
+  );
+}
+Let me know when you're ready to layer in:
+	• ⚡ Multiple limbs?
+	• 🧠 Reactive logic from Nick?
+	• 🌗 Phase-based visual modes?
+We're primed for story-driven, myth-coded expansion.
+
+💡 Additions You Can Build From Here:
+	• Dynamic Line Drawing (e.g., from mouse/touch input)
+	• SVG Layer Groups using <g> elements
+	• Animate Lines using <animate> or JS transition loops
+	• Linking to Game Logic (e.g., cube paths, city circuitry)
+If you want, we can:
+	• Wrap this into a full SVG scene builder
+	• Link lines to data objects (memory, phase state, signal strength)
+	• Make this system output dynamically based on cube triggers or game logic
+You're building the visual backbone of a sigil-engine. Let me know when you're ready to phase it into the main construct.

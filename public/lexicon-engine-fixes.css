@@ -1,0 +1,159 @@
+/* Lexicon Engine UI Fixes - Add to studio.html */
+
+/* Fix overflow and visual feedback issues */
+.studio-layout {
+    display: grid;
+    grid-template-areas:
+        "header"
+        "visual"
+        "status";
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    gap: 8px;
+    padding: 8px;
+    overflow: hidden; /* Prevent content overflow */
+}
+
+/* Ensure proper z-index layering */
+.lexicon-engine-container {
+    position: relative;
+    z-index: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 8px;
+    max-height: calc(100vh - 200px); /* Prevent overflow behind buttons */
+    overflow-y: auto;
+}
+
+/* Visual feedback for buttons */
+.math-btn, .action-btn, .desktop-btn {
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 10; /* Ensure buttons stay on top */
+}
+
+.math-btn:hover, .action-btn:hover, .desktop-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(124, 220, 255, 0.3);
+    background: var(--accent);
+    color: var(--bg);
+}
+
+.math-btn:active, .action-btn:active, .desktop-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(124, 220, 255, 0.2);
+}
+
+/* Add visual processing indicator */
+.processing-indicator {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.processing-indicator.active {
+    display: block;
+    animation: pulse 1.5s infinite;
+}
+
+.processing-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Fix content area scrolling */
+.visual-workspace {
+    position: relative;
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
+    padding-right: 8px;
+}
+
+.visual-workspace::-webkit-scrollbar {
+    width: 6px;
+}
+
+.visual-workspace::-webkit-scrollbar-track {
+    background: var(--panel);
+    border-radius: 3px;
+}
+
+.visual-workspace::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.visual-workspace::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* Chat and UI overlays proper z-indexing */
+.chat-overlay {
+    z-index: 2000;
+}
+
+.audio-engine-overlay {
+    z-index: 2100;
+}
+
+.notification {
+    z-index: 3000;
+}
+
+/* Button feedback effects */
+@keyframes buttonPress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.button-pressed {
+    animation: buttonPress 0.3s ease;
+    background: var(--success) !important;
+}
+
+/* Visual feedback for processing */
+.processing-text {
+    color: var(--accent);
+    animation: pulse 1s infinite;
+}
+
+.result-highlight {
+    background: rgba(124, 220, 255, 0.1);
+    border-left: 3px solid var(--accent);
+    padding: 8px;
+    margin: 4px 0;
+    border-radius: 4px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

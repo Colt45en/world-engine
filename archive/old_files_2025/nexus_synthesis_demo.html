@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌊 NEXUS SYNTHESIS ENGINE - Math Expression Art/Sound/World Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: grid;
+            grid-template-areas:
+                "expression-input art-canvas world-canvas"
+                "vibe-control art-canvas world-canvas"
+                "presets-panel sound-viz integration-status";
+            grid-template-columns: 350px 1fr 1fr;
+            grid-template-rows: 150px 200px 1fr;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .panel {
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            background: rgba(0, 20, 40, 0.7);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        h2 {
+            color: #ff00ff;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .expression-input { grid-area: expression-input; }
+        .vibe-control { grid-area: vibe-control; }
+        .art-canvas { grid-area: art-canvas; border: 2px solid rgba(255, 0, 255, 0.5); }
+        .world-canvas { grid-area: world-canvas; border: 2px solid rgba(0, 255, 255, 0.5); }
+        .presets-panel { grid-area: presets-panel; }
+        .sound-viz { grid-area: sound-viz; }
+        .integration-status { grid-area: integration-status; }
+
+        .expression-box {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 4px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 8px;
+            margin: 5px 0;
+        }
+
+        .expression-box:focus {
+            border-color: #ff00ff;
+            outline: none;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+        }
+
+        .synthesis-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            image-rendering: pixelated;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .synth-button {
+            padding: 8px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 4px;
+            color: #00ffff;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .synth-button:hover {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: #00ffff;
+            transform: scale(1.05);
+        }
+
+        .synth-button.active {
+            background: rgba(255, 0, 255, 0.4);
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .preset-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            margin: 3px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .preset-item:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        .preset-item.active {
+            background: rgba(255, 0, 255, 0.3);
+            border-left: 3px solid #ff00ff;
+        }
+
+        .vibe-bars {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+
+        .vibe-bar {
+            width: 12px;
+            height: 60px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vibe-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, #ff00ff, #00ffff);
+            transition: height 0.3s ease;
+        }
+
+        .vibe-label {
+            font-size: 8px;
+            text-align: center;
+            margin-top: 3px;
+        }
+
+        .sound-spectrum {
+            width: 100%;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .spectrum-bar {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to top, #ff00ff, #00ffff, #ffffff);
+            transition: height 0.1s ease;
+        }
+
+        .status-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 10px;
+        }
+
+        .status-value {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .expression-type-tabs {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 5px 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #00ffff;
+            font-size: 10px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .tab.active {
+            background: rgba(255, 0, 255, 0.3);
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .tab:first-child { border-radius: 4px 0 0 4px; }
+        .tab:last-child { border-radius: 0 4px 4px 0; }
+
+        .listening-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff0000;
+            opacity: 0.3;
+        }
+
+        .listening-indicator.active {
+            background: #00ff00;
+            opacity: 1;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 50% { transform: scale(1); }
+            25%, 75% { transform: scale(1.2); }
+        }
+
+        .error-display {
+            color: #ff6666;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 5px;
+            font-size: 10px;
+            margin: 5px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Expression Input Panel -->
+        <div class="panel expression-input">
+            <h2>🎯 MATH EXPRESSION INPUT</h2>
+            <div class="listening-indicator" id="listeningIndicator"></div>
+
+            <div class="expression-type-tabs">
+                <div class="tab active" data-type="art" onclick="switchExpressionType('art')">ART</div>
+                <div class="tab" data-type="sound" onclick="switchExpressionType('sound')">SOUND</div>
+                <div class="tab" data-type="world" onclick="switchExpressionType('world')">WORLD</div>
+            </div>
+
+            <input type="text" class="expression-box" id="expressionInput"
+                   placeholder="(x^2 + y^2 - 1)^3 - x^2 * y^3"
+                   onkeypress="handleExpressionInput(event)">
+
+            <div class="error-display" id="errorDisplay"></div>
+
+            <div class="button-grid">
+                <button class="synth-button" onclick="synthesizeExpression()">🎨 SYNTHESIZE</button>
+                <button class="synth-button" onclick="clearSynthesis()">🗑️ CLEAR</button>
+                <button class="synth-button" onclick="randomExpression()">🎲 RANDOM</button>
+                <button class="synth-button" onclick="exportSynthesis()">💾 EXPORT</button>
+            </div>
+        </div>
+
+        <!-- Vibe Control Panel -->
+        <div class="panel vibe-control">
+            <h2>🌊 VIBE ENGINE</h2>
+
+            <div class="vibe-bars">
+                <div>
+                    <div class="vibe-bar"><div class="vibe-fill" id="vibeP"></div></div>
+                    <div class="vibe-label">P</div>
+                </div>
+                <div>
+                    <div class="vibe-bar"><div class="vibe-fill" id="vibeI"></div></div>
+                    <div class="vibe-label">I</div>
+                </div>
+                <div>
+                    <div class="vibe-bar"><div class="vibe-fill" id="vibeG"></div></div>
+                    <div class="vibe-label">G</div>
+                </div>
+                <div>
+                    <div class="vibe-bar"><div class="vibe-fill" id="vibeC"></div></div>
+                    <div class="vibe-label">C</div>
+                </div>
+            </div>
+
+            <div class="button-grid">
+                <button class="synth-button" id="listenBtn" onclick="toggleListening()">🎤 LISTEN</button>
+                <button class="synth-button" onclick="resetVibe()">⚡ RESET</button>
+            </div>
+
+            <div style="font-size: 10px; margin-top: 10px;">
+                <div>Mu: <span id="muValue">1.5</span></div>
+                <div>Energy: <span id="energyValue">0.8</span></div>
+            </div>
+        </div>
+
+        <!-- Art Canvas -->
+        <div class="panel art-canvas">
+            <h2>🎨 MATHEMATICAL ART</h2>
+            <canvas class="synthesis-canvas" id="artCanvas" width="400" height="300"></canvas>
+        </div>
+
+        <!-- World Canvas -->
+        <div class="panel world-canvas">
+            <h2>🌍 PROCEDURAL WORLD</h2>
+            <canvas class="synthesis-canvas" id="worldCanvas" width="400" height="300"></canvas>
+        </div>
+
+        <!-- Presets Panel -->
+        <div class="panel presets-panel">
+            <h2>📚 EXPRESSION PRESETS</h2>
+            <div id="presetsContainer" style="height: 200px; overflow-y: auto;">
+                <!-- Presets will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Sound Visualization -->
+        <div class="panel sound-viz">
+            <h2>🎵 SOUND SYNTHESIS</h2>
+            <div class="sound-spectrum" id="soundSpectrum"></div>
+            <div style="font-size: 10px;">
+                <div>Frequency: <span id="soundFreq">440</span> Hz</div>
+                <div>Amplitude: <span id="soundAmp">0.3</span></div>
+                <div>Expression: <span id="currentSoundExpr">sine wave</span></div>
+            </div>
+            <div class="button-grid" style="margin-top: 10px;">
+                <button class="synth-button" onclick="playSynthesizedSound()">▶️ PLAY</button>
+                <button class="synth-button" onclick="stopSynthesizedSound()">⏹️ STOP</button>
+            </div>
+        </div>
+
+        <!-- Integration Status -->
+        <div class="panel integration-status">
+            <h2>🔗 SYNTHESIS STATUS</h2>
+            <div class="status-metric">
+                <span>Math Parser:</span>
+                <span class="status-value" id="mathParserStatus">Ready</span>
+            </div>
+            <div class="status-metric">
+                <span>Art Renderer:</span>
+                <span class="status-value" id="artRendererStatus">Ready</span>
+            </div>
+            <div class="status-metric">
+                <span>Sound Engine:</span>
+                <span class="status-value" id="soundEngineStatus">Ready</span>
+            </div>
+            <div class="status-metric">
+                <span>World Generator:</span>
+                <span class="status-value" id="worldGenStatus">Ready</span>
+            </div>
+            <div class="status-metric">
+                <span>Vibe Integration:</span>
+                <span class="status-value" id="vibeIntegrationStatus">Active</span>
+            </div>
+            <div class="status-metric">
+                <span>Expression Type:</span>
+                <span class="status-value" id="currentExpressionType">Art</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the Mini Math Expression Engine -->
+    <script>
+// Embedded simplified ExpressionEngine for the demo
+class ExpressionEngine {
+  constructor() {
+    this.constants = { pi: Math.PI, e: Math.E };
+    this.functions = {
+      sin: { fn: Math.sin, arity: 1 },
+      cos: { fn: Math.cos, arity: 1 },
+      tan: { fn: Math.tan, arity: 1 },
+      sqrt: { fn: Math.sqrt, arity: 1 },
+      abs: { fn: Math.abs, arity: 1 },
+      exp: { fn: Math.exp, arity: 1 },
+      log: { fn: Math.log, arity: 1 },
+      pow: { fn: Math.pow, arity: 2 },
+      min: { fn: Math.min, arity: -1 },
+      max: { fn: Math.max, arity: -1 },
+      noise: { fn: (x, y = 0) => {
+        const hash = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        return (hash - Math.floor(hash)) * 2 - 1;
+      }, arity: -1 },
+      atan2: { fn: Math.atan2, arity: 2 }
+    };
+  }
+
+  evaluate(expr, vars = {}) {
+    // Simple expression evaluator - handles basic math
+    try {
+      // Replace variables
+      let processed = expr;
+      for (const [name, value] of Object.entries(vars)) {
+        const regex = new RegExp('\\b' + name + '\\b', 'g');
+        processed = processed.replace(regex, value.toString());
+      }
+
+      // Replace constants
+      for (const [name, value] of Object.entries(this.constants)) {
+        const regex = new RegExp('\\b' + name + '\\b', 'g');
+        processed = processed.replace(regex, value.toString());
+      }
+
+      // Replace functions (basic replacements for demo)
+      processed = processed.replace(/sin\(/g, 'Math.sin(');
+      processed = processed.replace(/cos\(/g, 'Math.cos(');
+      processed = processed.replace(/tan\(/g, 'Math.tan(');
+      processed = processed.replace(/sqrt\(/g, 'Math.sqrt(');
+      processed = processed.replace(/abs\(/g, 'Math.abs(');
+      processed = processed.replace(/exp\(/g, 'Math.exp(');
+      processed = processed.replace(/log\(/g, 'Math.log(');
+      processed = processed.replace(/pow\(/g, 'Math.pow(');
+      processed = processed.replace(/atan2\(/g, 'Math.atan2(');
+      processed = processed.replace(/noise\(/g, 'this.noise(');
+
+      // Handle ^ as exponentiation
+      processed = processed.replace(/\^/g, '**');
+
+      return Function('x', 'y', 'r', 't', 'theta', `
+        const noise = (x, y = 0) => {
+          const hash = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+          return (hash - Math.floor(hash)) * 2 - 1;
+        };
+        return ${processed};
+      `);
+    } catch (error) {
+      throw new Error(`Expression evaluation failed: ${error.message}`);
+    }
+  }
+}
+
+// Main Nexus Synthesis Demo
+class NexusSynthesisDemo {
+  constructor() {
+    this.mathEngine = new ExpressionEngine();
+    this.isListening = false;
+    this.currentType = 'art';
+    this.vibeState = { p: 0, i: 0, g: 0, c: 0 };
+    this.frameCount = 0;
+    this.audioContext = null;
+    this.currentAudioSource = null;
+
+    // Get canvas contexts
+    this.artCanvas = document.getElementById('artCanvas');
+    this.artCtx = this.artCanvas.getContext('2d');
+    this.worldCanvas = document.getElementById('worldCanvas');
+    this.worldCtx = this.worldCanvas.getContext('2d');
+
+    // Expression presets
+    this.presets = {
+      art: [
+        { name: "Heart Curve", expr: "(x^2 + y^2 - 1)^3 - x^2 * y^3" },
+        { name: "Rose Curve", expr: "r - cos(5 * theta)" },
+        { name: "Spiral", expr: "r - (0.5 + 0.1 * theta)" },
+        { name: "Dragon Curve", expr: "x^2 + y^2 - (1 + 0.5 * cos(8 * atan2(y, x)))^2" },
+        { name: "Lissajous", expr: "x - sin(3*t), y - cos(5*t)" },
+        { name: "Vibe Circle", expr: "(x - p)^2 + (y - i)^2 - (0.5 + c)^2" }
+      ],
+      sound: [
+        { name: "Sine Wave", expr: "sin(2 * pi * 440 * t)" },
+        { name: "FM Bell", expr: "sin(2 * pi * 440 * t + 0.5 * sin(2 * pi * 220 * t))" },
+        { name: "Harmonics", expr: "sin(2*pi*440*t) + 0.5*sin(2*pi*880*t) + 0.25*sin(2*pi*1320*t)" },
+        { name: "Vibe Drone", expr: "sin(2*pi*(200 + c*400)*t) * (0.5 + 0.5*sin(i*t))" }
+      ],
+      world: [
+        { name: "Mountains", expr: "sin(x + t) * cos(y + p) + i * noise(x, y)" },
+        { name: "Crater", expr: "exp(-(x^2 + y^2)) * (1 + g * sin(t))" },
+        { name: "Vibe Terrain", expr: "noise(x, y) + 0.5*noise(2*x, 2*y) + c*sin(sqrt(x^2+y^2))" },
+        { name: "Ocean Waves", expr: "sin(x - t) + 0.5*sin(2*y + p) + 0.3*noise(x,y)" }
+      ]
+    };
+
+    this.initialize();
+  }
+
+  async initialize() {
+    try {
+      // Initialize audio context
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Setup sound spectrum visualization
+      this.setupSoundSpectrum();
+
+      // Load presets
+      this.loadPresets();
+
+      // Start simulation
+      this.startSimulation();
+
+      // Set default expression
+      document.getElementById('expressionInput').value = this.presets.art[0].expr;
+
+      console.log('🌊 Nexus Synthesis Demo initialized');
+    } catch (error) {
+      console.error('❌ Demo initialization failed:', error);
+    }
+  }
+
+  setupSoundSpectrum() {
+    const spectrum = document.getElementById('soundSpectrum');
+    for (let i = 0; i < 32; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'spectrum-bar';
+      bar.style.left = `${i * 8}px`;
+      spectrum.appendChild(bar);
+    }
+  }
+
+  loadPresets() {
+    const container = document.getElementById('presetsContainer');
+    container.innerHTML = '';
+
+    const presets = this.presets[this.currentType];
+    presets.forEach((preset, index) => {
+      const item = document.createElement('div');
+      item.className = 'preset-item';
+      item.innerHTML = `
+        <span>${preset.name}</span>
+        <span style="opacity: 0.7;">${preset.expr.substring(0, 20)}...</span>
+      `;
+      item.onclick = () => this.loadPreset(index);
+      container.appendChild(item);
+    });
+  }
+
+  startSimulation() {
+    setInterval(() => {
+      // Simulate vibe state changes
+      const time = Date.now() * 0.001;
+      this.vibeState.p = Math.sin(time * 0.7) * 0.5;
+      this.vibeState.i = 0.3 + Math.sin(time * 1.2) * 0.2;
+      this.vibeState.g = 0.4 + Math.cos(time * 0.9) * 0.3;
+      this.vibeState.c = 0.6 + Math.sin(time * 0.5) * 0.2;
+
+      this.updateVibeDisplay();
+      this.frameCount++;
+
+      // Auto-synthesize if listening
+      if (this.isListening && this.frameCount % 30 === 0) {
+        this.synthesizeCurrentExpression();
+      }
+    }, 100);
+  }
+
+  updateVibeDisplay() {
+    document.getElementById('vibeP').style.height = `${Math.max(0, (this.vibeState.p + 1) * 50)}%`;
+    document.getElementById('vibeI').style.height = `${this.vibeState.i * 100}%`;
+    document.getElementById('vibeG').style.height = `${this.vibeState.g * 100}%`;
+    document.getElementById('vibeC').style.height = `${this.vibeState.c * 100}%`;
+
+    const energy = (Math.abs(this.vibeState.p) + this.vibeState.i + this.vibeState.g + this.vibeState.c) / 4;
+    document.getElementById('energyValue').textContent = energy.toFixed(2);
+    document.getElementById('muValue').textContent = (1.0 + energy).toFixed(1);
+  }
+
+  synthesizeArt(expression) {
+    try {
+      const evaluator = this.mathEngine.evaluate(expression);
+      const ctx = this.artCtx;
+      const canvas = this.artCanvas;
+
+      // Clear with quantum background
+      const gradient = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width/2);
+      gradient.addColorStop(0, 'rgba(26, 0, 51, 0.1)');
+      gradient.addColorStop(1, 'rgba(0, 0, 17, 1)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render equation
+      const resolution = 2;
+      const scale = 4;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const time = this.frameCount * 0.016;
+
+      for (let px = 0; px < canvas.width; px += resolution) {
+        for (let py = 0; py < canvas.height; py += resolution) {
+          const x = (px - centerX) / (canvas.width / scale);
+          const y = (py - centerY) / (canvas.height / scale);
+          const r = Math.sqrt(x*x + y*y);
+          const theta = Math.atan2(y, x);
+
+          try {
+            const value = evaluator(x, y, r, time, theta);
+
+            if (typeof value === 'number' && Math.abs(value) < 0.1) {
+              // On the curve
+              const hue = (this.vibeState.p + 1) * 180;
+              const sat = 50 + this.vibeState.i * 50;
+              const light = 50 + this.vibeState.c * 30;
+
+              ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, 0.8)`;
+              ctx.fillRect(px, py, resolution, resolution);
+            }
+          } catch (evalError) {
+            // Skip invalid points
+          }
+        }
+      }
+
+      document.getElementById('artRendererStatus').textContent = 'Active';
+    } catch (error) {
+      console.error('Art synthesis failed:', error);
+      this.showError(error.message);
+      document.getElementById('artRendererStatus').textContent = 'Error';
+    }
+  }
+
+  synthesizeWorld(expression) {
+    try {
+      const evaluator = this.mathEngine.evaluate(expression);
+      const ctx = this.worldCtx;
+      const canvas = this.worldCanvas;
+      const size = 32;
+      const cellSize = Math.min(canvas.width, canvas.height) / size;
+      const time = this.frameCount * 0.016;
+
+      // Clear
+      ctx.fillStyle = '#000011';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+          const x = (i / size - 0.5) * 8;
+          const y = (j / size - 0.5) * 8;
+
+          try {
+            const height = evaluator(x, y, 0, time, 0);
+            if (typeof height === 'number') {
+              const normalizedHeight = Math.max(-2, Math.min(2, height));
+              const intensity = (normalizedHeight + 2) / 4;
+
+              const baseHue = normalizedHeight > 0 ? 120 : 240;
+              const hue = baseHue + this.vibeState.p * 60;
+              const sat = 70 + this.vibeState.g * 30;
+              const light = 20 + intensity * 60 + this.vibeState.i * 20;
+
+              ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, 0.9)`;
+              ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+          } catch (evalError) {
+            // Skip invalid points
+          }
+        }
+      }
+
+      document.getElementById('worldGenStatus').textContent = 'Active';
+    } catch (error) {
+      console.error('World synthesis failed:', error);
+      this.showError(error.message);
+      document.getElementById('worldGenStatus').textContent = 'Error';
+    }
+  }
+
+  synthesizeSound(expression) {
+    try {
+      if (this.currentAudioSource) {
+        this.currentAudioSource.stop();
+      }
+
+      const evaluator = this.mathEngine.evaluate(expression);
+      const duration = 1.0;
+      const sampleRate = this.audioContext.sampleRate;
+      const numSamples = Math.floor(duration * sampleRate);
+
+      const buffer = this.audioContext.createBuffer(1, numSamples, sampleRate);
+      const channelData = buffer.getChannelData(0);
+
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        try {
+          const sample = evaluator(0, 0, 0, t, 0);
+          if (typeof sample === 'number') {
+            channelData[i] = Math.max(-1, Math.min(1, sample * 0.3));
+          } else {
+            channelData[i] = 0;
+          }
+        } catch (evalError) {
+          channelData[i] = 0;
+        }
+      }
+
+      // Update spectrum visualization
+      this.updateSoundSpectrum(channelData);
+
+      document.getElementById('soundEngineStatus').textContent = 'Ready';
+      return buffer;
+    } catch (error) {
+      console.error('Sound synthesis failed:', error);
+      this.showError(error.message);
+      document.getElementById('soundEngineStatus').textContent = 'Error';
+      return null;
+    }
+  }
+
+  updateSoundSpectrum(audioData) {
+    const bars = document.querySelectorAll('#soundSpectrum .spectrum-bar');
+    const sampleStep = Math.floor(audioData.length / bars.length);
+
+    bars.forEach((bar, i) => {
+      let sum = 0;
+      for (let j = 0; j < sampleStep; j++) {
+        sum += Math.abs(audioData[i * sampleStep + j] || 0);
+      }
+      const height = (sum / sampleStep) * 80;
+      bar.style.height = `${height}px`;
+    });
+  }
+
+  synthesizeCurrentExpression() {
+    const expression = document.getElementById('expressionInput').value.trim();
+    if (!expression) return;
+
+    try {
+      switch (this.currentType) {
+        case 'art':
+          this.synthesizeArt(expression);
+          break;
+        case 'sound':
+          this.synthesizeSound(expression);
+          break;
+        case 'world':
+          this.synthesizeWorld(expression);
+          break;
+      }
+
+      this.hideError();
+      document.getElementById('mathParserStatus').textContent = 'Active';
+    } catch (error) {
+      console.error('Synthesis failed:', error);
+      this.showError(error.message);
+      document.getElementById('mathParserStatus').textContent = 'Error';
+    }
+  }
+
+  showError(message) {
+    const errorDiv = document.getElementById('errorDisplay');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  }
+
+  hideError() {
+    document.getElementById('errorDisplay').style.display = 'none';
+  }
+
+  loadPreset(index) {
+    const preset = this.presets[this.currentType][index];
+    document.getElementById('expressionInput').value = preset.expr;
+
+    // Update active preset
+    document.querySelectorAll('.preset-item').forEach((item, i) => {
+      item.classList.toggle('active', i === index);
+    });
+
+    // Auto-synthesize
+    setTimeout(() => this.synthesizeCurrentExpression(), 100);
+  }
+}
+
+// Global functions for UI interaction
+let demo;
+
+function switchExpressionType(type) {
+  if (!demo) return;
+
+  demo.currentType = type;
+  document.getElementById('currentExpressionType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+
+  // Update tab UI
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.type === type);
+  });
+
+  // Load presets for new type
+  demo.loadPresets();
+
+  // Clear current expression and set placeholder
+  const input = document.getElementById('expressionInput');
+  const placeholders = {
+    art: '(x^2 + y^2 - 1)^3 - x^2 * y^3',
+    sound: 'sin(2 * pi * 440 * t)',
+    world: 'sin(x + t) * cos(y) + noise(x, y)'
+  };
+  input.placeholder = placeholders[type];
+  input.value = '';
+}
+
+function synthesizeExpression() {
+  if (demo) {
+    demo.synthesizeCurrentExpression();
+  }
+}
+
+function clearSynthesis() {
+  if (demo) {
+    // Clear canvases
+    const artCtx = demo.artCtx;
+    const worldCtx = demo.worldCtx;
+
+    artCtx.fillStyle = 'rgba(0, 0, 17, 1)';
+    artCtx.fillRect(0, 0, demo.artCanvas.width, demo.artCanvas.height);
+
+    worldCtx.fillStyle = '#000011';
+    worldCtx.fillRect(0, 0, demo.worldCanvas.width, demo.worldCanvas.height);
+
+    // Clear spectrum
+    document.querySelectorAll('#soundSpectrum .spectrum-bar').forEach(bar => {
+      bar.style.height = '0px';
+    });
+
+    demo.hideError();
+  }
+}
+
+function randomExpression() {
+  if (!demo) return;
+
+  const presets = demo.presets[demo.currentType];
+  const randomPreset = presets[Math.floor(Math.random() * presets.length)];
+  demo.loadPreset(presets.indexOf(randomPreset));
+}
+
+function exportSynthesis() {
+  if (!demo) return;
+
+  // Export current canvas as image
+  const canvas = demo.currentType === 'art' ? demo.artCanvas : demo.worldCanvas;
+  const dataURL = canvas.toDataURL('image/png');
+
+  const link = document.createElement('a');
+  link.download = `nexus-synthesis-${demo.currentType}-${Date.now()}.png`;
+  link.href = dataURL;
+  link.click();
+}
+
+function handleExpressionInput(event) {
+  if (event.key === 'Enter' && demo) {
+    demo.synthesizeCurrentExpression();
+  }
+}
+
+function toggleListening() {
+  if (!demo) return;
+
+  const btn = document.getElementById('listenBtn');
+  const indicator = document.getElementById('listeningIndicator');
+
+  demo.isListening = !demo.isListening;
+
+  if (demo.isListening) {
+    btn.classList.add('active');
+    btn.textContent = '🔴 STOP';
+    indicator.classList.add('active');
+    document.getElementById('vibeIntegrationStatus').textContent = 'Listening';
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '🎤 LISTEN';
+    indicator.classList.remove('active');
+    document.getElementById('vibeIntegrationStatus').textContent = 'Idle';
+  }
+}
+
+function resetVibe() {
+  if (demo) {
+    demo.vibeState = { p: 0, i: 0, g: 0, c: 0 };
+  }
+}
+
+function playSynthesizedSound() {
+  if (!demo || demo.currentType !== 'sound') return;
+
+  const expression = document.getElementById('expressionInput').value.trim();
+  if (!expression) return;
+
+  const buffer = demo.synthesizeSound(expression);
+  if (buffer) {
+    if (demo.currentAudioSource) {
+      demo.currentAudioSource.stop();
+    }
+
+    demo.currentAudioSource = demo.audioContext.createBufferSource();
+    demo.currentAudioSource.buffer = buffer;
+    demo.currentAudioSource.connect(demo.audioContext.destination);
+    demo.currentAudioSource.loop = true;
+    demo.currentAudioSource.start();
+
+    document.getElementById('currentSoundExpr').textContent = expression.substring(0, 30) + '...';
+  }
+}
+
+function stopSynthesizedSound() {
+  if (demo && demo.currentAudioSource) {
+    demo.currentAudioSource.stop();
+    demo.currentAudioSource = null;
+    document.getElementById('currentSoundExpr').textContent = 'stopped';
+  }
+}
+
+// Initialize demo on load
+window.addEventListener('load', () => {
+  demo = new NexusSynthesisDemo();
+});
+    </script>
+</body>
+</html>

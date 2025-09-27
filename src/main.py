@@ -17,23 +17,28 @@ def launch_web_server():
     print("Web interface will be available at: http://localhost:8000/web/worldengine.html")
     print("API documentation at: http://localhost:8000/docs")
 
-    import uvicorn
-    from world_engine_unified.api.service import create_app
-
-    app = create_app()
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
-
-
+    try:
+        import uvicorn
+        from world_engine_unified.api.service import create_app
+    except ImportError as e:
+        print(f"Error: {e}. Please ensure all dependencies and local modules are installed.")
+        print("Try running: pip install -r world_engine_unified/requirements.txt")
+        return
 def launch_demo():
     """Run the interactive demo."""
-    from world_engine_unified.demo import main
-    main()
-
-
+    try:
+        from world_engine_unified.demo import main
+    except ImportError as e:
+        print(f"Error: {e}. Please ensure all dependencies and local modules are installed.")
 def launch_cli():
     """Launch command-line interface for text processing."""
-    from world_engine_unified.api.service import WorldEngineAPI
-    from world_engine_unified.scales.seeds import DEFAULT_SEEDS, DEFAULT_CONSTRAINTS
+    try:
+        from world_engine_unified.api.service import WorldEngineAPI
+        from world_engine_unified.scales.seeds import DEFAULT_SEEDS, DEFAULT_CONSTRAINTS
+    except ImportError as e:
+        print(f"Error: {e}. Please ensure all dependencies and local modules are installed.")
+        print("Try running: pip install -r world_engine_unified/requirements.txt")
+        return
 
     print("World Engine CLI")
     print("================")
@@ -51,48 +56,76 @@ def launch_cli():
     print(f"Loaded {len(api.seed_manager.seeds)} seed words")
     print("Commands: 'score <text>', 'word <word>', 'compare <word1> <word2>', 'quit'\n")
 
+    def handle_score(api, text):
+        result = api.score_token(text)
+        print(f"Text: {text}")
+        for token in result['tokens']:
+            if token['is_seed']:
+                print(f"  - {token['text']}: {token['seed_value']} ({token['pos']})")
+        print(f"Summary: {result['summary']['scored_tokens']} tokens scored")
+
+    def handle_word(api, word):
+        result = api.score_word(word)
+        print(f"Word: {word}")
+        if result['is_seed']:
+            print(f"  Seed value: {result['seed_value']}")
+        else:
+            print("  Not a seed word")
+
+    def handle_compare(api, word1, word2):
+        result = api.scale_between(word1, word2)
+        print(f"Comparison: {word1} vs {word2}")
+        if result['word1_value'] is not None and result['word2_value'] is not None:
+            print(f"  {word1}: {result['word1_value']}")
+            print(f"  {word2}: {result['word2_value']}")
+            print(f"  Result: {result['comparison']}")
+        else:
+            print("  One or both words are not seed words")
+
+    def parse_command(command):
+        if command.lower() in ['quit', 'exit', 'q']:
+            return 'quit', None
+        elif command.startswith('score '):
+            return 'score', command[6:]
+        elif command.startswith('word '):
+            return 'word', command[5:]
+        elif command.startswith('compare '):
+            parts = command[8:].split()
+            if len(parts) >= 2:
+                return 'compare', (parts[0], parts[1])
+            else:
+                return 'usage', None
+        elif command.strip() == '':
+            return 'empty', None
+        else:
+            return 'unknown', None
+
     while True:
         try:
             command = input("> ").strip()
+            cmd_type, arg = parse_command(command)
 
-            if command.lower() in ['quit', 'exit', 'q']:
+            if cmd_type == 'quit':
                 break
-
-            elif command.startswith('score '):
-                text = command[6:]
-                result = api.score_token(text)
-                print(f"Text: {text}")
-                for token in result['tokens']:
-                    if token['is_seed']:
-                        print(f"  - {token['text']}: {token['seed_value']} ({token['pos']})")
-                print(f"Summary: {result['summary']['scored_tokens']} tokens scored")
-
-            elif command.startswith('word '):
-                word = command[5:]
-                result = api.score_word(word)
-                print(f"Word: {word}")
-                if result['is_seed']:
-                    print(f"  Seed value: {result['seed_value']}")
-                else:
-                    print("  Not a seed word")
-
-            elif command.startswith('compare '):
-                parts = command[8:].split()
-                if len(parts) >= 2:
-                    word1, word2 = parts[0], parts[1]
-                    result = api.scale_between(word1, word2)
-                    print(f"Comparison: {word1} vs {word2}")
-                    if result['word1_value'] is not None and result['word2_value'] is not None:
-                        print(f"  {word1}: {result['word1_value']}")
-                        print(f"  {word2}: {result['word2_value']}")
-                        print(f"  Result: {result['comparison']}")
-                    else:
-                        print("  One or both words are not seed words")
-                else:
-                    print("Usage: compare <word1> <word2>")
-
-            elif command.strip() == '':
+            elif cmd_type == 'score':
+                handle_score(api, arg)
+            elif cmd_type == 'word':
+                handle_word(api, arg)
+            elif cmd_type == 'compare':
+                handle_compare(api, arg[0], arg[1])
+            elif cmd_type == 'usage':
+                print("Usage: compare <word1> <word2>")
+            elif cmd_type == 'empty':
                 continue
+            else:
+                print("Unknown command. Try: score, word, compare, or quit")
+
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
+    print("\nGoodbye!")
 
             else:
                 print("Unknown command. Try: score, word, compare, or quit")
@@ -129,7 +162,7 @@ def setup_project():
 
     # Check spaCy model
     try:
-        import spacy
+        import spacy # type: ignore
         nlp = spacy.load("en_core_web_sm")
         print("✓ spaCy English model available")
     except OSError:

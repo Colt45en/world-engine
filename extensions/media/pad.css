@@ -1,0 +1,115 @@
+/* VS Code Coding Pad + LLE Styles */
+
+body {
+  margin: 0;
+  padding: 8px;
+  font-family: var(--vscode-font-family);
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+}
+
+#pad-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#toolbar {
+  padding: 4px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background-color: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-sideBar-border);
+}
+
+#padSwitcher {
+  flex: 1;
+  padding: 4px 8px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  color: var(--vscode-input-foreground);
+  border-radius: 2px;
+}
+
+button {
+  padding: 4px 12px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+#editor {
+  flex: 1;
+  min-height: 200px;
+}
+
+/* LLE UI Styles */
+#lle-bar {
+  padding: 4px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background-color: var(--vscode-panel-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+#lle-palette {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 6px;
+  margin: 6px 0;
+  padding: 6px;
+  background-color: var(--vscode-editorWidget-background);
+  border-radius: 4px;
+}
+
+#lle-palette button {
+  padding: 6px 10px;
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 32px;
+}
+
+#lle-palette button:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+#lle-state {
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-input-border);
+  padding: 8px;
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  margin: 6px 0;
+  white-space: pre;
+}
+
+#lle-timeline {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 10px;
+  opacity: 0.8;
+  white-space: pre;
+  background-color: var(--vscode-terminal-background);
+  color: var(--vscode-terminal-foreground);
+  padding: 6px;
+  border-radius: 4px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+#lle-graph {
+  height: 300px;
+  border: 1px solid #ccc;
+  margin-top: 8px;
+}

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorldEngine Tier-4 Bundle - Nucleus System Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6f0ff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #54f0b8;
+            margin: 0;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .demo-section {
+            background: rgba(26, 35, 50, 0.95);
+            border: 1px solid #2a3548;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .demo-section h3 {
+            color: #54f0b8;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            background: rgba(36, 51, 68, 0.5);
+            border: 1px solid #2a3548;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .control-group h4 {
+            margin: 0 0 10px 0;
+            color: #7cdcff;
+            font-size: 14px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #243344;
+            border: 1px solid;
+            color: #e6f0ff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #2a3d4f;
+            transform: translateY(-1px);
+        }
+
+        .btn-nucleus { border-color: #54f0b8; }
+        .btn-operator { border-color: #ff9f43; }
+        .btn-ai { border-color: #7cdcff; }
+        .btn-librarian { border-color: #ff9f43; }
+
+        .status-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-connected {
+            background: rgba(84, 240, 184, 0.2);
+            border: 1px solid #54f0b8;
+        }
+
+        .status-disconnected {
+            background: rgba(255, 159, 67, 0.2);
+            border: 1px solid #ff9f43;
+        }
+
+        .room-container {
+            background: rgba(15, 20, 25, 0.95);
+            border: 1px solid #2a3548;
+            border-radius: 8px;
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .room-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .event-log {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #2a3548;
+            border-radius: 6px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 2px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-time {
+            opacity: 0.6;
+            min-width: 60px;
+        }
+
+        .log-nucleus { color: #54f0b8; }
+        .log-operator { color: #ff9f43; }
+        .log-ai { color: #7cdcff; }
+        .log-librarian { color: #ff9f43; }
+        .log-system { color: #e6f0ff; }
+
+        .state-display {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #2a3548;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        .instructions {
+            background: rgba(45, 27, 61, 0.3);
+            border: 1px solid #6f42c1;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h4 {
+            color: #bd93f9;
+            margin: 0 0 10px 0;
+        }
+
+        .instructions ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-row {
+                justify-content: center;
+            }
+
+            .status-bar {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 WorldEngine Tier-4 Bundle</h1>
+            <p>Nucleus System with AI Bot Communication & Librarian Data Processing</p>
+        </div>
+
+        <div class="instructions">
+            <h4>🚀 How to Use This Demo</h4>
+            <ul>
+                <li><strong>Nucleus Controls:</strong> Trigger core intelligence events (VIBRATE, OPTIMIZATION, STATE, SEED)</li>
+                <li><strong>Operators:</strong> Apply direct state transformations (ST, UP, CV, RB)</li>
+                <li><strong>AI Bot:</strong> Simulate AI messages that get routed through the nucleus system</li>
+                <li><strong>Librarians:</strong> Process different data types through nucleus intelligence</li>
+                <li><strong>Watch the Event Log:</strong> See real-time nucleus communication and routing decisions</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h3>📊 System Status</h3>
+            <div class="status-bar">
+                <div id="connection-status" class="status-indicator status-disconnected">
+                    📡 Disconnected
+                </div>
+                <div id="nucleus-status" class="status-indicator status-connected">
+                    🧠 Nucleus Active
+                </div>
+                <div id="bridge-status" class="status-indicator status-disconnected">
+                    🌉 Bridge Loading...
+                </div>
+            </div>
+
+            <div class="state-display" id="state-display">
+                <strong style="color: #54f0b8;">System State:</strong>
+                <span id="state-info">Level 0 | Confidence 60.0% | X: [0.000, 0.500, 0.400, 0.600]</span>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>🎮 Interactive Controls</h3>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <h4>🧠 Nucleus Intelligence</h4>
+                    <div class="button-row">
+                        <button class="btn btn-nucleus" onclick="triggerNucleus('VIBRATE')">🌊 VIBRATE → ST</button>
+                        <button class="btn btn-nucleus" onclick="triggerNucleus('OPTIMIZATION')">⚡ OPTIMIZATION → UP</button>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-nucleus" onclick="triggerNucleus('STATE')">🎯 STATE → CV</button>
+                        <button class="btn btn-nucleus" onclick="triggerNucleus('SEED')">🌱 SEED → RB</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4>⚡ Direct Operators</h4>
+                    <div class="button-row">
+                        <button class="btn btn-operator" onclick="applyOperator('ST')">ST Stabilize</button>
+                        <button class="btn btn-operator" onclick="applyOperator('UP')">UP Update</button>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-operator" onclick="applyOperator('CV')">CV Converge</button>
+                        <button class="btn btn-operator" onclick="applyOperator('RB')">RB Rollback</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4>🤖 AI Bot Communication</h4>
+                    <div class="button-row">
+                        <button class="btn btn-ai" onclick="simulateAIBot('query')">🤖 Query Message</button>
+                        <button class="btn btn-ai" onclick="simulateAIBot('learning')">📚 Learning Update</button>
+                        <button class="btn btn-ai" onclick="simulateAIBot('feedback')">💬 Feedback Data</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4>📚 Librarian Data Processing</h4>
+                    <div class="button-row">
+                        <button class="btn btn-librarian" onclick="simulateLibrarian('pattern')">🔍 Pattern Data</button>
+                        <button class="btn btn-librarian" onclick="simulateLibrarian('classification')">📋 Classification</button>
+                        <button class="btn btn-librarian" onclick="simulateLibrarian('analysis')">📊 Analysis Results</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>🏠 WorldEngine Tier-4 Room</h3>
+            <div class="room-container">
+                <iframe id="tier4-iframe" class="room-iframe"
+                        srcdoc="<!DOCTYPE html><html><head><title>Tier-4 Room</title><style>body{margin:0;padding:0;font-family:system-ui;}</style></head><body><div id='tier4-container' style='width:100vw;height:100vh;'></div></body></html>">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>📋 Real-Time Event Log</h3>
+            <div class="event-log" id="event-log">
+                <div class="log-entry log-system">
+                    <span class="log-time">[00:00:00]</span>
+                    <span>🧠 Nucleus system initialized and ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load WorldEngine Tier-4 Bundle -->
+    <script src="src/nucleus/worldengine-tier4-bundle.js"></script>
+
+    <script>
+        // Global state management
+        let bridge = null;
+        let systemState = { x: [0, 0.5, 0.4, 0.6], kappa: 0.6, level: 0 };
+        let eventCounter = 0;
+
+        // Initialize the WorldEngine Tier-4 Bridge
+        function initializeBridge() {
+            const iframe = document.getElementById('tier4-iframe');
+
+            if (window.WorldEngineTier4 && iframe) {
+                try {
+                    // Create the bridge with nucleus configuration
+                    bridge = window.WorldEngineTier4.createTier4RoomBridge(
+                        iframe,
+                        'ws://localhost:9000', // WebSocket URL
+                        { enableNucleus: true }
+                    );
+
+                    // Setup event handlers
+                    bridge.on('roomReady', () => {
+                        updateStatus('bridge-status', '🌉 Bridge Connected', true);
+                        logEvent('system', 'WorldEngine bridge initialized successfully');
+                    });
+
+                    bridge.on('connectionStatus', (isConnected) => {
+                        updateStatus('connection-status',
+                            isConnected ? '📡 Connected' : '📡 Disconnected',
+                            isConnected);
+                        logEvent('system', `WebSocket ${isConnected ? 'connected' : 'disconnected'}`);
+                    });
+
+                    bridge.on('operatorApplied', (operator, previousState, newState) => {
+                        systemState = newState;
+                        updateStateDisplay();
+                        logEvent('operator', `${operator} operator applied`);
+                    });
+
+                    // Listen for nucleus events through StudioBridge
+                    if (window.WorldEngineTier4.StudioBridge) {
+                        const studioBridge = window.WorldEngineTier4.StudioBridge;
+
+                        studioBridge.onBus('tier4.nucleusEvent', (msg) => {
+                            logEvent('nucleus', `${msg.role} triggered → ${msg.operator}`);
+                        });
+
+                        studioBridge.onBus('tier4.operatorApplied', (msg) => {
+                            logEvent('operator', `${msg.operator} applied via nucleus intelligence`);
+                        });
+                    }
+
+                } catch (error) {
+                    console.error('Failed to initialize bridge:', error);
+                    updateStatus('bridge-status', '🌉 Bridge Error', false);
+                    logEvent('system', `Bridge initialization failed: ${error.message}`);
+                }
+            } else {
+                setTimeout(initializeBridge, 500); // Retry after 500ms
+            }
+        }
+
+        // Control functions
+        function triggerNucleus(role) {
+            if (bridge && bridge.triggerNucleusEvent) {
+                bridge.triggerNucleusEvent(role);
+                logEvent('nucleus', `${role} nucleus event triggered`);
+            } else {
+                logEvent('system', 'Bridge not ready - cannot trigger nucleus event');
+            }
+        }
+
+        function applyOperator(operator) {
+            if (bridge && bridge.applyOperator) {
+                bridge.applyOperator(operator, { source: 'manual_demo' });
+                logEvent('operator', `${operator} operator manually applied`);
+            } else {
+                logEvent('system', 'Bridge not ready - cannot apply operator');
+            }
+        }
+
+        function simulateAIBot(messageType) {
+            if (bridge && bridge.processAIBotMessage) {
+                const messages = {
+                    query: 'Analyze current system patterns and recommend optimizations',
+                    learning: 'New learning pattern detected in user interaction data',
+                    feedback: 'User satisfaction metrics indicate positive system response'
+                };
+
+                bridge.processAIBotMessage(messages[messageType], messageType);
+                logEvent('ai', `AI Bot ${messageType}: ${messages[messageType].substring(0, 40)}...`);
+            } else {
+                logEvent('system', 'Bridge not ready - cannot process AI Bot message');
+            }
+        }
+
+        function simulateLibrarian(dataType) {
+            if (bridge && bridge.processLibrarianData) {
+                const librarians = ['Math Librarian', 'English Librarian', 'Pattern Librarian'];
+                const librarian = librarians[Math.floor(Math.random() * librarians.length)];
+
+                const testData = {
+                    pattern: { complexity: Math.random(), frequency: Math.floor(Math.random() * 100) },
+                    classification: { category: ['A', 'B', 'C'][Math.floor(Math.random() * 3)], confidence: Math.random() },
+                    analysis: { result: 'positive', score: Math.random(), metrics: Math.floor(Math.random() * 50) }
+                };
+
+                bridge.processLibrarianData(librarian, dataType, testData[dataType]);
+                logEvent('librarian', `${librarian} processed ${dataType} data`);
+            } else {
+                logEvent('system', 'Bridge not ready - cannot process librarian data');
+            }
+        }
+
+        // UI Update functions
+        function updateStatus(elementId, text, isConnected) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = text;
+                element.className = `status-indicator ${isConnected ? 'status-connected' : 'status-disconnected'}`;
+            }
+        }
+
+        function updateStateDisplay() {
+            const stateInfo = document.getElementById('state-info');
+            if (stateInfo && systemState) {
+                const confidence = (systemState.kappa * 100).toFixed(1);
+                const xValues = systemState.x.map(v => v.toFixed(3)).join(', ');
+                stateInfo.textContent = `Level ${systemState.level} | Confidence ${confidence}% | X: [${xValues}]`;
+            }
+        }
+
+        function logEvent(type, message) {
+            const eventLog = document.getElementById('event-log');
+            if (!eventLog) return;
+
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span>${message}</span>
+            `;
+
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+
+            // Keep only last 50 entries
+            while (eventLog.children.length > 50) {
+                eventLog.removeChild(eventLog.firstChild);
+            }
+
+            eventCounter++;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            logEvent('system', 'Demo page loaded - initializing WorldEngine Tier-4 Bundle...');
+
+            // Check if bundle is loaded
+            if (window.WorldEngineTier4) {
+                logEvent('system', '✅ WorldEngine Tier-4 Bundle loaded successfully');
+                updateStatus('nucleus-status', '🧠 Nucleus Ready', true);
+
+                // Initialize the iframe content
+                setTimeout(initializeBridge, 1000);
+            } else {
+                logEvent('system', '❌ WorldEngine Tier-4 Bundle not found - using fallback mode');
+                updateStatus('nucleus-status', '🧠 Nucleus Unavailable', false);
+                updateStatus('bridge-status', '🌉 Bridge Failed', false);
+            }
+        });
+
+        // Demo auto-run (optional)
+        function runAutoDemo() {
+            if (!bridge) return;
+
+            logEvent('system', '🎬 Running automatic demonstration sequence...');
+
+            setTimeout(() => triggerNucleus('VIBRATE'), 1000);
+            setTimeout(() => simulateAIBot('query'), 2500);
+            setTimeout(() => simulateLibrarian('pattern'), 4000);
+            setTimeout(() => triggerNucleus('OPTIMIZATION'), 5500);
+            setTimeout(() => simulateLibrarian('classification'), 7000);
+            setTimeout(() => simulateAIBot('feedback'), 8500);
+            setTimeout(() => triggerNucleus('STATE'), 10000);
+            setTimeout(() => {
+                logEvent('system', '✅ Automatic demonstration completed');
+            }, 11000);
+        }
+
+        // Add button to run auto demo
+        setTimeout(() => {
+            if (bridge) {
+                const demoButton = document.createElement('button');
+                demoButton.textContent = '🎬 Run Auto Demo';
+                demoButton.className = 'btn btn-nucleus';
+                demoButton.onclick = runAutoDemo;
+                demoButton.style.position = 'fixed';
+                demoButton.style.top = '20px';
+                demoButton.style.right = '20px';
+                demoButton.style.zIndex = '1000';
+                document.body.appendChild(demoButton);
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

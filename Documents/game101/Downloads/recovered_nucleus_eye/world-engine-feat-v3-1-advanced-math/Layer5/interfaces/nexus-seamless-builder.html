@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>🧠 Nexus Intelligence - Seamless Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0b0f16 0%, #1a2332 100%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* Loading Screen */
+    #loading-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg, #0b0f16 0%, #1a2332 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      color: #e8fff6;
+    }
+
+    #loading-logo {
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255, 159, 67, 0.6);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .loading-bar {
+      width: 300px;
+      height: 4px;
+      background: rgba(154, 209, 255, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    .loading-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #ff9f43, #9ad1ff);
+      width: 0%;
+      animation: loadProgress 3s ease-out forwards;
+    }
+
+    @keyframes loadProgress {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    #loading-status {
+      font-size: 14px;
+      color: #9ad1ff;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div id="loading-logo">🧠</div>
+    <h2 style="margin: 0; color: #ff9f43;">Nexus Intelligence</h2>
+    <p style="margin: 5px 0 20px 0; color: #9ad1ff;">Initializing Mathematical Consciousness</p>
+    <div class="loading-bar">
+      <div class="loading-progress"></div>
+    </div>
+    <div id="loading-status">Loading core algorithms...</div>
+  </div>
+
+  <script type="module">
+    // Update loading status
+    const statusMessages = [
+      "Loading core algorithms...",
+      "Initializing mathematical library...",
+      "Connecting physics intelligence...",
+      "Loading pattern recognition...",
+      "Establishing learning pathways...",
+      "Activating spatial awareness...",
+      "Nexus Intelligence Online ✨"
+    ];
+
+    let statusIndex = 0;
+    const statusInterval = setInterval(() => {
+      if (statusIndex < statusMessages.length - 1) {
+        document.getElementById('loading-status').textContent = statusMessages[++statusIndex];
+      } else {
+        clearInterval(statusInterval);
+        setTimeout(initializeNexus, 500);
+      }
+    }, 400);
+
+    async function initializeNexus() {
+      try {
+        // Import dependencies
+        const [THREE, { OrbitControls }, RAPIER, { NexusLocalIntelligence }] = await Promise.all([
+          import("https://unpkg.com/three@0.158.0/build/three.module.js"),
+          import("https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js"),
+          import("https://unpkg.com/@dimforge/rapier3d-compat@0.13.1/rapier.es.js"),
+          import("./Layer2/intelligence/nexus-local-intelligence.js")
+        ]);
+
+        // Initialize Rapier Physics
+        await RAPIER.init();
+
+        // Hide loading screen
+        document.getElementById('loading-screen').style.opacity = '0';
+        setTimeout(() => {
+          document.getElementById('loading-screen').style.display = 'none';
+        }, 500);
+
+        // Initialize the complete Nexus Seamless Builder system
+        await initializeSeamlessBuilder(THREE, OrbitControls, RAPIER, NexusLocalIntelligence);
+
+      } catch (error) {
+        console.error('Failed to initialize Nexus Intelligence:', error);
+        document.getElementById('loading-status').textContent = 'Initialization failed: ' + error.message;
+        document.getElementById('loading-status').style.color = '#ff4757';
+      }
+    }
+
+    async function initializeSeamlessBuilder(THREE, OrbitControls, RAPIER, NexusLocalIntelligence) {
+      console.log('🚀 Initializing Nexus Seamless Builder with Intelligence...');
+
+      /* -----------------------------
+         ECS - Tiny Entity Component System
+      ---------------------------------*/
+      const E = { nextId: 1, store: new Map() };
+      const C = {
+        Transform: new Map(),
+        MeshRenderer: new Map(),
+        RigidBody: new Map(),
+        Collider: new Map(),
+        Glyph: new Map(),
+        SpotlightTag: new Map(),
+        ResourceRef: new Map(),
+        BrainFSM: new Map(),
+        NexusIntelligence: new Map() // New: Intelligence component
+      };
+
+      function createEntity() { const id = E.nextId++; E.store.set(id, true); return id; }
+      function add(id, compMap, data) { compMap.set(id, data); return id; }
+      function get(id, compMap) { return compMap.get(id); }
+      function has(id, compMap) { return compMap.has(id); }
+      function remove(id) { for (const m of Object.values(C)) m.delete(id); E.store.delete(id); }
+
+      /* -----------------------------
+         Scene Setup
+      ---------------------------------*/
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0f16);
+
+      const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 2000);
+      camera.position.set(8, 8, 12);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Enhanced Lighting
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      directionalLight.position.set(10, 20, 10);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      scene.add(directionalLight);
+
+      /* -----------------------------
+         Physics World
+      ---------------------------------*/
+      const gravity = { x: 0, y: -9.81, z: 0 };
+      const world = new RAPIER.World(gravity);
+
+      // Ground Plane
+      const groundGeo = new THREE.BoxGeometry(100, 1, 100);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x21262e,
+        metalness: 0.1,
+        roughness: 0.9
+      });
+      const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+      groundMesh.position.set(0, -0.5, 0);
+      groundMesh.receiveShadow = true;
+      scene.add(groundMesh);
+
+      const groundRB = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+      const groundCollider = RAPIER.ColliderDesc.cuboid(50, 0.5, 50);
+      world.createCollider(groundCollider, groundRB);
+
+      /* -----------------------------
+         Seamless API
+      ---------------------------------*/
+      const SeamlessAPI = {
+        THREE, RAPIER, scene, camera, renderer, world, E, C,
+
+        finalizeMesh(geometry, { dynamic = true, color = 0xffffff, meshOverride = null } = {}) {
+          const mesh = meshOverride ?? new THREE.Mesh(
+            geometry,
+            new THREE.MeshStandardMaterial({
+              color,
+              metalness: 0.3,
+              roughness: 0.7
+            })
+          );
+
+          if (!meshOverride) {
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+          }
+
+          const eid = createEntity();
+          add(eid, C.Transform, { pos: mesh.position, rot: mesh.quaternion, scale: mesh.scale });
+          add(eid, C.MeshRenderer, { mesh });
+
+          // Physics body
+          const rbDesc = dynamic ? RAPIER.RigidBodyDesc.dynamic() : RAPIER.RigidBodyDesc.fixed();
+          rbDesc.setTranslation(mesh.position.x, mesh.position.y, mesh.position.z);
+          const rb = world.createRigidBody(rbDesc);
+
+          // Create physics collider
+          const posAttr = geometry.getAttribute("position");
+          const index = geometry.getIndex();
+          const verts = new Float32Array(posAttr.array);
+          const indices = new Uint32Array(index ? index.array : Array.from({length: posAttr.count}, (_, i) => i));
+
+          const colliderDesc = RAPIER.ColliderDesc.trimesh(verts, indices);
+          world.createCollider(colliderDesc, rb);
+
+          add(eid, C.RigidBody, { rb });
+          add(eid, C.Collider, { kind: "trimesh" });
+
+          return eid;
+        }
+      };
+
+      /* -----------------------------
+         🧠 NEXUS INTELLIGENCE INITIALIZATION
+      ---------------------------------*/
+      console.log('🧠 Initializing Nexus Local Intelligence...');
+      const nexusIntelligence = new NexusLocalIntelligence(SeamlessAPI);
+
+      // Create intelligent toolbar
+      const toolbar = nexusIntelligence.createIntelligentToolbar();
+
+      // Make intelligence globally accessible
+      window.nexusIntelligence = nexusIntelligence;
+
+      // Add intelligence to sample entities
+      function createIntelligentEntity(geometry, position, userIntent = {}) {
+        const eid = SeamlessAPI.finalizeMesh(geometry, {
+          dynamic: true,
+          color: nexusIntelligence.pathways.aesthetic.evaluate({ geometry }).optimalColor || 0xffc857
+        });
+
+        const transform = get(eid, C.Transform);
+        transform.pos.copy(position);
+
+        // Add intelligence component
+        add(eid, C.NexusIntelligence, {
+          creationIntent: userIntent,
+          learningHistory: [],
+          intelligenceLevel: userIntent.intelligenceLevel || 5,
+          appliedAlgorithms: userIntent.algorithms || {}
+        });
+
+        return eid;
+      }
+
+      /* -----------------------------
+         Demo Content with Intelligence
+      ---------------------------------*/
+
+      // Create some intelligent demo objects
+      const demoBox = createIntelligentEntity(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.Vector3(2, 3, 0),
+        { intelligenceLevel: 7, algorithms: { goldenRatio: true, aestheticEnhancement: true } }
+      );
+
+      const demoSphere = createIntelligentEntity(
+        new THREE.SphereGeometry(0.8, 32, 32),
+        new THREE.Vector3(-2, 4, 0),
+        { intelligenceLevel: 8, algorithms: { fractalDetail: true, physicsOptimization: true } }
+      );
+
+      // Golden ratio spiral demonstration
+      const spiralPoints = [];
+      const phi = (1 + Math.sqrt(5)) / 2;
+      for (let i = 0; i < 50; i++) {
+        const t = i * 0.3;
+        const radius = Math.pow(phi, t / (Math.PI / 2)) * 0.1;
+        const x = radius * Math.cos(t);
+        const z = radius * Math.sin(t);
+        const y = t * 0.2 + 1;
+
+        const sphereGeo = new THREE.SphereGeometry(0.1, 8, 8);
+        const sphereMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color().setHSL((i / 50) * 0.8, 0.7, 0.6),
+          metalness: 0.3,
+          roughness: 0.7
+        });
+        const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        sphereMesh.position.set(x, y, z);
+        sphereMesh.castShadow = true;
+        scene.add(sphereMesh);
+      }
+
+      /* -----------------------------
+         Interactive Features
+      ---------------------------------*/
+
+      // Click to select and analyze with intelligence
+      renderer.domElement.addEventListener("pointerdown", (ev) => {
+        const mouse = new THREE.Vector2((ev.clientX / innerWidth) * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1);
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+
+        const meshes = [...C.MeshRenderer.values()].map(c => c.mesh);
+        const intersections = raycaster.intersectObjects(meshes);
+
+        if (intersections.length > 0) {
+          const clickedMesh = intersections[0].object;
+          const eid = [...C.MeshRenderer.entries()].find(([, c]) => c.mesh === clickedMesh)?.[0];
+
+          if (eid && has(eid, C.NexusIntelligence)) {
+            const intelligence = get(eid, C.NexusIntelligence);
+            console.log('🧠 Nexus: Analyzing intelligent entity', eid);
+            console.log('Intelligence Level:', intelligence.intelligenceLevel);
+            console.log('Applied Algorithms:', intelligence.appliedAlgorithms);
+
+            // Visual feedback - glow effect
+            clickedMesh.material.emissive.setHex(0x444444);
+            setTimeout(() => {
+              clickedMesh.material.emissive.setHex(0x000000);
+            }, 1000);
+          }
+        }
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener('keydown', (e) => {
+        switch(e.key) {
+          case '1':
+            // Create intelligent box
+            const box = createIntelligentEntity(
+              new THREE.BoxGeometry(
+                Math.random() * 2 + 0.5,
+                Math.random() * 2 + 0.5,
+                Math.random() * 2 + 0.5
+              ),
+              new THREE.Vector3(
+                Math.random() * 10 - 5,
+                Math.random() * 5 + 5,
+                Math.random() * 10 - 5
+              ),
+              {
+                intelligenceLevel: Math.floor(Math.random() * 10) + 1,
+                algorithms: {
+                  goldenRatio: Math.random() > 0.5,
+                  fractalDetail: Math.random() > 0.5,
+                  physicsOptimization: Math.random() > 0.3,
+                  aestheticEnhancement: Math.random() > 0.4
+                }
+              }
+            );
+            console.log('🧠 Created intelligent box entity:', box);
+            break;
+
+          case '2':
+            // Create intelligent sphere
+            const sphere = createIntelligentEntity(
+              new THREE.SphereGeometry(Math.random() * 1.5 + 0.3, 16, 16),
+              new THREE.Vector3(
+                Math.random() * 10 - 5,
+                Math.random() * 5 + 5,
+                Math.random() * 10 - 5
+              ),
+              {
+                intelligenceLevel: Math.floor(Math.random() * 10) + 1,
+                algorithms: {
+                  goldenRatio: true,
+                  fractalDetail: Math.random() > 0.3,
+                  aestheticEnhancement: true
+                }
+              }
+            );
+            console.log('🧠 Created intelligent sphere entity:', sphere);
+            break;
+
+          case 'i':
+            // Toggle intelligence learning
+            console.log('🧠 Nexus Intelligence Status:');
+            console.log('Knowledge Base:', nexusIntelligence.knowledge.size, 'algorithms');
+            console.log('Learning History:', nexusIntelligence.learningHistory.length, 'entries');
+            console.log('Active Algorithms:', nexusIntelligence.activeAlgorithms.size);
+            break;
+        }
+      });
+
+      /* -----------------------------
+         Main Loop with Intelligence
+      ---------------------------------*/
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Physics step
+        world.timestep = 1/60;
+        world.step();
+
+        // Sync physics to visuals
+        for (const [eid, { rb }] of C.RigidBody.entries()) {
+          const transform = get(eid, C.Transform);
+          const meshRenderer = get(eid, C.MeshRenderer);
+
+          if (transform && meshRenderer) {
+            const translation = rb.translation();
+            const rotation = rb.rotation();
+
+            transform.pos.set(translation.x, translation.y, translation.z);
+            transform.rot.set(rotation.x, rotation.y, rotation.z, rotation.w);
+
+            meshRenderer.mesh.position.copy(transform.pos);
+            meshRenderer.mesh.quaternion.copy(transform.rot);
+          }
+        }
+
+        // Intelligence learning updates (handled automatically by NexusLocalIntelligence)
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      /* -----------------------------
+         Window Management
+      ---------------------------------*/
+      window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      // Start the main loop
+      animate();
+
+      // Success message
+      console.log('🎉 Nexus Intelligence Seamless Builder initialized successfully!');
+      console.log('🎮 Controls:');
+      console.log('  - Mouse: Orbit camera, click to analyze objects');
+      console.log('  - Key 1: Create intelligent box');
+      console.log('  - Key 2: Create intelligent sphere');
+      console.log('  - Key I: Show intelligence status');
+      console.log('🧠 Use the toolbar to upload silhouettes and create intelligent objects!');
+    }
+
+  </script>
+</body>
+</html>

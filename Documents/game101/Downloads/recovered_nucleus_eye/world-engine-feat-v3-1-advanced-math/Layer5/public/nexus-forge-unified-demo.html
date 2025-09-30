@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Forge Unified - Complete Audio-Reactive Open-World Game Development</title>
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --panel: #0f1523;
+            --ink: #e6f0ff;
+            --mut: #9ab0d6;
+            --line: #1e2b46;
+            --acc: #54f0b8;
+            --heart: #ff69b4;
+            --temporal: #9d4edd;
+            --worldshift: #f77f00;
+            --emotional: #06ffa5;
+            --mechanical: #4cc9f0;
+            --warning: #ffc107;
+            --error: #dc3545;
+            --success: #28a745;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 280px;
+            grid-template-rows: 60px 1fr 40px;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, var(--panel), #1a2332);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--acc), var(--heart));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .heart-pulse {
+            width: 24px;
+            height: 24px;
+            background: var(--heart);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            position: relative;
+        }
+
+        .heart-pulse::before {
+            content: '💓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .left-panel, .right-panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .main-canvas {
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #world-canvas {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #001122, #002244);
+        }
+
+        .panel-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: var(--acc);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .nexus-button {
+            background: var(--acc)22;
+            border: 1px solid var(--acc);
+            color: var(--ink);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .nexus-button:hover {
+            background: var(--acc);
+            color: var(--bg);
+            transform: translateY(-1px);
+        }
+
+        .test-button {
+            --acc: #ff4477;
+            background: linear-gradient(45deg, #7a2d4a, #a54a6f);
+            border-color: var(--acc);
+        }
+
+        .test-button:hover {
+            background: linear-gradient(45deg, #9a3d5a, #c55a7f);
+        }
+
+        .nexus-button.active {
+            background: var(--acc);
+            color: var(--bg);
+        }
+
+        .nexus-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--acc)33;
+            border-radius: 4px;
+            height: 6px;
+            margin: 8px 0;
+            outline: none;
+            width: 100%;
+        }
+
+        .nexus-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--acc);
+            border-radius: 50%;
+            height: 16px;
+            width: 16px;
+            cursor: pointer;
+        }
+
+        .metrics-display {
+            font-family: monospace;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+
+        .ai-recommendation {
+            background: var(--warning)22;
+            border: 1px solid var(--warning)66;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px 0;
+            font-size: 11px;
+        }
+
+        .ai-recommendation.opportunity {
+            background: var(--success)22;
+            border-color: var(--success)66;
+        }
+
+        .morpheme-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin: 8px 0;
+        }
+
+        .morpheme-button {
+            background: var(--temporal)22;
+            border: 1px solid var(--temporal);
+            color: var(--ink);
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .morpheme-button:hover {
+            background: var(--temporal);
+            color: var(--bg);
+        }
+
+        .console-output {
+            background: #0a0f1c;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 8px;
+            height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .footer {
+            grid-column: 1 / -1;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .beat-visualizer {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .beat-bar {
+            width: 3px;
+            height: 20px;
+            background: var(--acc)33;
+            border-radius: 1px;
+            transition: background 0.1s ease;
+        }
+
+        .beat-bar.active {
+            background: var(--acc);
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--acc)33;
+            border-top: 2px solid var(--acc);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🌟 NEXUS FORGE UNIFIED</div>
+            <div class="status-bar">
+                <span>v1.0.0-unified</span>
+                <span id="system-status">Initializing...</span>
+                <div class="loading-spinner" id="loading-spinner"></div>
+            </div>
+            <div class="heart-pulse"></div>
+        </div>
+
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <!-- Math Engine Controls -->
+            <div class="panel-section">
+                <div class="panel-title">🔢 Math Engine</div>
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="testLinearAlgebra()">Test Linear Algebra</button>
+                    <button class="nexus-button" onclick="testMorphemes()">Test Morphemes</button>
+                </div>
+                <div class="morpheme-buttons">
+                    <button class="morpheme-button" onclick="applyMorpheme('re')">re-</button>
+                    <button class="morpheme-button" onclick="applyMorpheme('un')">un-</button>
+                    <button class="morpheme-button" onclick="applyMorpheme('multi')">multi-</button>
+                    <button class="morpheme-button" onclick="applyMorpheme('build')">build</button>
+                    <button class="morpheme-button" onclick="applyMorpheme('move')">move</button>
+                    <button class="morpheme-button" onclick="applyMorpheme('scale')">scale</button>
+                </div>
+            </div>
+
+            <!-- World Generation -->
+            <div class="panel-section">
+                <div class="panel-title">🌍 World Generation</div>
+                <label for="render-distance">Render Distance: <span id="render-distance-value">3</span></label>
+                <input type="range" class="nexus-slider" id="render-distance" min="1" max="8" value="3" oninput="updateRenderDistance(this.value)" aria-label="Render Distance">
+                <label for="chunk-size">Chunk Size: <span id="chunk-size-value">64</span></label>
+                <input type="range" class="nexus-slider" id="chunk-size" min="32" max="128" value="64" step="16" oninput="updateChunkSize(this.value)" aria-label="Chunk Size">
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="generateWorld()">Generate World</button>
+                    <button class="nexus-button" onclick="clearWorld()">Clear World</button>
+                    <button class="nexus-button test-button" onclick="runIntegrationTests()">🧪 Run Tests</button>
+                </div>
+            </div>
+
+            <!-- AI Bot Controls -->
+            <div class="panel-section">
+                <div class="panel-title">🤖 AI Bot Controls</div>
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="aiBotPulseHeart()">💓 Heart Pulse</button>
+                    <button class="nexus-button" onclick="aiBotSpawnMemory()">🧠 Spawn Memory</button>
+                    <button class="nexus-button" onclick="aiBotCreateStorm()">🌪️ Create Storm</button>
+                    <button class="nexus-button" onclick="aiBotActivateGlyph()">⚡ Activate Glyph</button>
+                </div>
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="aiBotToggleTimeline()">⏯️ Timeline</button>
+                    <button class="nexus-button" onclick="aiBotResetView()">🎯 Reset View</button>
+                    <button class="nexus-button" onclick="aiBotExportWorld()">💾 Export World</button>
+                    <button class="nexus-button" onclick="aiBotShowStatus()">📊 AI Status</button>
+                </div>
+                <div class="ai-status" id="aiStatus" style="font-size: 12px; margin-top: 8px; opacity: 0.7;">
+                    AI Bot: Initializing...
+                </div>
+            </div>
+
+            <!-- Beat Engine -->
+            <div class="panel-section">
+                <div class="panel-title">🎵 Beat Engine</div>
+                <label for="bpm">BPM: <span id="bpm-value">120</span></label>
+                <input type="range" class="nexus-slider" id="bpm" min="60" max="200" value="120" oninput="updateBPM(this.value)" aria-label="Beats Per Minute">
+                <div class="control-grid">
+                    <button class="nexus-button" id="beat-toggle" onclick="toggleBeat()">Start Beat</button>
+                    <button class="nexus-button" onclick="resetBeat()">Reset</button>
+                </div>
+                <div class="beat-visualizer" id="beat-visualizer"></div>
+            </div>
+
+            <!-- Audio Reactor -->
+            <div class="panel-section">
+                <div class="panel-title">🎤 Audio Reactor</div>
+                <div class="control-grid">
+                    <button class="nexus-button" id="audio-mic-toggle" onclick="toggleMicrophone()">🎤 Enable Mic</button>
+                    <button class="nexus-button" onclick="enableHeartSync()">💗 Heart Sync</button>
+                </div>
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="clearParticles()">✨ Clear Effects</button>
+                    <button class="nexus-button" onclick="togglePerformanceOverlay()">📊 Performance</button>
+                </div>
+                <label for="beat-sensitivity">Beat Sensitivity: <span id="sensitivity-value">1.3</span></label>
+                <input type="range" class="nexus-slider" id="beat-sensitivity" min="1.0" max="2.0" step="0.1" value="1.3" oninput="updateBeatSensitivity(this.value)" aria-label="Beat Sensitivity">
+            </div>
+
+            <!-- 3D World Controls -->
+            <div class="panel-section">
+                <div class="panel-title">🌍 3D World</div>
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="regenerateWorld()">🔄 Regenerate</button>
+                    <button class="nexus-button" onclick="get3DWorldInfo()">📊 World Info</button>
+                </div>
+                <div class="control-grid">
+                    <button class="nexus-button" onclick="toggleAudioWorldInfluence()">🎵 Audio World</button>
+                    <button class="nexus-button" onclick="renderer3D?.resize(800, 600)">📏 Resize</button>
+                </div>
+                <div style="font-size: 11px; margin-top: 6px; opacity: 0.8;">
+                    Controls: WASD + Mouse + Space/Shift
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="main-canvas">
+            <canvas id="world-canvas"></canvas>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <!-- Performance Metrics -->
+            <div class="panel-section">
+                <div class="panel-title">📊 Performance</div>
+                <div class="metrics-display" id="performance-metrics">
+                    <div class="metric-row"><span>FPS:</span><span id="fps">60</span></div>
+                    <div class="metric-row"><span>Frame Time:</span><span id="frame-time">16ms</span></div>
+                    <div class="metric-row"><span>Objects:</span><span id="objects">0</span></div>
+                    <div class="metric-row"><span>Chunks:</span><span id="chunks">0</span></div>
+                    <div class="metric-row"><span>Memory:</span><span id="memory">30%</span></div>
+                </div>
+            </div>
+
+            <!-- AI Recommendations -->
+            <div class="panel-section">
+                <div class="panel-title">🧠 AI Insights</div>
+                <div id="ai-recommendations">
+                    <div class="ai-recommendation">System learning...</div>
+                </div>
+            </div>
+
+            <!-- Audio Analysis -->
+            <div class="panel-section">
+                <div class="panel-title">🔊 Audio Analysis</div>
+                <div class="metrics-display">
+                    <div class="metric-row"><span>Volume:</span><span id="audio-volume">0%</span></div>
+                    <div class="metric-row"><span>Bass:</span><span id="audio-bass">0%</span></div>
+                    <div class="metric-row"><span>Beat Detected:</span><span id="beat-detected">No</span></div>
+                </div>
+            </div>
+
+            <!-- Console Output -->
+            <div class="panel-section">
+                <div class="panel-title">📝 Console</div>
+                <div class="console-output" id="console-output">
+                    <div>NEXUS Forge Unified System Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span id="world-position">World: (0, 0, 0)</span>
+            <span id="beat-info">♪ 120 BPM | Beat: 0 | Phase: 0.00</span>
+            <span id="system-info">Components: 0 | Active: 0</span>
+        </div>
+    </div>
+
+    <!-- Load NEXUS Forge Unified System -->
+    <script src="nexus-forge-unified.js"></script>
+    <script src="nexus-forge-unified-engines.js"></script>
+    <script src="nexus-forge-integration-test.js"></script>
+    <script src="nexus-forge-ai-bot-integration.js"></script>
+    <script src="nexus-forge-performance-monitor.js"></script>
+    <script src="nexus-forge-particle-system.js"></script>
+    <script src="nexus-forge-audio-reactor.js"></script>
+    <script src="nexus-forge-3d-renderer.js"></script>
+    <script src="nexus-forge-world-synthesizer.js"></script>
+
+    <script>
+        // Global NEXUS Forge instance
+        let nexusForge = null;
+        let renderEngine = null;
+        let audioEngine = null;
+        let animationEngine = null;
+        let uiEngine = null;
+        let aiBot = null;
+        let performanceMonitor = null;
+        let particleSystem = null;
+        let audioReactor = null;
+        let renderer3D = null;
+        let worldSynthesizer = null;
+
+        // Canvas elements
+        let mainCanvas = null;
+        let particleCanvas = null;
+
+        // Camera controls
+        let mouseDown = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        const keys = {};
+
+        // Animation loop variables
+        let lastFrameTime = 0;
+        let animationId = null;
+
+        // Game buttons from morpheme system
+        let gameButtons = null;
+
+        async function initializeNexusForge() {
+            try {
+                logToConsole('🚀 Initializing NEXUS Forge Unified System...');
+
+                // Initialize main system
+                nexusForge = new NexusForgeUnified();
+                await nexusForge.initialize({
+                    enableAudio: true,
+                    debug: true
+                });
+
+                // Initialize engines
+                const canvas = document.getElementById('world-canvas');
+                renderEngine = new NexusForgeEngines.UnifiedRenderEngine(canvas);
+                audioEngine = new NexusForgeEngines.UnifiedAudioEngine();
+                animationEngine = new NexusForgeEngines.UnifiedAnimationEngine();
+
+                // Initialize performance monitor
+                performanceMonitor = new NexusForgePerformanceMonitor();
+                performanceMonitor.initialize();
+
+                // Initialize particle system
+                particleCanvas = document.createElement('canvas');
+                particleCanvas.width = canvas.width;
+                particleCanvas.height = canvas.height;
+                particleCanvas.style.position = 'absolute';
+                particleCanvas.style.top = '0';
+                particleCanvas.style.left = '0';
+                particleCanvas.style.pointerEvents = 'none';
+                canvas.parentElement.appendChild(particleCanvas);
+
+                particleSystem = new NexusForgeParticleSystem(particleCanvas);
+
+                // Initialize audio reactor
+                audioReactor = new NexusForgeAudioReactor();
+                await audioReactor.initialize();
+
+                // Initialize 3D renderer
+                renderer3D = new NexusForge3DRenderer(canvas);
+                await renderer3D.initialize();
+
+                // Initialize world synthesizer
+                worldSynthesizer = new NexusForgeWorldSynthesizer();
+
+                // Connect audio reactor to all systems
+                audioReactor.addParticleSystemCallback((audioData) => {
+                    particleSystem.setAudioReactivity(
+                        audioData.frequencyBands.bass.value,
+                        audioData.frequencyBands.mid.value,
+                        audioData.frequencyBands.treble.value,
+                        audioData.beat.detected ? 1.0 : 0.0
+                    );
+
+                    // Heart sync
+                    particleSystem.setHeartSync(
+                        audioData.heart.resonance,
+                        audioData.heart.phase,
+                        getEmotionalColor(audioData.heart.emotionalState)
+                    );
+
+                    // Update 3D renderer audio reactivity
+                    renderer3D.setAudioReactivity(audioData);
+
+                    // Update world synthesizer
+                    worldSynthesizer.updateAudioInfluence(audioData);
+                });
+
+                // Setup camera controls
+                setupCameraControls(canvas);
+
+                // Initialize game buttons
+                gameButtons = nexusForge.math.createGameButtons();
+
+                // Initialize AI Bot Integration
+                aiBot = new NexusForgeAIBotIntegration(nexusForge);
+                NexusForgeAIBotIntegration.createGlobalAccess(aiBot);
+
+                logToConsole('✅ All systems online');
+                logToConsole('🤖 AI Bot Integration initialized');
+                logToConsole('✨ Particle System initialized');
+                logToConsole('🎵 Audio Reactor initialized');
+                logToConsole('📊 Performance Monitor initialized');
+                logToConsole('🎨 3D Renderer initialized (WebGL)');
+                logToConsole('🌍 World Synthesizer initialized');
+                logToConsole('🎮 3D Camera controls enabled');
+                updateSystemStatus('Online');
+                updateAIStatus();
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                // Start main loop
+                startMainLoop();
+
+                // Initialize beat visualizer
+                initializeBeatVisualizer();
+
+                logToConsole(`🎮 ${gameButtons.size} game buttons created from morphemes`);
+
+            } catch (error) {
+                logToConsole(`❌ Initialization failed: ${error.message}`);
+                updateSystemStatus('Error');
+            }
+        }
+
+        function getEmotionalColor(emotionalState) {
+            const colors = {
+                excited: [255, 69, 180], // Bright pink
+                energetic: [84, 240, 184], // Bright green
+                calm: [157, 78, 221], // Purple
+                peaceful: [76, 201, 240], // Blue
+                neutral: [247, 127, 0] // Orange
+            };
+            return colors[emotionalState] || colors.neutral;
+        }
+
+        function startMainLoop() {
+            function gameLoop(currentTime) {
+                const deltaTime = currentTime - lastFrameTime;
+                lastFrameTime = currentTime;
+
+                if (nexusForge && nexusForge.initialized) {
+                    // Update performance monitor
+                    if (performanceMonitor) {
+                        performanceMonitor.update(deltaTime);
+                    }
+
+                    // Update world chunks based on camera position
+                    if (worldSynthesizer && renderer3D) {
+                        const cameraPos = renderer3D.camera.position;
+                        const chunkX = Math.floor(cameraPos[0] / 64);
+                        const chunkZ = Math.floor(cameraPos[2] / 64);
+                        worldSynthesizer.updateActiveChunks(chunkX, chunkZ);
+                    }
+
+                    // Update particle system
+                    if (particleSystem) {
+                        particleSystem.updateParticles(deltaTime);
+                        particleSystem.render();
+                    }
+
+                    // Update NEXUS Forge
+                    nexusForge.update(deltaTime);
+
+                    // Update audio analysis
+                    if (audioEngine) {
+                        audioEngine.analyzeAudio();
+                        updateAudioDisplay();
+                    }
+
+                    // 3D World Rendering
+                    if (renderer3D && worldSynthesizer) {
+                        const audioData = audioReactor ? audioReactor.getAudioData() : null;
+                        renderer3D.render({
+                            chunks: worldSynthesizer.worldChunks,
+                            activeChunks: worldSynthesizer.activeChunks
+                        }, audioData);
+                    }
+
+                    // Legacy 2D render (fallback)
+                    else if (renderEngine) {
+                        renderEngine.render({
+                            chunks: nexusForge.world.chunks,
+                            camera: { x: 0, y: 50, z: 0 }
+                        }, {
+                            beatPhase: nexusForge.beat.clock.beatPhase,
+                            bpm: nexusForge.beat.clock.bpm
+                        });
+                    }
+
+                    // Handle camera movement
+                    handleCameraMovement(deltaTime);
+
+                    // Update UI
+                    updatePerformanceMetrics(deltaTime);
+                    updateBeatDisplay();
+                    updateAudioReactorDisplay();
+                    updateAIRecommendations();
+                }
+
+                animationId = requestAnimationFrame(gameLoop);
+            }
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function updateSystemStatus(status) {
+            document.getElementById('system-status').textContent = status;
+        }
+
+        function logToConsole(message) {
+            const console = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            console.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function updatePerformanceMetrics(deltaTime) {
+            if (!nexusForge) return;
+
+            const metrics = nexusForge.metrics;
+            const gameState = nexusForge.gameState;
+
+            document.getElementById('fps').textContent = gameState.fps;
+            document.getElementById('frame-time').textContent = `${deltaTime.toFixed(1)}ms`;
+            document.getElementById('objects').textContent = metrics.totalObjects;
+            document.getElementById('chunks').textContent = metrics.activeChunks;
+            document.getElementById('memory').textContent = `${Math.round(gameState.memoryUsage * 100)}%`;
+        }
+
+        function updateBeatDisplay() {
+            if (!nexusForge) return;
+
+            const beatInfo = nexusForge.beat;
+            document.getElementById('beat-info').textContent =
+                `♪ ${beatInfo.clock.bpm} BPM | Beat: ${beatInfo.clock.beat} | Phase: ${beatInfo.clock.beatPhase.toFixed(2)}`;
+        }
+
+        function updateAudioDisplay() {
+            if (!audioEngine) return;
+
+            const audioData = audioEngine.getAudioData();
+            document.getElementById('audio-volume').textContent = `${Math.round(audioData.volume * 100)}%`;
+            document.getElementById('audio-bass').textContent = `${Math.round(audioData.bass * 100)}%`;
+            document.getElementById('beat-detected').textContent = audioData.beatDetected ? 'Yes' : 'No';
+        }
+
+        function updateAudioReactorDisplay() {
+            if (!audioReactor || !audioReactor.isActive) return;
+
+            const audioData = audioReactor.getAudioData();
+
+            // Update beat info with audio reactor data
+            const beatElement = document.getElementById('beat-info');
+            if (beatElement && audioData.beat.bpm > 0) {
+                beatElement.textContent =
+                    `♪ ${audioData.beat.bpm} BPM | ${audioData.heart.emotionalState} | Phase: ${audioData.heart.phase.toFixed(2)}`;
+            }
+
+            // Update system info with particle count
+            const systemElement = document.getElementById('system-info');
+            if (systemElement && particleSystem) {
+                const particleCount = particleSystem.getParticleCount();
+                systemElement.textContent =
+                    `Particles: ${particleCount.active}/${particleCount.max} | Emitters: ${particleCount.emitters}`;
+            }
+        }
+
+        function updateAIRecommendations() {
+            if (!nexusForge) return;
+
+            const insights = nexusForge.getAIInsights();
+            const container = document.getElementById('ai-recommendations');
+
+            container.innerHTML = '';
+
+            insights.immediate.forEach(rec => {
+                const div = document.createElement('div');
+                div.className = 'ai-recommendation';
+                div.textContent = `⚠️ ${rec.pattern}: ${rec.solutions[0]}`;
+                container.appendChild(div);
+            });
+
+            insights.opportunities.forEach(opp => {
+                const div = document.createElement('div');
+                div.className = 'ai-recommendation opportunity';
+                div.textContent = `💡 ${opp.pattern}: ${opp.solutions[0]}`;
+                container.appendChild(div);
+            });
+
+            if (insights.immediate.length === 0 && insights.opportunities.length === 0) {
+                container.innerHTML = '<div class="ai-recommendation">System running optimally</div>';
+            }
+        }
+
+        function initializeBeatVisualizer() {
+            const visualizer = document.getElementById('beat-visualizer');
+            for (let i = 0; i < 16; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'beat-bar';
+                visualizer.appendChild(bar);
+            }
+        }
+
+        // Control Functions
+        function testLinearAlgebra() {
+            if (!nexusForge) return;
+
+            try {
+                const A = [[1, 2], [3, 4]];
+                const B = [[5, 6], [7, 8]];
+                const result = nexusForge.math.multiply(A, B);
+
+                logToConsole(`🔢 Matrix multiplication result: [[${result[0].join(', ')}], [${result[1].join(', ')}]]`);
+            } catch (error) {
+                logToConsole(`❌ Linear algebra test failed: ${error.message}`);
+            }
+        }
+
+        function testMorphemes() {
+            if (!nexusForge || !gameButtons) return;
+
+            const buildButton = gameButtons.get('build');
+            const gameState = { vector: [1, 0, 0], level: 0 };
+            const result = buildButton.apply(gameState);
+
+            logToConsole(`🔮 Build button applied: vector [${result.vector.map(v => v.toFixed(2)).join(', ')}], level: ${result.level}`);
+        }
+
+        function applyMorpheme(morpheme) {
+            if (!nexusForge) return;
+
+            const morphemeData = nexusForge.math.morphemeRegistry.get(morpheme);
+            if (morphemeData) {
+                logToConsole(`🔮 Applied morpheme '${morpheme}': ${morphemeData.effects.description}`);
+            }
+        }
+
+        function generateWorld() {
+            if (!nexusForge) return;
+
+            nexusForge.world.updateActiveChunks([0, 0, 0]);
+            logToConsole(`🌍 World generated: ${nexusForge.world.chunks.size} chunks loaded`);
+        }
+
+        function clearWorld() {
+            if (!nexusForge) return;
+
+            nexusForge.world.chunks.clear();
+            nexusForge.world.activeChunks.clear();
+            logToConsole('🌍 World cleared');
+        }
+
+        async function runIntegrationTests() {
+            if (typeof NexusForgeIntegrationTest === 'undefined') {
+                logToConsole('❌ Integration test suite not loaded');
+                return;
+            }
+
+            logToConsole('🧪 Starting NEXUS Forge integration tests...');
+
+            try {
+                const testSuite = new NexusForgeIntegrationTest();
+                const results = await testSuite.runAllTests();
+
+                logToConsole(`✅ Tests completed: ${results.passedTests}/${results.totalTests} passed (${results.successRate}%)`);
+
+                if (results.successRate >= 90) {
+                    logToConsole('🎉 System ready for production!');
+                } else if (results.successRate >= 70) {
+                    logToConsole('⚠️ Some issues detected - check console for details');
+                } else {
+                    logToConsole('🚨 Critical issues detected - system needs attention');
+                }
+
+            } catch (error) {
+                logToConsole(`❌ Test suite failed: ${error.message}`);
+            }
+        }
+
+        function updateRenderDistance(value) {
+            document.getElementById('render-distance-value').textContent = value;
+            if (nexusForge) {
+                nexusForge.world.renderDistance = parseInt(value);
+                logToConsole(`🌍 Render distance: ${value}`);
+            }
+        }
+
+        function updateChunkSize(value) {
+            document.getElementById('chunk-size-value').textContent = value;
+            if (nexusForge) {
+                nexusForge.world.chunkSize = parseInt(value);
+                logToConsole(`🌍 Chunk size: ${value}`);
+            }
+        }
+
+        function updateBPM(value) {
+            document.getElementById('bpm-value').textContent = value;
+            if (nexusForge) {
+                nexusForge.setBPM(parseInt(value));
+            }
+        }
+
+        function toggleBeat() {
+            if (!nexusForge) return;
+
+            const button = document.getElementById('beat-toggle');
+            if (nexusForge.beat.clock.running) {
+                nexusForge.beat.stop();
+                button.textContent = 'Start Beat';
+                button.classList.remove('active');
+                logToConsole('🎵 Beat engine stopped');
+            } else {
+                nexusForge.beat.start();
+                button.textContent = 'Stop Beat';
+                button.classList.add('active');
+                logToConsole('🎵 Beat engine started');
+            }
+        }
+
+        function resetBeat() {
+            if (!nexusForge) return;
+
+            nexusForge.beat.stop();
+            nexusForge.beat.clock.beat = 0;
+            nexusForge.beat.clock.bar = 0;
+            document.getElementById('beat-toggle').textContent = 'Start Beat';
+            document.getElementById('beat-toggle').classList.remove('active');
+            logToConsole('🎵 Beat engine reset');
+        }
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (renderEngine) {
+                const canvas = document.getElementById('world-canvas');
+                renderEngine.resize(canvas.clientWidth, canvas.clientHeight);
+            }
+        });
+
+        // AI Bot Integration Functions
+        function aiBotPulseHeart(intensity = 0.2) {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const result = aiBot.getWorkingButtons().heartPulse(intensity);
+            if (result.success) {
+                logToConsole(`💓 Heart pulsed - Resonance: ${result.resonance.toFixed(3)}, State: ${result.state}`);
+                updateAIStatus();
+
+                // Trigger particle heart pulse
+                if (particleSystem && particleCanvas) {
+                    const centerX = particleCanvas.width / 2;
+                    const centerY = particleCanvas.height / 2;
+                    particleSystem.spawnHeartPulse(centerX, centerY, intensity * 3);
+                }
+            } else {
+                logToConsole(`❌ Heart pulse failed: ${result.error}`);
+            }
+        }
+
+        function aiBotSpawnMemory() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const position = [Math.random() * 10 - 5, 0, Math.random() * 10 - 5];
+            const result = aiBot.getWorkingButtons().spawnMemory(position);
+            if (result.success) {
+                logToConsole(`🧠 Memory echo spawned: "${result.memory.message}"`);
+                updateAIStatus();
+
+                // Trigger particle memory echo
+                if (particleSystem && particleCanvas) {
+                    const x = (position[0] + 5) * (particleCanvas.width / 10);
+                    const y = (position[2] + 5) * (particleCanvas.height / 10);
+                    particleSystem.spawnMemoryEcho(x, y);
+                }
+            } else {
+                logToConsole(`❌ Memory spawn failed: ${result.error}`);
+            }
+        }
+
+        function aiBotCreateStorm() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const position = [Math.random() * 6 - 3, 0, Math.random() * 6 - 3];
+            const result = aiBot.getWorkingButtons().createStorm(position, 0.8);
+            if (result.success) {
+                logToConsole(`🌪️ Storm created at [${position[0].toFixed(1)}, ${position[2].toFixed(1)}]`);
+                updateAIStatus();
+
+                // Trigger particle storm
+                if (particleSystem && particleCanvas) {
+                    const x = (position[0] + 3) * (particleCanvas.width / 6);
+                    const y = (position[2] + 3) * (particleCanvas.height / 6);
+                    particleSystem.spawnStorm(x, y, 0.8);
+                }
+            } else {
+                logToConsole(`❌ Storm creation failed: ${result.error}`);
+            }
+        }
+
+        function aiBotActivateGlyph() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const glyphs = aiBot.getGlyphRegistry();
+            if (glyphs.length === 0) {
+                logToConsole('❌ No glyphs available');
+                return;
+            }
+
+            const randomGlyph = glyphs[Math.floor(Math.random() * glyphs.length)];
+            const context = {
+                position: [Math.random() * 4 - 2, 0, Math.random() * 4 - 2],
+                intensity: 0.5 + Math.random() * 0.5
+            };
+
+            const result = aiBot.getWorkingButtons().activateGlyph(randomGlyph.name, context);
+            if (result.success) {
+                logToConsole(`⚡ Glyph "${randomGlyph.name}" activated - ${randomGlyph.symbol}`);
+
+                // Trigger appropriate particle effect based on glyph type
+                if (particleSystem && particleCanvas) {
+                    const x = (context.position[0] + 2) * (particleCanvas.width / 4);
+                    const y = (context.position[2] + 2) * (particleCanvas.height / 4);
+
+                    switch (randomGlyph.type || randomGlyph.name) {
+                        case 'creation':
+                        case 'Genesis':
+                            particleSystem.spawnTerrainGenesis(x, y);
+                            break;
+                        case 'quantum':
+                        case 'Flux':
+                            particleSystem.spawnQuantumFlux(x, y);
+                            break;
+                        case 'storm':
+                        case 'Chaos':
+                            particleSystem.spawnStorm(x, y, context.intensity);
+                            break;
+                        default:
+                            particleSystem.spawnQuantumFlux(x, y);
+                    }
+                }
+            } else {
+                logToConsole(`❌ Glyph activation failed: ${result.error}`);
+            }
+        }
+
+        function aiBotToggleTimeline() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const result = aiBot.getWorkingButtons().timelinePlay();
+            if (result.success) {
+                logToConsole(`⏯️ Timeline ${result.playing ? 'playing' : 'paused'} - Frame: ${result.frame}`);
+                updateAIStatus();
+            } else {
+                logToConsole(`❌ Timeline toggle failed: ${result.error}`);
+            }
+        }
+
+        function aiBotResetView() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const result = aiBot.getWorkingButtons().resetView();
+            if (result.success) {
+                logToConsole('🎯 View reset to origin');
+            } else {
+                logToConsole(`❌ View reset failed: ${result.error}`);
+            }
+        }
+
+        function aiBotExportWorld() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const result = aiBot.getWorkingButtons().exportWorld();
+            if (result.success) {
+                logToConsole('💾 World state exported to console');
+                console.log('🌍 World State:', result.worldState);
+
+                // Create downloadable JSON file
+                const dataStr = JSON.stringify(result.worldState, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                const exportFileDefaultName = `nexus-world-${Date.now()}.json`;
+
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            } else {
+                logToConsole(`❌ World export failed: ${result.error}`);
+            }
+        }
+
+        function aiBotShowStatus() {
+            if (!aiBot) {
+                logToConsole('❌ AI Bot not initialized');
+                return;
+            }
+
+            const status = aiBot.getStatus();
+            logToConsole(`🤖 AI Bot Status:`);
+            logToConsole(`   💓 Heart: ${status.emotionalState} (${status.heartResonance.toFixed(3)})`);
+            logToConsole(`   ⏰ Timeline: Frame ${status.timelineFrame} (${status.timelinePlaying ? 'playing' : 'paused'})`);
+            logToConsole(`   ✨ Glyphs: ${status.glyphCount} | 🧠 Memories: ${status.memoryCount}`);
+            logToConsole(`   🌪️ Events: ${status.eventCount} | ⚠️ Violations: ${status.violations}`);
+
+            updateAIStatus();
+        }
+
+        function updateAIStatus() {
+            if (!aiBot) {
+                document.getElementById('aiStatus').textContent = 'AI Bot: Not initialized';
+                return;
+            }
+
+            const status = aiBot.getStatus();
+            document.getElementById('aiStatus').textContent =
+                `AI Bot: ${status.emotionalState.toUpperCase()} | Glyphs: ${status.glyphCount} | Memories: ${status.memoryCount} | Events: ${status.eventCount}`;
+        }
+
+        // Audio Reactor Controls
+        async function toggleMicrophone() {
+            if (!audioReactor) {
+                logToConsole('❌ Audio Reactor not initialized');
+                return;
+            }
+
+            const micButton = document.getElementById('audio-mic-toggle');
+
+            if (audioReactor.isActive) {
+                audioReactor.stop();
+                micButton.textContent = '🎤 Enable Mic';
+                logToConsole('🎤 Microphone disabled');
+            } else {
+                const success = await audioReactor.requestMicrophoneAccess();
+                if (success) {
+                    micButton.textContent = '🎤 Disable Mic';
+                    logToConsole('🎤 Microphone enabled');
+                } else {
+                    logToConsole('❌ Microphone access denied');
+                }
+            }
+        }
+
+        function enableHeartSync() {
+            if (!audioReactor) {
+                logToConsole('❌ Audio Reactor not initialized');
+                return;
+            }
+
+            const currentBPM = nexusForge ? nexusForge.beat.clock.bpm : 70;
+            audioReactor.enableHeartSync(currentBPM, 0.7);
+            logToConsole(`💗 Heart sync enabled at ${currentBPM} BPM`);
+        }
+
+        function clearParticles() {
+            if (particleSystem) {
+                particleSystem.clearAllParticles();
+                logToConsole('✨ All particles cleared');
+            }
+        }
+
+        function togglePerformanceOverlay() {
+            if (performanceMonitor) {
+                performanceMonitor.toggleOverlay();
+                logToConsole('📊 Performance overlay toggled');
+            }
+        }
+
+        function updateBeatSensitivity(value) {
+            document.getElementById('sensitivity-value').textContent = value;
+            if (audioReactor) {
+                audioReactor.setBeatSensitivity(parseFloat(value));
+                logToConsole(`🥁 Beat sensitivity: ${value}`);
+            }
+        }
+
+        // 3D Camera Controls
+        function setupCameraControls(canvas) {
+            // Mouse controls for 3D camera
+            canvas.addEventListener('mousedown', (e) => {
+                mouseDown = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!mouseDown || !renderer3D) return;
+
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+
+                renderer3D.rotateCamera(deltaX, deltaY);
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+
+            // Keyboard controls for movement
+            document.addEventListener('keydown', (e) => {
+                keys[e.key.toLowerCase()] = true;
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keys[e.key.toLowerCase()] = false;
+            });
+
+            // Prevent context menu on canvas
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            logToConsole('🎮 3D Camera controls setup (WASD + Mouse)');
+        }
+
+        function handleCameraMovement(deltaTime) {
+            if (!renderer3D) return;
+
+            const moveSpeed = 20 * (deltaTime / 1000); // 20 units per second
+
+            if (keys['w'] || keys['arrowup']) {
+                renderer3D.moveCamera('forward', moveSpeed);
+            }
+            if (keys['s'] || keys['arrowdown']) {
+                renderer3D.moveCamera('backward', moveSpeed);
+            }
+            if (keys['a'] || keys['arrowleft']) {
+                renderer3D.moveCamera('left', moveSpeed);
+            }
+            if (keys['d'] || keys['arrowright']) {
+                renderer3D.moveCamera('right', moveSpeed);
+            }
+            if (keys[' ']) {
+                renderer3D.moveCamera('up', moveSpeed);
+            }
+            if (keys['shift']) {
+                renderer3D.moveCamera('down', moveSpeed);
+            }
+        }
+
+        // Enhanced world generation controls
+        function regenerateWorld() {
+            if (worldSynthesizer) {
+                worldSynthesizer.worldChunks.clear();
+                worldSynthesizer.activeChunks.clear();
+                worldSynthesizer.worldSeed = Math.random() * 1000000;
+                logToConsole(`🌍 World regenerated with seed: ${worldSynthesizer.worldSeed.toFixed(0)}`);
+            }
+        }
+
+        function toggleAudioWorldInfluence() {
+            if (worldSynthesizer) {
+                worldSynthesizer.audioInfluence.enabled = !worldSynthesizer.audioInfluence.enabled;
+                const status = worldSynthesizer.audioInfluence.enabled ? 'enabled' : 'disabled';
+                logToConsole(`🎵 Audio world influence ${status}`);
+            }
+        }
+
+        function get3DWorldInfo() {
+            if (!worldSynthesizer) {
+                logToConsole('❌ World Synthesizer not initialized');
+                return;
+            }
+
+            const info = worldSynthesizer.getWorldInfo();
+            logToConsole('🌍 3D World Information:');
+            logToConsole(`   Seed: ${info.seed.toFixed(0)}`);
+            logToConsole(`   Chunks Generated: ${info.chunksGenerated}`);
+            logToConsole(`   Active Chunks: ${info.activeChunks}`);
+            logToConsole(`   Biomes Available: ${info.biomes}`);
+            logToConsole(`   Audio Influence: ${info.audioInfluenceEnabled ? 'ON' : 'OFF'}`);
+
+            if (renderer3D) {
+                const pos = renderer3D.camera.position;
+                logToConsole(`   Camera Position: [${pos[0].toFixed(1)}, ${pos[1].toFixed(1)}, ${pos[2].toFixed(1)}]`);
+
+                const biome = worldSynthesizer.getBiomeAt(Math.floor(pos[0]), Math.floor(pos[2]));
+                const height = worldSynthesizer.getHeightAt(Math.floor(pos[0]), Math.floor(pos[2]));
+                logToConsole(`   Current Biome: ${biome} (height: ${height.toFixed(1)})`);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initializeNexusForge);
+    </script>
+</body>
+</html>

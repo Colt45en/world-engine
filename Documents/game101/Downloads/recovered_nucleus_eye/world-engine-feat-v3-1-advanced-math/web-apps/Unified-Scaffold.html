@@ -1,0 +1,585 @@
+<!--
+Layer‑1 Unified Scaffold — FIXED
+Files in this document:
+  1) studio-bridge.js   — locked Layer‑1 bridge (idempotent, frozen exports)
+  2) index.html         — unified UI (Studio shell + Corner Chat), imports #1
+  3) index.inline.html  — same as #2 but with the bridge inlined (standalone)
+Notes:
+  • Serve all files from the SAME ORIGIN to allow safe DOM bridging where applicable.
+  • This scaffold removes any use of eval/document.write and routes actions via the bus.
+  • Message verbs match the planning sheet (Section 11). Adjust as needed.
+  • FIX: Guarded DOM wiring + DOMContentLoaded; auto-create Corner Chat if missing; fixed semver compare bug.
+-->
+
+<!-- =============================== -->
+<!-- 1) studio-bridge.js             -->
+<!-- =============================== -->
+<script type="text/plain" data-filename="studio-bridge.js">
+(function(){
+  'use strict';
+
+  // ===== 1) Version & Install Guard =====
+  var NAME = 'studio-bridge';
+  var VERSION = '0.1.0-base';
+
+  function compareSemver(a,b){
+    try{
+      var pa=a.split('-')[0].split('.').map(Number), pb=b.split('-')[0].split('.').map(Number); // FIX: split('.') on b
+      for(var i=0;i<3;i++){ var d=(pa[i]||0)-(pb[i]||0); if(d) return d; }
+      return 0;
+    }catch(_){ return 0; }
+  }
+
+  if (typeof window.__STUDIO_BRIDGE__ === 'object') {
+    try {
+      var existing = window.__STUDIO_BRIDGE__;
+      if (existing && existing.version && compareSemver(existing.version, VERSION) >= 0) {
+        // Already installed with same/newer version → no-op
+        if (location.search.includes('debug=studio')) {
+          (console.info||console.log)('[Studio:init] skip '+NAME+' v'+VERSION+' (existing '+existing.version+')');
+        }
+        return; // idempotent
+      }
+    } catch(_) {}
+  }
+
+  Object.defineProperty(window, '__STUDIO_BRIDGE__', {
+    value: { version: VERSION, installedAt: Date.now() },
+    writable: false, configurable: false, enumerable: true
+  });
+
+  // ===== 2) Config & Constants =====
+  var CONST = Object.freeze({
+    BUS_NAME: 'studio-bus',
+    NAMESPACE: 'studio:',
+    MSG: Object.freeze({
+      ENG_RUN: 'eng.run', ENG_TEST: 'eng.test', ENG_STATUS: 'eng.status', ENG_RESULT: 'eng.result',
+      REC_START: 'rec.start', REC_STOP: 'rec.stop', REC_CLIP: 'rec.clip', REC_TRANSCRIPT: 'rec.transcript', REC_MARK: 'rec.mark',
+      CHAT_CMD: 'chat.cmd', CHAT_ANN: 'chat.announce'
+    })
+  });
+
+  // ===== 3) Bus (BroadcastChannel + fallback) =====
+  var bc = ('BroadcastChannel' in self) ? new BroadcastChannel(CONST.BUS_NAME) : null;
+  var listeners = new Set();
+  function _fan(msg){
+    if (!msg || typeof msg.type !== 'string') return; // boundary
+    listeners.forEach(function(fn){ try{ fn(msg); }catch(e){ console.warn('[Studio:bus-listener]', e); } });
+  }
+  if (bc) bc.onmessage = function(e){ _fan(e.data); };
+  else window.addEventListener('studio:msg', function(e){ _fan(e.detail); });
+
+  function onBus(fn){ if(typeof fn!== 'function') return function(){}; listeners.add(fn); return function off(){ listeners.delete(fn); }; }
+  function sendBus(msg){
+    if (!msg || typeof msg.type !== 'string') return;
+    try{
+      if (bc) bc.postMessage(msg);
+      else window.dispatchEvent(new CustomEvent('studio:msg', { detail: msg }));
+    }catch(e){ console.warn('[Studio:bus-send]', e); }
+  }
+
+  // ===== 4) Store (namespaced, JSON-safe) =====
+  var Store = Object.freeze({
+    save: function(key, value){
+      try{
+        if (window.externalStore && typeof window.externalStore.upsert === 'function') {
+          return Promise.resolve(window.externalStore.upsert(key, value));
+        }
+        if (window.localStorage){
+          var serialized = JSON.stringify(value);
+          if (serialized && serialized.length > 1_000_000) console.warn('[Studio:store] large value for', key, (serialized.length/1024).toFixed(1)+' KB');
+          localStorage.setItem(CONST.NAMESPACE+key, serialized);
+          return Promise.resolve(value);
+        }
+      }catch(e){ return Promise.reject(e); }
+      return Promise.reject(new Error('No storage available'));
+    },
+    load: function(key){
+      try{
+        if (window.externalStore && typeof window.externalStore.get === 'function') {
+          return Promise.resolve(window.externalStore.get(key));
+        }
+        if (window.localStorage){
+          var raw = localStorage.getItem(CONST.NAMESPACE+key);
+          if (!raw) return Promise.resolve(null);
+          try { return Promise.resolve(JSON.parse(raw)); }
+          catch(_) { console.warn('[Studio:store] JSON parse error for', key); return Promise.resolve(null); }
+        }
+      }catch(e){ return Promise.resolve(null); }
+      return Promise.resolve(null);
+    }
+  });
+
+  // ===== 5) Utils =====
+  var Utils = Object.freeze({
+    id: function(){ try{ return crypto.randomUUID(); }catch(_){ return String(Date.now())+Math.random().toString(36).slice(2,10); } },
+    parseCommand: function(line){
+      var t=(String(line||'')).trim();
+      if(t.startsWith('/run ')) return {type:'run', args:t.slice(5)};
+      if(t.startsWith('/test ')) return {type:'test', args:t.slice(6)};
+      if(t.startsWith('/rec ')){
+        var mode=t.split(/\s+/)[1]||'start';
+        return {type:'rec', args:mode};
+      }
+      if(t.startsWith('/mark ')) return {type:'mark', args:t.slice(6)};
+      if(t==='/status') return {type:'status', args:''};
+      if(t==='/history') return {type:'history', args:''};
+      if(t==='/clear') return {type:'clear', args:''};
+      if(t==='/help') return {type:'help', args:''};
+      return {type:'run', args:t};
+    },
+    log: function(message, level){
+      var ts=new Date().toISOString(); var lv=level||'info';
+      if (location.search.includes('debug=studio')) (console[lv]||console.log)("[Studio:"+lv+"] "+ts+" - "+message);
+    }
+  });
+
+  // ===== 6) Engine Transport (same-origin iframe helper) =====
+  function setupEngineTransport(engineFrame){
+    function isSameOrigin(){ try{ return !!engineFrame && !!engineFrame.contentWindow && !!engineFrame.contentWindow.document; }catch(e){ return false; } }
+    function withEngine(fn){ if (!isSameOrigin()) { console.warn('[Studio:engine] cross-origin; use bus'); return; } try{ fn(engineFrame.contentWindow.document); }catch(e){ console.warn('[Studio:engine] withEngine error', e); } }
+    return { isSameOrigin: isSameOrigin, withEngine: withEngine };
+  }
+
+  // ===== 7) Public APIs (Recorder / Engine / Chat) =====
+  var RecorderAPI = Object.freeze({
+    startMic:   function(meta){ sendBus({type: CONST.MSG.REC_START, mode:'mic',   meta: meta||{}}); },
+    startScreen:function(meta){ sendBus({type: CONST.MSG.REC_START, mode:'screen',meta: meta||{}}); },
+    startBoth:  function(meta){ sendBus({type: CONST.MSG.REC_START, mode:'both', meta: meta||{}}); },
+    stop:       function(){    sendBus({type: CONST.MSG.REC_STOP}); },
+    mark:       function(tag, runId){ sendBus({type: CONST.MSG.REC_MARK, tag: String(tag||'mark'), runId: runId==null?null:String(runId)}); }
+  });
+
+  var EngineAPI = Object.freeze({
+    run:      function(text){ sendBus({type: CONST.MSG.ENG_RUN,   text: String(text||'')}); },
+    test:     function(name){ sendBus({type: CONST.MSG.ENG_TEST,  name: String(name||'')}); },
+    getStatus:function(){     sendBus({type: CONST.MSG.ENG_STATUS}); }
+  });
+
+  var ChatAPI = Object.freeze({
+    command:  function(line){ sendBus({type: CONST.MSG.CHAT_CMD, line: String(line||'')}); },
+    announce: function(message, level){ sendBus({type: CONST.MSG.CHAT_ANN, message: String(message||''), level: String(level||'info')}); }
+  });
+
+  // ===== 8) Bridge Export =====
+  var Bridge = Object.freeze({ onBus: onBus, sendBus: sendBus, RecorderAPI: RecorderAPI, EngineAPI: EngineAPI, ChatAPI: ChatAPI, Store: Store, Utils: Utils, setupEngineTransport: setupEngineTransport, CONST: CONST });
+  Object.defineProperty(window, 'StudioBridge', { value: Bridge, writable: false, configurable: false, enumerable: true });
+  if (typeof module !== 'undefined' && module.exports){ module.exports = Bridge; }
+
+  // ===== 10) Diagnostics =====
+  (console.info||console.log)("[Studio:init] "+NAME+" v"+VERSION+ (bc?' [BroadcastChannel]':' [window-event]'));
+})();
+</script>
+
+
+<!-- =============================== -->
+<!-- 2) index.html (external bridge) -->
+<!-- =============================== -->
+<script type="text/plain" data-filename="index.html"><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Chat ↔ Engine ↔ Recorder</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  :root{ --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46; --acc:#54f0b8; --chip:#182741; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden}
+  .shell{display:grid;grid-template-columns:320px 1fr;grid-template-rows:auto 1fr;gap:8px;height:100%;padding:8px}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#0d1322}
+  .brand{font-weight:800;color:var(--acc)} .sp{flex:1}
+  .col{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);overflow:hidden;min-height:0}
+  .L{display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px;min-width:0}
+  .R{display:grid;grid-template-rows:auto 1fr;gap:8px;padding:8px;min-width:0}
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .mini{font-size:12px;color:var(--mut)}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 10px}
+  textarea{width:100%;min-height:90px;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .chat{display:grid;grid-template-rows:auto 1fr auto;gap:8px;min-height:0}
+  .msgs{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:8px;overflow:auto;min-height:0}
+  .msg{margin:6px 0;padding:8px;border-radius:10px}
+  .me{background:#11203a} .ai{background:#0f1a2f} .sys{background:#122222;color:#9eead3}
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink)}
+  .space{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:0}
+  .frame{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#06101c;min-height:0}
+  .frame>iframe{display:block;width:100%;height:100%;border:0}
+  .label{position:absolute;top:6px;left:10px;font-size:12px;background:#0008;padding:3px 8px;border-radius:999px;border:1px solid #ffffff20}
+  .hint{font-size:12px;color:#96a8cc}
+  .footer{padding:6px;text-align:center;color:#6eaeb0}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  /* Corner Chat Widget */
+  .dock{position:fixed;right:18px;bottom:18px;z-index:999999}
+  .fab{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a2440,#0f1523);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 12px;cursor:pointer;box-shadow:0 8px 30px #0008}
+  .fab .dot{width:8px;height:8px;background:var(--acc);border-radius:999px;box-shadow:0 0 10px var(--acc)}
+  .drawer{position:fixed;right:18px;bottom:74px;width:360px;max-width:85vw;height:60vh;max-height:78vh;background:linear-gradient(180deg,#0f1523,#0b1020);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 16px 60px #0009;transform:translateY(18px) scale(0.98);opacity:0;pointer-events:none;transition:all .18s ease}
+  .drawer.open{transform:none;opacity:1;pointer-events:auto}
+  .drawer .head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .drawer .title{font-weight:700}
+  .drawer .msgs{height:calc(60vh - 130px);overflow:auto;padding:8px}
+  .msg{white-space:pre-wrap}
+  .drawer .ctrls{display:grid;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .drawer .row{display:flex;gap:6px;align-items:center}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div class="brand">World Engine Studio</div>
+      <div class="mini">Chat controls engine • Recording UI hosts visuals</div>
+      <div class="sp"></div>
+      <span class="chip">/run</span><span class="chip">/test</span><span class="chip">/rec</span>
+    </div>
+
+    <section class="col L chat" aria-label="AI Chatbot — Engine Control">
+      <div class="title">AI Chatbot — Engine Control</div>
+      <div id="msgs" class="msgs" aria-live="polite"></div>
+      <div class="row">
+        <input id="chat" type="text" placeholder="Type: /run state-of-the-art, unbelievable  or  Analyze these terms…"/>
+        <button id="send" class="btn">Send</button>
+      </div>
+      <div class="mini">Commands: <span class="kbd">/run</span> terms… • <span class="kbd">/test</span> name • <span class="kbd">/rec start|screen|stop</span></div>
+    </section>
+
+    <section class="col R">
+      <div class="title row">
+        <div>Surfaces</div>
+        <div class="sp"></div>
+        <div class="hint">The Recording Toolkit preview is replaced with the World Engine visual.</div>
+      </div>
+      <div class="space">
+        <div class="frame" id="fWorld">
+          <div class="label">World Engine</div>
+          <iframe id="we" src="./public/worldengine.html" title="World Engine"></iframe>
+        </div>
+        <div class="frame" id="fRecording">
+          <div class="label">Recording Toolkit (UI host)</div>
+          <iframe id="rt" src="recording-toolkit.html" title="Recording Toolkit"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer mini">Prototype: same-origin iframes + DOM bridge. Replace the stub AI with your backend when ready.</div>
+  </div>
+
+  <!-- Corner Chat Widget -->
+  <div class="dock" id="dock">
+    <div id="fab" class="fab" title="Chat with the World Engine"><div class="dot"></div><div>Chat</div></div>
+    <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="AI Chatbot Engine Control">
+      <div class="head"><div class="title">AI Chatbot — Engine Control</div><div class="sp"></div><button id="close" class="btn" title="Close">×</button></div>
+      <div id="msgs2" class="msgs" aria-live="polite"></div>
+      <div class="ctrls">
+        <div class="row"><input id="chat2" type="text" placeholder="/run …  /test …  /rec … then Enter"/><button id="send2" class="btn">Send</button></div>
+        <div class="mini">/run • /test • /rec start|screen|stop • /mark</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer‑1 Bridge (external) -->
+  <script src="studio-bridge.js"></script>
+
+  <!-- Unified UI logic (bus-driven) -->
+  <script>
+  (function(){
+    'use strict';
+    function ready(fn){ if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', fn, {once:true}); } else { fn(); } }
+    ready(function(){
+      const B = window.StudioBridge; // locked bridge
+      if(!B){ console.error('[Studio:UI] Missing StudioBridge. Ensure studio-bridge.js is served.'); }
+
+      // ===== Helpers =====
+      const $ = (id)=>document.getElementById(id);
+      function ensureCornerChat(){
+        // If any of the required nodes are missing, create the whole widget
+        const need = ['dock','fab','drawer','close','msgs2','chat2','send2'];
+        const missing = need.some(id=>!$(id));
+        if(!missing) return;
+        const dock = $('dock') || (function(){ const d=document.createElement('div'); d.className='dock'; d.id='dock'; document.body.appendChild(d); return d; })();
+        dock.innerHTML = `
+          <div id="fab" class="fab" title="Chat with the World Engine"><div class="dot"></div><div>Chat</div></div>
+          <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="AI Chatbot Engine Control">
+            <div class="head"><div class="title">AI Chatbot — Engine Control</div><div class="sp"></div><button id="close" class="btn" title="Close">×</button></div>
+            <div id="msgs2" class="msgs" aria-live="polite"></div>
+            <div class="ctrls">
+              <div class="row"><input id="chat2" type="text" placeholder="/run …  /test …  /rec … then Enter"/><button id="send2" class="btn">Send</button></div>
+              <div class="mini">/run • /test • /rec start|screen|stop • /mark</div>
+            </div>
+          </div>`;
+      }
+
+      function on(el, evt, fn){ if(el && el.addEventListener){ el.addEventListener(evt, fn); } else { console.warn('[Studio:UI] missing element for', evt); } }
+      function sayHost(target, text, cls){ const div=document.createElement('div'); div.className='msg '+(cls||'ai'); div.textContent=text; target.appendChild(div); target.scrollTop=target.scrollHeight; }
+
+      // Ensure widget exists before wiring
+      ensureCornerChat();
+
+      const msgs = $('msgs'); const msgs2 = $('msgs2');
+      function say(text, cls){ if(msgs) sayHost(msgs, text, cls); }
+      function say2(text, cls){ if(msgs2) sayHost(msgs2, text, cls); }
+
+      const we = $('we'); const rt = $('rt');
+
+      // ===== Corner Drawer =====
+      const drawer = $('drawer'); const fab = $('fab'); const closeBtn = $('close');
+      function toggleDrawer(open){ if(!drawer) return; drawer.classList[open?'add':'remove']('open'); }
+      on(fab, 'click', ()=>toggleDrawer(true));
+      on(closeBtn, 'click', ()=>toggleDrawer(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggleDrawer(false); if(e.ctrlKey && e.key.toLowerCase()==='k'){ e.preventDefault(); toggleDrawer(true); const c2=$('chat2'); if(c2) c2.focus(); } });
+
+      // ===== Engine/Recording load notices =====
+      if(we) we.addEventListener('load', ()=> say('World Engine loaded.', 'sys'));
+      if(rt) rt.addEventListener('load', ()=>{
+        say('Recording Toolkit loaded.', 'sys');
+        try {
+          const doc = rt.contentWindow.document;
+          const live = doc.getElementById('live');
+          if(live){
+            const slot = document.createElement('iframe');
+            slot.src = 'worldengine.html'; slot.style.width='100%'; slot.style.height='400px'; slot.style.border='0'; slot.title='World Engine Visual';
+            live.parentNode.replaceChild(slot, live);
+          }
+          const controls = doc.querySelector('.controls');
+          if(controls){ Object.assign(controls.style, {position:'fixed', right:'12px', bottom:'12px', width:'360px', maxWidth:'38vw', transform:'scale(0.9)', transformOrigin:'bottom right', zIndex:'9999', opacity:'0.95'}); }
+        } catch(e){ say('Note: cross-origin; using default Recording UI.', 'sys'); }
+      });
+
+      // ===== Input handling → Bus =====
+      function handleInput(raw){
+        if(!B) return;
+        const cmd = B.Utils.parseCommand(raw);
+        if (cmd.type==='run') B.EngineAPI.run(cmd.args);
+        else if (cmd.type==='test') B.EngineAPI.test(cmd.args);
+        else if (cmd.type==='rec') {
+          const m=cmd.args; if(m==='start') B.RecorderAPI.startMic({source:'ui'});
+          else if(m==='screen') B.RecorderAPI.startScreen({source:'ui'});
+          else if(m==='both') B.RecorderAPI.startBoth({source:'ui'});
+          else if(m==='stop') B.RecorderAPI.stop();
+        } else if (cmd.type==='mark') B.RecorderAPI.mark(cmd.args, B.Utils.id());
+        else if (cmd.type==='status') B.EngineAPI.getStatus();
+        else if (cmd.type==='clear'){ if(msgs) msgs.textContent=''; if(msgs2) msgs2.textContent=''; }
+        else if (cmd.type==='help') say('Commands: /run text | /test name | /rec start|screen|both|stop | /mark tag | /status | /history | /clear', 'sys');
+        else B.EngineAPI.run(cmd.args);
+      }
+
+      function wireChat(inputId, sendId, outFn){
+        const input=$(inputId), send=$(sendId);
+        function go(){ const v=(input && input.value||'').trim(); if(!v) return; outFn(v,'me'); if(input) input.value=''; handleInput(v); }
+        on(send,'click',go);
+        if(input) input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); go(); }});
+      }
+      wireChat('chat','send', say); wireChat('chat2','send2', say2);
+
+      // ===== Listen on the bus for results/announces =====
+      if(B) B.onBus(function(msg){
+        try{
+          if (msg.type===B.CONST.MSG.ENG_RESULT){ say2('[eng.result] '+(msg.outcome||'')+(msg.runId?(' #'+msg.runId):''), 'ai'); }
+          else if (msg.type===B.CONST.MSG.CHAT_ANN){ say('['+(msg.level||'info')+'] '+(msg.message||''), 'sys'); say2('['+(msg.level||'info')+'] '+(msg.message||''), 'sys'); }
+          else if (msg.type===B.CONST.MSG.REC_TRANSCRIPT){ say2('⏺ transcript: '+msg.text, 'ai'); }
+        }catch(e){ /* ignore */ }
+      });
+
+      // ===== Lightweight Test Harness (adds coverage) =====
+      (function runSmokeTests(){
+        const results = [];
+        function assert(name, cond){ const ok = !!cond; results.push({name, ok}); return ok; }
+        assert('Corner Chat: #fab exists', !!$('fab'));
+        assert('Corner Chat: #drawer exists', !!$('drawer'));
+        assert('Bridge present', !!B);
+        if(B){
+          const ex1 = B.Utils.parseCommand('/run hello');
+          assert('parseCommand /run', ex1 && ex1.type==='run' && ex1.args==='hello');
+          const ex2 = B.Utils.parseCommand('/rec start');
+          assert('parseCommand /rec start', ex2 && ex2.type==='rec' && ex2.args==='start');
+        }
+        const pass = results.filter(r=>r.ok).length;
+        const line = `Tests: ${pass}/${results.length} passed`;
+        if($('msgs2')) say2(line, pass===results.length?'sys':'ai'); else console.log(line, results);
+      })();
+
+      // Boot tips
+      say('Type /run followed by terms (comma/newline separated). Example: /run state-of-the-art, restate, unbelievable', 'sys');
+    });
+  })();
+  </script>
+</body>
+</html>
+</script>
+
+
+<!-- ================================== -->
+<!-- 3) index.inline.html (bridge inline) -->
+<!-- ================================== -->
+<script type="text/plain" data-filename="index.inline.html"><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Unified (Inline Bridge)</title>
+<style>
+  :root{ --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46; --acc:#54f0b8; --chip:#182741; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden}
+  .shell{display:grid;grid-template-columns:320px 1fr;grid-template-rows:auto 1fr;gap:8px;height:100%;padding:8px}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#0d1322}
+  .brand{font-weight:800;color:var(--acc)} .sp{flex:1}
+  .col{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);overflow:hidden;min-height:0}
+  .L{display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px;min-width:0}
+  .R{display:grid;grid-template-rows:auto 1fr;gap:8px;padding:8px;min-width:0}
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .mini{font-size:12px;color:var(--mut)}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 10px}
+  textarea{width:100%;min-height:90px;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .chat{display:grid;grid-template-rows:auto 1fr auto;gap:8px;min-height:0}
+  .msgs{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:8px;overflow:auto;min-height:0}
+  .msg{margin:6px 0;padding:8px;border-radius:10px}
+  .me{background:#11203a} .ai{background:#0f1a2f} .sys{background:#122222;color:#9eead3}
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink)}
+  .space{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:0}
+  .frame{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#06101c;min-height:0}
+  .frame>iframe{display:block;width:100%;height:100%;border:0}
+  .label{position:absolute;top:6px;left:10px;font-size:12px;background:#0008;padding:3px 8px;border-radius:999px;border:1px solid #ffffff20}
+  .hint{font-size:12px;color:#96a8cc}
+  .footer{padding:6px;text-align:center;color:#6eaeb0}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  /* Corner Chat Widget */
+  .dock{position:fixed;right:18px;bottom:18px;z-index:999999}
+  .fab{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a2440,#0f1523);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 12px;cursor:pointer;box-shadow:0 8px 30px #0008}
+  .fab .dot{width:8px;height:8px;background:var(--acc);border-radius:999px;box-shadow:0 0 10px var(--acc)}
+  .drawer{position:fixed;right:18px;bottom:74px;width:360px;max-width:85vw;height:60vh;max-height:78vh;background:linear-gradient(180deg,#0f1523,#0b1020);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 16px 60px #0009;transform:translateY(18px) scale(0.98);opacity:0;pointer-events:none;transition:all .18s ease}
+  .drawer.open{transform:none;opacity:1;pointer-events:auto}
+  .drawer .head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .drawer .title{font-weight:700}
+  .drawer .msgs{height:calc(60vh - 130px);overflow:auto;padding:8px}
+  .msg{white-space:pre-wrap}
+  .drawer .ctrls{display:grid;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .drawer .row{display:flex;gap:6px;align-items:center}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div class="brand">World Engine Studio</div>
+      <div class="mini">Recording app hosts visuals & tests • Chat lives as a corner widget</div>
+      <div class="sp"></div>
+      <span class="kbd">/run</span>
+      <span class="kbd">/test</span>
+      <span class="kbd">/rec</span>
+    </div>
+
+    <div class="space">
+      <div class="frame">
+        <div class="label">World Engine (primary)</div>
+        <iframe id="we" src="./public/worldengine.html" title="World Engine"></iframe>
+      </div>
+      <div class="frame">
+        <div class="label">Recording Toolkit (UI host)</div>
+        <iframe id="rt" src="recording-toolkit.html" title="Recording Toolkit"></iframe>
+      </div>
+    </div>
+
+    <div class="footer mini">Prototype: open locally or serve from one origin for full DOM bridging.</div>
+  </div>
+
+  <!-- Corner Chat Widget -->
+  <div class="dock" id="dock">
+    <div id="fab" class="fab" title="Chat with the World Engine"><div class="dot"></div><div>Chat</div></div>
+    <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="AI Chatbot Engine Control">
+      <div class="head">
+        <div class="title">AI Chatbot — Engine Control</div>
+        <div class="sp"></div>
+        <button id="close" class="btn" title="Close">×</button>
+      </div>
+      <div id="msgs2" class="msgs" aria-live="polite"></div>
+      <div class="ctrls">
+        <div class="row">
+          <input id="chat2" type="text" placeholder="/run …  /test …  /rec … then Enter"/>
+          <button id="send2" class="btn">Send</button>
+        </div>
+        <div class="mini">/run • /test • /rec start|screen|stop • /mark</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer‑1 Bridge (INLINED) -->
+  <script>
+  /** @inline studio-bridge.js **/
+  (function(){
+    'use strict';
+    var NAME='studio-bridge', VERSION='0.1.0-base';
+    function compareSemver(a,b){try{var pa=a.split('-')[0].split('.').map(Number),pb=b.split('-')[0].split('.').map(Number);for(var i=0;i<3;i++){var d=(pa[i]||0)-(pb[i]||0);if(d)return d;}return 0;}catch(_){return 0;}}
+    if(typeof window.__STUDIO_BRIDGE__==='object'){try{var ex=window.__STUDIO_BRIDGE__; if(ex&&ex.version&&compareSemver(ex.version,VERSION)>=0){(console.info||console.log)('[Studio:init] skip '+NAME+' v'+VERSION+' (existing '+ex.version+')'); return;}}catch(_){}}
+    Object.defineProperty(window,'__STUDIO_BRIDGE__',{value:{version:VERSION,installedAt:Date.now()},writable:false,configurable:false,enumerable:true});
+    var CONST=Object.freeze({BUS_NAME:'studio-bus',NAMESPACE:'studio:',MSG:Object.freeze({ENG_RUN:'eng.run',ENG_TEST:'eng.test',ENG_STATUS:'eng.status',ENG_RESULT:'eng.result',REC_START:'rec.start',REC_STOP:'rec.stop',REC_CLIP:'rec.clip',REC_TRANSCRIPT:'rec.transcript',REC_MARK:'rec.mark',CHAT_CMD:'chat.cmd',CHAT_ANN:'chat.announce'})});
+    var bc=('BroadcastChannel'in self)?new BroadcastChannel(CONST.BUS_NAME):null;var listeners=new Set();function _fan(msg){if(!msg||typeof msg.type!=='string')return;listeners.forEach(function(fn){try{fn(msg);}catch(e){console.warn('[Studio:bus-listener]',e);}});} if(bc) bc.onmessage=function(e){_fan(e.data);}; else window.addEventListener('studio:msg',function(e){_fan(e.detail)});
+    function onBus(fn){if(typeof fn!=='function') return function(){}; listeners.add(fn); return function(){listeners.delete(fn);};}
+    function sendBus(msg){ if(!msg||typeof msg.type!=='string') return; try{ if(bc) bc.postMessage(msg); else window.dispatchEvent(new CustomEvent('studio:msg',{detail:msg})); }catch(e){console.warn('[Studio:bus-send]',e);} }
+    var Store=Object.freeze({save:function(key,value){try{if(window.externalStore&&typeof window.externalStore.upsert==='function') return Promise.resolve(window.externalStore.upsert(key,value)); if(window.localStorage){var s=JSON.stringify(value); if(s&&s.length>1_000_000) console.warn('[Studio:store] large',key,(s.length/1024).toFixed(1)+' KB'); localStorage.setItem(CONST.NAMESPACE+key,s); return Promise.resolve(value);} }catch(e){return Promise.reject(e);} return Promise.reject(new Error('No storage'));},load:function(key){try{if(window.externalStore&&typeof window.externalStore.get==='function') return Promise.resolve(window.externalStore.get(key)); if(window.localStorage){var raw=localStorage.getItem(CONST.NAMESPACE+key); if(!raw) return Promise.resolve(null); try{return Promise.resolve(JSON.parse(raw));}catch(_){console.warn('[Studio:store] JSON parse',key); return Promise.resolve(null);} } }catch(e){return Promise.resolve(null);} return Promise.resolve(null);}});
+    var Utils=Object.freeze({id:function(){try{return crypto.randomUUID();}catch(_){return String(Date.now())+Math.random().toString(36).slice(2,10);}}, parseCommand:function(line){var t=String(line||'').trim(); if(t.startsWith('/run '))return{type:'run',args:t.slice(5)}; if(t.startsWith('/test '))return{type:'test',args:t.slice(6)}; if(t.startsWith('/rec ')){var m=t.split(/\s+/)[1]||'start'; return{type:'rec',args:m};} if(t.startsWith('/mark '))return{type:'mark',args:t.slice(6)}; if(t==='/status')return{type:'status',args:''}; if(t==='/history')return{type:'history',args:''}; if(t==='/clear')return{type:'clear',args:''}; if(t==='/help')return{type:'help',args:''}; return{type:'run',args:t};}, log:function(m,l){var ts=new Date().toISOString(); var lv=l||'info'; if(location.search.includes('debug=studio')) (console[lv]||console.log)('[Studio:'+lv+'] '+ts+' - '+m);}});
+    function setupEngineTransport(engineFrame){function isSameOrigin(){try{return!!engineFrame&&!!engineFrame.contentWindow&&!!engineFrame.contentWindow.document;}catch(e){return false;}} function withEngine(fn){if(!isSameOrigin()){console.warn('[Studio:engine] cross-origin; use bus'); return;} try{fn(engineFrame.contentWindow.document);}catch(e){console.warn('[Studio:engine] withEngine error',e);} } return{isSameOrigin:isSameOrigin,withEngine:withEngine};}
+    var RecorderAPI=Object.freeze({startMic:function(meta){sendBus({type:CONST.MSG.REC_START,mode:'mic',meta:meta||{}});},startScreen:function(meta){sendBus({type:CONST.MSG.REC_START,mode:'screen',meta:meta||{}});},startBoth:function(meta){sendBus({type:CONST.MSG.REC_START,mode:'both',meta:meta||{}});},stop:function(){sendBus({type:CONST.MSG.REC_STOP});},mark:function(tag,runId){sendBus({type:CONST.MSG.REC_MARK,tag:String(tag||'mark'),runId:runId==null?null:String(runId)});}});
+    var EngineAPI=Object.freeze({run:function(text){sendBus({type:CONST.MSG.ENG_RUN,text:String(text||'')});},test:function(name){sendBus({type:CONST.MSG.ENG_TEST,name:String(name||'')});},getStatus:function(){sendBus({type:CONST.MSG.ENG_STATUS});}});
+    var ChatAPI=Object.freeze({command:function(line){sendBus({type:CONST.MSG.CHAT_CMD,line:String(line||'')});},announce:function(message,level){sendBus({type:CONST.MSG.CHAT_ANN,message:String(message||''),level:String(level||'info')});}});
+    var Bridge=Object.freeze({onBus:onBus,sendBus:sendBus,RecorderAPI:RecorderAPI,EngineAPI:EngineAPI,ChatAPI:ChatAPI,Store:Store,Utils:Utils,setupEngineTransport:setupEngineTransport,CONST:CONST}); Object.defineProperty(window,'StudioBridge',{value:Bridge,writable:false,configurable:false,enumerable:true}); if(typeof module!=='undefined'&&module.exports){module.exports=Bridge;} (console.info||console.log)('[Studio:init] '+NAME+' v'+VERSION+(bc?' [BroadcastChannel]':' [window-event]'));
+  })();
+  </script>
+
+  <!-- Unified UI logic (same as external variant) -->
+  <script>
+  (function(){
+    'use strict';
+    function ready(fn){ if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', fn, {once:true}); } else { fn(); } }
+    ready(function(){
+      const B = window.StudioBridge;
+      const $ = (id)=>document.getElementById(id);
+      function ensureCornerChat(){
+        const need = ['dock','fab','drawer','close','msgs2','chat2','send2'];
+        const missing = need.some(id=>!$(id));
+        if(!missing) return;
+        const dock = $('dock') || (function(){ const d=document.createElement('div'); d.className='dock'; d.id='dock'; document.body.appendChild(d); return d; })();
+        dock.innerHTML = `
+          <div id="fab" class="fab" title="Chat with the World Engine"><div class="dot"></div><div>Chat</div></div>
+          <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="AI Chatbot Engine Control">
+            <div class="head"><div class="title">AI Chatbot — Engine Control</div><div class="sp"></div><button id="close" class="btn" title="Close">×</button></div>
+            <div id="msgs2" class="msgs" aria-live="polite"></div>
+            <div class="ctrls">
+              <div class="row"><input id="chat2" type="text" placeholder="/run …  /test …  /rec … then Enter"/><button id="send2" class="btn">Send</button></div>
+              <div class="mini">/run • /test • /rec start|screen|stop • /mark</div>
+            </div>
+          </div>`;
+      }
+      function on(el, evt, fn){ if(el && el.addEventListener){ el.addEventListener(evt, fn); } }
+      function sayHost(target, text, cls){ const div=document.createElement('div'); div.className='msg '+(cls||'ai'); div.textContent=text; target.appendChild(div); target.scrollTop=target.scrollHeight; }
+      ensureCornerChat();
+      const msgs2=$('msgs2'); const we=$('we'); const rt=$('rt');
+      function say2(text, cls){ if(msgs2) sayHost(msgs2, text, cls); }
+      const drawer=$('drawer'), fab=$('fab'), closeBtn=$('close');
+      function toggleDrawer(open){ if(!drawer) return; drawer.classList[open?'add':'remove']('open'); }
+      on(fab,'click',()=>toggleDrawer(true)); on(closeBtn,'click',()=>toggleDrawer(false));
+      document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') toggleDrawer(false); if(e.ctrlKey&&e.key.toLowerCase()==='k'){ e.preventDefault(); toggleDrawer(true); const c2=$('chat2'); if(c2) c2.focus(); }});
+
+      if(we) we.addEventListener('load', ()=> say2('World Engine loaded.', 'sys'));
+      if(rt) rt.addEventListener('load', ()=>{
+        say2('Recording Toolkit loaded.', 'sys');
+        try{ const doc=rt.contentWindow.document; const live=doc.getElementById('live'); if(live){ const slot=document.createElement('iframe'); slot.src="./public/worldengine.html"; slot.style.width='100%'; slot.style.height='400px'; slot.style.border='0'; slot.title='World Engine Visual'; live.parentNode.replaceChild(slot, live);} }catch(e){ say2('Cross-origin; default Recording UI.', 'sys'); }
+      });
+
+      function handleInput(v){ if(!B) return; const cmd=B.Utils.parseCommand(v); if(cmd.type==='run') B.EngineAPI.run(cmd.args); else if(cmd.type==='test') B.EngineAPI.test(cmd.args); else if(cmd.type==='rec'){ const m=cmd.args; if(m==='start') B.RecorderAPI.startMic({source:'ui'}); else if(m==='screen') B.RecorderAPI.startScreen({source:'ui'}); else if(m==='both') B.RecorderAPI.startBoth({source:'ui'}); else if(m==='stop') B.RecorderAPI.stop(); } else if(cmd.type==='mark') B.RecorderAPI.mark(cmd.args, B.Utils.id()); else if(cmd.type==='status') B.EngineAPI.getStatus(); else B.EngineAPI.run(cmd.args); }
+      function wireChat(inputId, sendId){ const i=$(inputId), s=$(sendId); function go(){ const v=(i&&i.value||'').trim(); if(!v) return; say2(v,'me'); if(i) i.value=''; handleInput(v); } on(s,'click',go); if(i) i.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); go(); }}); }
+      wireChat('chat2','send2');
+
+      if(B) B.onBus(function(msg){ try{ if(msg.type===B.CONST.MSG.ENG_RESULT) say2('[eng.result] '+(msg.outcome||''), 'ai'); else if(msg.type===B.CONST.MSG.CHAT_ANN) say2('['+(msg.level||'info')+'] '+(msg.message||''), 'sys'); }catch(e){} });
+
+      // Smoke tests
+      (function(){ const ok1=!!$('fab'); const ok2=!!$('drawer'); const ok3=!!B; const line=`Tests: ${(ok1+ok2+ok3)}/3 passed`; say2(line, (ok1&&ok2&&ok3)?'sys':'ai'); })();
+    });
+  })();
+  </script>
+</body>
+</html>
+</script>

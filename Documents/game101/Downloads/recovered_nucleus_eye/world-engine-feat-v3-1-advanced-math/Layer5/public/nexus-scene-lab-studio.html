@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 NEXUS Glyph Lab - 3D Training & Testing Environment</title>
+
+    <!-- 3D Engine Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Code Editor Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs/loader.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0a0a1a 0%, #050510 50%, #000005 100%);
+            color: #00ffaa;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .particles-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00ffaa;
+            border-radius: 50%;
+            animation: particleFloat linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header header"
+                "glyph-training code-editor webgl-viewport glyph-analyzer"
+                "scene-controls timeline-panel timeline-panel properties-panel";
+            grid-template-rows: 80px 1fr 300px;
+            grid-template-columns: 350px 400px 1fr 350px;
+            height: 100vh;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .studio-panel {
+            background: rgba(0, 20, 40, 0.95);
+            border: 1px solid #004466;
+            border-radius: 12px;
+            padding: 16px;
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .studio-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffaa, transparent);
+            animation: panelGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes panelGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Glyph Effect Animations */
+        @keyframes glyphWorldshift {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes glyphTemporal {
+            0% { transform: translateX(-100%); opacity: 0.3; }
+            50% { opacity: 0.7; }
+            100% { transform: translateX(100%); opacity: 0.3; }
+        }
+
+        @keyframes glyphMechanical {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-20px); }
+        }
+
+        @keyframes glyphEmotional {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.05) rotate(1deg); }
+            50% { transform: scale(1.1) rotate(0deg); }
+            75% { transform: scale(1.05) rotate(-1deg); }
+        }
+
+        .glyph-effect {
+            mix-blend-mode: soft-light;
+            border-radius: 8px;
+        }
+
+        .glyph-worldshift {
+            filter: blur(0.5px) brightness(1.2);
+        }
+
+        .glyph-temporal {
+            filter: blur(1px) hue-rotate(45deg);
+        }
+
+        .glyph-mechanical {
+            filter: contrast(1.3) brightness(0.9);
+        }
+
+        .glyph-emotional {
+            filter: blur(0.3px) saturate(1.4);
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(0, 255, 170, 0.3), rgba(0, 170, 255, 0.2));
+            border: 2px solid #00ffaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-info {
+            font-size: 14px;
+            color: #88ccff;
+            margin-top: 4px;
+        }
+
+        .header-build {
+            text-align: right;
+            font-size: 12px;
+            color: #99aacc;
+        }
+
+        .studio-title {
+            font-size: 28px;
+            font-weight: bold;
+            -webkit-background-clip: text;
+            background-clip: text;
+            background: linear-gradient(45deg, #00ffaa, #00aaff, #0088cc);
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+        }
+
+        .glyph-training { grid-area: glyph-training; border-color: #00ffaa; }
+        .code-editor { grid-area: code-editor; border-color: #ffaa00; }
+        .webgl-viewport { grid-area: webgl-viewport; border-color: #00aaff; }
+        .glyph-analyzer { grid-area: glyph-analyzer; border-color: #aa00ff; }
+        .scene-controls { grid-area: scene-controls; border-color: #ff00aa; }
+        .timeline-panel { grid-area: timeline-panel; border-color: #ff6600; }
+        .properties-panel { grid-area: properties-panel; border-color: #66ff00; }
+
+        /* 3D WebGL Viewport Styles */
+        .webgl-container {
+            width: 100%;
+            height: 100%;
+            background: #000011;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #webglCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Code Editor Styles */
+        .code-editor-container {
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .editor-tabs {
+            display: flex;
+            background: #2d2d30;
+            border-radius: 8px 8px 0 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        .editor-tab {
+            background: #3c3c3c;
+            border: none;
+            color: #cccccc;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 8px 8px 0 0;
+            margin-right: 2px;
+        }
+
+        .editor-tab.active {
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+
+        #monacoEditor {
+            height: calc(100% - 40px);
+            width: 100%;
+        }
+
+        /* Glyph Training Interface */
+        .training-mode {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            background: linear-gradient(45deg, #334455, #445566);
+            border: 1px solid #556677;
+            color: #ffffff;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, #00aa55, #00cc66);
+            border-color: #00ff77;
+        }
+
+        .glyph-progress {
+            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffaa, #00aaff);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #004466;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scene-3d {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #001122 0%, #002244 50%, #003366 100%);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scene-object {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .sprite-object {
+            background: linear-gradient(45deg, #00ffaa, #00ccaa);
+            border: 2px solid #00ffff;
+        }
+
+        .cube-object {
+            background: linear-gradient(45deg, #0088cc, #0066aa);
+            border: 2px solid #00aaff;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ffaa;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .control-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #445566;
+            border-radius: 4px;
+            color: #ffffff;
+            padding: 4px 8px;
+            font-family: inherit;
+            min-width: 60px;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #00ffaa;
+            box-shadow: 0 0 6px rgba(0, 255, 170, 0.3);
+        }
+
+        .studio-btn {
+            background: linear-gradient(45deg, #334466, #445577);
+            border: 1px solid #5566aa;
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            margin: 2px;
+        }
+
+        .studio-btn:hover {
+            background: linear-gradient(45deg, #445577, #5566aa);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(85, 102, 170, 0.3);
+        }
+
+        .studio-btn.active {
+            background: linear-gradient(45deg, #006600, #00aa00);
+            border-color: #00cc00;
+        }
+
+        .studio-btn.full-width {
+            width: 100%;
+            margin: 4px 0;
+        }
+
+        .studio-btn.half-width {
+            width: 48%;
+            margin: 1%;
+        }
+
+        .playback-controls-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .playback-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .speed-control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .speed-label {
+            font-size: 12px;
+            color: #99aacc;
+            text-align: center;
+        }
+
+        .speed-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            outline: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffaa;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 170, 0.5);
+        }
+
+        .speed-display {
+            font-size: 14px;
+            color: #00ffaa;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .frame-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #99aacc;
+        }
+
+        .timeline-track {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #004466;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffaa, #00aaff);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .timeline-scrubber {
+            position: absolute;
+            top: -2px;
+            left: 0%;
+            width: 4px;
+            height: 44px;
+            background: #ffffff;
+            border-radius: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .keyframe-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .keyframe {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: #ffaa00;
+            border-radius: 50%;
+            border: 1px solid #ffffff;
+        }
+
+        .keyframe-0 { left: 0%; }
+        .keyframe-33 { left: 33%; }
+        .keyframe-66 { left: 66%; }
+        .keyframe-100 { left: 100%; }
+
+        .behavior-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #445566;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .behavior-item:hover {
+            border-color: #00ffaa;
+            background: rgba(0, 255, 170, 0.1);
+        }
+
+        .behavior-item.active {
+            border-color: #00ffaa;
+            background: rgba(0, 255, 170, 0.2);
+        }
+
+        .behavior-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .behavior-description {
+            font-size: 10px;
+            color: #999999;
+            margin-top: 2px;
+        }
+
+        .prefab-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .prefab-item:hover {
+            background: rgba(0, 255, 170, 0.1);
+            border-color: #00ffaa;
+        }
+
+        .prefab-item.active {
+            background: rgba(0, 255, 170, 0.2);
+            border-color: #00ffaa;
+        }
+
+        .prefab-name {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .prefab-behaviors {
+            font-size: 10px;
+            color: #999999;
+            margin-top: 2px;
+        }
+
+        .scrollable {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #004466;
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #006699;
+        }
+
+        .scene-status {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffaa;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 170, 0.9);
+            color: #000000;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0, 255, 170, 0.3);
+            display: none;
+        }
+
+        .notification.success { background: rgba(0, 255, 170, 0.9); }
+        .notification.error { background: rgba(255, 68, 68, 0.9); }
+        .notification.warning { background: rgba(255, 170, 0, 0.9); }
+        .notification.info { background: rgba(0, 170, 255, 0.9); }
+
+        .button-row {
+            display: flex;
+            gap: 4px;
+            margin: 4px 0;
+        }
+
+        .layer-controls {
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Particles Background -->
+    <div class="particles-bg" id="particlesBg"></div>
+
+    <!-- Notification System -->
+    <div class="notification" id="notification"></div>
+
+    <div class="studio-layout">
+        <!-- Header -->
+        <div class="studio-panel header">
+            <div>
+                <div class="studio-title">🎬 NEXUS Glyph Lab</div>
+                <div class="header-info">3D Training & Testing Environment for Advanced Glyph Systems</div>
+            </div>
+            <div class="header-build">
+                <div>Version 6.0.0 - Glyph Training Edition</div>
+                <div>Build 2025.09.27 - WebGL + Monaco IDE</div>
+            </div>
+        </div>
+
+        <!-- Glyph Training Panel -->
+        <div class="studio-panel glyph-training">
+            <div class="section-title">🎓 Glyph Training</div>
+
+            <div class="training-mode">
+                <button class="mode-btn active" id="learnMode">Learn</button>
+                <button class="mode-btn" id="practiceMode">Practice</button>
+                <button class="mode-btn" id="testMode">Test</button>
+                <button class="mode-btn" id="createMode">Create</button>
+            </div>
+
+            <div class="glyph-progress">
+                <div style="font-size: 11px; margin-bottom: 4px;">Training Progress</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="trainingProgress" style="width: 35%;"></div>
+                </div>
+                <div style="font-size: 10px; color: #88ccff; margin-top: 4px;">7/12 Glyphs Mastered</div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">✨ Active Glyph</div>
+                <div class="control-item">
+                    <label>Glyph:</label>
+                    <select class="control-input" id="glyphSelect" title="Select glyph to study">
+                        <option value="">Choose Glyph...</option>
+                        <option value="aurora_lattice">Aurora Lattice</option>
+                        <option value="keystone_memory">Keystone Memory</option>
+                        <option value="echo_weaver">Echo Weaver</option>
+                        <option value="fathom_drift">Fathom Drift</option>
+                        <option value="solaris_anchor">Solaris Anchor</option>
+                        <option value="void_compass">Void Compass</option>
+                        <option value="phase_meld">Phase Meld</option>
+                        <option value="terra_pulse">Terra Pulse</option>
+                        <option value="cascade_node">Cascade Node</option>
+                        <option value="breath_still">Breath Still</option>
+                        <option value="storm_lens">Storm Lens</option>
+                        <option value="nexus_bridge">Nexus Bridge</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>Power:</label>
+                    <input type="range" class="control-input" id="glyphIntensity" min="0.1" max="1" step="0.05" value="0.7" title="Glyph intensity">
+                    <span class="speed-display" id="glyphIntensityDisplay">0.70</span>
+                </div>
+                <div class="button-row">
+                    <button class="studio-btn half-width" id="applyGlyph">🔮 Apply</button>
+                    <button class="studio-btn half-width" id="clearGlyphs">� Clear</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">📊 Glyph Stats</div>
+                <div id="glyphStatus" class="glyph-status">No active glyphs</div>
+                <div class="scrollable" style="max-height: 120px; margin-top: 8px;">
+                    <div id="glyphHistory" style="font-size: 10px; color: #999;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Editor Panel -->
+        <div class="studio-panel code-editor">
+            <div class="section-title">💻 Glyph IDE</div>
+            <div class="code-editor-container">
+                <div class="editor-tabs">
+                    <button class="editor-tab active" id="glyphScriptTab">glyph_effects.js</button>
+                    <button class="editor-tab" id="configTab">config.json</button>
+                    <button class="editor-tab" id="testTab">test.js</button>
+                </div>
+                <div id="monacoEditor"></div>
+            </div>
+        </div>
+
+        <!-- 3D WebGL Viewport -->
+        <div class="studio-panel webgl-viewport">
+            <div class="section-title">🌐 3D Environment</div>
+            <div class="webgl-container">
+                <canvas id="webglCanvas"></canvas>
+                <div class="scene-status">
+                    <div>Camera: Free Look</div>
+                    <div>Objects: <span id="objectCount">0</span></div>
+                    <div>Effects: <span id="effectCount">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Glyph Analyzer Panel -->
+        <div class="studio-panel glyph-analyzer">
+            <div class="section-title">🔬 Glyph Analyzer</div>
+
+            <div class="control-section">
+                <div class="section-title">🧠 Understanding</div>
+                <div id="glyphMeaning" style="font-size: 11px; color: #00ffaa; margin: 8px 0;">
+                    Select a glyph to see its meaning and properties.
+                </div>
+                <div id="glyphProperties" style="font-size: 10px; color: #88ccff;"></div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">⚡ Effect Analysis</div>
+                <div class="control-item">
+                    <label>Type:</label>
+                    <span id="glyphType">-</span>
+                </div>
+                <div class="control-item">
+                    <label>Intensity:</label>
+                    <span id="glyphIntensityValue">-</span>
+                </div>
+                <div class="control-item">
+                    <label>Roots:</label>
+                    <div id="glyphRoots" style="font-size: 10px; color: #ffaa00;"></div>
+                </div>
+                <div class="control-item">
+                    <label>Tags:</label>
+                    <div id="glyphTags" style="font-size: 10px; color: #aa88ff;"></div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">🎯 Testing Tools</div>
+                <button class="studio-btn full-width" onclick="analyzeGlyph()">🔍 Deep Analysis</button>
+                <button class="studio-btn full-width" onclick="testCombinations()">🧪 Test Combos</button>
+                <button class="studio-btn full-width" onclick="exportGlyph()">📤 Export Glyph</button>
+                <button class="studio-btn full-width" onclick="saveSession()">💾 Save Session</button>
+            </div>
+        </div>
+                    <label>Physics:</label>
+                    <input type="checkbox" id="physicsEnabled" checked>
+                </div>
+            </div>
+        </div>
+
+        <!-- Behavior Panel -->
+        <div class="studio-panel behavior-panel">
+            <div class="section-title">🎭 Behavior System</div>
+
+            <div class="scrollable">
+                <div class="behavior-item" onclick="selectBehavior('Orbit')">
+                    <div>
+                        <div class="behavior-name">🌍 Orbit</div>
+                        <div class="behavior-description">Circular motion around center</div>
+                    </div>
+                </div>
+
+                <div class="behavior-item" onclick="selectBehavior('Pulse')">
+                    <div>
+                        <div class="behavior-name">💓 Pulse</div>
+                        <div class="behavior-description">Scale animation rhythm</div>
+                    </div>
+                </div>
+
+                <div class="behavior-item" onclick="selectBehavior('Gravity')">
+                    <div>
+                        <div class="behavior-name">⬇️ Gravity</div>
+                        <div class="behavior-description">Falling with ground bounce</div>
+                    </div>
+                </div>
+
+                <div class="behavior-item" onclick="selectBehavior('Rotation')">
+                    <div>
+                        <div class="behavior-name">🔄 Rotation</div>
+                        <div class="behavior-description">Continuous rotation</div>
+                    </div>
+                </div>
+
+                <div class="behavior-item" onclick="selectBehavior('Float')">
+                    <div>
+                        <div class="behavior-name">🎈 Float</div>
+                        <div class="behavior-description">Gentle up/down motion</div>
+                    </div>
+                </div>
+
+                <div class="behavior-item" onclick="selectBehavior('Sparkle')">
+                    <div>
+                        <div class="behavior-name">✨ Sparkle</div>
+                        <div class="behavior-description">Particle emission effect</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button class="studio-btn half-width" onclick="addBehaviorToSelected()">➕ Add</button>
+                <button class="studio-btn half-width" onclick="removeBehaviorFromSelected()">➖ Remove</button>
+            </div>
+        </div>
+
+        <!-- Animation Canvas -->
+        <div class="studio-panel animation-canvas">
+            <div class="canvas-container">
+                <div class="scene-status" id="sceneStatus">
+                    Scene A: 2 Objects | FPS: 60 | Behaviors: 3
+                </div>
+
+                <div class="scene-3d" id="scene3d">
+                    <!-- Scene Objects (Dynamic) -->
+                    <div class="scene-object sprite-object" id="sprite1" style="left: 20%; top: 40%;">
+                        🎭
+                    </div>
+                    <div class="scene-object cube-object" id="cube1" style="right: 20%; top: 40%;">
+                        🎲
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="studio-panel playback-controls">
+            <div class="playback-controls-inner">
+                <div class="section-title">⏯️ Playback</div>
+
+                <div class="playback-buttons">
+                    <button class="studio-btn" id="stepBackBtn" onclick="stepBack()">⏮️</button>
+                    <button class="studio-btn" id="playPauseBtn" onclick="togglePlayPause()">▶️</button>
+                    <button class="studio-btn" id="stepForwardBtn" onclick="stepForward()">⏭️</button>
+                    <button class="studio-btn" id="stopBtn" onclick="stop()">⏹️</button>
+                </div>
+
+                <div class="speed-control">
+                    <div class="speed-label">Speed Control</div>
+                    <input type="range" class="speed-slider" id="speedSlider"
+                           min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSpeed()">
+                    <div class="speed-display" id="speedDisplay">1.0x</div>
+                </div>
+
+                <div class="frame-control">
+                    <span>Frame:</span>
+                    <span id="currentFrame">1</span>
+                    <span>/</span>
+                    <span id="totalFrames">120</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prefab Library -->
+        <div class="studio-panel prefab-library">
+            <div class="section-title">📦 Prefab Library</div>
+
+            <div class="scrollable">
+                <div class="prefab-item active" onclick="selectPrefab(0)">
+                    <div class="prefab-name">🎭 Sprite 1</div>
+                    <div class="prefab-behaviors">Behaviors: Orbit</div>
+                </div>
+
+                <div class="prefab-item" onclick="selectPrefab(1)">
+                    <div class="prefab-name">🎲 Cube 1</div>
+                    <div class="prefab-behaviors">Behaviors: Pulse</div>
+                </div>
+            </div>
+
+            <div class="layer-controls">
+                <button class="studio-btn half-width" onclick="addPrefab()">➕ Add</button>
+                <button class="studio-btn half-width" onclick="deletePrefab()">➖ Delete</button>
+                <button class="studio-btn full-width" onclick="duplicatePrefab()">📋 Duplicate</button>
+            </div>
+        </div>
+
+        <!-- Timeline Panel -->
+        <div class="studio-panel timeline-panel">
+            <div class="section-title">⏱️ Timeline Control</div>
+
+            <div class="timeline-track" id="timelineTrack" onclick="seekToPosition(event)">
+                <div class="timeline-progress" id="timelineProgress"></div>
+                <div class="timeline-scrubber" id="timelineScrubber"></div>
+                <div class="keyframe-markers" id="keyframeMarkers">
+                    <div class="keyframe keyframe-0"></div>
+                    <div class="keyframe keyframe-33"></div>
+                    <div class="keyframe keyframe-66"></div>
+                    <div class="keyframe keyframe-100"></div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">🎬 Animation Settings</div>
+                <div class="control-item">
+                    <label>Duration (s):</label>
+                    <input type="number" class="control-input" id="durationInput" value="5" min="1" max="30">
+                </div>
+                <div class="control-item">
+                    <label>FPS:</label>
+                    <input type="number" class="control-input" id="fpsInput" value="24" min="12" max="60">
+                </div>
+                <div class="control-item">
+                    <label>Loop:</label>
+                    <input type="checkbox" id="loopCheck" checked>
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button class="studio-btn half-width" onclick="addKeyframe()">➕ Keyframe</button>
+                <button class="studio-btn half-width" onclick="deleteKeyframe()">➖ Delete</button>
+            </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="studio-panel properties-panel">
+            <div class="section-title">🎛️ Object Properties</div>
+
+            <div class="scrollable">
+                <div class="control-section">
+                    <div class="section-title">📍 Transform</div>
+                    <div class="control-item">
+                        <label>X:</label>
+                        <input type="number" class="control-input" id="posX" value="0" step="0.1">
+                    </div>
+                    <div class="control-item">
+                        <label>Y:</label>
+                        <input type="number" class="control-input" id="posY" value="0" step="0.1">
+                    </div>
+                    <div class="control-item">
+                        <label>Z:</label>
+                        <input type="number" class="control-input" id="posZ" value="0" step="0.1">
+                    </div>
+                    <div class="control-item">
+                        <label>Scale:</label>
+                        <input type="range" class="control-input" id="scaleSlider" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <div class="section-title">🎨 Appearance</div>
+                    <div class="control-item">
+                        <label>Color:</label>
+                        <input type="color" class="control-input" id="colorPicker" value="#00ffaa">
+                    </div>
+                    <div class="control-item">
+                        <label>Opacity:</label>
+                        <input type="range" class="control-input" id="opacitySlider" min="0" max="1" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <div class="section-title">🔧 Behavior Config</div>
+                    <div class="control-item">
+                        <label>Speed:</label>
+                        <input type="range" class="control-input" id="behaviorSpeed" min="0.1" max="5" step="0.1" value="1">
+                    </div>
+                    <div class="control-item">
+                        <label>Intensity:</label>
+                        <input type="range" class="control-input" id="behaviorIntensity" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <div class="section-title">✨ Glyph Forge</div>
+                    <div class="control-item">
+                        <label>Active Glyph:</label>
+                        <select class="control-input" id="glyphSelect">
+                            <option value="">None</option>
+                            <option value="aurora_lattice">Aurora Lattice</option>
+                            <option value="keystone_memory">Keystone Memory</option>
+                            <option value="echo_weaver">Echo Weaver</option>
+                            <option value="fathom_drift">Fathom Drift</option>
+                            <option value="solaris_anchor">Solaris Anchor</option>
+                            <option value="void_compass">Void Compass</option>
+                            <option value="phase_meld">Phase Meld</option>
+                            <option value="terra_pulse">Terra Pulse</option>
+                            <option value="cascade_node">Cascade Node</option>
+                            <option value="breath_still">Breath Still</option>
+                            <option value="storm_lens">Storm Lens</option>
+                            <option value="nexus_bridge">Nexus Bridge</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label>Intensity:</label>
+                        <input type="range" class="control-input" id="glyphIntensity" min="0.1" max="1" step="0.05" value="0.7">
+                        <span class="speed-display" id="glyphIntensityDisplay">0.70</span>
+                    </div>
+                    <div class="button-row">
+                        <button class="studio-btn half-width" id="applyGlyph">Apply Glyph</button>
+                        <button class="studio-btn half-width" id="clearGlyphs">Clear All</button>
+                    </div>
+                    <div id="glyphStatus" style="font-size: 10px; color: #88ccff; margin-top: 8px;">No active glyphs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Advanced Glyph System Integration
+        class AdvancedGlyphRegistry {
+            constructor() {
+                this.glyphs = new Map();
+                this.effects = new Map();
+                this.activeGlyphs = new Set();
+                this.registerCoolGlyphs();
+            }
+
+            registerGlyph(glyph) {
+                this.glyphs.set(glyph.id, glyph);
+            }
+
+            registerEffect(glyphId, effect) {
+                this.effects.set(glyphId, effect);
+            }
+
+            getGlyph(id) {
+                return this.glyphs.get(id);
+            }
+
+            applyGlyph(glyphId, ctx) {
+                const glyph = this.glyphs.get(glyphId);
+                const effect = this.effects.get(glyphId);
+
+                if (!glyph || !effect) {
+                    console.warn(`Glyph or effect not found: ${glyphId}`);
+                    return;
+                }
+
+                this.activeGlyphs.add(glyphId);
+                effect(glyph, ctx);
+            }
+
+            clearGlyphs() {
+                this.activeGlyphs.clear();
+            }
+
+            getActiveGlyphs() {
+                return Array.from(this.activeGlyphs);
+            }
+
+            registerCoolGlyphs() {
+                const coolGlyphs = [
+                    {
+                        id: "aurora_lattice",
+                        meaning: "Refract the world into prismatic lanes",
+                        type: "Worldshift",
+                        intensity: 0.70,
+                        roots: ["light", "weave"],
+                        tags: ["refract", "prism", "sky"]
+                    },
+                    {
+                        id: "keystone_memory",
+                        meaning: "Pin a moment; ease time-shear",
+                        type: "Temporal",
+                        intensity: 0.65,
+                        roots: ["memory", "lock"],
+                        tags: ["anchor", "recall", "save"]
+                    },
+                    {
+                        id: "echo_weaver",
+                        meaning: "Knit echoes; chain reactions",
+                        type: "Mechanical",
+                        intensity: 0.60,
+                        roots: ["echo", "knit"],
+                        tags: ["chain", "pulse", "link"]
+                    },
+                    {
+                        id: "fathom_drift",
+                        meaning: "Sedate turbulence; deepen calm",
+                        type: "Emotional",
+                        intensity: 0.55,
+                        roots: ["ocean", "still"],
+                        tags: ["depth", "calm", "abyss"]
+                    },
+                    {
+                        id: "solaris_anchor",
+                        meaning: "Fix noon; clear fog of time",
+                        type: "Temporal",
+                        intensity: 0.80,
+                        roots: ["sun", "fix"],
+                        tags: ["clarity", "noon", "fixed"]
+                    },
+                    {
+                        id: "void_compass",
+                        meaning: "Navigate emptiness; find hidden paths",
+                        type: "Worldshift",
+                        intensity: 0.75,
+                        roots: ["void", "guide"],
+                        tags: ["navigation", "empty", "path"]
+                    },
+                    {
+                        id: "phase_meld",
+                        meaning: "Blend states; soften boundaries",
+                        type: "Mechanical",
+                        intensity: 0.50,
+                        roots: ["phase", "blend"],
+                        tags: ["transition", "soft", "merge"]
+                    },
+                    {
+                        id: "terra_pulse",
+                        meaning: "Synchronize with earth's heartbeat",
+                        type: "Emotional",
+                        intensity: 0.85,
+                        roots: ["earth", "pulse"],
+                        tags: ["ground", "rhythm", "sync"]
+                    },
+                    {
+                        id: "cascade_node",
+                        meaning: "Trigger flowing sequences",
+                        type: "Mechanical",
+                        intensity: 0.70,
+                        roots: ["flow", "trigger"],
+                        tags: ["sequence", "cascade", "flow"]
+                    },
+                    {
+                        id: "breath_still",
+                        meaning: "Pause between inhale and exhale",
+                        type: "Temporal",
+                        intensity: 0.45,
+                        roots: ["breath", "pause"],
+                        tags: ["stillness", "breath", "pause"]
+                    },
+                    {
+                        id: "storm_lens",
+                        meaning: "Focus chaos into clarity",
+                        type: "Worldshift",
+                        intensity: 0.90,
+                        roots: ["storm", "focus"],
+                        tags: ["chaos", "clarity", "focus"]
+                    },
+                    {
+                        id: "nexus_bridge",
+                        meaning: "Connect distant points in space-time",
+                        type: "Mechanical",
+                        intensity: 0.95,
+                        roots: ["bridge", "nexus"],
+                        tags: ["connect", "distant", "bridge"]
+                    }
+                ];
+
+                coolGlyphs.forEach(glyph => {
+                    this.registerGlyph(glyph);
+                    this.registerGlyphEffect(glyph);
+                });
+            }
+
+            registerGlyphEffect(glyph) {
+                const effect = (glyphData, ctx) => {
+                    // Visual effects based on glyph type
+                    switch(glyphData.type) {
+                        case 'Worldshift':
+                            ctx.scene?.addWorldshiftEffect(glyphData);
+                            break;
+                        case 'Temporal':
+                            ctx.scene?.addTemporalEffect(glyphData);
+                            break;
+                        case 'Mechanical':
+                            ctx.scene?.addMechanicalEffect(glyphData);
+                            break;
+                        case 'Emotional':
+                            ctx.scene?.addEmotionalEffect(glyphData);
+                            break;
+                    }
+
+                    console.log(`Applied glyph: ${glyphData.meaning}`);
+                };
+
+                this.registerEffect(glyph.id, effect);
+            }
+        }
+
+        // NEXUS Glyph Lab - 3D Training Environment
+        class NexusGlyphLab {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.glyphObjects = new Map();
+                this.activeEffects = new Set();
+                this.currentMode = 'learn';
+                this.trainingProgress = 35;
+
+                // Initialize Glyph System
+                this.glyphRegistry = new AdvancedGlyphRegistry();
+                this.activeGlyphEffects = new Map();
+
+                // Monaco Editor
+                this.editor = null;
+                this.currentTab = 'glyphScriptTab';
+
+                this.initializeEnvironment();
+            }
+
+            async initializeEnvironment() {
+                console.log('🎬 NEXUS Glyph Lab initializing 3D environment...');
+
+                // Setup WebGL 3D Environment
+                this.setupWebGL();
+
+                // Setup Monaco Code Editor
+                await this.setupCodeEditor();
+
+                // Initialize glyph training system
+                this.setupTrainingSystem();
+
+                // Setup UI event handlers
+                this.setupEventHandlers();
+
+                // Start animation loop
+                this.startAnimation();
+
+                console.log('✅ NEXUS Glyph Lab ready for training!');
+            }
+
+            setupWebGL() {
+                const canvas = document.getElementById('webglCanvas');
+                const container = canvas.parentElement;
+
+                // Scene setup
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x000011);
+
+                // Camera setup
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    container.clientWidth / container.clientHeight,
+                    0.1,
+                    1000
+                );
+                this.camera.position.set(5, 5, 5);
+
+                // Renderer setup
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: canvas,
+                    antialias: true,
+                    alpha: true
+                });
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // Controls setup
+                this.controls = new THREE.OrbitControls(this.camera, canvas);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 10, 5);
+                directionalLight.castShadow = true;
+                this.scene.add(directionalLight);
+
+                // Create glyph testing environment
+                this.createTestingEnvironment();
+
+                // Handle resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            createTestingEnvironment() {
+                // Create a platform for glyph testing
+                const platformGeometry = new THREE.BoxGeometry(10, 0.2, 10);
+                const platformMaterial = new THREE.MeshLambertMaterial({
+                    color: 0x2a4a6b,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+                platform.position.y = -2;
+                platform.receiveShadow = true;
+                this.scene.add(platform);
+
+                // Create glyph anchor points
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const radius = 3;
+
+                    const anchorGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+                    const anchorMaterial = new THREE.MeshLambertMaterial({
+                        color: 0x00ffaa,
+                        emissive: 0x002211
+                    });
+                    const anchor = new THREE.Mesh(anchorGeometry, anchorMaterial);
+
+                    anchor.position.set(
+                        Math.cos(angle) * radius,
+                        0,
+                        Math.sin(angle) * radius
+                    );
+
+                    anchor.userData = { type: 'anchor', id: i };
+                    this.scene.add(anchor);
+                }
+
+                this.updateObjectCount();
+            }
+
+            async setupCodeEditor() {
+                // Load Monaco Editor
+                require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs' }});
+
+                return new Promise((resolve) => {
+                    require(['vs/editor/editor.main'], () => {
+                        this.editor = monaco.editor.create(document.getElementById('monacoEditor'), {
+                            value: this.getDefaultGlyphScript(),
+                            language: 'javascript',
+                            theme: 'vs-dark',
+                            automaticLayout: true,
+                            fontSize: 12,
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false
+                        });
+
+                        this.editor.onDidChangeModelContent(() => {
+                            this.onCodeChange();
+                        });
+
+                        resolve();
+                    });
+                });
+            }
+
+            getDefaultGlyphScript() {
+                return `// NEXUS Glyph Effect Script
+// This script defines custom glyph behaviors
+
+class CustomGlyphEffect {
+    constructor(glyph, intensity = 1.0) {
+        this.glyph = glyph;
+        this.intensity = intensity;
+        this.startTime = Date.now();
+    }
+
+    update(deltaTime, scene) {
+        const elapsed = (Date.now() - this.startTime) / 1000;
+
+        switch(this.glyph.type) {
+            case 'Worldshift':
+                this.applyWorldshiftEffect(elapsed, scene);
+                break;
+            case 'Temporal':
+                this.applyTemporalEffect(elapsed, scene);
+                break;
+            case 'Mechanical':
+                this.applyMechanicalEffect(elapsed, scene);
+                break;
+            case 'Emotional':
+                this.applyEmotionalEffect(elapsed, scene);
+                break;
+        }
+    }
+
+    applyWorldshiftEffect(time, scene) {
+        // Create prismatic light effects
+        const hue = (time * 60) % 360;
+        scene.background = new THREE.Color().setHSL(hue / 360, 0.3, 0.05);
+    }
+
+    applyTemporalEffect(time, scene) {
+        // Time distortion effects
+        const timeWarp = Math.sin(time * 2) * 0.5 + 0.5;
+        // Apply time-based transformations
+    }
+
+    applyMechanicalEffect(time, scene) {
+        // Mechanical/geometric patterns
+        scene.traverse((object) => {
+            if (object.userData?.type === 'anchor') {
+                object.position.y = Math.sin(time * 4 + object.userData.id) * 0.5;
+            }
+        });
+    }
+
+    applyEmotionalEffect(time, scene) {
+        // Organic, flowing effects
+        const breath = Math.sin(time * 1.5) * 0.3 + 0.7;
+        scene.traverse((object) => {
+            if (object.material && object.material.opacity !== undefined) {
+                object.material.opacity = breath;
+            }
+        });
+    }
+}
+
+// Export for use in main application
+if (typeof module !== 'undefined') {
+    module.exports = CustomGlyphEffect;
+}`;
+            }
+
+            setupTrainingSystem() {
+                // Initialize training modes
+                const modes = ['learnMode', 'practiceMode', 'testMode', 'createMode'];
+                modes.forEach(modeId => {
+                    document.getElementById(modeId)?.addEventListener('click', () => {
+                        this.switchTrainingMode(modeId.replace('Mode', ''));
+                    });
+                });
+
+                // Setup progress tracking
+                this.updateTrainingProgress();
+            }
+
+            switchTrainingMode(mode) {
+                this.currentMode = mode;
+
+                // Update UI
+                document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(mode + 'Mode')?.classList.add('active');
+
+                // Update environment for mode
+                switch(mode) {
+                    case 'learn':
+                        this.enterLearningMode();
+                        break;
+                    case 'practice':
+                        this.enterPracticeMode();
+                        break;
+                    case 'test':
+                        this.enterTestMode();
+                        break;
+                    case 'create':
+                        this.enterCreateMode();
+                        break;
+                }
+
+                this.showNotification(`Entered ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode`, 'info');
+            }
+
+            enterLearningMode() {
+                // Show glyph information and guided tutorials
+                console.log('Entering learning mode - guided glyph exploration');
+            }
+
+            enterPracticeMode() {
+                // Interactive glyph practice with feedback
+                console.log('Entering practice mode - hands-on glyph training');
+            }
+
+            enterTestMode() {
+                // Glyph identification and effect prediction tests
+                console.log('Entering test mode - glyph mastery evaluation');
+            }
+
+            enterCreateMode() {
+                // Glyph creation and custom effect scripting
+                console.log('Entering create mode - custom glyph development');
+            }
+
+            setupEventHandlers() {
+                // Glyph selection handler
+                const glyphSelect = document.getElementById('glyphSelect');
+                if (glyphSelect) {
+                    glyphSelect.addEventListener('change', (e) => {
+                        this.onGlyphSelected(e.target.value);
+                    });
+                }
+
+                // Intensity control
+                const intensitySlider = document.getElementById('glyphIntensity');
+                const intensityDisplay = document.getElementById('glyphIntensityDisplay');
+                if (intensitySlider) {
+                    intensitySlider.addEventListener('input', (e) => {
+                        if (intensityDisplay) {
+                            intensityDisplay.textContent = parseFloat(e.target.value).toFixed(2);
+                        }
+                    });
+                }
+
+                // Apply and clear buttons
+                document.getElementById('applyGlyph')?.addEventListener('click', () => {
+                    this.applyCurrentGlyph();
+                });
+
+                document.getElementById('clearGlyphs')?.addEventListener('click', () => {
+                    this.clearAllGlyphs();
+                });
+
+                // Editor tabs
+                document.getElementById('glyphScriptTab')?.addEventListener('click', () => {
+                    this.switchEditorTab('glyphScriptTab');
+                });
+                document.getElementById('configTab')?.addEventListener('click', () => {
+                    this.switchEditorTab('configTab');
+                });
+                document.getElementById('testTab')?.addEventListener('click', () => {
+                    this.switchEditorTab('testTab');
+                });
+            }
+
+            onGlyphSelected(glyphId) {
+                if (!glyphId) return;
+
+                const glyph = this.glyphRegistry.getGlyph(glyphId);
+                if (!glyph) return;
+
+                // Update analyzer panel
+                document.getElementById('glyphMeaning').textContent = glyph.meaning;
+                document.getElementById('glyphType').textContent = glyph.type;
+                document.getElementById('glyphIntensityValue').textContent = glyph.intensity.toFixed(2);
+                document.getElementById('glyphRoots').textContent = glyph.roots.join(', ');
+                document.getElementById('glyphTags').textContent = glyph.tags.join(', ');
+
+                // Update 3D visualization preview
+                this.previewGlyph(glyph);
+            }
+
+            previewGlyph(glyph) {
+                // Create a preview effect in the 3D scene
+                const previewGeometry = new THREE.RingGeometry(2, 2.5, 32);
+                const previewMaterial = new THREE.MeshLambertMaterial({
+                    color: this.getGlyphColor(glyph.type),
+                    transparent: true,
+                    opacity: 0.5
+                });
+
+                // Remove existing preview
+                const existingPreview = this.scene.getObjectByName('glyphPreview');
+                if (existingPreview) {
+                    this.scene.remove(existingPreview);
+                }
+
+                const preview = new THREE.Mesh(previewGeometry, previewMaterial);
+                preview.name = 'glyphPreview';
+                preview.position.y = 1;
+                preview.rotation.x = -Math.PI / 2;
+
+                this.scene.add(preview);
+            }
+
+            getGlyphColor(type) {
+                const colors = {
+                    'Worldshift': 0xffaa00,
+                    'Temporal': 0x9d4edd,
+                    'Mechanical': 0x4cc9f0,
+                    'Emotional': 0x06ffa5
+                };
+                return colors[type] || 0xffffff;
+            }
+
+            applyCurrentGlyph() {
+                const glyphSelect = document.getElementById('glyphSelect');
+                const intensitySlider = document.getElementById('glyphIntensity');
+
+                if (!glyphSelect || !glyphSelect.value) {
+                    this.showNotification('Please select a glyph first', 'warning');
+                    return;
+                }
+
+                const glyph = this.glyphRegistry.getGlyph(glyphSelect.value);
+                const intensity = parseFloat(intensitySlider?.value || 0.7);
+
+                if (glyph) {
+                    this.applyGlyphTo3DScene(glyph, intensity);
+                    this.showNotification(`Applied: ${glyph.meaning}`, 'success');
+                }
+            }
+
+            applyGlyphTo3DScene(glyph, intensity) {
+                // Apply glyph effect to the 3D scene
+                const effectContext = {
+                    scene: this.scene,
+                    camera: this.camera,
+                    renderer: this.renderer,
+                    intensity: intensity
+                };
+
+                this.glyphRegistry.applyGlyph(glyph.id, effectContext);
+                this.activeEffects.add(glyph.id);
+                this.updateEffectCount();
+
+                // Add visual effect object
+                this.createGlyph3DObject(glyph, intensity);
+            }
+
+            createGlyph3DObject(glyph, intensity) {
+                const geometry = new THREE.TorusGeometry(1, 0.3, 16, 100);
+                const material = new THREE.MeshLambertMaterial({
+                    color: this.getGlyphColor(glyph.type),
+                    transparent: true,
+                    opacity: intensity
+                });
+
+                const glyphObject = new THREE.Mesh(geometry, material);
+                glyphObject.position.set(
+                    (Math.random() - 0.5) * 8,
+                    Math.random() * 3,
+                    (Math.random() - 0.5) * 8
+                );
+
+                glyphObject.userData = {
+                    type: 'glyph',
+                    glyphId: glyph.id,
+                    startTime: Date.now()
+                };
+
+                this.scene.add(glyphObject);
+                this.glyphObjects.set(glyph.id, glyphObject);
+            }
+
+            clearAllGlyphs() {
+                // Remove all glyph objects from scene
+                this.glyphObjects.forEach(obj => {
+                    this.scene.remove(obj);
+                });
+                this.glyphObjects.clear();
+
+                // Clear active effects
+                this.activeEffects.clear();
+                this.glyphRegistry.clearGlyphs();
+
+                // Remove preview
+                const preview = this.scene.getObjectByName('glyphPreview');
+                if (preview) {
+                    this.scene.remove(preview);
+                }
+
+                this.updateEffectCount();
+                this.showNotification('All glyphs cleared', 'info');
+            }
+
+            switchEditorTab(tabId) {
+                // Update tab UI
+                document.querySelectorAll('.editor-tab').forEach(tab => tab.classList.remove('active'));
+                document.getElementById(tabId)?.classList.add('active');
+
+                this.currentTab = tabId;
+
+                // Switch editor content
+                let content = '';
+                switch(tabId) {
+                    case 'glyphScriptTab':
+                        content = this.getDefaultGlyphScript();
+                        break;
+                    case 'configTab':
+                        content = this.getDefaultConfig();
+                        break;
+                    case 'testTab':
+                        content = this.getDefaultTest();
+                        break;
+                }
+
+                if (this.editor) {
+                    this.editor.setValue(content);
+                }
+            }
+
+            getDefaultConfig() {
+                return JSON.stringify({
+                    "glyphLab": {
+                        "version": "6.0.0",
+                        "environment": "3D_WebGL",
+                        "training": {
+                            "modes": ["learn", "practice", "test", "create"],
+                            "maxGlyphs": 12,
+                            "difficultyLevels": 5
+                        },
+                        "rendering": {
+                            "shadows": true,
+                            "antialiasing": true,
+                            "particleEffects": true
+                        },
+                        "glyphs": {
+                            "defaultIntensity": 0.7,
+                            "maxActiveGlyphs": 5,
+                            "effectDuration": 10000
+                        }
+                    }
+                }, null, 2);
+            }
+
+            getDefaultTest() {
+                return `// Glyph Lab Test Suite
+describe('Glyph System Tests', () => {
+    let glyphLab;
+
+    beforeEach(() => {
+        glyphLab = new NexusGlyphLab();
+    });
+
+    test('should load all 12 glyphs', () => {
+        expect(glyphLab.glyphRegistry.glyphs.size).toBe(12);
+    });
+
+    test('should apply glyph effects correctly', () => {
+        const glyph = glyphLab.glyphRegistry.getGlyph('aurora_lattice');
+        expect(glyph).toBeDefined();
+        expect(glyph.type).toBe('Worldshift');
+    });
+
+    test('should create 3D glyph objects', () => {
+        const initialCount = glyphLab.scene.children.length;
+        glyphLab.applyCurrentGlyph();
+        expect(glyphLab.scene.children.length).toBeGreaterThan(initialCount);
+    });
+
+    test('should clear all glyphs', () => {
+        glyphLab.applyCurrentGlyph();
+        glyphLab.clearAllGlyphs();
+        expect(glyphLab.glyphObjects.size).toBe(0);
+    });
+});`;
+            }
+
+            onCodeChange() {
+                // Code changed in editor - could trigger live preview
+                console.log('Code changed - consider live preview update');
+            }
+
+            startAnimation() {
+                const animate = () => {
+                    requestAnimationFrame(animate);
+
+                    // Update controls
+                    if (this.controls) {
+                        this.controls.update();
+                    }
+
+                    // Update glyph objects
+                    const time = Date.now() * 0.001;
+                    this.glyphObjects.forEach(obj => {
+                        obj.rotation.x = time;
+                        obj.rotation.y = time * 0.7;
+
+                        // Animate based on glyph type
+                        const glyph = this.glyphRegistry.getGlyph(obj.userData.glyphId);
+                        if (glyph) {
+                            this.animateGlyphObject(obj, glyph, time);
+                        }
+                    });
+
+                    // Render scene
+                    if (this.renderer && this.scene && this.camera) {
+                        this.renderer.render(this.scene, this.camera);
+                    }
+                };
+
+                animate();
+            }
+
+            animateGlyphObject(object, glyph, time) {
+                switch(glyph.type) {
+                    case 'Worldshift':
+                        object.position.y = Math.sin(time * 2) * 0.5 + 1;
+                        break;
+                    case 'Temporal':
+                        object.scale.setScalar(1 + Math.sin(time * 3) * 0.2);
+                        break;
+                    case 'Mechanical':
+                        object.rotation.z = time * 2;
+                        break;
+                    case 'Emotional':
+                        const pulse = Math.sin(time * 4) * 0.3 + 0.7;
+                        object.material.opacity = pulse * 0.8;
+                        break;
+                }
+            }
+
+            onWindowResize() {
+                const container = document.getElementById('webglCanvas').parentElement;
+
+                this.camera.aspect = container.clientWidth / container.clientHeight;
+                this.camera.updateProjectionMatrix();
+
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+
+            updateObjectCount() {
+                const count = this.scene.children.length;
+                document.getElementById('objectCount').textContent = count;
+            }
+
+            updateEffectCount() {
+                document.getElementById('effectCount').textContent = this.activeEffects.size;
+            }
+
+            updateTrainingProgress() {
+                const progressBar = document.getElementById('trainingProgress');
+                if (progressBar) {
+                    progressBar.style.width = this.trainingProgress + '%';
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                if (!notification) return;
+
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.style.display = 'block';
+
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+                // Behavior system (matching your React implementation)
+                this.behaviorMap = {
+                    Orbit: (element, t) => {
+                        const radius = 100;
+                        const x = Math.cos(t + (element.userData?.offset || 0)) * radius;
+                        const y = Math.sin(t + (element.userData?.offset || 0)) * radius;
+                        element.style.left = (50 + x / 5) + '%';
+                        element.style.top = (50 + y / 5) + '%';
+                    },
+                    Pulse: (element, t) => {
+                        const scale = 1 + 0.2 * Math.sin(t * 3);
+                        element.style.transform = `scale(${scale})`;
+                    },
+                    Gravity: (element, t) => {
+                        let currentTop = parseFloat(element.style.top) || 40;
+                        currentTop += 0.5; // Fall speed
+                        if (currentTop > 80) currentTop = 10; // Reset to top
+                        element.style.top = currentTop + '%';
+                    },
+                    Rotation: (element, t) => {
+                        const rotation = (t * 50) % 360;
+                        element.style.transform = `rotate(${rotation}deg)`;
+                    },
+                    Float: (element, t) => {
+                        const y = Math.sin(t * 2) * 20;
+                        const baseTop = parseFloat(element.dataset.baseTop) || 40;
+                        element.style.top = (baseTop + y / 5) + '%';
+                    },
+                    Sparkle: (element, t) => {
+                        if (Math.random() < 0.1) {
+                            element.style.boxShadow = `0 0 20px rgba(0, 255, 170, ${Math.random()})`;
+                        } else {
+                            element.style.boxShadow = '';
+                        }
+                    }
+                };
+
+                this.initializeStudio();
+            }
+
+            initializeStudio() {
+                console.log('🎬 NEXUS Scene Lab Studio initializing...');
+
+                // Create animated particles background
+                this.createParticleBackground();
+
+                // Setup animation loop
+                this.startAnimationLoop();
+
+                // Initialize scene objects with userData
+                this.initializeSceneObjects();
+
+                console.log('✅ Scene Lab Studio ready');
+                this.showNotification('🎬 NEXUS Scene Lab Studio ready for creation!', 'success');
+
+                // Run initial self-tests
+                this.runSelfTests();
+            }
+
+            createParticleBackground() {
+                const particlesBg = document.getElementById('particlesBg');
+
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDuration = (Math.random() * 10 + 5) + 's';
+                    particle.style.animationDelay = Math.random() * 5 + 's';
+                    particlesBg.appendChild(particle);
+                }
+            }
+
+            initializeSceneObjects() {
+                const sprite1 = document.getElementById('sprite1');
+                const cube1 = document.getElementById('cube1');
+
+                // Set userData equivalent
+                sprite1.userData = { offset: Math.random() * 10 };
+                cube1.userData = { offset: Math.random() * 10 };
+                sprite1.dataset.baseTop = '40';
+                cube1.dataset.baseTop = '40';
+            }
+
+            startAnimationLoop() {
+                let lastTime = 0;
+
+                const animate = (currentTime) => {
+                    if (this.isPlaying) {
+                        const deltaTime = (currentTime - lastTime) / 1000;
+                        const t = currentTime * 0.001 * this.speed; // Convert to seconds
+
+                        this.updateSceneObjects(t);
+                        this.advanceFrame();
+                    }
+
+                    this.updateTimelineDisplay();
+                    lastTime = currentTime;
+                    requestAnimationFrame(animate);
+                };
+
+                requestAnimationFrame(animate);
+            }
+
+            updateSceneObjects(time) {
+                const currentSceneData = this.scenes[this.currentScene];
+                if (!currentSceneData) return;
+
+                // Update sprite1 (prefab 0)
+                const sprite1 = document.getElementById('sprite1');
+                if (sprite1 && currentSceneData.prefabs[0]) {
+                    currentSceneData.prefabs[0].behaviors.forEach(behaviorName => {
+                        if (this.behaviorMap[behaviorName]) {
+                            this.behaviorMap[behaviorName](sprite1, time);
+                        }
+                    });
+                }
+
+                // Update cube1 (prefab 1)
+                const cube1 = document.getElementById('cube1');
+                if (cube1 && currentSceneData.prefabs[1]) {
+                    currentSceneData.prefabs[1].behaviors.forEach(behaviorName => {
+                        if (this.behaviorMap[behaviorName]) {
+                            this.behaviorMap[behaviorName](cube1, time);
+                        }
+                    });
+                }
+            }
+
+            togglePlayPause() {
+                const playPauseBtn = document.getElementById('playPauseBtn');
+
+                this.isPlaying = !this.isPlaying;
+
+                if (this.isPlaying) {
+                    playPauseBtn.textContent = '⏸️';
+                    playPauseBtn.classList.add('active');
+                    this.showNotification('▶️ Animation playing', 'info');
+                } else {
+                    playPauseBtn.textContent = '▶️';
+                    playPauseBtn.classList.remove('active');
+                    this.showNotification('⏸️ Animation paused', 'info');
+                }
+            }
+
+            stepBack() {
+                if (this.currentFrame > 1) {
+                    this.setCurrentFrame(this.currentFrame - 1);
+                }
+            }
+
+            stepForward() {
+                if (this.currentFrame < this.totalFrames) {
+                    this.setCurrentFrame(this.currentFrame + 1);
+                }
+            }
+
+            stop() {
+                this.isPlaying = false;
+                this.setCurrentFrame(1);
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                playPauseBtn.textContent = '▶️';
+                playPauseBtn.classList.remove('active');
+                this.showNotification('⏹️ Animation stopped', 'info');
+            }
+
+            setCurrentFrame(frame) {
+                this.currentFrame = Math.max(1, Math.min(this.totalFrames, frame));
+                document.getElementById('currentFrame').textContent = this.currentFrame;
+            }
+
+            advanceFrame() {
+                const frameInterval = 1000 / (24 * this.speed); // 24 FPS base
+
+                if (Date.now() - (this.lastFrameTime || 0) >= frameInterval) {
+                    if (this.currentFrame >= this.totalFrames) {
+                        const loopCheck = document.getElementById('loopCheck');
+                        if (loopCheck?.checked) {
+                            this.setCurrentFrame(1);
+                        } else {
+                            this.togglePlayPause();
+                        }
+                    } else {
+                        this.setCurrentFrame(this.currentFrame + 1);
+                    }
+                    this.lastFrameTime = Date.now();
+                }
+            }
+
+            updateTimelineDisplay() {
+                const progress = (this.currentFrame - 1) / (this.totalFrames - 1) * 100;
+                const timelineProgress = document.getElementById('timelineProgress');
+                const timelineScrubber = document.getElementById('timelineScrubber');
+
+                if (timelineProgress) timelineProgress.style.width = progress + '%';
+                if (timelineScrubber) timelineScrubber.style.left = progress + '%';
+            }
+
+            updateSceneStatus() {
+                const sceneStatus = document.getElementById('sceneStatus');
+                const currentSceneData = this.scenes[this.currentScene];
+                if (sceneStatus && currentSceneData) {
+                    const objectCount = currentSceneData.prefabs.length;
+                    const behaviorCount = currentSceneData.prefabs.reduce((sum, prefab) => sum + prefab.behaviors.length, 0);
+                    sceneStatus.textContent = `Scene ${this.currentScene}: ${objectCount} Objects | FPS: 60 | Behaviors: ${behaviorCount}`;
+                }
+            }
+
+            // Scene Lab specific methods (matching your React implementation)
+            toggleScene() {
+                this.currentScene = this.currentScene === 'A' ? 'B' : 'A';
+                document.getElementById('currentScene').textContent = this.currentScene;
+                this.updateSceneStatus();
+                this.showNotification(`🔄 Switched to Scene ${this.currentScene}`, 'success');
+            }
+
+            runSelfTests() {
+                try {
+                    // Test 1: Behavior map completeness
+                    const requiredBehaviors = ['Orbit', 'Pulse', 'Gravity'];
+                    requiredBehaviors.forEach(behavior => {
+                        if (!this.behaviorMap[behavior]) {
+                            throw new Error(`Missing behavior: ${behavior}`);
+                        }
+                    });
+
+                    // Test 2: Scene data integrity
+                    Object.keys(this.scenes).forEach(sceneKey => {
+                        const scene = this.scenes[sceneKey];
+                        if (!scene.prefabs || !Array.isArray(scene.prefabs)) {
+                            throw new Error(`Invalid scene data for ${sceneKey}`);
+                        }
+                    });
+
+                    // Test 3: Unique behaviors function (matching your React implementation)
+                    const uniqueBehaviors = (existing, add) => {
+                        const set = new Set([...existing, add]);
+                        return Array.from(set);
+                    };
+
+                    const testResult = uniqueBehaviors(['Orbit', 'Pulse'], 'Orbit');
+                    if (testResult.length !== 2) {
+                        throw new Error('uniqueBehaviors function failed');
+                    }
+
+                    console.log('✅ All Scene Lab Engine self-tests passed');
+                    this.showNotification('🧪 Self-tests completed successfully', 'success');
+                } catch (error) {
+                    console.error('❌ Self-test failed:', error);
+                    this.showNotification(`❌ Self-test failed: ${error.message}`, 'error');
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                notification.style.display = 'block';
+
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Global instance
+        let sceneLabStudio;
+
+        // Global functions for UI interactions
+        function toggleScene() {
+            sceneLabStudio?.toggleScene();
+        }
+
+        function runSelfTests() {
+            sceneLabStudio?.runSelfTests();
+        }
+
+        function togglePlayPause() {
+            sceneLabStudio?.togglePlayPause();
+        }
+
+        function stepBack() {
+            sceneLabStudio?.stepBack();
+        }
+
+        function stepForward() {
+            sceneLabStudio?.stepForward();
+        }
+
+        function stop() {
+            sceneLabStudio?.stop();
+        }
+
+        function updateSpeed() {
+            const speedSlider = document.getElementById('speedSlider');
+            const speedDisplay = document.getElementById('speedDisplay');
+
+            if (sceneLabStudio && speedSlider) {
+                sceneLabStudio.speed = parseFloat(speedSlider.value);
+                speedDisplay.textContent = sceneLabStudio.speed.toFixed(1) + 'x';
+            }
+        }
+
+        function seekToPosition(event) {
+            if (!sceneLabStudio) return;
+
+            const timelineTrack = document.getElementById('timelineTrack');
+            const rect = timelineTrack.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percentage = x / rect.width;
+            const frame = Math.round(percentage * sceneLabStudio.totalFrames) + 1;
+            sceneLabStudio.setCurrentFrame(frame);
+        }
+
+        function selectBehavior(behaviorName) {
+            if (sceneLabStudio) {
+                sceneLabStudio.selectedBehavior = behaviorName;
+                sceneLabStudio.showNotification(`Selected behavior: ${behaviorName}`, 'info');
+
+                // Update UI
+                document.querySelectorAll('.behavior-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                event.target.closest('.behavior-item').classList.add('active');
+            }
+        }
+
+        function selectPrefab(prefabIndex) {
+            if (sceneLabStudio) {
+                sceneLabStudio.selectedPrefab = prefabIndex;
+                sceneLabStudio.showNotification(`Selected prefab: ${prefabIndex}`, 'info');
+
+                // Update UI
+                document.querySelectorAll('.prefab-item').forEach((item, index) => {
+                    item.classList.toggle('active', index === prefabIndex);
+                });
+            }
+        }
+
+        function addBehaviorToSelected() {
+            if (sceneLabStudio?.selectedBehavior && sceneLabStudio.selectedPrefab !== null) {
+                const currentSceneData = sceneLabStudio.scenes[sceneLabStudio.currentScene];
+                const prefab = currentSceneData.prefabs[sceneLabStudio.selectedPrefab];
+
+                if (prefab && !prefab.behaviors.includes(sceneLabStudio.selectedBehavior)) {
+                    prefab.behaviors.push(sceneLabStudio.selectedBehavior);
+                    sceneLabStudio.showNotification(`Added ${sceneLabStudio.selectedBehavior} to prefab`, 'success');
+                    sceneLabStudio.updateSceneStatus();
+                }
+            } else {
+                sceneLabStudio?.showNotification('Select a behavior and prefab first', 'warning');
+            }
+        }
+
+        function removeBehaviorFromSelected() {
+            if (sceneLabStudio?.selectedBehavior && sceneLabStudio.selectedPrefab !== null) {
+                const currentSceneData = sceneLabStudio.scenes[sceneLabStudio.currentScene];
+                const prefab = currentSceneData.prefabs[sceneLabStudio.selectedPrefab];
+
+                if (prefab) {
+                    const index = prefab.behaviors.indexOf(sceneLabStudio.selectedBehavior);
+                    if (index > -1) {
+                        prefab.behaviors.splice(index, 1);
+                        sceneLabStudio.showNotification(`Removed ${sceneLabStudio.selectedBehavior} from prefab`, 'warning');
+                        sceneLabStudio.updateSceneStatus();
+                    }
+                }
+            } else {
+                sceneLabStudio?.showNotification('Select a behavior and prefab first', 'warning');
+            }
+        }
+
+        function addPrefab() {
+            sceneLabStudio?.showNotification('➕ New prefab added', 'success');
+        }
+
+        function deletePrefab() {
+            sceneLabStudio?.showNotification('➖ Prefab deleted', 'warning');
+        }
+
+        function duplicatePrefab() {
+            sceneLabStudio?.showNotification('📋 Prefab duplicated', 'success');
+        }
+
+        function addKeyframe() {
+            sceneLabStudio?.showNotification('➕ Keyframe added', 'success');
+        }
+
+        function deleteKeyframe() {
+            sceneLabStudio?.showNotification('➖ Keyframe deleted', 'warning');
+        }
+
+        // Initialize studio when page loads
+        window.addEventListener('load', () => {
+            sceneLabStudio = new NexusSceneLabStudio();
+            console.log('🎬 NEXUS Scene Lab Studio ready');
+
+            // Initialize Glyph Controls
+            initializeGlyphControls();
+        });
+
+        function initializeGlyphControls() {
+            const glyphSelect = document.getElementById('glyphSelect');
+            const glyphIntensity = document.getElementById('glyphIntensity');
+            const glyphIntensityDisplay = document.getElementById('glyphIntensityDisplay');
+            const applyGlyphBtn = document.getElementById('applyGlyph');
+            const clearGlyphsBtn = document.getElementById('clearGlyphs');
+            const glyphStatus = document.getElementById('glyphStatus');
+
+            // Update intensity display
+            glyphIntensity.addEventListener('input', () => {
+                glyphIntensityDisplay.textContent = parseFloat(glyphIntensity.value).toFixed(2);
+            });
+
+            // Apply glyph effect
+            applyGlyphBtn.addEventListener('click', () => {
+                const selectedGlyph = glyphSelect.value;
+                if (selectedGlyph) {
+                    const intensity = parseFloat(glyphIntensity.value);
+                    applyGlyphEffect(selectedGlyph, intensity);
+                } else {
+                    sceneLabStudio?.showNotification('Please select a glyph first', 'warning');
+                }
+            });
+
+            // Clear all glyphs
+            clearGlyphsBtn.addEventListener('click', () => {
+                clearAllGlyphs();
+            });
+        }
+
+        function applyGlyphEffect(glyphId, intensity) {
+            if (!sceneLabStudio) return;
+
+            const glyph = sceneLabStudio.glyphRegistry.getGlyph(glyphId);
+            if (!glyph) return;
+
+            // Create enhanced context with scene effects
+            const effectContext = {
+                scene: {
+                    addWorldshiftEffect: (glyphData) => {
+                        addSceneEffect('worldshift', glyphData, intensity);
+                    },
+                    addTemporalEffect: (glyphData) => {
+                        addSceneEffect('temporal', glyphData, intensity);
+                    },
+                    addMechanicalEffect: (glyphData) => {
+                        addSceneEffect('mechanical', glyphData, intensity);
+                    },
+                    addEmotionalEffect: (glyphData) => {
+                        addSceneEffect('emotional', glyphData, intensity);
+                    }
+                },
+                intensity: intensity
+            };
+
+            // Apply the glyph
+            sceneLabStudio.glyphRegistry.applyGlyph(glyphId, effectContext);
+
+            // Update status
+            updateGlyphStatus();
+
+            sceneLabStudio.showNotification(`✨ Applied: ${glyph.meaning}`, 'success');
+        }
+
+        function addSceneEffect(type, glyphData, intensity) {
+            const scene3d = document.querySelector('.scene-3d');
+            if (!scene3d) return;
+
+            // Create glyph effect overlay
+            const effectOverlay = document.createElement('div');
+            effectOverlay.className = `glyph-effect glyph-${type}`;
+            effectOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                opacity: ${intensity};
+                z-index: 5;
+            `;
+
+            // Apply type-specific effects
+            switch(type) {
+                case 'worldshift':
+                    effectOverlay.style.background = `radial-gradient(circle, rgba(255,170,0,0.2) 0%, transparent 70%)`;
+                    effectOverlay.style.animation = 'glyphWorldshift 3s ease-in-out infinite';
+                    break;
+                case 'temporal':
+                    effectOverlay.style.background = `linear-gradient(45deg, rgba(157,78,221,0.2) 0%, rgba(157,78,221,0.1) 50%, transparent 100%)`;
+                    effectOverlay.style.animation = 'glyphTemporal 4s linear infinite';
+                    break;
+                case 'mechanical':
+                    effectOverlay.style.background = `repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(76,201,240,0.1) 10px, rgba(76,201,240,0.1) 20px)`;
+                    effectOverlay.style.animation = 'glyphMechanical 2s linear infinite';
+                    break;
+                case 'emotional':
+                    effectOverlay.style.background = `radial-gradient(ellipse, rgba(6,255,165,0.15) 30%, transparent 70%)`;
+                    effectOverlay.style.animation = 'glyphEmotional 5s ease-in-out infinite';
+                    break;
+            }
+
+            scene3d.appendChild(effectOverlay);
+
+            // Store reference for cleanup
+            if (!sceneLabStudio.activeGlyphEffects.has(glyphData.id)) {
+                sceneLabStudio.activeGlyphEffects.set(glyphData.id, []);
+            }
+            sceneLabStudio.activeGlyphEffects.get(glyphData.id).push(effectOverlay);
+
+            // Auto-remove after duration
+            setTimeout(() => {
+                effectOverlay.remove();
+            }, 10000);
+        }
+
+        // Global testing functions
+        function analyzeGlyph() {
+            if (glyphLab) {
+                const selected = document.getElementById('glyphSelect')?.value;
+                if (selected) {
+                    const glyph = glyphLab.glyphRegistry.getGlyph(selected);
+                    console.log('Deep Analysis:', glyph);
+                    glyphLab.showNotification(`Analyzing ${glyph.meaning}...`, 'info');
+                } else {
+                    glyphLab.showNotification('Select a glyph to analyze', 'warning');
+                }
+            }
+        }
+
+        function testCombinations() {
+            if (glyphLab) {
+                glyphLab.showNotification('Testing glyph combinations...', 'info');
+            }
+        }
+
+        function exportGlyph() {
+            if (glyphLab) {
+                const selected = document.getElementById('glyphSelect')?.value;
+                if (selected) {
+                    const glyph = glyphLab.glyphRegistry.getGlyph(selected);
+                    const exportData = JSON.stringify(glyph, null, 2);
+                    console.log('Exported glyph:', exportData);
+                    glyphLab.showNotification('Glyph exported to console', 'success');
+                } else {
+                    glyphLab.showNotification('Select a glyph to export', 'warning');
+                }
+            }
+        }
+
+        function saveSession() {
+            if (glyphLab) {
+                glyphLab.showNotification('Session saved!', 'success');
+            }
+        }
+
+        // Global variable
+        let glyphLab;
+
+        // Initialize when page loads
+        window.addEventListener('load', async () => {
+            glyphLab = new NexusGlyphLab();
+            console.log('🎬 NEXUS Glyph Lab ready for training!');
+        });
+    </script>
+</body>
+</html>

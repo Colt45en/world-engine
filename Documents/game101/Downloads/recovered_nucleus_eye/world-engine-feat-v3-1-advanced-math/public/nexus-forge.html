@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Forge — HTML5 + Tailwind + Three.js</title>
+  <!-- Tailwind (Play CDN) - no build step, no React, minimal conflicts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Import map so bare specifier 'three' would resolve if used by examples (kept for safety) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  <style>
+    html, body { height: 100%; }
+    canvas { display: block; }
+    /* Ensure WebGL canvas renders above the overlay grid */
+    #scene { position: relative; }
+    #scene canvas.webgl { position: absolute; inset: 0; z-index: 1; }
+    #gridOverlay { z-index: 0; }
+  </style>
+</head>
+<body class="h-screen bg-black text-white">
+  <div class="grid grid-cols-4 h-full">
+    <!-- Canvas / Scene -->
+    <div id="scene" class="col-span-3 relative">
+      <!-- 2D overlay grid (screen-space), doubled cell size; pointer-events disabled -->
+      <canvas id="gridOverlay" class="absolute inset-0 pointer-events-none"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="p-4 bg-zinc-900 border-l border-zinc-800 overflow-y-auto">
+      <div class="border border-zinc-700 rounded-2xl p-4 mb-4">
+        <h2 class="text-xl font-bold mb-2">Nexus Forge Control</h2>
+        <p id="themeLabel" class="text-xs mb-3 text-zinc-400">Current Theme: Neutral Void</p>
+        <div class="grid grid-cols-4 gap-2 mb-3">
+          <button data-theme="default" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900">Default</button>
+          <button data-theme="Seeker" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900">Seeker</button>
+          <button data-theme="Weaver" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900">Weaver</button>
+          <button data-theme="Newborn" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900">Newborn</button>
+        </div>
+        <div class="grid gap-2">
+          <button id="addCube" class="px-3 py-2 border border-zinc-700 rounded-xl bg-zinc-800">Add Cube</button>
+          <button id="toggleSpot" class="px-3 py-2 border border-zinc-700 rounded-xl bg-zinc-800">Enable Spotlight</button>
+        </div>
+      </div>
+
+      <div class="border border-zinc-700 rounded-2xl p-4 mb-4">
+        <h2 class="text-lg font-bold mb-2">Physics</h2>
+        <div class="text-xs text-zinc-400 space-y-1">
+          <p>Gravity: <span id="gVal"></span></p>
+          <p>Mass: <span id="mVal"></span></p>
+          <p>Force: <span id="fVal"></span></p>
+          <p>Damping: <span id="dVal"></span></p>
+          <p>Restitution: <span id="rVal"></span></p>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-3 text-sm">
+          <button id="nx-" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">x−</button>
+          <button id="nx+" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">x+</button>
+          <button id="ny+" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">jump</button>
+          <button id="nz-" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">z−</button>
+          <button id="nz+" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">z+</button>
+        </div>
+        <p id="selectHint" class="text-[10px] text-zinc-500 mt-2">Select a cube in the scene to nudge.</p>
+      </div>
+
+      <!-- Glyphs & Paint -->
+      <div class="border border-zinc-700 rounded-2xl p-4 mb-4">
+        <h2 class="text-lg font-bold mb-2">Glyphs & Paint</h2>
+        <p class="text-[11px] text-zinc-400 mb-2">Select a cube, then paint it or attach a glyph.</p>
+        <div class="grid grid-cols-4 gap-2 mb-3 text-sm">
+          <button id="paintRed"   class="px-2 py-1 border border-zinc-700 rounded bg-red-700/40">Red</button>
+          <button id="paintGreen" class="px-2 py-1 border border-zinc-700 rounded bg-green-700/40">Green</button>
+          <button id="paintBlue"  class="px-2 py-1 border border-zinc-700 rounded bg-blue-700/40">Blue</button>
+          <button id="paintRand"  class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">Random</button>
+        </div>
+        <div class="grid grid-cols-5 gap-2 text-sm">
+          <button id="glyphStar" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">★</button>
+          <button id="glyphDot"  class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">●</button>
+          <button id="glyphTri"  class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">▲</button>
+          <button id="glyphClr1" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">Clear Cube Glyphs</button>
+          <button id="wireToggle" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">Wireframe</button>
+        </div>
+      </div>
+
+      <div class="border border-zinc-700 rounded-2xl p-4">
+        <h2 class="text-lg font-bold mb-2">Mythic Symbol Codex</h2>
+        <details class="border border-zinc-700 rounded-lg p-2 mb-2">
+          <summary>🔸 The Oars of Karma</summary>
+          <p class="text-zinc-300 text-sm mt-1">Each stroke of the oar determines the flow of fate...</p>
+        </details>
+        <details class="border border-zinc-700 rounded-lg p-2 mb-2">
+          <summary>🔸 The Drowned Monastery</summary>
+          <p class="text-zinc-300 text-sm mt-1">A sunken temple hidden within the river...</p>
+        </details>
+        <details class="border border-zinc-700 rounded-lg p-2 mb-2">
+          <summary>🔸 The Whirlpool of Forgotten Names</summary>
+          <p class="text-zinc-300 text-sm mt-1">A celestial vortex said to erase the past entirely...</p>
+        </details>
+        <details class="border border-zinc-700 rounded-lg p-2 mb-2">
+          <summary>🔸 The Void of Echoes</summary>
+          <p class="text-zinc-300 text-sm mt-1">Where all thoughts become reality before dissolving...</p>
+        </details>
+        <details class="border border-zinc-700 rounded-lg p-2">
+          <summary>🔸 The Crystal Nexus</summary>
+          <p class="text-zinc-300 text-sm mt-1">A convergence point where all timelines intersect...</p>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+    // Tiny DOM helper (avoids implicit globals which do not exist in module scripts)
+    const $ = (id) => document.getElementById(id);
+
+    // Cache UI elements explicitly (no implicit window globals)
+    const container = $('scene');
+    const overlay = $('gridOverlay');
+    const themeLabelEl = $('themeLabel');
+    const selectHintEl = $('selectHint');
+    const addCubeBtn = $('addCube');
+    const toggleSpotBtn = $('toggleSpot');
+    // Paint & Glyph controls
+    const paintRedBtn = $('paintRed');
+    const paintGreenBtn = $('paintGreen');
+    const paintBlueBtn = $('paintBlue');
+    const paintRandBtn = $('paintRand');
+    const glyphStarBtn = $('glyphStar');
+    const glyphDotBtn  = $('glyphDot');
+    const glyphTriBtn  = $('glyphTri');
+    const glyphClr1Btn = $('glyphClr1');
+    const wireToggleBtn = $('wireToggle');
+
+    const gValEl = $('gVal');
+    const mValEl = $('mVal');
+    const fValEl = $('fVal');
+    const dValEl = $('dVal');
+    const rValEl = $('rVal');
+
+    // Nudge buttons (IDs contain +/-; always fetch by getElementById)
+    const nxMinusBtn = $('nx-');
+    const nxPlusBtn  = $('nx+');
+    const nyPlusBtn  = $('ny+');
+    const nzMinusBtn = $('nz-');
+    const nzPlusBtn  = $('nz+');
+
+    // -----------------------------
+    // Themes
+    // -----------------------------
+    const themeMap = {
+      default: { bg: '#000000', fog: '#222222', title: 'Neutral Void' },
+      Seeker:  { bg: '#001122', fog: '#223344', title: 'Karma Echoes' },
+      Weaver:  { bg: '#331144', fog: '#442255', title: 'Threading the Dao' },
+      Newborn: { bg: '#0a0a0a', fog: '#1a1a1a', title: 'Blank Origin' }
+    };
+
+    // -----------------------------
+    // Physics defaults (single-digit)
+    // -----------------------------
+    const PHYS = {
+      gravity: 2,
+      mass: 1,
+      force: 2,
+      damping: 0.9,
+      restitution: 0.2,
+      maxVel: 3,
+      dt: 1/60,
+      groundY: -0.5
+    };
+
+    // UI labels
+    if (gValEl) gValEl.textContent = String(PHYS.gravity);
+    if (mValEl) mValEl.textContent = String(PHYS.mass);
+    if (fValEl) fValEl.textContent = String(PHYS.force);
+    if (dValEl) dValEl.textContent = String(PHYS.damping);
+    if (rValEl) rValEl.textContent = String(PHYS.restitution);
+
+    // -----------------------------
+    // Scene setup
+    // -----------------------------
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setClearColor(new THREE.Color(themeMap.default.bg));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+    // tag renderer canvas so CSS can layer it above the overlay
+    renderer.domElement.classList.add('webgl');
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(themeMap.default.fog, 2, 9);
+
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 2, 7);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    // Desensitize zoom & clamp orbit so we don't dive under or fly off-map
+    controls.enableZoom = true;          // set to false to hard-disable
+    controls.zoomSpeed = 0.05;           // very low scroll sensitivity
+    controls.minDistance = 3;            // how close the camera can get
+    controls.maxDistance = 12;           // how far the camera can get
+
+    // Bounds: keep target/camera within world rect with a 1.5u (~5ft) margin
+    const WORLD_HALF = 20;               // ground is 40x40
+    const BOUNDS_MARGIN = 1.5;           // ~5ft if 1u ~ 1m
+    const BOUND = WORLD_HALF - BOUNDS_MARGIN; // 18.5
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    function clampCameraToBounds(){
+      // clamp target first
+      controls.target.x = clamp(controls.target.x, -BOUND, BOUND);
+      controls.target.z = clamp(controls.target.z, -BOUND, BOUND);
+      // clamp camera position separately to avoid flying off
+      camera.position.x = clamp(camera.position.x, -BOUND, BOUND);
+      camera.position.z = clamp(camera.position.z, -BOUND, BOUND);
+      // never go under ground
+      if (controls.target.y < PHYS.groundY) controls.target.y = PHYS.groundY;
+      if (camera.position.y < PHYS.groundY + 0.1) camera.position.y = PHYS.groundY + 0.1;
+    }
+
+    // Keep camera from going under the ground plane: prevent looking below horizon
+    controls.minPolarAngle = 0.1;                    // look almost straight ahead
+    controls.maxPolarAngle = Math.PI / 2 - 0.001;   // never under the ground
+
+    // Prevent default wheel to avoid huge deltas in some environments
+    renderer.domElement.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+
+    controls.addEventListener('change', () => {
+      clampCameraToBounds();
+      drawOverlayGrid();
+    });
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambient);
+
+    const spot = new THREE.PointLight(0xffffff, 1);
+    spot.castShadow = true;
+    spot.position.set(0, 2, 0);
+    let spotEnabled = false; // start disabled
+
+    // Ground (wider area to match helper)
+    const groundGeo = new THREE.PlaneGeometry(40, 40);
+    const groundMat = new THREE.MeshStandardMaterial({ color: '#111111' });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = PHYS.groundY - 0.5; // slightly under collision plane to avoid z-fighting
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // (Removed 3D GridHelper to avoid moiré; using 2D overlay grid matched to physics)
+
+    // Cube factory
+    const cubes = [];
+    const velocities = new Map(); // uuid -> [vx, vy, vz]
+    const glyphsByParent = new Map(); // parent uuid -> Sprite[]
+
+    function addCubeAt(x=0, y=0, z=0, color='skyblue'){
+      // snap spawn to integer grid on X/Z so size matches squares
+      x = Math.round(x); z = Math.round(z);
+      const geo = new THREE.BoxGeometry(1,1,1);
+      const mat = new THREE.MeshStandardMaterial({ color });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      mesh.position.set(x,y,z);
+      scene.add(mesh);
+      cubes.push(mesh);
+      velocities.set(mesh.uuid, [0,0,0]);
+      glyphsByParent.set(mesh.uuid, []);
+      return mesh;
+    }
+
+    // Glyph builder (CanvasTexture sprite)
+    function makeGlyphSprite(symbol='★', color='#ffffff'){
+      const size = 128;
+      const cvs = document.createElement('canvas');
+      cvs.width = cvs.height = size;
+      const ctx2d = cvs.getContext('2d');
+      ctx2d.clearRect(0,0,size,size);
+      ctx2d.fillStyle = 'rgba(0,0,0,0)';
+      ctx2d.fillRect(0,0,size,size);
+      ctx2d.fillStyle = color;
+      ctx2d.textAlign = 'center';
+      ctx2d.textBaseline = 'middle';
+      ctx2d.font = 'bold 96px system-ui, sans-serif';
+      ctx2d.fillText(symbol, size/2, size/2);
+      const tex = new THREE.CanvasTexture(cvs);
+      tex.anisotropy = 4;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.6, 0.6, 1);
+      return sprite;
+    }
+
+    function attachGlyphToSelected(symbol, color){
+      if (!selected) return;
+      const sprite = makeGlyphSprite(symbol, color);
+      sprite.userData.parentUuid = selected.uuid;
+      sprite.position.set(selected.position.x, selected.position.y + 0.75, selected.position.z);
+      scene.add(sprite);
+      const arr = glyphsByParent.get(selected.uuid) || [];
+      arr.push(sprite);
+      glyphsByParent.set(selected.uuid, arr);
+    }
+
+    function clearGlyphsOnSelected(){
+      if (!selected) return;
+      const arr = glyphsByParent.get(selected.uuid) || [];
+      for (const s of arr){
+        scene.remove(s);
+        if (s.material?.map) s.material.map.dispose();
+        s.material.dispose();
+      }
+      glyphsByParent.set(selected.uuid, []);
+    }
+
+    function paintSelected(hex){
+      if (!selected) return;
+      if (selected.material && selected.material.color){ selected.material.color = new THREE.Color(hex); }
+    }
+
+    function toggleWireframe(){
+      if (!selected) return;
+      if (selected.material){ selected.material.wireframe = !selected.material.wireframe; }
+    }
+
+    // Seed cubes
+    addCubeAt(-1, 0, -1);
+    addCubeAt( 1, 0, -1);
+
+    // Raycaster for selection
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selected = null;
+
+    function onPointerDown(e){
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(cubes);
+      if (hits.length){
+        selected = hits[0].object;
+        if (selectHintEl) selectHintEl.textContent = `Selected cube ${selected.uuid.slice(0,8)} — use buttons to nudge.`;
+      }
+    }
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+    // Paint & Glyph handlers
+    paintRedBtn.addEventListener('click', () => paintSelected('#ef4444'));
+    paintGreenBtn.addEventListener('click', () => paintSelected('#22c55e'));
+    paintBlueBtn.addEventListener('click', () => paintSelected('#3b82f6'));
+    paintRandBtn.addEventListener('click', () => {
+      const rnd = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+      paintSelected(rnd);
+    });
+    glyphStarBtn.addEventListener('click', () => attachGlyphToSelected('★', '#fbbf24'));
+    glyphDotBtn.addEventListener('click',  () => attachGlyphToSelected('●', '#e5e7eb'));
+    glyphTriBtn.addEventListener('click',  () => attachGlyphToSelected('▲', '#60a5fa'));
+    glyphClr1Btn.addEventListener('click', clearGlyphsOnSelected);
+    wireToggleBtn.addEventListener('click', toggleWireframe);
+
+    // Theme switching
+    function applyTheme(name){
+      const t = themeMap[name] || themeMap.default;
+      renderer.setClearColor(new THREE.Color(t.bg));
+      scene.fog = new THREE.Fog(t.fog, 2, 9);
+      if (themeLabelEl) themeLabelEl.textContent = `Current Theme: ${t.title}`;
+    }
+    document.querySelectorAll('[data-theme]')
+      .forEach(btn => btn.addEventListener('click', () => applyTheme(btn.dataset.theme)));
+
+    // Spotlight toggle
+    toggleSpotBtn.addEventListener('click', () => {
+      if (!spotEnabled){ scene.add(spot); toggleSpotBtn.textContent = 'Disable Spotlight'; }
+      else { scene.remove(spot); toggleSpotBtn.textContent = 'Enable Spotlight'; }
+      spotEnabled = !spotEnabled;
+    });
+
+    // Add cube
+    addCubeBtn.addEventListener('click', () => addCubeAt(0,0,0));
+
+    // Nudge controls
+    function nudge(axis){
+      if (!selected) return;
+      const v = velocities.get(selected.uuid) || [0,0,0];
+      const mag = PHYS.force / PHYS.mass;
+      if (axis === 'x+') v[0] += mag;
+      if (axis === 'x-') v[0] -= mag;
+      if (axis === 'z+') v[2] += mag;
+      if (axis === 'z-') v[2] -= mag;
+      if (axis === 'y+') v[1] += mag;
+      // clamp
+      v[0] = Math.max(-PHYS.maxVel, Math.min(PHYS.maxVel, v[0]));
+      v[1] = Math.max(-PHYS.maxVel, Math.min(PHYS.maxVel, v[1]));
+      v[2] = Math.max(-PHYS.maxVel, Math.min(PHYS.maxVel, v[2]));
+      velocities.set(selected.uuid, v);
+    }
+    nxMinusBtn.addEventListener('click', () => nudge('x-'));
+    nxPlusBtn.addEventListener('click',  () => nudge('x+'));
+    nyPlusBtn.addEventListener('click',  () => nudge('y+'));
+    nzMinusBtn.addEventListener('click', () => nudge('z-'));
+    nzPlusBtn.addEventListener('click',  () => nudge('z+'));
+
+    // Physics integration (no slide on ground)
+    function stepPhysics(){
+      const { gravity, damping, restitution, dt, maxVel, groundY } = PHYS; // <- correct destructure
+      for (const mesh of cubes){
+        const v = velocities.get(mesh.uuid) || [0,0,0];
+        // gravity
+        v[1] -= gravity * dt;
+        // integrate
+        mesh.position.x += v[0] * dt;
+        mesh.position.y += v[1] * dt;
+        mesh.position.z += v[2] * dt;
+        // ground collision at groundY, cube half-size 0.5
+        if (mesh.position.y < groundY){
+          mesh.position.y = groundY;
+          v[1] = -v[1] * restitution; // vertical bounce
+          v[0] = 0; v[2] = 0; // no slide requested
+          // snap to math grid (unit = 1)
+          mesh.position.x = Math.round(mesh.position.x);
+          mesh.position.z = Math.round(mesh.position.z);
+        }
+        // air damping (applies every step; tiny, single-digit friendly)
+        v[0] *= damping; v[1] *= damping; v[2] *= damping;
+        // clamp
+        v[0] = Math.max(-maxVel, Math.min(maxVel, v[0]));
+        v[1] = Math.max(-maxVel, Math.min(maxVel, v[1]));
+        v[2] = Math.max(-maxVel, Math.min(maxVel, v[2]));
+        velocities.set(mesh.uuid, v);
+        // keep glyphs riding with parent cube
+        const arr = glyphsByParent.get(mesh.uuid) || [];
+        for (let i = 0; i < arr.length; i++){
+          const s = arr[i]; if (!s) continue;
+          const offsetY = 0.75 + i*0.15;
+          s.position.set(mesh.position.x, mesh.position.y + offsetY, mesh.position.z);
+        }
+      }
+    }
+
+    // Render loop (fixed-step-ish)
+    let acc = 0;
+    let last = performance.now();
+    function tick(now){
+      const dtMs = now - last; last = now; acc += dtMs / 1000;
+      while (acc > PHYS.dt) { stepPhysics(); acc -= PHYS.dt; }
+      // final camera clamp safety (in case external code moved it)
+      clampCameraToBounds();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+
+    // Self-tests (console only)
+    (function selfTests(){
+      const singleDigit = (n) => Math.abs(n) < 10 && isFinite(n);
+      console.assert([PHYS.gravity, PHYS.mass, PHYS.force, PHYS.maxVel].every(singleDigit), 'Single-digit constraints');
+      // DOM presence tests
+      const ids = ['scene','gridOverlay','themeLabel','selectHint','addCube','toggleSpot','gVal','mVal','fVal','dVal','rVal','nx-','nx+','ny+','nz-','nz+'];
+      ids.forEach(id => console.assert($(id), `Missing DOM node #${id}`));
+      // Import tests
+      console.assert(typeof OrbitControls === 'function', 'OrbitControls failed to load');
+      console.assert(!!THREE && typeof THREE.WebGLRenderer === 'function', 'THREE failed to load');
+      // Camera constraints
+      console.assert(controls.maxPolarAngle <= Math.PI/2, 'Camera must not orbit under ground');
+      // Bounds sanity
+      console.assert(typeof BOUND === 'number' && BOUND > 0, 'BOUND should be positive');
+      // Zoom desensitization
+      console.assert(controls.zoomSpeed <= 0.1, 'Zoom should be desensitized');
+      // Snap test: simulate post-contact rounding
+      const px = 0.49, pz = -1.51; const sx = Math.round(px), sz = Math.round(pz);
+      console.assert(sx === 0 && sz === -2, 'Grid snap to integer failed');
+      // Overlay spacing sanity
+      const steps = computeGridPixelSteps();
+      console.assert(isFinite(steps.stepX) && isFinite(steps.stepY) && steps.stepX > 0 && steps.stepY > 0, 'Overlay step computation failed');
+      // stepPhysics existence
+      console.assert(typeof stepPhysics === 'function', 'stepPhysics should be a function');
+      // Glyph plumbing tests
+      console.assert(typeof makeGlyphSprite === 'function', 'makeGlyphSprite should exist');
+      console.assert(typeof attachGlyphToSelected === 'function', 'attachGlyphToSelected should exist');
+    })();
+
+    // Kick off
+    applyTheme('default');
+    requestAnimationFrame(tick);
+
+    // Resize handling
+    // Convert 1 world unit on ground into pixels at screen center
+    function computeGridPixelSteps(){
+      if (!overlay) return { stepX: 80, stepY: 80 };
+      const w = container.clientWidth, h = container.clientHeight;
+      const plane = new THREE.Plane(new THREE.Vector3(0,1,0), -PHYS.groundY);
+      // ray from camera through screen center
+      const ndcCenter = new THREE.Vector2(0,0);
+      const ray = new THREE.Ray();
+      ray.origin.copy(camera.position);
+      // get world point under screen center
+      const centerDir = new THREE.Vector3();
+      centerDir.set(ndcCenter.x, ndcCenter.y, 0.5).unproject(camera).sub(camera.position).normalize();
+      ray.direction.copy(centerDir);
+      const centerPt = new THREE.Vector3();
+      ray.intersectPlane(plane, centerPt);
+      if (!centerPt) return { stepX: 80, stepY: 80 };
+      // offsets by 1 unit in world X and Z
+      const xPt = centerPt.clone().add(new THREE.Vector3(1,0,0));
+      const zPt = centerPt.clone().add(new THREE.Vector3(0,0,1));
+      // project to screen
+      const toScreen = (v) => {
+        const p = v.clone().project(camera);
+        return new THREE.Vector2(
+          (p.x * 0.5 + 0.5) * w,
+          (-p.y * 0.5 + 0.5) * h
+        );
+      };
+      const c2d = toScreen(centerPt);
+      const x2d = toScreen(xPt);
+      const z2d = toScreen(zPt);
+      const stepX = Math.max(8, x2d.distanceTo(c2d));
+      const stepY = Math.max(8, z2d.distanceTo(c2d));
+      return { stepX, stepY };
+    }
+
+    function drawOverlayGrid(){
+      if (!overlay) return;
+      const ctx = overlay.getContext('2d');
+      const w = overlay.width = container.clientWidth;
+      const h = overlay.height = container.clientHeight;
+      ctx.clearRect(0,0,w,h);
+      const { stepX, stepY } = computeGridPixelSteps();
+      // draw grid aligned to screen axes, spacing derived from world 1u at ground
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#3b3b3b';
+      // verticals
+      for (let x = (w/2)%stepX; x <= w; x += stepX){
+        ctx.beginPath(); ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke();
+      }
+      // horizontals
+      for (let y = (h/2)%stepY; y <= h; y += stepY){
+        ctx.beginPath(); ctx.moveTo(0,y+0.5); ctx.lineTo(w,y+0.5); ctx.stroke();
+      }
+      // center axes a bit brighter
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = '#6b7280';
+      ctx.beginPath(); ctx.moveTo(Math.floor(w/2)+0.5,0); ctx.lineTo(Math.floor(w/2)+0.5,h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,Math.floor(h/2)+0.5); ctx.lineTo(w,Math.floor(h/2)+0.5); ctx.stroke();
+    }
+
+    function onResize(){
+      const w = container.clientWidth, h = container.clientHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+      drawOverlayGrid();
+    }
+    window.addEventListener('resize', onResize);
+    // Initial sizing after DOM laid out
+    setTimeout(() => { onResize(); applyTheme('default'); }, 0);
+  </script>
+</body>
+</html>

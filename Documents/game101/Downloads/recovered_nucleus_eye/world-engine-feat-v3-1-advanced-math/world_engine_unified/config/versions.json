@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "version": "2025.09.22.3587",
+    "generated_at": "2025-09-22T17:50:16Z"
+  },
+  "artifacts": {
+    "mega_lexicon.csv": {
+      "sha256": "e1c053ce96045cd5a5d405d08e6f96a11aa7ce3955210a763752aa1aadec0913",
+      "size_bytes": 45395
+    },
+    "mega_lexicon.md": {
+      "sha256": "282e080f409a89b1c11c3248c1d0cfc56bb1833eda13e4428721fcee04539221",
+      "size_bytes": 95577
+    },
+    "mega_runes.csv": {
+      "sha256": "37a9c51cc4127b9d47330cdd911e8f5d843210c8ee021da3aa6a93c3bb4d9e87",
+      "size_bytes": 30024
+    },
+    "mega_runes.md": {
+      "sha256": "13a0962937c19654dfd27140fc1ff7d33d2cf9e7b6aeb68565e98b2a4a29bfce",
+      "size_bytes": 53247
+    },
+    "toggle_schema.json": {
+      "sha256": "de15a190122d4c537ccbd911eda8d4ae0ee875fe469e38988192186adbac360c",
+      "size_bytes": 1158
+    },
+    "alias_wow_ggl.json": {
+      "sha256": "37ea5296f002369dd314f8038ed1f5365f7464f5450596098c7e6416535a52a6",
+      "size_bytes": 375
+    },
+    "bookmarks.json": {
+      "sha256": "b2286559a1d3745178039e32709f9bdb0b9e5b780fb5b63aac73b3ae88cb6877",
+      "size_bytes": 263
+    },
+    "verify_integrity.js": {
+      "sha256": "ffc331aa59de3a7d24231bd60cc50e0ddf102347a07af2517339c7277176402d",
+      "size_bytes": 1819
+    },
+    "word_engine_init.js": {
+      "sha256": "645cc0470d587c84489bf52b5dabf5574d343a66c89e3651f160af6d6d004b2c",
+      "size_bytes": 2501
+    }
+  }
+}

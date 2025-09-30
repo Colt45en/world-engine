@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 NEXUS Holy Beat - Clock/Bus Tri-Engine System</title>
+    <style>
+        :root {
+            --bg: #0b0f1a;
+            --ink: #e8f0ff;
+            --dim: #9bb0d1;
+            --card: #0f1626;
+            --border: #1a2b46;
+            --hl: #64ffda;
+            --rose: #ff7bd5;
+            --world: #7dd3ff;
+            --holy: #ff00ff;
+        }
+
+        body {
+            margin: 0;
+            font: 14px/1.5 'Consolas', 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: var(--ink);
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-areas:
+                "clock-control preset-bank cross-modal"
+                "holy-engine art-engine world-engine"
+                "oscilloscope parametric-art world-3d";
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 180px 200px 1fr;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .panel {
+            border: 2px solid rgba(100, 255, 218, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            background: rgba(15, 22, 38, 0.95);
+            backdrop-filter: blur(8px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--hl), transparent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .clock-control { grid-area: clock-control; border-color: var(--holy); }
+        .preset-bank { grid-area: preset-bank; border-color: var(--hl); }
+        .cross-modal { grid-area: cross-modal; border-color: var(--world); }
+        .holy-engine { grid-area: holy-engine; border-color: var(--holy); }
+        .art-engine { grid-area: art-engine; border-color: var(--rose); }
+        .world-engine { grid-area: world-engine; border-color: var(--world); }
+        .oscilloscope { grid-area: oscilloscope; border-color: var(--holy); }
+        .parametric-art { grid-area: parametric-art; border-color: var(--rose); }
+        .world-3d { grid-area: world-3d; border-color: var(--world); }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--hl);
+        }
+
+        .holy-engine .panel-title { color: var(--holy); }
+        .art-engine .panel-title { color: var(--rose); }
+        .world-engine .panel-title { color: var(--world); }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            gap: 8px;
+        }
+
+        .control-row label {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .control-row input, .control-row select {
+            flex: 1;
+            padding: 4px;
+            background: #1a1a2e;
+            border: 1px solid var(--border);
+            color: var(--ink);
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--ink);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--hl);
+            color: var(--bg);
+        }
+
+        button.active {
+            background: var(--holy);
+            color: white;
+            box-shadow: 0 0 10px var(--holy);
+        }
+
+        .beat-indicators {
+            display: flex;
+            gap: 4px;
+            margin: 8px 0;
+        }
+
+        .beat-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #555;
+            transition: all 0.1s ease;
+        }
+
+        .beat-dot.active {
+            background: var(--holy);
+            border-color: var(--holy);
+            box-shadow: 0 0 8px var(--holy);
+        }
+
+        .feature-display {
+            font-size: 11px;
+            margin: 4px 0;
+        }
+
+        .feature-value {
+            color: var(--hl);
+            font-weight: bold;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .preset-btn {
+            padding: 6px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .preset-btn.current {
+            background: var(--hl);
+            color: var(--bg);
+        }
+
+        #world3d {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .math-equation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Clock Control Panel -->
+        <div class="panel clock-control">
+            <div class="panel-title">⏰ Holy Beat Clock</div>
+
+            <div class="control-row">
+                <label>BPM:</label>
+                <input type="number" id="bpm" value="120" min="60" max="200">
+            </div>
+
+            <div class="control-row">
+                <label>Beats/Bar:</label>
+                <input type="number" id="beatsPerBar" value="4" min="2" max="8">
+            </div>
+
+            <div class="control-row">
+                <button id="startBtn">▶ Start</button>
+                <button id="stopBtn">⏹ Stop</button>
+            </div>
+
+            <div class="beat-indicators">
+                <div class="beat-dot" id="beat0"></div>
+                <div class="beat-dot" id="beat1"></div>
+                <div class="beat-dot" id="beat2"></div>
+                <div class="beat-dot" id="beat3"></div>
+            </div>
+
+            <div class="feature-display">
+                Bar: <span class="feature-value" id="currentBar">0</span> |
+                Beat: <span class="feature-value" id="currentBeat">0</span> |
+                φ(t): <span class="feature-value" id="currentPhase">0.000</span>
+            </div>
+
+            <div class="feature-display">
+                Pending Updates: <span class="feature-value" id="pendingUpdates">0</span>
+            </div>
+        </div>
+
+        <!-- Preset Bank Panel -->
+        <div class="panel preset-bank">
+            <div class="panel-title">🎛️ Preset Bank</div>
+
+            <div class="control-row">
+                <label>Current:</label>
+                <span id="currentPreset" class="feature-value">None</span>
+            </div>
+
+            <div class="preset-grid">
+                <button class="preset-btn" data-preset="chord_stack">Chord Stack</button>
+                <button class="preset-btn" data-preset="fm_bell">FM Bell</button>
+                <button class="preset-btn" data-preset="drone">Drone</button>
+                <button class="preset-btn" data-preset="percussive">Percussive</button>
+            </div>
+
+            <div class="control-row" style="margin-top: 12px;">
+                <label>Auto-Cycle:</label>
+                <input type="checkbox" id="autoPresets" checked>
+                <span style="font-size: 11px;">Every 8 bars</span>
+            </div>
+        </div>
+
+        <!-- Cross-Modal Features Panel -->
+        <div class="panel cross-modal">
+            <div class="panel-title">🔗 Cross-Modal Bus</div>
+
+            <div class="feature-display">
+                Spectral χ_s: <span class="feature-value" id="spectralCentroid">220</span> Hz
+            </div>
+            <div class="feature-display">
+                RMS Energy: <span class="feature-value" id="rmsEnergy">0.000</span>
+            </div>
+            <div class="feature-display">
+                Beat Intensity: <span class="feature-value" id="beatIntensity">0.00</span>
+            </div>
+
+            <hr style="margin: 8px 0; border-color: var(--border);">
+
+            <div class="feature-display">
+                Rose Petals k: <span class="feature-value" id="petalCount">5</span>
+            </div>
+            <div class="feature-display">
+                Stroke Density ρ_a: <span class="feature-value" id="strokeDensity">0.50</span>
+            </div>
+            <div class="feature-display">
+                Color Palette: <span class="feature-value" id="colorPalette">0</span>
+            </div>
+
+            <hr style="margin: 8px 0; border-color: var(--border);">
+
+            <div class="feature-display">
+                Terrain ρ_w: <span class="feature-value" id="terrainRoughness">0.30</span>
+            </div>
+            <div class="feature-display">
+                Mesh Complexity: <span class="feature-value" id="meshComplexity">64</span>
+            </div>
+            <div class="feature-display">
+                Camera Path: <span class="feature-value" id="cameraPath">0</span>
+            </div>
+        </div>
+
+        <!-- Holy Engine Panel -->
+        <div class="panel holy-engine">
+            <div class="panel-title">🎵 Holy Beat Synthesis</div>
+
+            <div class="control-row">
+                <label>Base f₀:</label>
+                <input type="number" id="baseFreq" value="220" min="80" max="800">
+            </div>
+
+            <div class="control-row">
+                <label>Harmonics N:</label>
+                <input type="number" id="harmonics" value="6" min="1" max="12">
+            </div>
+
+            <div class="control-row">
+                <label>AM Depth D_AM:</label>
+                <input type="range" id="amDepth" min="0" max="1" step="0.05" value="0.2">
+                <span id="amDepthVal">0.2</span>
+            </div>
+
+            <div class="control-row">
+                <label>FM Depth D_FM:</label>
+                <input type="range" id="fmDepth" min="0" max="20" step="0.5" value="6">
+                <span id="fmDepthVal">6</span>
+            </div>
+
+            <div class="feature-display">
+                L_AM(t): <span class="feature-value" id="amLfo">0.000</span>
+            </div>
+            <div class="feature-display">
+                L_FM(t): <span class="feature-value" id="fmLfo">0.000</span>
+            </div>
+        </div>
+
+        <!-- Art Engine Panel -->
+        <div class="panel art-engine">
+            <div class="panel-title">🌹 Parametric Art Engine</div>
+
+            <div class="control-row">
+                <label>Mode:</label>
+                <select id="artMode">
+                    <option value="rose">Rose Curve</option>
+                    <option value="lissajous">Lissajous</option>
+                    <option value="heart">Heart Curve</option>
+                </select>
+            </div>
+
+            <div class="feature-display">
+                Active Petals: <span class="feature-value" id="activePetals">5</span>
+            </div>
+            <div class="feature-display">
+                Rotation: <span class="feature-value" id="artRotation">0.00</span>°
+            </div>
+            <div class="feature-display">
+                Color Hue: <span class="feature-value" id="artHue">300</span>°
+            </div>
+        </div>
+
+        <!-- World Engine Panel -->
+        <div class="panel world-engine">
+            <div class="panel-title">🌍 3D World Engine</div>
+
+            <div class="control-row">
+                <label>Terrain Mode:</label>
+                <select id="terrainMode">
+                    <option value="sine">Sine Waves</option>
+                    <option value="perlin">Perlin Noise</option>
+                    <option value="ripple">Ripples</option>
+                </select>
+            </div>
+
+            <div class="feature-display">
+                Wave Freq: <span class="feature-value" id="waveFreq">1.5</span>
+            </div>
+            <div class="feature-display">
+                Amplitude: <span class="feature-value" id="terrainAmp">0.5</span>
+            </div>
+            <div class="feature-display">
+                Camera Θ: <span class="feature-value" id="cameraTheta">0.00</span>°
+            </div>
+        </div>
+
+        <!-- Oscilloscope -->
+        <div class="panel oscilloscope">
+            <div class="panel-title">📊 Audio Oscilloscope</div>
+            <canvas id="oscCanvas" width="400" height="200"></canvas>
+            <div class="math-equation">
+                y(t) = F<sub>LP</sub>([1 + D<sub>AM</sub>L<sub>AM</sub>(t)] Σ(1/n)sin(2π∫f<sub>n</sub>(τ)dτ))
+            </div>
+        </div>
+
+        <!-- Parametric Art -->
+        <div class="panel parametric-art">
+            <div class="panel-title">🎨 Parametric Gallery</div>
+            <canvas id="artCanvas" width="400" height="200"></canvas>
+            <div class="math-equation">
+                k = α·χ<sub>s</sub>, ρ<sub>a</sub> = γ·RMS
+            </div>
+        </div>
+
+        <!-- 3D World -->
+        <div class="panel world-3d">
+            <div class="panel-title">🌏 3D Mesh Terrain</div>
+            <div id="world3d"></div>
+            <div class="math-equation">
+                z(x,y,t) = ρ<sub>w</sub>·sin(x·f + φ(t))·cos(y·f)
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div>🎵 Clock/Bus System Status: <span id="systemStatus">Initializing...</span></div>
+        <div>Engines: Audio + Art + World | Active Mappings: <span id="mappingCount">0</span></div>
+        <div>Safety Mode: <span id="safetyMode">Off</span></div>
+    </div>
+
+    <script src="nexus_holy_beat_math_engine.js"></script>
+    <script src="nexus_holy_beat_clock_bus.js"></script>
+    <script type="module">
+        import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js";
+
+        // Global system components
+        let audioContext = null;
+        let holyBeatEngine = null;
+        let clockBusSystem = null;
+        let thoughtProcessor = null;
+        let isRunning = false;
+
+        // Audio components
+        let analyserNode = null;
+        let gainNode = null;
+        let scriptProcessor = null;
+
+        // Visual components
+        let artCanvas, artCtx;
+        let oscCanvas, oscCtx;
+        let world3D = null;
+
+        // Initialize the complete Clock/Bus system
+        async function initializeSystem() {
+            try {
+                document.getElementById('systemStatus').textContent = 'Initializing Audio...';
+
+                // Create audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create audio nodes
+                analyserNode = audioContext.createAnalyser();
+                analyserNode.fftSize = 2048;
+
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.3;
+
+                gainNode.connect(analyserNode);
+                analyserNode.connect(audioContext.destination);
+
+                document.getElementById('systemStatus').textContent = 'Initializing Engines...';
+
+                // Initialize Holy Beat mathematical engine
+                holyBeatEngine = new NexusHolyBeatMathEngine();
+
+                // Initialize Clock/Bus system
+                const { HolyBeatClock, QuantizedParamQueue, PresetBank, CrossModalBus, UnifiedThoughtProcessor } = window.HolyBeatClockBusSystem;
+
+                const clock = new HolyBeatClock(120, 4);
+                const paramQueue = new QuantizedParamQueue(clock);
+                const presetBank = new PresetBank();
+                const crossModalBus = new CrossModalBus();
+
+                thoughtProcessor = new UnifiedThoughtProcessor(clock, paramQueue, presetBank, crossModalBus);
+
+                // Register engines with thought processor
+                thoughtProcessor.registerEngine('holyBeat', holyBeatEngine);
+
+                clockBusSystem = {
+                    clock: clock,
+                    paramQueue: paramQueue,
+                    presetBank: presetBank,
+                    crossModalBus: crossModalBus,
+                    thoughtProcessor: thoughtProcessor
+                };
+
+                document.getElementById('systemStatus').textContent = 'Initializing Visuals...';
+
+                // Initialize visual components
+                initializeVisuals();
+
+                document.getElementById('systemStatus').textContent = 'Setting up Event Handlers...';
+
+                // Setup event handlers
+                setupEventHandlers();
+
+                // Subscribe to cross-modal features
+                setupCrossModalSubscriptions();
+
+                document.getElementById('systemStatus').textContent = 'Ready';
+                document.getElementById('mappingCount').textContent = '6';
+
+                console.log('🎵 Complete Clock/Bus Tri-Engine System initialized');
+
+            } catch (error) {
+                console.error('Failed to initialize system:', error);
+                document.getElementById('systemStatus').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        function initializeVisuals() {
+            // Art canvas
+            artCanvas = document.getElementById('artCanvas');
+            artCtx = artCanvas.getContext('2d');
+
+            // Oscilloscope canvas
+            oscCanvas = document.getElementById('oscCanvas');
+            oscCtx = oscCanvas.getContext('2d');
+
+            // 3D World
+            initialize3DWorld();
+        }
+
+        function initialize3DWorld() {
+            const container = document.getElementById('world3d');
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Create terrain mesh
+            const geometry = new THREE.PlaneGeometry(6, 6, 64, 64);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x2277ff,
+                wireframe: false,
+                side: THREE.DoubleSide
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = -Math.PI / 2;
+            scene.add(mesh);
+
+            // Lighting
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(5, 10, 5);
+            scene.add(light);
+
+            camera.position.set(0, 3, 6);
+
+            world3D = { scene, camera, renderer, mesh, geometry };
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                if (world3D) {
+                    const w = container.clientWidth;
+                    const h = container.clientHeight;
+                    world3D.camera.aspect = w / h;
+                    world3D.camera.updateProjectionMatrix();
+                    world3D.renderer.setSize(w, h);
+                }
+            });
+        }
+
+        function setupEventHandlers() {
+            // Start/Stop buttons
+            document.getElementById('startBtn').addEventListener("click", function(e) { try { startSystem(e); } catch(err) { console.error("Event error:", err); } });
+            document.getElementById('stopBtn').addEventListener("click", function(e) { try { stopSystem(e); } catch(err) { console.error("Event error:", err); } });
+
+            // BPM control
+            document.getElementById('bpm').addEventListener('change', (e) => {
+                const bpm = parseInt(e.target.value);
+                if (clockBusSystem) {
+                    clockBusSystem.clock.setBPM(bpm);
+                }
+            });
+
+            // Preset buttons
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    const preset = btn.dataset.preset;
+                    if (clockBusSystem && thoughtProcessor) {
+                        thoughtProcessor.recallPreset(preset);
+                        updateCurrentPresetDisplay(preset);
+                    }
+                });
+            });
+
+            // Parameter controls that queue updates
+            const paramControls = {
+                'baseFreq': 'synth.baseFreq',
+                'harmonics': 'synth.harmonics',
+                'amDepth': 'lfo.amDepth',
+                'fmDepth': 'lfo.fmDepth'
+            };
+
+            Object.entries(paramControls).forEach(([controlId, paramPath]) => {
+                const control = document.getElementById(controlId);
+                control.addEventListener('change', () => {
+                    const value = parseFloat(control.value);
+                    if (thoughtProcessor && isRunning) {
+                        thoughtProcessor.scheduleParameterChange('holyBeat', paramPath, value);
+                    } else if (holyBeatEngine) {
+                        holyBeatEngine.setParameterImmediate(paramPath, value);
+                    }
+
+                    // Update display
+                    if (controlId === 'amDepth') {
+                        document.getElementById('amDepthVal').textContent = value.toFixed(2);
+                    } else if (controlId === 'fmDepth') {
+                        document.getElementById('fmDepthVal').textContent = value.toFixed(1);
+                    }
+                });
+            });
+        }
+
+        function setupCrossModalSubscriptions() {
+            if (!clockBusSystem) return;
+
+            const { crossModalBus } = clockBusSystem;
+
+            // Subscribe to feature updates for UI display
+            crossModalBus.subscribe('spectralCentroid', (name, value) => {
+                document.getElementById('spectralCentroid').textContent = Math.round(value);
+            });
+
+            crossModalBus.subscribe('rmsEnergy', (name, value) => {
+                document.getElementById('rmsEnergy').textContent = value.toFixed(3);
+            });
+
+            crossModalBus.subscribe('beatIntensity', (name, value) => {
+                document.getElementById('beatIntensity').textContent = value.toFixed(2);
+            });
+
+            crossModalBus.subscribe('petalCount', (name, value) => {
+                document.getElementById('petalCount').textContent = value;
+                document.getElementById('activePetals').textContent = value;
+            });
+
+            crossModalBus.subscribe('strokeDensity', (name, value) => {
+                document.getElementById('strokeDensity').textContent = value.toFixed(2);
+            });
+
+            crossModalBus.subscribe('terrainRoughness', (name, value) => {
+                document.getElementById('terrainRoughness').textContent = value.toFixed(2);
+                document.getElementById('terrainAmp').textContent = value.toFixed(2);
+            });
+
+            crossModalBus.subscribe('colorPalette', (name, value) => {
+                document.getElementById('colorPalette').textContent = value;
+                document.getElementById('artHue').textContent = (value * 45).toFixed(0);
+            });
+        }
+
+        async function startSystem() {
+            if (isRunning) return;
+
+            try {
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                // Start the Clock/Bus system
+                const currentTime = audioContext.currentTime;
+                clockBusSystem.clock.start(currentTime);
+                holyBeatEngine.start(currentTime);
+
+                isRunning = true;
+                document.getElementById('systemStatus').textContent = 'Running';
+                document.getElementById('startBtn').classList.add('active');
+                document.getElementById('stopBtn').classList.remove('active');
+
+                // Start audio synthesis
+                startAudioSynthesis();
+
+                // Start render loop
+                renderLoop();
+
+                console.log('🎵 Clock/Bus Tri-Engine System started');
+
+            } catch (error) {
+                console.error('Failed to start system:', error);
+                document.getElementById('systemStatus').textContent = 'Start Error: ' + error.message;
+            }
+        }
+
+        function stopSystem() {
+            if (!isRunning) return;
+
+            clockBusSystem.clock.stop();
+            holyBeatEngine.stop();
+
+            if (scriptProcessor) {
+                scriptProcessor.disconnect();
+                scriptProcessor = null;
+            }
+
+            isRunning = false;
+            document.getElementById('systemStatus').textContent = 'Stopped';
+            document.getElementById('startBtn').classList.remove('active');
+            document.getElementById('stopBtn').classList.add('active');
+
+            // Clear beat indicators
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`beat${i}`).classList.remove('active');
+            }
+
+            console.log('🔇 Clock/Bus Tri-Engine System stopped');
+        }
+
+        function startAudioSynthesis() {
+            scriptProcessor = audioContext.createScriptProcessor(1024, 0, 1);
+
+            scriptProcessor.onaudioprocess = function(event) {
+                if (!isRunning || !holyBeatEngine || !thoughtProcessor) return;
+
+                const outputBuffer = event.outputBuffer;
+                const outputData = outputBuffer.getChannelData(0);
+                const currentTime = audioContext.currentTime;
+
+                // Run unified thought processor (implements the 6-step scaffold)
+                const clockState = clockBusSystem.clock.tick(currentTime);
+                const engineState = holyBeatEngine.tick(currentTime);
+
+                // Generate audio samples
+                const samples = holyBeatEngine.synthesizeHarmonicStack(
+                    outputData.length,
+                    audioContext.sampleRate
+                );
+
+                // Copy to output
+                for (let i = 0; i < outputData.length; i++) {
+                    outputData[i] = samples[i];
+                }
+
+                // Update cross-modal features
+                updateAudioFeatures(engineState, samples);
+            };
+
+            scriptProcessor.connect(gainNode);
+        }
+
+        function updateAudioFeatures(engineState, samples) {
+            if (!clockBusSystem) return;
+
+            const { crossModalBus } = clockBusSystem;
+
+            // Update audio features in cross-modal bus
+            crossModalBus.updateFeature('spectralCentroid', engineState.features.spectralCentroid);
+            crossModalBus.updateFeature('rmsEnergy', engineState.features.rmsEnergy);
+
+            // Calculate beat intensity (RMS over samples)
+            let rmsSum = 0;
+            for (let i = 0; i < samples.length; i++) {
+                rmsSum += samples[i] * samples[i];
+            }
+            const rms = Math.sqrt(rmsSum / samples.length);
+            crossModalBus.updateFeature('beatIntensity', rms);
+        }
+
+        function renderLoop() {
+            if (!isRunning) return;
+
+            requestAnimationFrame(renderLoop);
+
+            if (!clockBusSystem) return;
+
+            const systemState = thoughtProcessor.getSystemState();
+            const clockState = systemState.clock;
+
+            // Update UI displays
+            updateClockDisplay(clockState);
+            updateSystemDisplays(systemState);
+
+            // Render visual engines
+            renderOscilloscope();
+            renderParametricArt(clockState);
+            render3DWorld(clockState);
+        }
+
+        function updateClockDisplay(clockState) {
+            // Update beat indicators
+            for (let i = 0; i < 4; i++) {
+                const beatDot = document.getElementById(`beat${i}`);
+                if (i === clockState.beat) {
+                    beatDot.classList.add('active');
+                } else {
+                    beatDot.classList.remove('active');
+                }
+            }
+
+            // Update text displays
+            document.getElementById('currentBar').textContent = clockState.bar;
+            document.getElementById('currentBeat').textContent = clockState.beat;
+            document.getElementById('currentPhase').textContent = clockState.phase.toFixed(3);
+        }
+
+        function updateSystemDisplays(systemState) {
+            document.getElementById('pendingUpdates').textContent = systemState.pendingUpdates;
+
+            // Update LFO displays if holyBeatEngine is available
+            if (holyBeatEngine) {
+                const mathState = holyBeatEngine.getMathematicalState();
+                document.getElementById('amLfo').textContent = mathState.amLFO.toFixed(3);
+                document.getElementById('fmLfo').textContent = mathState.fmLFO.toFixed(3);
+                document.getElementById('waveFreq').textContent = (mathState.baseFrequency / 220 * 1.5).toFixed(2);
+                document.getElementById('cameraTheta').textContent = ((systemState.clock.bar / 4) * 57.3).toFixed(0);
+                document.getElementById('artRotation').textContent = (mathState.beatPhase * 360).toFixed(0);
+            }
+        }
+
+        function updateCurrentPresetDisplay(presetName) {
+            document.getElementById('currentPreset').textContent = presetName;
+
+            // Update preset button states
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                if (btn.dataset.preset === presetName) {
+                    btn.classList.add('current');
+                } else {
+                    btn.classList.remove('current');
+                }
+            });
+        }
+
+        function renderOscilloscope() {
+            if (!analyserNode) return;
+
+            const bufferLength = analyserNode.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyserNode.getByteTimeDomainData(dataArray);
+
+            oscCtx.fillStyle = '#000';
+            oscCtx.fillRect(0, 0, oscCanvas.width, oscCanvas.height);
+
+            oscCtx.strokeStyle = '#ff00ff';
+            oscCtx.lineWidth = 2;
+            oscCtx.beginPath();
+
+            const sliceWidth = oscCanvas.width / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * oscCanvas.height / 2;
+
+                if (i === 0) {
+                    oscCtx.moveTo(x, y);
+                } else {
+                    oscCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            oscCtx.stroke();
+        }
+
+        function renderParametricArt(clockState) {
+            const features = clockBusSystem.crossModalBus.getAllFeatures();
+
+            artCtx.fillStyle = '#000';
+            artCtx.fillRect(0, 0, artCanvas.width, artCanvas.height);
+
+            const centerX = artCanvas.width / 2;
+            const centerY = artCanvas.height / 2;
+            const radius = Math.min(artCanvas.width, artCanvas.height) * 0.4;
+
+            // Rose curve with dynamic petals: k = α * χ_s
+            const k = features.petalCount;
+            const hue = features.colorPalette * 45;
+
+            artCtx.strokeStyle = `hsl(${hue}, 70%, 60%)`;
+            artCtx.lineWidth = 2;
+            artCtx.beginPath();
+
+            for (let i = 0; i <= 1200; i++) {
+                const theta = i / 1200 * 2 * Math.PI;
+                const r = Math.cos(k * theta) * (0.7 + 0.3 * Math.sin(clockState.phase * 2 * Math.PI));
+                const x = centerX + radius * r * Math.cos(theta);
+                const y = centerY + radius * r * Math.sin(theta);
+
+                if (i === 0) {
+                    artCtx.moveTo(x, y);
+                } else {
+                    artCtx.lineTo(x, y);
+                }
+            }
+
+            artCtx.stroke();
+
+            // Add stroke density visualization
+            const strokeDensity = features.strokeDensity;
+            if (strokeDensity > 0.3) {
+                artCtx.strokeStyle = `hsl(${hue + 60}, 50%, 40%)`;
+                artCtx.lineWidth = 1;
+                artCtx.beginPath();
+                artCtx.arc(centerX, centerY, radius * 1.2 * strokeDensity, 0, Math.PI * 2);
+                artCtx.stroke();
+            }
+        }
+
+        function render3DWorld(clockState) {
+            if (!world3D) return;
+
+            const features = clockBusSystem.crossModalBus.getAllFeatures();
+            const terrainRoughness = features.terrainRoughness;
+
+            // Update mesh vertices with terrain equation: z(x,y,t) = ρ_w * sin(x*f + φ(t)) * cos(y*f)
+            const position = world3D.geometry.attributes.position;
+            const waveFreq = 1.5;
+
+            for (let i = 0; i < position.count; i++) {
+                const x = position.getX(i);
+                const y = position.getY(i);
+
+                const z = terrainRoughness * Math.sin(x * waveFreq + clockState.phase * 2 * Math.PI) *
+                         Math.cos(y * waveFreq + clockState.bar * 0.3) * 0.5;
+
+                position.setZ(i, z);
+            }
+
+            position.needsUpdate = true;
+            world3D.geometry.computeVertexNormals();
+
+            // Camera movement based on bar count
+            const theta = (clockState.bar / 4) * Math.PI * 2;
+            world3D.camera.position.x = Math.sin(theta) * 6;
+            world3D.camera.position.z = Math.cos(theta) * 6;
+            world3D.camera.position.y = 3 + features.rmsEnergy * 2;
+            world3D.camera.lookAt(0, 0, 0);
+
+            // Update material color based on spectral centroid
+            const hue = (features.spectralCentroid / 1000) * 0.6;
+            world3D.mesh.material.color.setHSL(hue, 0.7, 0.5);
+
+            world3D.renderer.render(world3D.scene, world3D.camera);
+        }
+
+        // Initialize system when page loads
+        window.addEventListener('load', initializeSystem);
+
+        // Handle visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isRunning && audioContext) {
+                audioContext.suspend();
+            } else if (!document.hidden && isRunning && audioContext) {
+                audioContext.resume();
+            }
+        });
+
+        console.log('🎵 NEXUS Holy Beat Clock/Bus Tri-Engine System loaded');
+    </script>
+</body>
+</html>

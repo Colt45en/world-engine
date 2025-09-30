@@ -1,0 +1,104 @@
+.companionPanel {
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid #00ffff;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 10px 0;
+}
+
+.companionTitle {
+  color: #00ffff;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0;
+  font-size: 11px;
+}
+
+.statusValue {
+  color: #54f0b8;
+}
+
+.companionButton {
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  margin: 2px;
+  transition: all 0.2s ease;
+}
+
+.companionButton:hover {
+  background: rgba(0, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.companionButton:active {
+  transform: scale(0.95);
+}
+
+.eventLogContainer {
+  margin-top: 2px;
+}
+
+.eventLogItem {
+  font-size: 10px;
+}
+
+.eventOperator {
+  color: #ff9f43;
+}
+
+.eventNucleus {
+  color: #54f0b8;
+}
+
+.eventAiBot {
+  color: #7cdcff;
+}
+
+.eventLibrarian {
+  color: #ff9f43;
+}
+
+.eventCompanionMeta {
+  color: #7cdcff;
+}
+
+.eventCompanionLibrarian {
+  color: #ff9f43;
+}
+
+.eventCompanionConnection {
+  color: #54f0b8;
+}
+
+.eventCompanionAction {
+  color: #7cdcff;
+}
+
+.eventDefault {
+  color: #e6f0ff;
+}
+
+.iframeContainer {
+  flex: 1;
+  margin: 0 10px 10px 10px;
+}
+
+.iframe {
+  width: 100%;
+  height: 300px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #000;
+}

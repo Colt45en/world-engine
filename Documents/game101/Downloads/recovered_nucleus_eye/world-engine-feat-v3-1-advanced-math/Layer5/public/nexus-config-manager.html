@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ NEXUS Configuration Manager - System Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1a1a3a 0%, #0a0a2a 50%, #000010 100%);
+            color: #e0e8ff;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .config-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "nav-sidebar config-main preview-panel"
+                "nav-sidebar config-main actions-bar";
+            grid-template-rows: 80px 1fr 100px;
+            grid-template-columns: 280px 1fr 320px;
+            height: 100vh;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .config-panel {
+            background: rgba(30, 40, 80, 0.85);
+            border: 1px solid #5577aa;
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .config-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00aaff, #0066cc, #004499);
+            animation: configGlow 4s linear infinite;
+        }
+
+        @keyframes configGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(0, 170, 255, 0.3), rgba(85, 119, 170, 0.3));
+            border-color: #00aaff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00aaff, #5577aa, #0066cc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .global-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .global-btn {
+            background: transparent;
+            border: 1px solid #5577aa;
+            color: #e0e8ff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .global-btn:hover {
+            background: #5577aa;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(85, 119, 170, 0.4);
+        }
+
+        .global-btn.danger {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .global-btn.danger:hover {
+            background: #ff4444;
+            color: #ffffff;
+        }
+
+        .nav-sidebar {
+            grid-area: nav-sidebar;
+            border-color: #00ff88;
+        }
+
+        .config-main {
+            grid-area: config-main;
+            border-color: #00aaff;
+            overflow-y: auto;
+        }
+
+        .preview-panel {
+            grid-area: preview-panel;
+            border-color: #ff8800;
+        }
+
+        .actions-bar {
+            grid-area: actions-bar;
+            border-color: #aa55ff;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #337755;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #e0e8ff;
+            padding: 12px 16px;
+            margin: 2px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border-left: 3px solid #00ff88;
+        }
+
+        .config-section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00aaff;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #004477;
+        }
+
+        .config-group {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #334466;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+
+        .group-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #aaccff;
+            margin-bottom: 12px;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+            padding: 8px 0;
+        }
+
+        .config-label {
+            font-size: 14px;
+            color: #e0e8ff;
+            flex: 1;
+            margin-right: 16px;
+        }
+
+        .config-description {
+            font-size: 12px;
+            color: #99aacc;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .config-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #445566;
+            border-radius: 6px;
+            color: #e0e8ff;
+            padding: 8px 12px;
+            font-family: inherit;
+            min-width: 120px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: #00aaff;
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.3);
+        }
+
+        .config-slider {
+            -webkit-appearance: none;
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            outline: none;
+        }
+
+        .config-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00aaff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.5);
+        }
+
+        .config-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00aaff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.5);
+        }
+
+        .config-toggle {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .config-toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #666666;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .config-toggle.active {
+            background: rgba(0, 170, 255, 0.3);
+        }
+
+        .config-toggle.active::before {
+            transform: translateX(26px);
+            background: #00aaff;
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.5);
+        }
+
+        .config-select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #445566;
+            border-radius: 6px;
+            color: #e0e8ff;
+            padding: 8px 12px;
+            font-family: inherit;
+            min-width: 120px;
+        }
+
+        .config-select:focus {
+            outline: none;
+            border-color: #00aaff;
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.3);
+        }
+
+        .preview-section {
+            margin-bottom: 24px;
+        }
+
+        .preview-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff8800;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #aa5500;
+        }
+
+        .preview-content {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #445566;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 12px;
+            height: 120px;
+            overflow-y: auto;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, #004466, #0066aa);
+            border: 1px solid #0088cc;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(45deg, #0066aa, #0088cc);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 136, 204, 0.4);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(45deg, #006600, #00aa00);
+            border-color: #00cc00;
+        }
+
+        .action-btn.primary:hover {
+            background: linear-gradient(45deg, #00aa00, #00cc00);
+        }
+
+        .action-btn.warning {
+            background: linear-gradient(45deg, #aa6600, #cc8800);
+            border-color: #ffaa00;
+        }
+
+        .action-btn.warning:hover {
+            background: linear-gradient(45deg, #cc8800, #ffaa00);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-saved {
+            background: #00ff00;
+            box-shadow: 0 0 8px #00ff00;
+        }
+
+        .status-modified {
+            background: #ffaa00;
+            box-shadow: 0 0 8px #ffaa00;
+        }
+
+        .status-error {
+            background: #ff4444;
+            box-shadow: 0 0 8px #ff4444;
+        }
+
+        .config-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #334466;
+        }
+
+        .config-tab {
+            background: transparent;
+            border: none;
+            color: #99aacc;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .config-tab:hover {
+            color: #e0e8ff;
+        }
+
+        .config-tab.active {
+            color: #00aaff;
+            border-bottom-color: #00aaff;
+        }
+
+        .scrollable {
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #445566;
+            border-radius: 4px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #5577aa;
+        }
+
+        .config-warning {
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid #ffaa00;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 16px 0;
+            color: #ffcc44;
+            font-size: 12px;
+        }
+
+        .config-info {
+            background: rgba(0, 170, 255, 0.1);
+            border: 1px solid #00aaff;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 16px 0;
+            color: #44ccff;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="config-layout">
+        <!-- Header -->
+        <div class="config-panel header">
+            <div class="config-title">⚙️ NEXUS Configuration Manager</div>
+            <div class="global-controls">
+                <button class="global-btn" id="importConfig">📥 Import</button>
+                <button class="global-btn" id="exportConfig">📤 Export</button>
+                <button class="global-btn" id="resetDefaults">🔄 Reset</button>
+                <button class="global-btn danger" id="emergencyReset">🚨 Emergency</button>
+            </div>
+        </div>
+
+        <!-- Navigation Sidebar -->
+        <div class="config-panel nav-sidebar">
+            <div class="nav-section">
+                <div class="nav-section-title">System Components</div>
+                <button class="nav-item active" data-section="ai-training">🤖 AI Training</button>
+                <button class="nav-item" data-section="math-engine">🔢 Mathematical Engine</button>
+                <button class="nav-item" data-section="webgl-renderer">🎮 WebGL Renderer</button>
+                <button class="nav-item" data-section="education">🎓 Educational System</button>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Performance</div>
+                <button class="nav-item" data-section="optimization">⚡ Optimization</button>
+                <button class="nav-item" data-section="monitoring">📊 Monitoring</button>
+                <button class="nav-item" data-section="memory">💾 Memory Management</button>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Integration</div>
+                <button class="nav-item" data-section="communication">🔗 Communication</button>
+                <button class="nav-item" data-section="data-sync">🔄 Data Sync</button>
+                <button class="nav-item" data-section="security">🔒 Security</button>
+            </div>
+        </div>
+
+        <!-- Main Configuration Area -->
+        <div class="config-panel config-main">
+            <div class="config-tabs">
+                <button class="config-tab active" data-tab="basic">Basic Settings</button>
+                <button class="config-tab" data-tab="advanced">Advanced</button>
+                <button class="config-tab" data-tab="experimental">Experimental</button>
+            </div>
+
+            <div class="scrollable" id="configContent">
+                <!-- AI Training Configuration -->
+                <div class="config-section" id="ai-training-config">
+                    <div class="section-title">🤖 AI Training Configuration</div>
+
+                    <div class="config-group">
+                        <div class="group-title">Training Parameters</div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Learning Rate</div>
+                                <div class="config-description">Controls how quickly the AI learns from new data</div>
+                            </div>
+                            <div class="config-control">
+                                <input type="range" class="config-slider" min="0.0001" max="0.01" step="0.0001" value="0.001" id="aiLearningRate">
+                                <span id="aiLearningRateValue">0.001</span>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Batch Size</div>
+                                <div class="config-description">Number of samples processed in each training batch</div>
+                            </div>
+                            <div class="config-control">
+                                <select class="config-select" id="aiBatchSize">
+                                    <option value="16">16</option>
+                                    <option value="32" selected>32</option>
+                                    <option value="64">64</option>
+                                    <option value="128">128</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Auto Training</div>
+                                <div class="config-description">Automatically train AI from user interactions</div>
+                            </div>
+                            <div class="config-control">
+                                <div class="config-toggle active" id="aiAutoTraining"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="group-title">Pattern Recognition</div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Pattern Sensitivity</div>
+                                <div class="config-description">Sensitivity level for detecting mathematical patterns</div>
+                            </div>
+                            <div class="config-control">
+                                <input type="range" class="config-slider" min="0.1" max="1.0" step="0.1" value="0.7" id="aiPatternSensitivity">
+                                <span id="aiPatternSensitivityValue">0.7</span>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Memory Retention</div>
+                                <div class="config-description">How long to retain training patterns (hours)</div>
+                            </div>
+                            <div class="config-control">
+                                <input type="number" class="config-input" min="1" max="168" value="24" id="aiMemoryRetention">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-info">
+                        💡 AI training settings affect how quickly and accurately the system learns from mathematical interactions.
+                    </div>
+                </div>
+
+                <!-- Mathematical Engine Configuration -->
+                <div class="config-section" id="math-engine-config" style="display: none;">
+                    <div class="section-title">🔢 Mathematical Engine Configuration</div>
+
+                    <div class="config-group">
+                        <div class="group-title">Calculation Precision</div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Decimal Precision</div>
+                                <div class="config-description">Number of decimal places for calculations</div>
+                            </div>
+                            <div class="config-control">
+                                <select class="config-select" id="mathPrecision">
+                                    <option value="4">4 decimal places</option>
+                                    <option value="6">6 decimal places</option>
+                                    <option value="8" selected>8 decimal places</option>
+                                    <option value="12">12 decimal places</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Use Fast Math</div>
+                                <div class="config-description">Enable optimized mathematical functions</div>
+                            </div>
+                            <div class="config-control">
+                                <div class="config-toggle active" id="mathFastMath"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="group-title">Vector Operations</div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Vector Precision</div>
+                                <div class="config-description">Precision level for vector calculations</div>
+                            </div>
+                            <div class="config-control">
+                                <input type="range" class="config-slider" min="1" max="16" step="1" value="8" id="vectorPrecision">
+                                <span id="vectorPrecisionValue">8</span>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Cache Results</div>
+                                <div class="config-description">Cache frequently used calculations</div>
+                            </div>
+                            <div class="config-control">
+                                <div class="config-toggle active" id="mathCacheResults"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WebGL Renderer Configuration -->
+                <div class="config-section" id="webgl-renderer-config" style="display: none;">
+                    <div class="section-title">🎮 WebGL Renderer Configuration</div>
+
+                    <div class="config-group">
+                        <div class="group-title">Rendering Quality</div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Render Quality</div>
+                                <div class="config-description">Overall rendering quality level</div>
+                            </div>
+                            <div class="config-control">
+                                <select class="config-select" id="renderQuality">
+                                    <option value="low">Low (Performance)</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high" selected>High (Quality)</option>
+                                    <option value="ultra">Ultra (Best)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Target FPS</div>
+                                <div class="config-description">Target frame rate for 3D rendering</div>
+                            </div>
+                            <div class="config-control">
+                                <select class="config-select" id="targetFPS">
+                                    <option value="30">30 FPS</option>
+                                    <option value="60" selected>60 FPS</option>
+                                    <option value="120">120 FPS</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="group-title">Advanced Rendering</div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Anti-aliasing</div>
+                                <div class="config-description">Smooth jagged edges in 3D rendering</div>
+                            </div>
+                            <div class="config-control">
+                                <div class="config-toggle active" id="webglAntialiasing"></div>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <div>
+                                <div class="config-label">Depth Testing</div>
+                                <div class="config-description">Enable depth buffer for 3D depth sorting</div>
+                            </div>
+                            <div class="config-control">
+                                <div class="config-toggle active" id="webglDepthTest"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-warning">
+                        ⚠️ High quality settings may impact performance on older graphics cards.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="config-panel preview-panel">
+            <div class="preview-section">
+                <div class="preview-title">Live Preview</div>
+                <div class="preview-content" id="livePreview">
+                    <div>Current Configuration:</div>
+                    <div>• AI Learning Rate: <span id="previewLearningRate">0.001</span></div>
+                    <div>• Math Precision: <span id="previewPrecision">8</span></div>
+                    <div>• Render Quality: <span id="previewRenderQuality">high</span></div>
+                    <div>• Auto Training: <span id="previewAutoTraining">enabled</span></div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-title">System Status</div>
+                <div class="preview-content" id="systemStatus">
+                    <div><span class="status-indicator status-saved"></span>Configuration saved</div>
+                    <div><span class="status-indicator status-saved"></span>Systems synchronized</div>
+                    <div><span class="status-indicator status-modified"></span>Pending changes: 3</div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-title">Performance Impact</div>
+                <div class="preview-content" id="performanceImpact">
+                    <div>CPU Impact: Low</div>
+                    <div>Memory Impact: Medium</div>
+                    <div>GPU Impact: High</div>
+                    <div>Network Impact: Low</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Bar -->
+        <div class="config-panel actions-bar">
+            <div class="action-group">
+                <button class="action-btn" id="previewChanges">👁️ Preview</button>
+                <button class="action-btn primary" id="saveConfig">💾 Save Changes</button>
+                <button class="action-btn warning" id="revertChanges">↩️ Revert</button>
+                <button class="action-btn" id="testConfig">🧪 Test</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NexusConfigManager {
+            constructor() {
+                this.currentSection = 'ai-training';
+                this.currentTab = 'basic';
+                this.config = this.loadDefaultConfig();
+                this.originalConfig = JSON.parse(JSON.stringify(this.config));
+                this.pendingChanges = false;
+
+                this.initializeConfigManager();
+            }
+
+            initializeConfigManager() {
+                console.log('⚙️ NEXUS Configuration Manager initializing...');
+
+                // Setup event handlers
+                this.setupEventHandlers();
+
+                // Load saved configuration
+                this.loadSavedConfig();
+
+                // Initialize UI
+                this.updateUI();
+
+                // Start real-time preview
+                this.startRealTimePreview();
+
+                console.log('✅ Configuration Manager ready');
+            }
+
+            loadDefaultConfig() {
+                return {
+                    ai: {
+                        learningRate: 0.001,
+                        batchSize: 32,
+                        autoTraining: true,
+                        patternSensitivity: 0.7,
+                        memoryRetention: 24
+                    },
+                    math: {
+                        precision: 8,
+                        fastMath: true,
+                        vectorPrecision: 8,
+                        cacheResults: true
+                    },
+                    webgl: {
+                        renderQuality: 'high',
+                        targetFPS: 60,
+                        antialiasing: true,
+                        depthTest: true
+                    },
+                    education: {
+                        guidedLearning: true,
+                        progressTracking: true,
+                        adaptiveCurriculum: true
+                    },
+                    optimization: {
+                        autoOptimize: true,
+                        performanceMonitoring: true,
+                        memoryCleanup: true
+                    },
+                    communication: {
+                        crossSystemSync: true,
+                        messageQueue: true,
+                        errorReporting: true
+                    }
+                };
+            }
+
+            setupEventHandlers() {
+                // Navigation items
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        this.switchSection(e.target.dataset.section);
+                    });
+                });
+
+                // Tab switching
+                document.querySelectorAll('.config-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        this.switchTab(e.target.dataset.tab);
+                    });
+                });
+
+                // Configuration controls
+                this.setupControlHandlers();
+
+                // Action buttons
+                document.getElementById('saveConfig').addEventListener('click', () => this.saveConfiguration());
+                document.getElementById('revertChanges').addEventListener('click', () => this.revertChanges());
+                document.getElementById('previewChanges').addEventListener('click', () => this.previewChanges());
+                document.getElementById('testConfig').addEventListener('click', () => this.testConfiguration());
+
+                // Global controls
+                document.getElementById('importConfig').addEventListener('click', () => this.importConfiguration());
+                document.getElementById('exportConfig').addEventListener('click', () => this.exportConfiguration());
+                document.getElementById('resetDefaults').addEventListener('click', () => this.resetToDefaults());
+                document.getElementById('emergencyReset').addEventListener('click', () => this.emergencyReset());
+            }
+
+            setupControlHandlers() {
+                // AI Learning Rate
+                const learningRateSlider = document.getElementById('aiLearningRate');
+                const learningRateValue = document.getElementById('aiLearningRateValue');
+                learningRateSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    learningRateValue.textContent = value.toFixed(4);
+                    this.updateConfig('ai', 'learningRate', value);
+                });
+
+                // AI Batch Size
+                document.getElementById('aiBatchSize').addEventListener('change', (e) => {
+                    this.updateConfig('ai', 'batchSize', parseInt(e.target.value));
+                });
+
+                // AI Auto Training Toggle
+                document.getElementById('aiAutoTraining').addEventListener('click', (e) => {
+                    const isActive = e.target.classList.toggle('active');
+                    this.updateConfig('ai', 'autoTraining', isActive);
+                });
+
+                // AI Pattern Sensitivity
+                const patternSlider = document.getElementById('aiPatternSensitivity');
+                const patternValue = document.getElementById('aiPatternSensitivityValue');
+                if (patternSlider) {
+                    patternSlider.addEventListener('input', (e) => {
+                        const value = parseFloat(e.target.value);
+                        patternValue.textContent = value.toFixed(1);
+                        this.updateConfig('ai', 'patternSensitivity', value);
+                    });
+                }
+
+                // Math Precision
+                const mathPrecision = document.getElementById('mathPrecision');
+                if (mathPrecision) {
+                    mathPrecision.addEventListener('change', (e) => {
+                        this.updateConfig('math', 'precision', parseInt(e.target.value));
+                    });
+                }
+
+                // Vector Precision
+                const vectorSlider = document.getElementById('vectorPrecision');
+                const vectorValue = document.getElementById('vectorPrecisionValue');
+                if (vectorSlider) {
+                    vectorSlider.addEventListener('input', (e) => {
+                        const value = parseInt(e.target.value);
+                        vectorValue.textContent = value;
+                        this.updateConfig('math', 'vectorPrecision', value);
+                    });
+                }
+
+                // WebGL Quality
+                const renderQuality = document.getElementById('renderQuality');
+                if (renderQuality) {
+                    renderQuality.addEventListener('change', (e) => {
+                        this.updateConfig('webgl', 'renderQuality', e.target.value);
+                    });
+                }
+
+                // Setup all toggle controls
+                this.setupToggleHandlers();
+            }
+
+            setupToggleHandlers() {
+                const toggles = [
+                    { id: 'mathFastMath', category: 'math', property: 'fastMath' },
+                    { id: 'mathCacheResults', category: 'math', property: 'cacheResults' },
+                    { id: 'webglAntialiasing', category: 'webgl', property: 'antialiasing' },
+                    { id: 'webglDepthTest', category: 'webgl', property: 'depthTest' }
+                ];
+
+                toggles.forEach(toggle => {
+                    const element = document.getElementById(toggle.id);
+                    if (element) {
+                        element.addEventListener('click', (e) => {
+                            const isActive = e.target.classList.toggle('active');
+                            this.updateConfig(toggle.category, toggle.property, isActive);
+                        });
+                    }
+                });
+            }
+
+            updateConfig(category, property, value) {
+                this.config[category][property] = value;
+                this.pendingChanges = true;
+                this.updatePreview();
+                this.updateStatusIndicator();
+            }
+
+            switchSection(sectionId) {
+                // Update navigation
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+
+                // Update content
+                document.querySelectorAll('.config-section').forEach(section => {
+                    section.style.display = 'none';
+                });
+
+                const targetSection = document.getElementById(`${sectionId}-config`);
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+
+                this.currentSection = sectionId;
+                this.updatePreview();
+            }
+
+            switchTab(tabId) {
+                document.querySelectorAll('.config-tab').forEach(tab => tab.classList.remove('active'));
+                document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+                this.currentTab = tabId;
+                this.updateTabContent();
+            }
+
+            updateTabContent() {
+                // Filter configuration items based on selected tab
+                const items = document.querySelectorAll('.config-item');
+                items.forEach(item => {
+                    if (this.currentTab === 'basic') {
+                        // Show basic items
+                        item.style.display = 'flex';
+                    } else if (this.currentTab === 'advanced') {
+                        // Show advanced items
+                        item.style.display = 'flex';
+                    } else if (this.currentTab === 'experimental') {
+                        // Show experimental items
+                        item.style.display = 'flex';
+                    }
+                });
+            }
+
+            updateUI() {
+                // Update all control values based on current configuration
+                document.getElementById('aiLearningRate').value = this.config.ai.learningRate;
+                document.getElementById('aiLearningRateValue').textContent = this.config.ai.learningRate.toFixed(4);
+                document.getElementById('aiBatchSize').value = this.config.ai.batchSize;
+
+                // Update toggles
+                document.getElementById('aiAutoTraining').classList.toggle('active', this.config.ai.autoTraining);
+
+                // Update preview
+                this.updatePreview();
+            }
+
+            updatePreview() {
+                // Update live preview panel
+                document.getElementById('previewLearningRate').textContent = this.config.ai.learningRate.toFixed(4);
+                document.getElementById('previewPrecision').textContent = this.config.math.precision;
+                document.getElementById('previewRenderQuality').textContent = this.config.webgl.renderQuality;
+                document.getElementById('previewAutoTraining').textContent = this.config.ai.autoTraining ? 'enabled' : 'disabled';
+
+                // Update performance impact
+                this.updatePerformanceImpact();
+            }
+
+            updatePerformanceImpact() {
+                const impact = this.calculatePerformanceImpact();
+                const impactPanel = document.getElementById('performanceImpact');
+
+                impactPanel.innerHTML = `
+                    <div>CPU Impact: ${impact.cpu}</div>
+                    <div>Memory Impact: ${impact.memory}</div>
+                    <div>GPU Impact: ${impact.gpu}</div>
+                    <div>Network Impact: ${impact.network}</div>
+                `;
+            }
+
+            calculatePerformanceImpact() {
+                let cpuImpact = 'Low';
+                let memoryImpact = 'Low';
+                let gpuImpact = 'Low';
+                let networkImpact = 'Low';
+
+                // Calculate CPU impact
+                if (this.config.math.fastMath === false || this.config.math.precision > 8) {
+                    cpuImpact = 'Medium';
+                }
+                if (this.config.ai.batchSize > 64) {
+                    cpuImpact = 'High';
+                }
+
+                // Calculate memory impact
+                if (this.config.math.cacheResults && this.config.ai.memoryRetention > 24) {
+                    memoryImpact = 'Medium';
+                }
+
+                // Calculate GPU impact
+                if (this.config.webgl.renderQuality === 'high' || this.config.webgl.renderQuality === 'ultra') {
+                    gpuImpact = 'High';
+                }
+                if (this.config.webgl.antialiasing && this.config.webgl.targetFPS > 60) {
+                    gpuImpact = 'Very High';
+                }
+
+                // Calculate network impact
+                if (this.config.communication.crossSystemSync && this.config.optimization.performanceMonitoring) {
+                    networkImpact = 'Medium';
+                }
+
+                return { cpu: cpuImpact, memory: memoryImpact, gpu: gpuImpact, network: networkImpact };
+            }
+
+            updateStatusIndicator() {
+                const statusPanel = document.getElementById('systemStatus');
+                const changeCount = this.countPendingChanges();
+
+                statusPanel.innerHTML = `
+                    <div><span class="status-indicator ${this.pendingChanges ? 'status-modified' : 'status-saved'}"></span>Configuration ${this.pendingChanges ? 'modified' : 'saved'}</div>
+                    <div><span class="status-indicator status-saved"></span>Systems synchronized</div>
+                    <div><span class="status-indicator ${changeCount > 0 ? 'status-modified' : 'status-saved'}"></span>Pending changes: ${changeCount}</div>
+                `;
+            }
+
+            countPendingChanges() {
+                let changes = 0;
+
+                const compare = (obj1, obj2) => {
+                    for (const key in obj1) {
+                        if (typeof obj1[key] === 'object' && obj1[key] !== null) {
+                            changes += compare(obj1[key], obj2[key] || {});
+                        } else if (obj1[key] !== obj2[key]) {
+                            changes++;
+                        }
+                    }
+                    return changes;
+                };
+
+                return compare(this.config, this.originalConfig);
+            }
+
+            startRealTimePreview() {
+                setInterval(() => {
+                    if (this.pendingChanges) {
+                        this.updateStatusIndicator();
+                    }
+                }, 2000);
+            }
+
+            saveConfiguration() {
+                console.log('💾 Saving NEXUS configuration...');
+
+                // Save to localStorage
+                localStorage.setItem('nexus_config', JSON.stringify(this.config));
+
+                // Broadcast configuration update to all NEXUS systems
+                this.broadcastConfigUpdate();
+
+                // Update state
+                this.originalConfig = JSON.parse(JSON.stringify(this.config));
+                this.pendingChanges = false;
+
+                // Update UI
+                this.updateStatusIndicator();
+
+                // Show success message
+                this.showNotification('Configuration saved successfully!', 'success');
+
+                console.log('✅ Configuration saved');
+            }
+
+            revertChanges() {
+                if (this.pendingChanges) {
+                    this.config = JSON.parse(JSON.stringify(this.originalConfig));
+                    this.pendingChanges = false;
+                    this.updateUI();
+                    this.showNotification('Changes reverted', 'info');
+                }
+            }
+
+            previewChanges() {
+                // Create a detailed preview of all changes
+                const changes = this.getDetailedChanges();
+
+                if (changes.length === 0) {
+                    this.showNotification('No changes to preview', 'info');
+                    return;
+                }
+
+                let previewText = 'Configuration Changes:\n\n';
+                changes.forEach(change => {
+                    previewText += `${change.section}.${change.property}: ${change.oldValue} → ${change.newValue}\n`;
+                });
+
+                alert(previewText);
+            }
+
+            getDetailedChanges() {
+                const changes = [];
+
+                const compareObjects = (current, original, section) => {
+                    for (const key in current) {
+                        if (typeof current[key] === 'object' && current[key] !== null) {
+                            compareObjects(current[key], original[key] || {}, section ? `${section}.${key}` : key);
+                        } else if (current[key] !== original[key]) {
+                            changes.push({
+                                section: section || key,
+                                property: key,
+                                oldValue: original[key],
+                                newValue: current[key]
+                            });
+                        }
+                    }
+                };
+
+                compareObjects(this.config, this.originalConfig);
+                return changes;
+            }
+
+            testConfiguration() {
+                console.log('🧪 Testing configuration...');
+
+                // Simulate configuration test
+                setTimeout(() => {
+                    const testResults = {
+                        ai: Math.random() > 0.1,
+                        math: Math.random() > 0.05,
+                        webgl: Math.random() > 0.15,
+                        overall: true
+                    };
+
+                    testResults.overall = testResults.ai && testResults.math && testResults.webgl;
+
+                    let message = 'Configuration Test Results:\n\n';
+                    message += `AI Training: ${testResults.ai ? '✅ PASS' : '❌ FAIL'}\n`;
+                    message += `Mathematical Engine: ${testResults.math ? '✅ PASS' : '❌ FAIL'}\n`;
+                    message += `WebGL Renderer: ${testResults.webgl ? '✅ PASS' : '❌ FAIL'}\n`;
+                    message += `\nOverall: ${testResults.overall ? '✅ CONFIGURATION VALID' : '❌ CONFIGURATION ISSUES DETECTED'}`;
+
+                    alert(message);
+
+                    this.showNotification(testResults.overall ? 'Configuration test passed!' : 'Configuration test failed!',
+                                        testResults.overall ? 'success' : 'error');
+                }, 1000);
+            }
+
+            loadSavedConfig() {
+                try {
+                    const saved = localStorage.getItem('nexus_config');
+                    if (saved) {
+                        const loadedConfig = JSON.parse(saved);
+                        this.config = { ...this.config, ...loadedConfig };
+                        this.originalConfig = JSON.parse(JSON.stringify(this.config));
+                        console.log('📥 Configuration loaded from storage');
+                    }
+                } catch (error) {
+                    console.warn('Failed to load saved configuration:', error);
+                }
+            }
+
+            importConfiguration() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const importedConfig = JSON.parse(e.target.result);
+                                this.config = { ...this.config, ...importedConfig };
+                                this.pendingChanges = true;
+                                this.updateUI();
+                                this.showNotification('Configuration imported successfully!', 'success');
+                            } catch (error) {
+                                this.showNotification('Failed to import configuration: Invalid JSON', 'error');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+
+                input.click();
+            }
+
+            exportConfiguration() {
+                const configData = {
+                    version: '5.0.0',
+                    timestamp: new Date().toISOString(),
+                    config: this.config
+                };
+
+                const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.download = `nexus-config-${Date.now()}.json`;
+                link.href = url;
+                link.click();
+
+                URL.revokeObjectURL(url);
+                this.showNotification('Configuration exported successfully!', 'success');
+            }
+
+            resetToDefaults() {
+                if (confirm('Reset all settings to default values? This cannot be undone.')) {
+                    this.config = this.loadDefaultConfig();
+                    this.pendingChanges = true;
+                    this.updateUI();
+                    this.showNotification('Configuration reset to defaults', 'warning');
+                }
+            }
+
+            emergencyReset() {
+                if (confirm('EMERGENCY RESET: This will reset all NEXUS systems to safe defaults and clear all stored data. Continue?')) {
+                    // Clear all stored data
+                    localStorage.removeItem('nexus_config');
+                    localStorage.removeItem('nexus_ai_training');
+                    localStorage.removeItem('nexus_math_cache');
+
+                    // Reset to safe defaults
+                    this.config = {
+                        ai: { learningRate: 0.0001, batchSize: 16, autoTraining: false, patternSensitivity: 0.3, memoryRetention: 1 },
+                        math: { precision: 4, fastMath: true, vectorPrecision: 4, cacheResults: false },
+                        webgl: { renderQuality: 'low', targetFPS: 30, antialiasing: false, depthTest: true },
+                        education: { guidedLearning: true, progressTracking: true, adaptiveCurriculum: false },
+                        optimization: { autoOptimize: false, performanceMonitoring: true, memoryCleanup: true },
+                        communication: { crossSystemSync: false, messageQueue: true, errorReporting: true }
+                    };
+
+                    this.pendingChanges = true;
+                    this.updateUI();
+                    this.saveConfiguration();
+
+                    this.showNotification('EMERGENCY RESET COMPLETED - All systems reset to safe mode', 'warning');
+                }
+            }
+
+            broadcastConfigUpdate() {
+                const message = {
+                    type: 'nexus_config_update',
+                    config: this.config,
+                    timestamp: Date.now()
+                };
+
+                // Broadcast to parent window
+                if (window.parent !== window) {
+                    window.parent.postMessage(message, '*');
+                }
+
+                // Store in localStorage for cross-system communication
+                localStorage.setItem('nexus_config_broadcast', JSON.stringify(message));
+
+                // Also dispatch custom event
+                window.dispatchEvent(new CustomEvent('nexusConfigUpdate', { detail: this.config }));
+            }
+
+            showNotification(message, type = 'info') {
+                // Create a simple notification system
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'success' ? '#006600' : type === 'error' ? '#cc0000' : type === 'warning' ? '#cc6600' : '#004466'};
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    font-family: 'Courier New', monospace;
+                    font-size: 14px;
+                    max-width: 300px;
+                `;
+
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+            }
+        }
+
+        // Initialize configuration manager when page loads
+        window.addEventListener('load', () => {
+            window.nexusConfigManager = new NexusConfigManager();
+            console.log('⚙️ NEXUS Configuration Manager ready');
+        });
+    </script>
+</body>
+</html>

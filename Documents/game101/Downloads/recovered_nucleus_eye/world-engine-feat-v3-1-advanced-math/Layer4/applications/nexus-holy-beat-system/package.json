@@ -1,0 +1,22 @@
+{
+  "name": "nexus-holy-beat-system",
+  "version": "1.0.0",
+  "description": "NEXUS Holy Beat - Unified Mathematical Synthesis Engine",
+  "type": "module",
+  "main": "demos/master-demo.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js --dev",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": ["nexus", "holy-beat", "synthesis", "audio", "art", "3d", "ml"],
+  "author": "Colten",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.157.0",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

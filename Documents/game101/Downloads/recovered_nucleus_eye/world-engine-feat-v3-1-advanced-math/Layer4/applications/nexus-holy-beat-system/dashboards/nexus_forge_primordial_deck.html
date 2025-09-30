@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>NEXUS FORGE PRIMORDIAL DECK — Ultimate Development Intelligence</title>
+<style>
+  :root{
+    /* Core color scheme - enhanced with quantum theme */
+    --bg:#07140F;         /* canvas */
+    --panel:#0B1E17;      /* card */
+    --panel-2:#0A1A14;    /* darker */
+    --line:#123126;       /* outlines */
+    --ink:#C9F7DB;        /* text */
+    --mut:#8FDAAF;        /* muted text */
+    --accent:#28F49B;     /* neon green */
+    --accent-2:#7CFCCB;   /* soft neon */
+    --quantum:#00ff7f;    /* quantum effects */
+    --pain-high:#ff4757;  /* high pain */
+    --pain-med:#ffa502;   /* medium pain */
+    --pain-low:#26de81;   /* low pain */
+    --shadow:0 6px 20px rgba(0,0,0,.35);
+
+    /* Layout sizes saved/restored via JS (px) */
+    --col1:340px;   /* left nav + pain clusters */
+    --col3:420px;   /* right intelligence panel */
+    --row1:62vh;    /* top band */
+    --dockH:48px;   /* bottom dock */
+    --topH:52px;    /* top bar */
+
+    /* Gutter size */
+    --gut:12px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:radial-gradient(1400px 700px at 70% -20%, #0f2a21 0%, #07140F 55%) fixed;
+    color:var(--ink);
+    font:14px/1.35 ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+    overflow:hidden; /* one-screen */
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Enhanced Top Bar with AI Status -------------------------------- */
+  .topbar{
+    height:var(--topH);
+    display:flex; align-items:center; gap:12px; padding:8px 12px 8px 10px;
+    backdrop-filter:saturate(140%) blur(8px);
+    background:rgba(8,18,14,.7);
+    border-bottom:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  .topbar::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg, transparent 0%, rgba(40,244,155,0.1) 50%, transparent 100%);
+    animation:scanline 4s ease-in-out infinite;
+  }
+  @keyframes scanline {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
+  .burger{
+    width:38px; height:38px; border-radius:12px;
+    display:grid; place-items:center;
+    background:linear-gradient(135deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    cursor:pointer;
+    transition:all 0.3s ease;
+  }
+  .burger:hover{
+    border-color:var(--accent);
+    box-shadow:0 0 10px rgba(40,244,155,0.3);
+  }
+  .brand{
+    font-weight:700;
+    letter-spacing:.3px;
+    color:var(--quantum);
+    text-shadow:0 0 8px rgba(0,255,127,0.4);
+    font-size:16px;
+  }
+  .pill{
+    flex:1; height:36px; border-radius:14px;
+    background:linear-gradient(135deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    display:flex; align-items:center; gap:8px; padding:0 14px;
+    transition:all 0.3s ease;
+  }
+  .pill:focus-within{
+    border-color:var(--accent);
+    box-shadow:0 0 12px rgba(40,244,155,0.2);
+  }
+  .pill input{
+    flex:1; background:transparent; border:0; outline:none;
+    color:var(--ink); font-size:14px;
+  }
+  .hint{color:var(--mut); font-size:12px; opacity:0.7;}
+
+  /* AI Status Indicators */
+  .ai-status {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .status-dot {
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    border:2px solid;
+    position:relative;
+  }
+  .status-dot.active {
+    background:var(--quantum);
+    border-color:var(--quantum);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  .status-dot.processing {
+    background:var(--pain-med);
+    border-color:var(--pain-med);
+    animation:spin 1s linear infinite;
+  }
+  .status-dot.idle {
+    background:transparent;
+    border-color:var(--mut);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.6; transform:scale(1.1); }
+  }
+  @keyframes spin {
+    from { transform:rotate(0deg); }
+    to { transform:rotate(360deg); }
+  }
+
+  /* Grid frame with quantum effects ------------------------------- */
+  .frame{
+    position:absolute; inset:var(--topH) 0 var(--dockH) 0;
+    padding:12px;
+    background:radial-gradient(circle at 20% 80%, rgba(40,244,155,0.03) 0%, transparent 50%);
+  }
+  .grid{
+    height:100%; width:100%;
+    display:grid; gap:var(--gut);
+    grid-template-columns: var(--col1) var(--gut) minmax(400px, 1fr) var(--gut) var(--col3);
+    grid-template-rows: var(--row1) var(--gut) minmax(160px, 1fr);
+    grid-template-areas:
+      "nav v1 quantum v2 intel"
+      "nav v1 h1      v2 intel"
+      "rune v1 activity v2 control";
+  }
+
+  .card{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+    backdrop-filter:blur(4px);
+  }
+  .card::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(135deg, rgba(40,244,155,0.05) 0%, transparent 30%);
+    pointer-events:none;
+  }
+
+  /* Enhanced Card Areas ------------------------------------------- */
+  .nav     { grid-area:nav;      }
+  .quantum { grid-area:quantum;  display:flex; flex-direction:column; }
+  .intel   { grid-area:intel;    }
+  .rune    { grid-area:rune;     }
+  .activity{ grid-area:activity; }
+  .control { grid-area:control;  }
+
+  /* Gutter strips with quantum glow ----------------------------- */
+  .v1, .v2, .h1{
+    background:transparent;
+    position:relative;
+  }
+  .v1{ grid-area:v1; cursor:col-resize; }
+  .v2{ grid-area:v2; cursor:col-resize; }
+  .h1{ grid-area:h1; cursor:row-resize; }
+
+  .handle{
+    position:absolute; inset:0; display:grid; place-items:center;
+    pointer-events:none;
+  }
+  .handle > div{
+    pointer-events:auto;
+    background:linear-gradient(135deg, rgba(40,244,155,0.4), rgba(124,252,203,0.2));
+    border:1px solid var(--accent);
+    border-radius:10px;
+    transition:all 0.2s ease;
+    opacity:.5;
+    box-shadow:0 0 8px rgba(40,244,155,0.2);
+  }
+  .v1 .handle > div, .v2 .handle > div{ width:6px; height:50%; }
+  .h1 .handle > div{ height:6px; width:50%; }
+  .v1:hover .handle > div, .v2:hover .handle > div, .h1:hover .handle > div{
+    opacity:1;
+    transform:scale(1.1);
+    box-shadow:0 0 16px rgba(40,244,155,0.4);
+  }
+
+  /* Section headers with quantum styling ------------------------- */
+  .section-title{
+    font-weight:700;
+    color:var(--accent-2);
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(40,244,155,0.1), transparent);
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-icon {
+    font-size:16px;
+  }
+  .pad{ padding:12px 16px; color:var(--mut); line-height:1.4; }
+
+  /* Enhanced bottom dock with AI controls ----------------------- */
+  .dock{
+    position:absolute; left:0; right:0; bottom:0; height:var(--dockH);
+    background:linear-gradient(180deg, rgba(8,18,14,.3), rgba(8,18,14,.7));
+    border-top:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; padding:8px 12px;
+    backdrop-filter:saturate(140%) blur(8px);
+  }
+  .dock .tab{
+    height:36px; padding:0 16px; display:grid; place-items:center;
+    border:1px solid var(--line); border-radius:12px;
+    background:linear-gradient(135deg, var(--panel), var(--panel-2));
+    color:var(--ink);
+    cursor:pointer;
+    transition:all 0.3s ease;
+    font-size:13px;
+    font-weight:500;
+  }
+  .dock .tab:hover{
+    border-color:var(--accent);
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    color:var(--bg);
+    transform:translateY(-2px);
+  }
+  .dock .tab.active{
+    background:var(--quantum);
+    color:var(--bg);
+    box-shadow:0 0 12px rgba(0,255,127,0.3);
+  }
+  .spacer{flex:1}
+
+  /* AI Meters and Visualizations -------------------------------- */
+  .meter-group {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .meter{
+    height:10px; width:120px; border-radius:999px;
+    background:#0d2c22; border:1px solid var(--line);
+    overflow:hidden;
+    position:relative;
+  }
+  .meter > .fill{
+    display:block; height:100%;
+    background:linear-gradient(90deg, var(--quantum), var(--accent-2));
+    transition:width 0.3s ease;
+    box-shadow:0 0 8px rgba(0,255,127,0.3);
+  }
+  .meter-label {
+    font-size:11px;
+    color:var(--mut);
+    min-width:60px;
+  }
+
+  /* Pain Cluster Styling ---------------------------------------- */
+  .pain-clusters-container {
+    max-height:400px;
+    overflow-y:auto;
+    padding:8px 12px;
+  }
+  .cluster-item {
+    background:linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:8px;
+    border-left:4px solid var(--pain-low);
+    transition:all 0.3s ease;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+  }
+  .cluster-item::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.05) 100%);
+    opacity:0;
+    transition:opacity 0.3s ease;
+  }
+  .cluster-item:hover::before {
+    opacity:1;
+  }
+  .cluster-item:hover {
+    transform:translateX(6px) scale(1.02);
+    box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  }
+  .cluster-item.high-pain {
+    border-left-color:var(--pain-high);
+    box-shadow:0 0 12px rgba(255,71,87,0.2);
+  }
+  .cluster-item.medium-pain {
+    border-left-color:var(--pain-med);
+  }
+  .cluster-item.low-pain {
+    border-left-color:var(--pain-low);
+  }
+
+  /* Quantum Canvas Styling -------------------------------------- */
+  .quantum-canvas-container {
+    flex:1;
+    background:rgba(0,0,0,0.4);
+    border-radius:12px;
+    border:1px solid rgba(0,255,127,0.2);
+    position:relative;
+    overflow:hidden;
+    margin:8px;
+  }
+  #quantumCanvas {
+    width:100%;
+    height:100%;
+    display:block;
+    border-radius:12px;
+  }
+
+  /* Quantum Line Overlay ---------------------------------------- */
+  .line-overlay {
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    z-index:5;
+  }
+  .line-overlay.interactive {
+    pointer-events:auto;
+  }
+
+  .quantum-controls {
+    position:absolute;
+    top:12px;
+    right:12px;
+    display:flex;
+    gap:8px;
+    z-index:10;
+  }
+  .quantum-btn {
+    background:rgba(0,255,127,0.2);
+    border:1px solid var(--quantum);
+    color:var(--quantum);
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:11px;
+    transition:all 0.3s ease;
+    backdrop-filter:blur(4px);
+  }
+  .quantum-btn:hover {
+    background:rgba(0,255,127,0.4);
+    transform:scale(1.05);
+    box-shadow:0 0 12px rgba(0,255,127,0.3);
+  }
+
+  /* Intelligence Panel Styling ---------------------------------- */
+  .intel-section {
+    margin-bottom:16px;
+  }
+  .intel-metrics {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .intel-metric {
+    background:rgba(0,0,0,0.3);
+    padding:10px;
+    border-radius:8px;
+    text-align:center;
+    border:1px solid var(--line);
+  }
+  .intel-metric-value {
+    font-size:18px;
+    font-weight:bold;
+    color:var(--quantum);
+    margin-bottom:4px;
+  }
+  .intel-metric-label {
+    font-size:10px;
+    color:var(--mut);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width:6px;
+  }
+  ::-webkit-scrollbar-track {
+    background:var(--panel-2);
+  }
+  ::-webkit-scrollbar-thumb {
+    background:var(--line);
+    border-radius:3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background:var(--accent);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Enhanced Top Bar with AI Status -->
+  <div class="topbar">
+    <div class="burger" id="restoreBtn" title="Restore layout">⚡</div>
+    <div class="brand">🔥 NEXUS FORGE PRIMORDIAL DECK</div>
+    <div class="pill">
+      <span class="ghost">⌘K</span>
+      <input placeholder="AI Command Interface…" id="aiCommand" />
+      <span class="hint">quantum intelligence</span>
+    </div>
+    <div class="ai-status">
+      <div class="status-dot active" id="quantumStatus" title="Quantum Engine"></div>
+      <div class="status-dot processing" id="aiStatus" title="AI Processing"></div>
+      <div class="status-dot active" id="vectorStatus" title="VectorLab"></div>
+    </div>
+    <button class="quantum-btn" id="saveBtn" title="Save layout">💾 Save</button>
+  </div>
+
+  <!-- Main Frame -->
+  <div class="frame">
+    <div class="grid">
+      <!-- Left Navigation & Pain Clusters -->
+      <div class="card nav">
+        <div class="section-title">
+          <span class="section-icon">🧭</span>
+          Navigator & Pain Clusters
+        </div>
+        <div class="pain-clusters-container" id="painClustersContainer">
+          <!-- Pain clusters will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Vertical gutter 1 -->
+      <div class="v1">
+        <div class="handle"><div id="gV1"></div></div>
+      </div>
+
+      <!-- Center Quantum Visualization -->
+      <div class="card quantum">
+        <div class="section-title">
+          <span class="section-icon">🌌</span>
+          Quantum Intelligence Visualization
+          <div class="ai-status" style="margin-left:auto;">
+            <div class="status-dot" id="quantumEngineStatus"></div>
+            <div class="status-dot" id="lineManagerStatus"></div>
+          </div>
+        </div>
+        <div class="quantum-canvas-container">
+          <canvas id="quantumCanvas"></canvas>
+          <svg id="quantumLineOverlay" class="line-overlay"></svg>
+          <div class="quantum-controls">
+            <button class="quantum-btn" onclick="try { ingestMockPain(); } catch(e) { console.error(\'Button error:\', e); }">⚡ Ingest Pain</button>
+            <button class="quantum-btn" onclick="try { triggerClustering(); } catch(e) { console.error(\'Button error:\', e); }">🔄 Cluster</button>
+            <button class="quantum-btn" onclick="try { generateIntelligence(); } catch(e) { console.error(\'Button error:\', e); }">🧠 Analyze</button>
+            <button class="quantum-btn" id="lineToggleBtn" onclick="try { toggleLineDrawingMode(); } catch(e) { console.error(\'Button error:\', e); }">📏 Lines</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vertical gutter 2 -->
+      <div class="v2">
+        <div class="handle"><div id="gV2"></div></div>
+      </div>
+
+      <!-- Right Intelligence Panel -->
+      <div class="card intel">
+        <div class="section-title">
+          <span class="section-icon">🧠</span>
+          AI Intelligence Dashboard
+        </div>
+        <div class="pad">
+          <!-- System Health Metrics -->
+          <div class="intel-section">
+            <div class="intel-metrics" id="systemHealthMetrics">
+              <div class="intel-metric">
+                <div class="intel-metric-value" id="codeQuality">0.85</div>
+                <div class="intel-metric-label">Code Quality</div>
+              </div>
+              <div class="intel-metric">
+                <div class="intel-metric-value" id="userSatisfaction">0.72</div>
+                <div class="intel-metric-label">User Satisfaction</div>
+              </div>
+              <div class="intel-metric">
+                <div class="intel-metric-value" id="devVelocity">0.91</div>
+                <div class="intel-metric-label">Dev Velocity</div>
+              </div>
+              <div class="intel-metric">
+                <div class="intel-metric-value" id="techDebt">0.43</div>
+                <div class="intel-metric-label">Technical Debt</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Recommendations -->
+          <div class="intel-section">
+            <h3 style="color:var(--accent-2); font-size:13px; margin-bottom:8px;">🎯 AI Recommendations</h3>
+            <div id="aiRecommendations">
+              <!-- AI recommendations will be populated here -->
+            </div>
+          </div>
+
+          <!-- Burst Detection -->
+          <div class="intel-section">
+            <h3 style="color:var(--pain-med); font-size:13px; margin-bottom:8px;">📈 Trend Analysis</h3>
+            <div style="background:rgba(255,165,0,0.1); padding:10px; border-radius:8px; border:1px solid var(--pain-med);">
+              <div style="font-weight:bold; color:var(--pain-med);">Burst Score: <span id="burstScore">1.2x</span></div>
+              <div style="font-size:12px; margin-top:4px; opacity:0.8;">
+                <strong>Trending:</strong> <span id="trendingTopics">webhook failures, onboarding</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Horizontal gutter -->
+      <div class="h1">
+        <div class="handle"><div id="gH1"></div></div>
+      </div>
+
+      <!-- Bottom left: Rune Grid System -->
+      <div class="card rune">
+        <div class="section-title">
+          <span class="section-icon">⚡</span>
+          Rune Grid & Hot Patch
+          <div class="ai-status" style="margin-left:auto;">
+            <div class="status-dot" id="runeGridStatus"></div>
+          </div>
+        </div>
+        <div class="pad">
+          <div class="rune-grid-controls" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+            <button class="quantum-btn" id="runeConnect" onclick="try { connectRuneGrid(); } catch(e) { console.error(\'Button error:\', e); }">🔗 Connect</button>
+            <button class="quantum-btn" id="runeClear" onclick="try { clearRuneGrid(); } catch(e) { console.error(\'Button error:\', e); }">🧹 Clear</button>
+            <button class="quantum-btn" id="runeExport" onclick="try { exportRuneConfig(); } catch(e) { console.error(\'Button error:\', e); }">💾 Export</button>
+            <span style="font-size:11px; color:var(--mut); margin-left:auto;" id="runeGridStats">
+              Files: 0 | Wires: 0 | Patches: 0
+            </span>
+          </div>
+          <div class="rune-grid-content" style="background:rgba(0,0,0,0.4); border-radius:8px; padding:8px;">
+            <!-- Rune grid canvas will be inserted here by JavaScript -->
+            <div id="runeGridContainer" style="display:flex; justify-content:center;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom center: Activity & Logs -->
+      <div class="card activity">
+        <div class="section-title">
+          <span class="section-icon">📊</span>
+          Activity Stream & System Logs
+        </div>
+        <div class="pad" style="font-family:ui-monospace; font-size:12px;">
+          <div id="activityLog" style="max-height:120px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px;">
+            <div style="color:var(--quantum);">🔥 NEXUS FORGE PRIMORDIAL initialized</div>
+            <div style="color:var(--accent-2); margin-top:4px;">🌌 Quantum Engine connected</div>
+            <div style="color:var(--accent-2); margin-top:4px;">🧬 VectorLab synchronized</div>
+            <div style="color:var(--mut); margin-top:4px;">🤖 AI patterns loaded</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom right: VortexLab Animation Engine -->
+      <div class="card control">
+        <div class="section-title">
+          <span class="section-icon">�</span>
+          VortexLab Animation Engine
+          <div class="ai-status" style="margin-left:auto;">
+            <div class="status-dot" id="vortexLabStatus"></div>
+          </div>
+        </div>
+        <div class="pad">
+          <div class="vortex-lab-container" style="background:rgba(0,0,0,0.4); border-radius:8px; margin-bottom:12px; height:200px;">
+            <div id="vortexLabCanvas" style="width:100%; height:100%;"></div>
+          </div>
+          <div class="vortex-controls" style="display:flex; gap:8px; margin-bottom:12px;">
+            <button class="quantum-btn" onclick="try { triggerVortexBurst(); } catch(e) { console.error(\'Button error:\', e); }" style="flex:1;">💥 Burst</button>
+            <button class="quantum-btn" onclick="try { injectVortexEnergy(); } catch(e) { console.error(\'Button error:\', e); }" style="flex:1;">⚡ Energy</button>
+            <button class="quantum-btn" onclick="try { resetVortexLab(); } catch(e) { console.error(\'Button error:\', e); }" style="flex:1;">🔄 Reset</button>
+          </div>
+          <div style="border-top:1px solid var(--line); padding-top:8px;">
+            <div style="font-size:10px; color:var(--mut); display:flex; justify-content:space-between;">
+              <span id="vortexStats">Limbs: 6 | Energy: 1.0</span>
+              <span id="vortexActivity">Resonance: 0.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Bottom Dock with AI Controls -->
+  <div class="dock">
+    <div class="tab" id="smallerDock">▾ Dock</div>
+    <div class="tab active" id="aiConsole">🤖 AI Console</div>
+    <div class="tab" id="quantumTab">🌌 Quantum</div>
+    <div class="tab" id="runeTab">⚡ Runes</div>
+    <div class="tab" id="painTab">🔍 Pain Analysis</div>
+    <div class="spacer"></div>
+    <div class="meter-group">
+      <span class="meter-label">AI Load</span>
+      <div class="meter"><i class="fill" style="width:60%"></i></div>
+    </div>
+    <div class="tab" id="biggerDock">▴</div>
+  </div>
+
+  <!-- Load core engines -->
+  <script src="nexus_forge_primordial.js"></script>
+  <script src="quantum_graphics_engine.js"></script>
+  <script src="quantum_line_manager.js"></script>
+  <script src="rune_grid_hot_patch.js"></script>
+  <script src="vortex_lab_animation.js"></script>
+
+  <script>
+    // Enhanced integration script with all the advanced features
+    let nexusForge, quantumEngine, quantumLineManager, runeGridSystem, vortexLabEngine;
+    let canvas, ctx;
+    let activeDrawingMode = false;
+
+    // Layout management (from original Nexus Deck)
+    const $ = sel => document.querySelector(sel);
+    const css = (k,v) => document.documentElement.style.setProperty(k, v);
+    const getVarPx = name => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+    const KEYS = { col1:'--col1', col3:'--col3', row1:'--row1', dockH:'--dockH' };
+    const STORE_KEY = 'nexus-forge-layout-v1';
+
+    function log(message, type = 'info') {
+      const activityLog = $('#activityLog');
+      const colors = {
+        info: 'var(--ink)',
+        success: 'var(--quantum)',
+        warning: 'var(--pain-med)',
+        error: 'var(--pain-high)',
+        ai: 'var(--accent-2)'
+      };
+
+      const div = document.createElement('div');
+      div.style.color = colors[type] || colors.info;
+      div.style.marginTop = '4px';
+      div.textContent = `${new Date().toLocaleTimeString()} • ${message}`;
+      activityLog.appendChild(div);
+      activityLog.scrollTop = activityLog.scrollHeight;
+    }
+
+    function saveLayout(){
+      const data = {
+        col1: getComputedStyle(document.documentElement).getPropertyValue('--col1').trim(),
+        col3: getComputedStyle(document.documentElement).getPropertyValue('--col3').trim(),
+        row1: getComputedStyle(document.documentElement).getPropertyValue('--row1').trim(),
+        dockH: getComputedStyle(document.documentElement).getPropertyValue('--dockH').trim()
+      };
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      log('Layout saved', 'success');
+    }
+
+    function restoreLayout(){
+      const raw = localStorage.getItem(STORE_KEY);
+      if(!raw) { log('No saved layout found'); return; }
+      try{
+        const data = JSON.parse(raw);
+        Object.entries(data).forEach(([k,v])=> css('--'+k, v));
+        log('Layout restored', 'success');
+      }catch(e){ log('Layout restore failed', 'error'); }
+    }
+
+    // Drag logic for gutters (enhanced)
+    function bindVerticalGutter(handleId, side){
+      const el = document.getElementById(handleId);
+      let down=false, startX=0, startVal=0;
+      el.addEventListener('mousedown', (e)=>{
+        down=true; startX=e.clientX;
+        startVal = getVarPx(side==='left'? KEYS.col1: KEYS.col3);
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if(!down) return;
+        const dx = e.clientX - startX;
+        const newPx = side==='left' ? clamp(startVal + dx, 200, 600)
+                                     : clamp(startVal - dx, 300, 700);
+        css(side==='left'? KEYS.col1: KEYS.col3, Math.round(newPx)+'px');
+      });
+      window.addEventListener('mouseup', ()=>{
+        if(down){
+          down=false;
+          saveLayout();
+          log(`${side} panel resized`, 'info');
+        }
+      });
+    }
+
+    function bindHorizontalGutter(handleId){
+      const el = document.getElementById(handleId);
+      let down=false, startY=0, startVal=0;
+      el.addEventListener('mousedown', (e)=>{
+        down=true; startY=e.clientY;
+        startVal = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(KEYS.row1));
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if(!down) return;
+        const dy = e.clientY - startY;
+        const basePx = window.innerHeight * 0.62;
+        const currentPx = (String(getComputedStyle(document.documentElement).getPropertyValue(KEYS.row1)).includes('vh'))
+          ? basePx : startVal;
+        const newPx = clamp(currentPx + dy, 200, window.innerHeight - 250);
+        css(KEYS.row1, newPx + 'px');
+      });
+      window.addEventListener('mouseup', ()=>{
+        if(down){
+          down=false;
+          saveLayout();
+          log('Horizontal layout adjusted', 'info');
+        }
+      });
+    }
+
+    // Initialize the mega system
+    function initializeNexusForge() {
+      // Canvas setup
+      canvas = document.getElementById('quantumCanvas');
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+
+      // Initialize status dots
+      updateStatusDot('quantumEngineStatus', 'idle');
+      updateStatusDot('lineManagerStatus', 'idle');
+
+      // Core engines
+      try {
+        nexusForge = initializeNexusForge ? new NexusForgeEngine() : null;
+        log('NEXUS FORGE AI Engine initialized', 'ai');
+      } catch (e) {
+        log('NEXUS FORGE not available - using mock system', 'warning');
+        nexusForge = createMockNexusForge();
+      }
+
+      try {
+        quantumEngine = new QuantumGraphicsEngine();
+        quantumEngine.initialize(canvas);
+        log('Quantum Graphics Engine initialized', 'success');
+        updateStatusDot('quantumEngineStatus', 'active');
+      } catch (e) {
+        log('Quantum Engine not available - using fallback', 'warning');
+        quantumEngine = createMockQuantumEngine();
+        updateStatusDot('quantumEngineStatus', 'idle');
+      }
+
+      // Initialize Quantum Line Manager
+      try {
+        quantumLineManager = new QuantumLineManager('quantumLineOverlay');
+        quantumLineManager.initializeOverlay(canvas.parentElement);
+
+        // Set up pain cluster integration
+        quantumLineManager.onLineCreated = (line) => {
+          log(`Line created: ${line.id} (${line.type})`, 'ai');
+          if (nexusForge && line.type === 'pain-cluster') {
+            nexusForge.associateLineWithCluster(line);
+          }
+        };
+
+        log('Quantum Line Manager initialized', 'success');
+        updateStatusDot('lineManagerStatus', 'idle');
+      } catch (e) {
+        log('Line Manager initialization failed', 'error');
+        updateStatusDot('lineManagerStatus', 'error');
+      }
+
+      // Initialize Rune Grid Hot-Patch System
+      try {
+        runeGridSystem = new RuneGridHotPatchSystem('runeGridContainer');
+
+        // Set up integration with NEXUS FORGE
+        window.addEventListener('rune-grid-hot-patch', (event) => {
+          const patch = event.detail;
+          log(`Hot patch detected: ${patch.file}`, 'ai');
+
+          if (nexusForge) {
+            nexusForge.processHotPatch(patch);
+          }
+        });
+
+        // Connect to quantum line manager
+        runeGridSystem.onNodeConnection = (fromNode, toNode) => {
+          if (quantumLineManager) {
+            quantumLineManager.createSystemConnection(fromNode, toNode, 'rune-grid');
+          }
+        };
+
+        log('Rune Grid Hot-Patch System initialized', 'success');
+        updateStatusDot('runeGridStatus', 'idle');
+        updateRuneGridStats();
+      } catch (e) {
+        log('Rune Grid initialization failed', 'error');
+        updateStatusDot('runeGridStatus', 'error');
+      }
+
+      // Initialize VortexLab Animation Engine
+      try {
+        vortexLabEngine = new VortexLabAnimationEngine('vortexLabCanvas', {
+          limbCount: 6,
+          centralRadius: 25,
+          limbLength: 80,
+          segmentCount: 6,
+          baseFrequency: 0.025
+        });
+
+        // Connect to AI intelligence updates
+        vortexLabEngine.updateAIMetrics(nexusForge ? {
+          codeQuality: 0.85,
+          userSatisfaction: 0.72,
+          developmentVelocity: 0.91,
+          technicalDebt: 0.43,
+          painLevel: 0.2,
+          burstActivity: 0.1
+        } : {
+          codeQuality: 0.5,
+          userSatisfaction: 0.5,
+          developmentVelocity: 0.5,
+          technicalDebt: 0.5,
+          painLevel: 0.5,
+          burstActivity: 0.1
+        });
+
+        log('VortexLab Animation Engine initialized', 'success');
+        updateStatusDot('vortexLabStatus', 'active');
+        updateVortexLabStats();
+      } catch (e) {
+        log('VortexLab initialization failed', 'error');
+        updateStatusDot('vortexLabStatus', 'error');
+      }
+
+      // Connect systems
+      if (nexusForge && quantumEngine) {
+        nexusForge.connectQuantumEngine(quantumEngine);
+        log('Engines connected successfully', 'ai');
+      }
+
+      // Mock VectorLab
+      const mockVectorLab = {
+        heartEngine: {
+          pulse: (intensity) => {
+            log(`VectorLab Heart pulse: ${intensity.toFixed(3)}`, 'ai');
+          }
+        }
+      };
+
+      if (nexusForge) {
+        nexusForge.connectVectorLabEngine(mockVectorLab);
+      }
+
+      startDemo();
+      log('🔥 NEXUS FORGE PRIMORDIAL DECK fully operational', 'success');
+    }
+
+    // Status indicator utility
+    function updateStatusDot(elementId, status) {
+      const dot = document.getElementById(elementId);
+      if (!dot) return;
+
+      dot.classList.remove('active', 'processing', 'idle');
+      dot.classList.add(status);
+    }
+
+    // Line drawing mode toggle
+    function toggleLineDrawingMode() {
+      if (!quantumLineManager) {
+        log('Line Manager not initialized', 'error');
+        return;
+      }
+
+      activeDrawingMode = !activeDrawingMode;
+      const btn = document.getElementById('lineToggleBtn');
+      const overlay = document.getElementById('quantumLineOverlay');
+
+      if (activeDrawingMode) {
+        quantumLineManager.setMode('click-to-connect');
+        overlay.classList.add('interactive');
+        btn.textContent = '🔗 Connect';
+        btn.style.background = 'var(--quantum)';
+        log('Line drawing mode: ACTIVE (click-to-connect)', 'ai');
+        updateStatusDot('lineManagerStatus', 'active');
+      } else {
+        quantumLineManager.setMode('none');
+        overlay.classList.remove('interactive');
+        btn.textContent = '📏 Lines';
+        btn.style.background = '';
+        log('Line drawing mode: DISABLED', 'info');
+        updateStatusDot('lineManagerStatus', 'idle');
+      }
+    }
+
+    // Rune Grid control functions
+    function connectRuneGrid() {
+      if (!runeGridSystem) {
+        log('Rune Grid system not initialized', 'error');
+        return;
+      }
+
+      // Demo: Watch some key project files
+      const demoFiles = [
+        { path: 'nexus_forge_primordial.js', x: 2, y: 2 },
+        { path: 'quantum_graphics_engine.js', x: 4, y: 2 },
+        { path: 'quantum_line_manager.js', x: 6, y: 2 },
+        { path: 'rune_grid_hot_patch.js', x: 8, y: 2 },
+        { path: 'nexus_forge_primordial_deck.html', x: 5, y: 4 }
+      ];
+
+      demoFiles.forEach(file => {
+        runeGridSystem.watchFile(file.path, { x: file.x, y: file.y });
+      });
+
+      // Create demo wire connections
+      runeGridSystem.createWire('nexus_forge_primordial.js', 'nexus_forge_primordial_deck.html', 'DATA_FLOW');
+      runeGridSystem.createWire('quantum_graphics_engine.js', 'nexus_forge_primordial_deck.html', 'DATA_FLOW');
+      runeGridSystem.createWire('quantum_line_manager.js', 'quantum_graphics_engine.js', 'DEPENDENCY');
+      runeGridSystem.createWire('rune_grid_hot_patch.js', 'nexus_forge_primordial.js', 'SYNC_LINE');
+
+      // Simulate some file changes
+      setTimeout(() => {
+        runeGridSystem.updateNodeState('nexus_forge_primordial.js', 'modified');
+        runeGridSystem.triggerHotPatch('nexus_forge_primordial.js', {
+          changeType: 'enhancement',
+          severity: 0.7,
+          data: { feature: 'AI clustering improvement' }
+        });
+      }, 2000);
+
+      updateStatusDot('runeGridStatus', 'active');
+      updateRuneGridStats();
+      log('Rune Grid connected with demo files', 'ai');
+    }
+
+    function clearRuneGrid() {
+      if (!runeGridSystem) return;
+
+      // Clear all watchers and wires
+      Array.from(runeGridSystem.watchedFiles.keys()).forEach(file => {
+        runeGridSystem.unwatchFile(file);
+      });
+
+      updateStatusDot('runeGridStatus', 'idle');
+      updateRuneGridStats();
+      log('Rune Grid cleared', 'info');
+    }
+
+    function exportRuneConfig() {
+      if (!runeGridSystem) return;
+
+      const config = runeGridSystem.exportConfiguration();
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rune-grid-config-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      log('Rune Grid configuration exported', 'success');
+    }
+
+    function updateRuneGridStats() {
+      if (!runeGridSystem) return;
+
+      const stats = runeGridSystem.getStats();
+      const statsElement = document.getElementById('runeGridStats');
+      if (statsElement) {
+        statsElement.textContent = `Files: ${stats.filesWatched} | Wires: ${stats.wiresActive} | Patches: ${stats.hotPatchesApplied}`;
+      }
+    }
+
+    // VortexLab control functions
+    function triggerVortexBurst() {
+      if (!vortexLabEngine) {
+        log('VortexLab engine not initialized', 'error');
+        return;
+      }
+
+      const burstIntensity = 0.8 + Math.random() * 0.4;
+      vortexLabEngine.triggerBurst(burstIntensity);
+      log(`VortexLab burst triggered: ${burstIntensity.toFixed(2)}`, 'ai');
+
+      // Update AI metrics to reflect burst activity
+      if (nexusForge) {
+        const currentMetrics = vortexLabEngine.aiMetrics;
+        vortexLabEngine.updateAIMetrics({
+          ...currentMetrics,
+          burstActivity: Math.min(1.0, currentMetrics.burstActivity + 0.3)
+        });
+      }
+    }
+
+    function injectVortexEnergy() {
+      if (!vortexLabEngine) return;
+
+      // Inject energy at a random point near the center
+      const centerX = vortexLabEngine.canvas.width / 2;
+      const centerY = vortexLabEngine.canvas.height / 2;
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 30 + Math.random() * 40;
+
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+
+      vortexLabEngine.injectEnergy(x, y, 0.6);
+      log(`Energy injected into VortexLab at (${x.toFixed(0)}, ${y.toFixed(0)})`, 'ai');
+    }
+
+    function resetVortexLab() {
+      if (!vortexLabEngine) return;
+
+      // Reset AI metrics to default values
+      vortexLabEngine.updateAIMetrics({
+        codeQuality: 0.85,
+        userSatisfaction: 0.72,
+        developmentVelocity: 0.91,
+        technicalDebt: 0.43,
+        painLevel: 0.2,
+        burstActivity: 0.1
+      });
+
+      // Reset vortex core
+      vortexLabEngine.vortexCore.resonance = 0.0;
+      vortexLabEngine.vortexCore.phase = 0.0;
+
+      log('VortexLab reset to default state', 'success');
+      updateVortexLabStats();
+    }
+
+    function updateVortexLabStats() {
+      if (!vortexLabEngine) return;
+
+      const stats = vortexLabEngine.getAnimationStats();
+      const statsElement = document.getElementById('vortexStats');
+      const activityElement = document.getElementById('vortexActivity');
+
+      if (statsElement) {
+        statsElement.textContent = `Limbs: ${stats.limbCount} | Energy: ${stats.coreEnergy}`;
+      }
+      if (activityElement) {
+        activityElement.textContent = `Resonance: ${stats.resonance}`;
+      }
+    }
+
+    function syncVortexWithAI() {
+      if (!vortexLabEngine || !nexusForge) return;
+
+      try {
+        const intelligence = nexusForge.generateIntelligence();
+        const systemHealth = intelligence.systemHealth;
+
+        // Map system health to VortexLab metrics
+        vortexLabEngine.updateAIMetrics({
+          codeQuality: systemHealth.codeQuality || 0.85,
+          userSatisfaction: systemHealth.userSatisfaction || 0.72,
+          developmentVelocity: systemHealth.developmentVelocity || 0.91,
+          technicalDebt: systemHealth.technicalDebt || 0.43,
+          painLevel: intelligence.painClusters?.reduce((avg, cluster) =>
+            avg + cluster.avgPain, 0) / (intelligence.painClusters?.length || 1) || 0.2,
+          burstActivity: intelligence.burstScore ? Math.min(1.0, intelligence.burstScore / 10) : 0.1
+        });
+
+        updateVortexLabStats();
+      } catch (e) {
+        console.warn('Failed to sync VortexLab with AI intelligence:', e);
+      }
+    }
+
+    function createMockNexusForge() {
+      return {
+        ingestPainEvent: (event) => {
+          log(`Mock pain event: ${event.text.slice(0, 50)}...`, 'warning');
+          return { pain: Math.random(), severity: Math.floor(Math.random() * 4) };
+        },
+        generateIntelligence: () => ({
+          painClusters: [
+            { id: '1', label: 'Mock webhook issues', avgPain: 0.8, count: 5 },
+            { id: '2', label: 'Mock database problems', avgPain: 0.6, count: 3 }
+          ],
+          systemHealth: {
+            codeQuality: 0.85,
+            userSatisfaction: 0.72,
+            developmentVelocity: 0.91,
+            technicalDebt: 0.43
+          },
+          recommendations: []
+        }),
+        detectBurst: () => ({ burstScore: 1.2, trendingTopics: ['mock', 'demo'] })
+      };
+    }
+
+    function createMockQuantumEngine() {
+      return {
+        render: () => {
+          // Simple mock visualization
+          ctx.fillStyle = 'rgba(0, 255, 127, 0.1)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#00ff7f';
+          const time = Date.now() * 0.001;
+          const x = canvas.width/2 + Math.sin(time) * 100;
+          const y = canvas.height/2 + Math.cos(time) * 50;
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      };
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+
+    function startDemo() {
+      // Initial pain events
+      const mockEvents = [
+        {
+          id: 'init_001',
+          time: new Date().toISOString(),
+          source: 'system',
+          text: 'System initialization complete - monitoring for pain patterns',
+          eng: 5
+        }
+      ];
+
+      mockEvents.forEach(event => {
+        if (nexusForge && typeof nexusForge.ingestPainEvent === 'function') {
+          nexusForge.ingestPainEvent(event);
+        }
+      });
+
+      updateIntelligenceDisplay();
+      animate();
+
+      // Periodic updates
+      setInterval(() => {
+        updateIntelligenceDisplay();
+        updateRuneGridStats();
+        updateVortexLabStats();
+        syncVortexWithAI();
+      }, 3000);
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (quantumEngine && typeof quantumEngine.render === 'function') {
+        quantumEngine.render(ctx);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function updateIntelligenceDisplay() {
+      if (!nexusForge) return;
+
+      try {
+        const intelligence = nexusForge.generateIntelligence();
+        const burst = nexusForge.detectBurst();
+
+        updatePainClusters(intelligence.painClusters);
+        updateSystemHealth(intelligence.systemHealth);
+        updateBurstDisplay(burst);
+
+        log('Intelligence dashboard updated', 'ai');
+      } catch (e) {
+        log('Failed to update intelligence display', 'error');
+      }
+    }
+
+    function updatePainClusters(clusters) {
+      const container = $('#painClustersContainer');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      clusters.forEach((cluster, index) => {
+        const div = document.createElement('div');
+        div.className = `cluster-item ${getPainLevel(cluster.avgPain)}`;
+        div.dataset.clusterId = cluster.id;
+        div.dataset.clusterIndex = index;
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="color:var(--accent-2);">Cluster ${cluster.id}</strong>
+            <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:8px; font-size:10px;">
+              ${cluster.avgPain.toFixed(3)}
+            </span>
+          </div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:4px;">${cluster.label}</div>
+          <div style="font-size:10px; opacity:0.6;">
+            ${cluster.count} events • Pain level: ${getPainLevel(cluster.avgPain).replace('-pain', '')}
+          </div>
+        `;
+
+        div.onclick = () => visualizeCluster(cluster);
+
+        // Add connection points for line manager
+        if (quantumLineManager && activeDrawingMode) {
+          div.addEventListener('mouseenter', () => {
+            quantumLineManager.highlightConnectionPoint(div, cluster);
+          });
+          div.addEventListener('mouseleave', () => {
+            quantumLineManager.clearHighlight();
+          });
+        }
+
+        container.appendChild(div);
+      });
+
+      // Update line manager with new cluster positions if available
+      if (quantumLineManager) {
+        quantumLineManager.updateConnectionPoints('painClusters', clusters);
+      }
+    }
+
+    function getPainLevel(pain) {
+      if (pain >= 0.7) return 'high-pain';
+      if (pain >= 0.4) return 'medium-pain';
+      return 'low-pain';
+    }
+
+    function updateSystemHealth(health) {
+      $('#codeQuality').textContent = health.codeQuality.toFixed(2);
+      $('#userSatisfaction').textContent = health.userSatisfaction.toFixed(2);
+      $('#devVelocity').textContent = health.developmentVelocity.toFixed(2);
+      $('#techDebt').textContent = health.technicalDebt.toFixed(2);
+    }
+
+    function updateBurstDisplay(burst) {
+      $('#burstScore').textContent = `${burst.burstScore.toFixed(1)}x`;
+      $('#trendingTopics').textContent =
+        burst.trendingTopics.length > 0
+          ? burst.trendingTopics.join(', ')
+          : 'No trending issues';
+    }
+
+    function visualizeCluster(cluster) {
+      log(`Visualizing pain cluster: ${cluster.label}`, 'ai');
+
+      // Create visual representation in quantum canvas
+      if (quantumEngine && quantumEngine.visualizePainCluster) {
+        quantumEngine.visualizePainCluster(cluster);
+      }
+
+      // Create automatic connections if line manager is available
+      if (quantumLineManager && activeDrawingMode) {
+        const clusterElement = document.querySelector(`[data-cluster-id="${cluster.id}"]`);
+        if (clusterElement) {
+          // Auto-create connection lines to related clusters
+          quantumLineManager.createClusterConnection(cluster, clusterElement);
+          log(`Created connection for cluster ${cluster.id}`, 'ai');
+        }
+      }
+
+      updateStatusDot('quantumEngineStatus', 'processing');
+      setTimeout(() => {
+        updateStatusDot('quantumEngineStatus', 'active');
+      }, 1500);
+    }
+
+    // Control functions
+    window.ingestMockPain = function() {
+      const mockEvent = {
+        id: `pain_${Date.now()}`,
+        time: new Date().toISOString(),
+        source: 'demo',
+        text: 'Mock pain event: Database timeout causing user session failures',
+        eng: Math.floor(Math.random() * 20) + 5
+      };
+
+      if (nexusForge) {
+        nexusForge.ingestPainEvent(mockEvent);
+        log('Mock pain event ingested', 'warning');
+      }
+      updateIntelligenceDisplay();
+    };
+
+    window.triggerClustering = function() {
+      if (nexusForge && nexusForge.recomputeClusters) {
+        nexusForge.recomputeClusters();
+        log('Pain clustering recomputed', 'ai');
+      }
+      updateIntelligenceDisplay();
+    };
+
+    window.generateIntelligence = function() {
+      if (nexusForge && nexusForge.exportIntelligence) {
+        const fullIntel = nexusForge.exportIntelligence();
+        console.log('🧠 Full Intelligence Export:', fullIntel);
+        log('Full intelligence analysis generated', 'success');
+      }
+      updateIntelligenceDisplay();
+    };
+
+    // Event listeners
+    $('#saveBtn').onclick = saveLayout;
+    $('#restoreBtn').onclick = restoreLayout;
+    $('#resetLayout').onclick = () => {
+      css('--col1', '340px');
+      css('--col3', '420px');
+      css('--row1', '62vh');
+      css('--dockH', '48px');
+      saveLayout();
+      log('Layout reset to defaults', 'info');
+    };
+
+    $('#growLeft').onclick = () => {
+      css(KEYS.col1, clamp(getVarPx(KEYS.col1)+30, 200, 600)+'px');
+      saveLayout();
+      log('Left panel expanded', 'info');
+    };
+    $('#growRight').onclick = () => {
+      css(KEYS.col3, clamp(getVarPx(KEYS.col3)+30, 300, 700)+'px');
+      saveLayout();
+      log('Right panel expanded', 'info');
+    };
+
+    // Dock controls
+    $('#smallerDock').onclick = () => {
+      const h = getVarPx(KEYS.dockH);
+      css(KEYS.dockH, clamp(h - 8, 24, 160) + 'px');
+      saveLayout();
+    };
+    $('#biggerDock').onclick = () => {
+      const h = getVarPx(KEYS.dockH);
+      css(KEYS.dockH, clamp(h + 8, 24, 160) + 'px');
+      saveLayout();
+    };
+
+    // Tab switching
+    document.querySelectorAll('.dock .tab').forEach(tab => {
+      tab.addEventListener("click", function(e) { try { function((e); } catch(err) { console.error("Event error:", err); } }) {
+        document.querySelectorAll('.dock .tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        log(`Switched to ${this.textContent.trim()}`, 'info');
+      });
+    });
+
+    // Bind gutters
+    bindVerticalGutter('gV1', 'left');
+    bindVerticalGutter('gV2', 'right');
+    bindHorizontalGutter('gH1');
+
+    // Resize handler
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize everything
+    document.addEventListener('DOMContentLoaded', () => {
+      restoreLayout();
+      initializeNexusForge();
+    });
+  </script>
+</body>
+</html>

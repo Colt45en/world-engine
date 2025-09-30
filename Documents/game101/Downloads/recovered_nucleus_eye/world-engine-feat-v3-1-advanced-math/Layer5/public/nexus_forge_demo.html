@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS FORGE PRIMORDIAL - AI Development Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e6ed;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .nexus-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: 80px 1fr;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(0, 255, 127, 0.1);
+            border: 1px solid #00ff7f;
+            border-radius: 10px;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #00ff7f;
+            text-shadow: 0 0 10px #00ff7f50;
+        }
+
+        .header .status {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            padding: 5px 12px;
+            border-radius: 15px;
+            border: 1px solid;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-indicator.connected {
+            border-color: #00ff7f;
+            color: #00ff7f;
+        }
+
+        .status-indicator.pending {
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+
+        .pain-clusters {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .quantum-canvas-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 127, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #quantumCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 10px;
+        }
+
+        .intelligence-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+
+        .section-title {
+            color: #00ff7f;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #00ff7f30;
+            padding-bottom: 5px;
+        }
+
+        .cluster-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ff6b6b;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cluster-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+
+        .cluster-item.high-pain {
+            border-left-color: #ff4757;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+        }
+
+        .cluster-item.medium-pain {
+            border-left-color: #ffa502;
+        }
+
+        .cluster-item.low-pain {
+            border-left-color: #26de81;
+        }
+
+        .cluster-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .pain-score {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .cluster-label {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .recommendation-item {
+            background: linear-gradient(135deg, rgba(0, 255, 127, 0.1), rgba(0, 255, 127, 0.05));
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(0, 255, 127, 0.2);
+        }
+
+        .rec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .rec-priority {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .rec-priority.critical {
+            background: #ff4757;
+            color: white;
+        }
+
+        .rec-priority.high {
+            background: #ffa502;
+            color: white;
+        }
+
+        .rec-priority.medium {
+            background: #26de81;
+            color: white;
+        }
+
+        .rec-description {
+            font-size: 14px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .rec-steps {
+            font-size: 12px;
+            opacity: 0.7;
+            list-style: none;
+        }
+
+        .rec-steps li {
+            margin-bottom: 3px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .rec-steps li:before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #00ff7f;
+        }
+
+        .controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: rgba(0, 255, 127, 0.2);
+            border: 1px solid #00ff7f;
+            color: #00ff7f;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 255, 127, 0.4);
+            transform: scale(1.05);
+        }
+
+        .health-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff7f;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .burst-indicator {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1));
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .burst-score {
+            font-size: 16px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .trending-topics {
+            margin-top: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="nexus-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔥 NEXUS FORGE PRIMORDIAL</h1>
+            <div class="status">
+                <div class="status-indicator connected" id="quantumStatus">
+                    🌌 Quantum: Connected
+                </div>
+                <div class="status-indicator connected" id="vectorLabStatus">
+                    🧬 VectorLab: Connected
+                </div>
+                <div class="status-indicator pending" id="aiStatus">
+                    🤖 AI: Processing
+                </div>
+            </div>
+        </header>
+
+        <!-- Pain Clusters Panel -->
+        <aside class="pain-clusters">
+            <h2 class="section-title">🔍 Pain Clusters</h2>
+            <div id="clustersContainer">
+                <!-- Clusters will be populated by JavaScript -->
+            </div>
+        </aside>
+
+        <!-- Quantum Visualization Canvas -->
+        <main class="quantum-canvas-container">
+            <canvas id="quantumCanvas"></canvas>
+            <div class="controls">
+                <button class="control-btn" onclick="try { ingestMockPain(); } catch(e) { console.error(\'Button error:\', e); }">Ingest Pain</button>
+                <button class="control-btn" onclick="try { triggerClustering(); } catch(e) { console.error(\'Button error:\', e); }">Recluster</button>
+                <button class="control-btn" onclick="try { generateIntelligence(); } catch(e) { console.error(\'Button error:\', e); }">Analyze</button>
+            </div>
+        </main>
+
+        <!-- Intelligence Panel -->
+        <aside class="intelligence-panel">
+            <h2 class="section-title">🧠 AI Intelligence</h2>
+
+            <!-- System Health -->
+            <div id="systemHealth">
+                <h3 style="color: #ffd700; font-size: 14px; margin-bottom: 10px;">System Health</h3>
+                <div class="health-metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="codeQuality">0.85</div>
+                        <div class="metric-label">Code Quality</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="userSatisfaction">0.72</div>
+                        <div class="metric-label">User Satisfaction</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="developmentVelocity">0.91</div>
+                        <div class="metric-label">Dev Velocity</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="technicalDebt">0.43</div>
+                        <div class="metric-label">Technical Debt</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Burst Detection -->
+            <div id="burstDetection" class="burst-indicator">
+                <div class="burst-score">Burst Score: <span id="burstScore">1.2x</span></div>
+                <div class="trending-topics">
+                    <strong>Trending:</strong> <span id="trendingTopics">webhook failures, onboarding</span>
+                </div>
+            </div>
+
+            <!-- AI Recommendations -->
+            <div id="recommendationsSection">
+                <h3 style="color: #00ff7f; font-size: 14px; margin-bottom: 10px;">🎯 AI Recommendations</h3>
+                <div id="recommendationsContainer">
+                    <!-- Recommendations will be populated by JavaScript -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Load the Nexus Forge Engine -->
+    <script src="nexus_forge_primordial.js"></script>
+
+    <!-- Load Quantum Graphics Engine for integration -->
+    <script src="quantum_graphics_engine.js"></script>
+
+    <!-- Demo Integration Script -->
+    <script>
+        // Initialize the systems
+        let nexusForge, quantumEngine;
+        let canvas, ctx;
+        let animationId;
+
+        function initializeDemo() {
+            // Initialize canvas
+            canvas = document.getElementById('quantumCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+
+            // Initialize Nexus Forge
+            nexusForge = new NexusForgeEngine();
+
+            // Initialize Quantum Graphics Engine
+            quantumEngine = new QuantumGraphicsEngine();
+            quantumEngine.initialize(canvas);
+
+            // Connect the engines
+            nexusForge.connectQuantumEngine(quantumEngine);
+
+            // Mock VectorLab connection
+            const mockVectorLab = {
+                heartEngine: {
+                    pulse: (intensity) => {
+                        console.log(`💓 VectorLab Heart pulse: ${intensity.toFixed(3)}`);
+                    }
+                }
+            };
+            nexusForge.connectVectorLabEngine(mockVectorLab);
+
+            // Start the demo
+            startDemo();
+
+            console.log('🔥 NEXUS FORGE PRIMORDIAL Demo initialized');
+        }
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        function startDemo() {
+            // Load initial mock data
+            const mockEvents = createMockPainEvents();
+            mockEvents.forEach(event => {
+                const record = nexusForge.ingestPainEvent(event);
+                console.log(`Ingested: ${record.pain.toFixed(3)} pain - ${record.problemGuess}`);
+            });
+
+            // Generate initial intelligence
+            updateIntelligenceDisplay();
+
+            // Start animation loop
+            animate();
+
+            // Update intelligence periodically
+            setInterval(updateIntelligenceDisplay, 5000);
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw quantum effects
+            quantumEngine.render(ctx);
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function updateIntelligenceDisplay() {
+            const intelligence = nexusForge.generateIntelligence();
+            const burst = nexusForge.detectBurst();
+
+            // Update clusters display
+            updateClustersDisplay(intelligence.painClusters);
+
+            // Update system health
+            updateSystemHealth(intelligence.systemHealth);
+
+            // Update burst detection
+            updateBurstDisplay(burst);
+
+            // Update recommendations
+            updateRecommendationsDisplay(intelligence.recommendations);
+        }
+
+        function updateClustersDisplay(clusters) {
+            const container = document.getElementById('clustersContainer');
+            container.innerHTML = '';
+
+            clusters.forEach(cluster => {
+                const div = document.createElement('div');
+                div.className = `cluster-item ${getPainLevel(cluster.avgPain)}`;
+                div.innerHTML = `
+                    <div class="cluster-header">
+                        <strong>Cluster ${cluster.id}</strong>
+                        <span class="pain-score">${cluster.avgPain.toFixed(3)}</span>
+                    </div>
+                    <div class="cluster-label">${cluster.label}</div>
+                    <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">
+                        ${cluster.count} events • Last seen: ${new Date(cluster.lastSeen).toLocaleTimeString()}
+                    </div>
+                `;
+
+                div.onclick = () => visualizeCluster(cluster);
+                container.appendChild(div);
+            });
+        }
+
+        function getPainLevel(pain) {
+            if (pain >= 0.7) return 'high-pain';
+            if (pain >= 0.4) return 'medium-pain';
+            return 'low-pain';
+        }
+
+        function updateSystemHealth(health) {
+            document.getElementById('codeQuality').textContent = health.codeQuality.toFixed(2);
+            document.getElementById('userSatisfaction').textContent = health.userSatisfaction.toFixed(2);
+            document.getElementById('developmentVelocity').textContent = health.developmentVelocity.toFixed(2);
+            document.getElementById('technicalDebt').textContent = health.technicalDebt.toFixed(2);
+        }
+
+        function updateBurstDisplay(burst) {
+            document.getElementById('burstScore').textContent = `${burst.burstScore.toFixed(1)}x`;
+            document.getElementById('trendingTopics').textContent =
+                burst.trendingTopics.length > 0
+                    ? burst.trendingTopics.join(', ')
+                    : 'No trending issues';
+        }
+
+        function updateRecommendationsDisplay(recommendations) {
+            const container = document.getElementById('recommendationsContainer');
+            container.innerHTML = '';
+
+            recommendations.slice(0, 3).forEach(rec => {
+                const div = document.createElement('div');
+                div.className = 'recommendation-item';
+                div.innerHTML = `
+                    <div class="rec-header">
+                        <strong>${rec.type.replace(/_/g, ' ').toUpperCase()}</strong>
+                        <span class="rec-priority ${rec.priority}">${rec.priority}</span>
+                    </div>
+                    <div class="rec-description">${rec.description}</div>
+                    <ul class="rec-steps">
+                        ${rec.actionable.steps.map(step => `<li>${step}</li>`).join('')}
+                    </ul>
+                    <div style="font-size: 11px; margin-top: 8px; opacity: 0.6;">
+                        Confidence: ${(rec.confidence * 100).toFixed(0)}% • Est: ${rec.actionable.estimatedEffort}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function visualizeCluster(cluster) {
+            console.log(`Visualizing cluster ${cluster.id}:`, cluster);
+
+            // Create a special visualization for the selected cluster
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            quantumEngine.visualEffects.createCollapseEffect(
+                centerX, centerY,
+                cluster.avgPain * 2,
+                'cosine'
+            );
+        }
+
+        // Control functions
+        function ingestMockPain() {
+            const mockPainEvents = [
+                {
+                    id: `random_${Date.now()}`,
+                    time: new Date().toISOString(),
+                    source: 'code',
+                    text: 'Memory leak detected in user session management, causing timeouts',
+                    eng: Math.floor(Math.random() * 20) + 5
+                }
+            ];
+
+            mockPainEvents.forEach(event => {
+                nexusForge.ingestPainEvent(event);
+            });
+
+            updateIntelligenceDisplay();
+        }
+
+        function triggerClustering() {
+            nexusForge.recomputeClusters();
+            updateIntelligenceDisplay();
+        }
+
+        function generateIntelligence() {
+            const fullIntelligence = nexusForge.exportIntelligence();
+            console.log('🧠 Full Intelligence Export:', fullIntelligence);
+            updateIntelligenceDisplay();
+        }
+
+        // Resize handler
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeDemo);
+    </script>
+</body>
+</html>

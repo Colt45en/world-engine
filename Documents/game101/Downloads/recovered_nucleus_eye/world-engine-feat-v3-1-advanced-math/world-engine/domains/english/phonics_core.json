@@ -1,0 +1,633 @@
+{
+    "phonics_core": {
+        "consonants": {
+            "stops": {
+                "p": {
+                    "voiced": false,
+                    "place": "bilabial",
+                    "sound": "p"
+                },
+                "b": {
+                    "voiced": true,
+                    "place": "bilabial",
+                    "sound": "b"
+                },
+                "t": {
+                    "voiced": false,
+                    "place": "alveolar",
+                    "sound": "t"
+                },
+                "d": {
+                    "voiced": true,
+                    "place": "alveolar",
+                    "sound": "d"
+                },
+                "k": {
+                    "voiced": false,
+                    "place": "velar",
+                    "sound": "k"
+                },
+                "g": {
+                    "voiced": true,
+                    "place": "velar",
+                    "sound": "g"
+                }
+            },
+            "fricatives": {
+                "f": {
+                    "voiced": false,
+                    "place": "labiodental",
+                    "sound": "f"
+                },
+                "v": {
+                    "voiced": true,
+                    "place": "labiodental",
+                    "sound": "v"
+                },
+                "th": {
+                    "voiced": false,
+                    "place": "dental",
+                    "sound": "θ"
+                },
+                "th_voiced": {
+                    "voiced": true,
+                    "place": "dental",
+                    "sound": "ð"
+                },
+                "s": {
+                    "voiced": false,
+                    "place": "alveolar",
+                    "sound": "s"
+                },
+                "z": {
+                    "voiced": true,
+                    "place": "alveolar",
+                    "sound": "z"
+                },
+                "sh": {
+                    "voiced": false,
+                    "place": "postalveolar",
+                    "sound": "ʃ"
+                },
+                "zh": {
+                    "voiced": true,
+                    "place": "postalveolar",
+                    "sound": "ʒ"
+                },
+                "h": {
+                    "voiced": false,
+                    "place": "glottal",
+                    "sound": "h"
+                }
+            },
+            "nasals": {
+                "m": {
+                    "voiced": true,
+                    "place": "bilabial",
+                    "sound": "m"
+                },
+                "n": {
+                    "voiced": true,
+                    "place": "alveolar",
+                    "sound": "n"
+                },
+                "ng": {
+                    "voiced": true,
+                    "place": "velar",
+                    "sound": "ŋ"
+                }
+            },
+            "liquids": {
+                "l": {
+                    "voiced": true,
+                    "place": "alveolar",
+                    "sound": "l"
+                },
+                "r": {
+                    "voiced": true,
+                    "place": "alveolar",
+                    "sound": "r"
+                }
+            },
+            "glides": {
+                "w": {
+                    "voiced": true,
+                    "place": "bilabial",
+                    "sound": "w"
+                },
+                "y": {
+                    "voiced": true,
+                    "place": "palatal",
+                    "sound": "j"
+                }
+            }
+        },
+        "vowels": {
+            "monophthongs": {
+                "short": {
+                    "a": {
+                        "sound": "æ",
+                        "example": "cat"
+                    },
+                    "e": {
+                        "sound": "ɛ",
+                        "example": "bed"
+                    },
+                    "i": {
+                        "sound": "ɪ",
+                        "example": "bit"
+                    },
+                    "o": {
+                        "sound": "ɒ",
+                        "example": "hot"
+                    },
+                    "u": {
+                        "sound": "ʌ",
+                        "example": "but"
+                    }
+                },
+                "long": {
+                    "a": {
+                        "sound": "eɪ",
+                        "example": "cake"
+                    },
+                    "e": {
+                        "sound": "i",
+                        "example": "be"
+                    },
+                    "i": {
+                        "sound": "aɪ",
+                        "example": "bike"
+                    },
+                    "o": {
+                        "sound": "oʊ",
+                        "example": "boat"
+                    },
+                    "u": {
+                        "sound": "u",
+                        "example": "blue"
+                    }
+                }
+            },
+            "diphthongs": {
+                "oi": {
+                    "sound": "ɔɪ",
+                    "example": "boy"
+                },
+                "ou": {
+                    "sound": "aʊ",
+                    "example": "house"
+                },
+                "ar": {
+                    "sound": "ɑr",
+                    "example": "car"
+                },
+                "er": {
+                    "sound": "ər",
+                    "example": "her"
+                },
+                "or": {
+                    "sound": "ɔr",
+                    "example": "for"
+                }
+            }
+        },
+        "blending_rules": {
+            "consonant_clusters": {
+                "initial": [
+                    "bl",
+                    "br",
+                    "cl",
+                    "cr",
+                    "dr",
+                    "fl",
+                    "fr",
+                    "gl",
+                    "gr",
+                    "pl",
+                    "pr",
+                    "sl",
+                    "sm",
+                    "sn",
+                    "sp",
+                    "st",
+                    "sw",
+                    "tr",
+                    "tw"
+                ],
+                "final": [
+                    "ct",
+                    "ft",
+                    "ld",
+                    "lf",
+                    "lk",
+                    "lm",
+                    "lp",
+                    "lt",
+                    "mp",
+                    "nd",
+                    "nk",
+                    "nt",
+                    "pt",
+                    "sk",
+                    "sp",
+                    "st"
+                ]
+            },
+            "syllable_patterns": {
+                "cv": "consonant_vowel",
+                "cvc": "consonant_vowel_consonant",
+                "cvce": "consonant_vowel_consonant_silent_e",
+                "cvvc": "consonant_vowel_vowel_consonant"
+            }
+        }
+    },
+    "lexicon": [
+        {
+            "word": "cat",
+            "phonetic": "kæt",
+            "syllables": 1,
+            "frequency": "high"
+        },
+        {
+            "word": "dog",
+            "phonetic": "dɒg",
+            "syllables": 1,
+            "frequency": "high"
+        },
+        {
+            "word": "house",
+            "phonetic": "haʊs",
+            "syllables": 1,
+            "frequency": "high"
+        },
+        {
+            "word": "water",
+            "phonetic": "wɔtər",
+            "syllables": 2,
+            "frequency": "high"
+        },
+        {
+            "word": "school",
+            "phonetic": "skul",
+            "syllables": 1,
+            "frequency": "high"
+        },
+        {
+            "word": "book",
+            "phonetic": "bʊk",
+            "syllables": 1,
+            "frequency": "high"
+        },
+        {
+            "word": "tree",
+            "phonetic": "tri",
+            "syllables": 1,
+            "frequency": "high"
+        },
+        {
+            "word": "happy",
+            "phonetic": "hæpi",
+            "syllables": 2,
+            "frequency": "high"
+        },
+        {
+            "word": "because",
+            "phonetic": "bɪkɔz",
+            "syllables": 2,
+            "frequency": "high"
+        },
+        {
+            "word": "beautiful",
+            "phonetic": "bjutɪfəl",
+            "syllables": 3,
+            "frequency": "medium"
+        },
+        {
+            "word": "elephant",
+            "phonetic": "ɛləfənt",
+            "syllables": 3,
+            "frequency": "medium"
+        },
+        {
+            "word": "understand",
+            "phonetic": "ʌndərstænd",
+            "syllables": 3,
+            "frequency": "medium"
+        },
+        {
+            "word": "computer",
+            "phonetic": "kəmpjutər",
+            "syllables": 3,
+            "frequency": "medium"
+        },
+        {
+            "word": "important",
+            "phonetic": "ɪmpɔrtənt",
+            "syllables": 3,
+            "frequency": "medium"
+        },
+        {
+            "word": "telephone",
+            "phonetic": "tɛləfoʊn",
+            "syllables": 3,
+            "frequency": "medium"
+        },
+        {
+            "word": "butterfly",
+            "phonetic": "bʌtərflaɪ",
+            "syllables": 3,
+            "frequency": "low"
+        },
+        {
+            "word": "refrigerator",
+            "phonetic": "rɪfrɪdʒəreɪtər",
+            "syllables": 5,
+            "frequency": "low"
+        },
+        {
+            "word": "encyclopedia",
+            "phonetic": "ɛnsaɪkləpidiə",
+            "syllables": 6,
+            "frequency": "low"
+        }
+    ],
+    "grammar": {
+        "parts_of_speech": {
+            "nouns": {
+                "types": [
+                    "common",
+                    "proper",
+                    "abstract",
+                    "collective"
+                ],
+                "properties": [
+                    "singular",
+                    "plural",
+                    "possessive"
+                ]
+            },
+            "verbs": {
+                "types": [
+                    "action",
+                    "linking",
+                    "helping"
+                ],
+                "tenses": [
+                    "present",
+                    "past",
+                    "future",
+                    "present_perfect",
+                    "past_perfect",
+                    "future_perfect"
+                ],
+                "forms": [
+                    "base",
+                    "past",
+                    "past_participle",
+                    "present_participle"
+                ]
+            },
+            "adjectives": {
+                "types": [
+                    "descriptive",
+                    "limiting",
+                    "proper"
+                ],
+                "degrees": [
+                    "positive",
+                    "comparative",
+                    "superlative"
+                ]
+            },
+            "adverbs": {
+                "types": [
+                    "manner",
+                    "time",
+                    "place",
+                    "degree",
+                    "frequency"
+                ],
+                "formation": [
+                    "ly_ending",
+                    "irregular"
+                ]
+            },
+            "pronouns": {
+                "types": [
+                    "personal",
+                    "possessive",
+                    "reflexive",
+                    "demonstrative",
+                    "interrogative",
+                    "relative",
+                    "indefinite"
+                ]
+            },
+            "prepositions": [
+                "in",
+                "on",
+                "at",
+                "by",
+                "for",
+                "with",
+                "to",
+                "from",
+                "over",
+                "under",
+                "through",
+                "between"
+            ],
+            "conjunctions": {
+                "coordinating": [
+                    "and",
+                    "but",
+                    "or",
+                    "nor",
+                    "for",
+                    "yet",
+                    "so"
+                ],
+                "subordinating": [
+                    "because",
+                    "since",
+                    "although",
+                    "while",
+                    "if",
+                    "when",
+                    "before",
+                    "after"
+                ]
+            },
+            "interjections": [
+                "oh",
+                "wow",
+                "ouch",
+                "hey",
+                "alas",
+                "hooray"
+            ]
+        },
+        "sentence_structures": {
+            "simple": "subject + predicate",
+            "compound": "independent_clause + conjunction + independent_clause",
+            "complex": "independent_clause + dependent_clause",
+            "compound_complex": "multiple_independent + dependent_clauses"
+        },
+        "beats": [
+            {
+                "type": "conflict_introduction",
+                "description": "A problem or challenge is presented",
+                "example": "The hero discovers the village is in danger"
+            },
+            {
+                "type": "character_development",
+                "description": "Characters reveal personality or grow",
+                "example": "The hero shows courage despite fear"
+            },
+            {
+                "type": "plot_advancement",
+                "description": "Story moves forward significantly",
+                "example": "The hero finds the magic sword"
+            },
+            {
+                "type": "emotional_moment",
+                "description": "Characters experience strong emotions",
+                "example": "The hero mourns a fallen friend"
+            },
+            {
+                "type": "revelation",
+                "description": "Important information is revealed",
+                "example": "The villain is revealed to be the hero's father"
+            },
+            {
+                "type": "action_sequence",
+                "description": "Fast-paced physical confrontation",
+                "example": "Epic battle between hero and monster"
+            }
+        ],
+        "arcs": [
+            {
+                "name": "hero_journey",
+                "stages": [
+                    "ordinary_world",
+                    "call_to_adventure",
+                    "refusal",
+                    "mentor",
+                    "threshold",
+                    "tests",
+                    "ordeal",
+                    "reward",
+                    "road_back",
+                    "resurrection",
+                    "return"
+                ],
+                "description": "Classic hero's journey structure"
+            },
+            {
+                "name": "redemption",
+                "stages": [
+                    "fall_from_grace",
+                    "rock_bottom",
+                    "catalyst",
+                    "struggle",
+                    "small_victories",
+                    "final_test",
+                    "redemption"
+                ],
+                "description": "Character overcomes past mistakes"
+            },
+            {
+                "name": "mystery",
+                "stages": [
+                    "inciting_incident",
+                    "investigation",
+                    "false_leads",
+                    "complications",
+                    "breakthrough",
+                    "climax",
+                    "resolution"
+                ],
+                "description": "Solving a puzzle or crime"
+            }
+        ]
+    },
+    "reading_levels": {
+        "kindergarten": {
+            "sight_words": [
+                "the",
+                "and",
+                "a",
+                "to",
+                "said",
+                "you",
+                "she",
+                "my",
+                "is",
+                "are"
+            ],
+            "phonics_focus": [
+                "letter_sounds",
+                "simple_cvc_words"
+            ],
+            "word_count": 50
+        },
+        "grade_1": {
+            "sight_words": [
+                "he",
+                "was",
+                "for",
+                "on",
+                "are",
+                "as",
+                "with",
+                "his",
+                "they",
+                "at"
+            ],
+            "phonics_focus": [
+                "consonant_blends",
+                "long_vowels"
+            ],
+            "word_count": 150
+        },
+        "grade_2": {
+            "sight_words": [
+                "be",
+                "have",
+                "do",
+                "by",
+                "not",
+                "word",
+                "but",
+                "what",
+                "some",
+                "had"
+            ],
+            "phonics_focus": [
+                "vowel_teams",
+                "r_controlled_vowels"
+            ],
+            "word_count": 300
+        },
+        "grade_3": {
+            "sight_words": [
+                "each",
+                "which",
+                "their",
+                "time",
+                "will",
+                "about",
+                "if",
+                "up",
+                "out",
+                "many"
+            ],
+            "phonics_focus": [
+                "multisyllabic_words",
+                "prefixes_suffixes"
+            ],
+            "word_count": 600
+        }
+    }
+}

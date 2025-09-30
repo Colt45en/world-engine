@@ -1,0 +1,505 @@
+{
+    "primitives": {
+        "2d": {
+            "point": {
+                "properties": [
+                    "x",
+                    "y"
+                ],
+                "operations": [
+                    "distance",
+                    "midpoint",
+                    "translate"
+                ],
+                "representation": "(x, y)"
+            },
+            "line": {
+                "properties": [
+                    "slope",
+                    "y_intercept",
+                    "direction_vector"
+                ],
+                "equations": [
+                    "point_slope",
+                    "slope_intercept",
+                    "parametric"
+                ],
+                "operations": [
+                    "intersection",
+                    "perpendicular",
+                    "parallel"
+                ]
+            },
+            "circle": {
+                "properties": [
+                    "center",
+                    "radius",
+                    "circumference",
+                    "area"
+                ],
+                "equation": "(x-h)² + (y-k)² = r²",
+                "operations": [
+                    "tangent",
+                    "chord",
+                    "arc_length"
+                ]
+            },
+            "polygon": {
+                "triangle": {
+                    "properties": [
+                        "vertices",
+                        "sides",
+                        "angles",
+                        "area",
+                        "perimeter"
+                    ],
+                    "types": [
+                        "scalene",
+                        "isosceles",
+                        "equilateral",
+                        "right",
+                        "obtuse",
+                        "acute"
+                    ],
+                    "formulas": {
+                        "area": "0.5 * base * height",
+                        "perimeter": "a + b + c"
+                    }
+                },
+                "rectangle": {
+                    "properties": [
+                        "width",
+                        "height",
+                        "area",
+                        "perimeter"
+                    ],
+                    "formulas": {
+                        "area": "width * height",
+                        "perimeter": "2 * (width + height)"
+                    }
+                },
+                "square": {
+                    "properties": [
+                        "side_length",
+                        "area",
+                        "perimeter",
+                        "diagonal"
+                    ],
+                    "formulas": {
+                        "area": "side²",
+                        "perimeter": "4 * side",
+                        "diagonal": "side * √2"
+                    }
+                }
+            }
+        },
+        "3d": {
+            "point": {
+                "properties": [
+                    "x",
+                    "y",
+                    "z"
+                ],
+                "operations": [
+                    "distance",
+                    "midpoint",
+                    "translate"
+                ],
+                "representation": "(x, y, z)"
+            },
+            "plane": {
+                "properties": [
+                    "normal_vector",
+                    "point_on_plane"
+                ],
+                "equation": "ax + by + cz = d",
+                "operations": [
+                    "intersection",
+                    "distance_to_point"
+                ]
+            },
+            "sphere": {
+                "properties": [
+                    "center",
+                    "radius",
+                    "surface_area",
+                    "volume"
+                ],
+                "equation": "(x-h)² + (y-k)² + (z-l)² = r²",
+                "formulas": {
+                    "surface_area": "4πr²",
+                    "volume": "(4/3)πr³"
+                }
+            },
+            "cube": {
+                "properties": [
+                    "side_length",
+                    "surface_area",
+                    "volume"
+                ],
+                "formulas": {
+                    "surface_area": "6 * side²",
+                    "volume": "side³"
+                }
+            },
+            "cylinder": {
+                "properties": [
+                    "radius",
+                    "height",
+                    "surface_area",
+                    "volume"
+                ],
+                "formulas": {
+                    "surface_area": "2πr(r + h)",
+                    "volume": "πr²h"
+                }
+            }
+        }
+    },
+    "transformations": {
+        "2d": {
+            "translation": {
+                "matrix": "[[1, 0, tx], [0, 1, ty], [0, 0, 1]]",
+                "description": "Move object by (tx, ty)",
+                "properties": [
+                    "preserves_shape",
+                    "preserves_angles"
+                ]
+            },
+            "rotation": {
+                "matrix": "[[cos(θ), -sin(θ), 0], [sin(θ), cos(θ), 0], [0, 0, 1]]",
+                "description": "Rotate object by angle θ",
+                "properties": [
+                    "preserves_shape",
+                    "preserves_distances"
+                ]
+            },
+            "scaling": {
+                "matrix": "[[sx, 0, 0], [0, sy, 0], [0, 0, 1]]",
+                "description": "Scale object by factors (sx, sy)",
+                "properties": [
+                    "changes_size",
+                    "preserves_angles_if_uniform"
+                ]
+            },
+            "reflection": {
+                "x_axis": "[[1, 0, 0], [0, -1, 0], [0, 0, 1]]",
+                "y_axis": "[[-1, 0, 0], [0, 1, 0], [0, 0, 1]]",
+                "description": "Mirror object across axis",
+                "properties": [
+                    "preserves_shape",
+                    "reverses_orientation"
+                ]
+            },
+            "shear": {
+                "horizontal": "[[1, shx, 0], [0, 1, 0], [0, 0, 1]]",
+                "vertical": "[[1, 0, 0], [shy, 1, 0], [0, 0, 1]]",
+                "description": "Skew object along axis",
+                "properties": [
+                    "preserves_area",
+                    "changes_angles"
+                ]
+            }
+        },
+        "3d": {
+            "translation": {
+                "matrix": "[[1, 0, 0, tx], [0, 1, 0, ty], [0, 0, 1, tz], [0, 0, 0, 1]]",
+                "description": "Move object by (tx, ty, tz)"
+            },
+            "rotation_x": {
+                "matrix": "[[1, 0, 0, 0], [0, cos(θ), -sin(θ), 0], [0, sin(θ), cos(θ), 0], [0, 0, 0, 1]]",
+                "description": "Rotate around X-axis"
+            },
+            "rotation_y": {
+                "matrix": "[[cos(θ), 0, sin(θ), 0], [0, 1, 0, 0], [-sin(θ), 0, cos(θ), 0], [0, 0, 0, 1]]",
+                "description": "Rotate around Y-axis"
+            },
+            "rotation_z": {
+                "matrix": "[[cos(θ), -sin(θ), 0, 0], [sin(θ), cos(θ), 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]",
+                "description": "Rotate around Z-axis"
+            },
+            "scaling": {
+                "matrix": "[[sx, 0, 0, 0], [0, sy, 0, 0], [0, 0, sz, 0], [0, 0, 0, 1]]",
+                "description": "Scale object by factors (sx, sy, sz)"
+            }
+        }
+    },
+    "coordinate_systems": {
+        "cartesian_2d": {
+            "axes": [
+                "x",
+                "y"
+            ],
+            "origin": "(0, 0)",
+            "quadrants": 4,
+            "distance_formula": "√[(x₂-x₁)² + (y₂-y₁)²]"
+        },
+        "polar": {
+            "coordinates": [
+                "r",
+                "θ"
+            ],
+            "conversion_to_cartesian": {
+                "x": "r * cos(θ)",
+                "y": "r * sin(θ)"
+            },
+            "conversion_from_cartesian": {
+                "r": "√(x² + y²)",
+                "θ": "arctan(y/x)"
+            }
+        },
+        "cartesian_3d": {
+            "axes": [
+                "x",
+                "y",
+                "z"
+            ],
+            "origin": "(0, 0, 0)",
+            "octants": 8,
+            "distance_formula": "√[(x₂-x₁)² + (y₂-y₁)² + (z₂-z₁)²]"
+        },
+        "cylindrical": {
+            "coordinates": [
+                "r",
+                "θ",
+                "z"
+            ],
+            "conversion_to_cartesian": {
+                "x": "r * cos(θ)",
+                "y": "r * sin(θ)",
+                "z": "z"
+            }
+        },
+        "spherical": {
+            "coordinates": [
+                "ρ",
+                "θ",
+                "φ"
+            ],
+            "conversion_to_cartesian": {
+                "x": "ρ * sin(φ) * cos(θ)",
+                "y": "ρ * sin(φ) * sin(θ)",
+                "z": "ρ * cos(φ)"
+            }
+        }
+    },
+    "color_spaces": {
+        "rgb": {
+            "channels": [
+                "red",
+                "green",
+                "blue"
+            ],
+            "range": "0-255 or 0.0-1.0",
+            "additive": true,
+            "usage": "displays, web, digital images"
+        },
+        "hsl": {
+            "channels": [
+                "hue",
+                "saturation",
+                "lightness"
+            ],
+            "range": {
+                "hue": "0-360°",
+                "saturation": "0-100%",
+                "lightness": "0-100%"
+            },
+            "usage": "color selection, design"
+        },
+        "hsv": {
+            "channels": [
+                "hue",
+                "saturation",
+                "value"
+            ],
+            "range": {
+                "hue": "0-360°",
+                "saturation": "0-100%",
+                "value": "0-100%"
+            },
+            "usage": "color selection, art software"
+        },
+        "cmyk": {
+            "channels": [
+                "cyan",
+                "magenta",
+                "yellow",
+                "key_black"
+            ],
+            "range": "0-100%",
+            "subtractive": true,
+            "usage": "printing, offset printing"
+        },
+        "lab": {
+            "channels": [
+                "lightness",
+                "a_green_red",
+                "b_blue_yellow"
+            ],
+            "perceptually_uniform": true,
+            "usage": "color correction, photography"
+        }
+    },
+    "rendering": {
+        "projection": {
+            "orthographic": {
+                "description": "Parallel projection, no perspective",
+                "matrix": "[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]]",
+                "usage": "technical drawings, CAD"
+            },
+            "perspective": {
+                "description": "Point projection with perspective",
+                "matrix": "[[f/aspect, 0, 0, 0], [0, f, 0, 0], [0, 0, (far+near)/(near-far), 2*far*near/(near-far)], [0, 0, -1, 0]]",
+                "usage": "3D games, realistic rendering"
+            }
+        },
+        "lighting": {
+            "ambient": {
+                "description": "Uniform light affecting all surfaces equally",
+                "formula": "I_ambient = ka * Ia"
+            },
+            "diffuse": {
+                "description": "Light scattered equally in all directions",
+                "formula": "I_diffuse = kd * Id * (N · L)"
+            },
+            "specular": {
+                "description": "Light reflected in specific direction",
+                "formula": "I_specular = ks * Is * (R · V)^n"
+            },
+            "phong": {
+                "description": "Combined ambient + diffuse + specular",
+                "formula": "I = I_ambient + I_diffuse + I_specular"
+            }
+        },
+        "shading": {
+            "flat": {
+                "description": "One normal per face",
+                "quality": "low",
+                "performance": "high"
+            },
+            "gouraud": {
+                "description": "Interpolate colors across vertices",
+                "quality": "medium",
+                "performance": "medium"
+            },
+            "phong": {
+                "description": "Interpolate normals, calculate per pixel",
+                "quality": "high",
+                "performance": "low"
+            }
+        }
+    },
+    "curves_and_surfaces": {
+        "parametric_curves": {
+            "bezier": {
+                "degree": "n",
+                "control_points": "n+1",
+                "formula": "C(t) = Σ(i=0 to n) Bi,n(t) * Pi",
+                "properties": [
+                    "smooth",
+                    "local_control"
+                ]
+            },
+            "b_spline": {
+                "degree": "p",
+                "control_points": "n+1",
+                "knot_vector": "required",
+                "properties": [
+                    "smooth",
+                    "local_control",
+                    "flexible"
+                ]
+            },
+            "nurbs": {
+                "description": "Non-Uniform Rational B-Splines",
+                "weights": "per control point",
+                "properties": [
+                    "conic_sections",
+                    "exact_representation"
+                ]
+            }
+        },
+        "surfaces": {
+            "bezier_surface": {
+                "control_points": "grid of (m+1) × (n+1)",
+                "formula": "S(u,v) = Σ Σ Bi,m(u) * Bj,n(v) * Pi,j"
+            },
+            "b_spline_surface": {
+                "control_points": "grid",
+                "knot_vectors": "u and v directions",
+                "properties": [
+                    "smooth",
+                    "local_control"
+                ]
+            }
+        }
+    },
+    "algorithms": {
+        "rasterization": {
+            "line_drawing": {
+                "dda": {
+                    "name": "Digital Differential Analyzer",
+                    "complexity": "O(max(|Δx|, |Δy|))",
+                    "accuracy": "floating point"
+                },
+                "bresenham": {
+                    "name": "Bresenham's Line Algorithm",
+                    "complexity": "O(max(|Δx|, |Δy|))",
+                    "accuracy": "integer arithmetic"
+                }
+            },
+            "polygon_filling": {
+                "scanline": {
+                    "description": "Fill polygon line by line",
+                    "steps": [
+                        "find_intersections",
+                        "sort_x_coordinates",
+                        "fill_pairs"
+                    ]
+                },
+                "flood_fill": {
+                    "description": "Fill connected region",
+                    "types": [
+                        "4_connected",
+                        "8_connected"
+                    ]
+                }
+            }
+        },
+        "clipping": {
+            "cohen_sutherland": {
+                "type": "line clipping",
+                "region_codes": "9-bit encoding",
+                "efficiency": "good for simple cases"
+            },
+            "liang_barsky": {
+                "type": "line clipping",
+                "method": "parametric approach",
+                "efficiency": "better for complex polygons"
+            },
+            "sutherland_hodgman": {
+                "type": "polygon clipping",
+                "method": "successive edge clipping",
+                "output": "convex polygon"
+            }
+        },
+        "hidden_surface": {
+            "z_buffer": {
+                "description": "Depth testing per pixel",
+                "memory": "width × height × depth_bits",
+                "accuracy": "depends on depth precision"
+            },
+            "painters": {
+                "description": "Back-to-front rendering",
+                "requirement": "depth sorting",
+                "limitation": "overlapping polygons"
+            },
+            "bsp_tree": {
+                "description": "Binary Space Partitioning",
+                "preprocessing": "required",
+                "advantage": "handles complex scenes"
+            }
+        }
+    }
+}

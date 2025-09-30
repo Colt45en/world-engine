@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 NEXUS HOLY BEAT - Master Integration Demo</title>
+    <style>
+        :root {
+            --primary: #64ffda;
+            --secondary: #ff00ff;
+            --accent: #ff7bd5;
+            --world: #7dd3ff;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+            --bg: #0b0f1a;
+            --card: #0f1626;
+            --border: #1a2b46;
+            --text: #e8f0ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .master-grid {
+            display: grid;
+            grid-template-areas:
+                "control-header control-header control-header"
+                "clock-panel audio-panel training-panel"
+                "art-canvas world-canvas data-viz"
+                "feature-bus feature-bus status-bar";
+            grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr) minmax(300px, 1fr);
+            grid-template-rows: 80px minmax(180px, 200px) minmax(250px, 1fr) 100px;
+            height: 100vh;
+            gap: 6px;
+            padding: 6px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: rgba(15, 22, 38, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            backdrop-filter: blur(8px);
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            min-height: 0;
+        }
+
+        .panel-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-header {
+            grid-area: control-header;
+            background: linear-gradient(45deg, rgba(100, 255, 218, 0.1), rgba(255, 0, 255, 0.1));
+            border-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 30px;
+        }
+
+        .master-title {
+            font-size: 1.8em;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .master-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .master-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .master-btn:hover {
+            background: var(--primary);
+            color: var(--bg);
+            transform: translateY(-2px);
+        }
+
+        .master-btn.active {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            color: white;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .clock-panel { grid-area: clock-panel; border-color: var(--secondary); }
+        .audio-panel { grid-area: audio-panel; border-color: var(--primary); }
+        .training-panel { grid-area: training-panel; border-color: var(--warning); }
+        .art-canvas { grid-area: art-canvas; border-color: var(--accent); }
+        .world-canvas { grid-area: world-canvas; border-color: var(--world); }
+        .data-viz { grid-area: data-viz; border-color: var(--success); }
+        .feature-bus { grid-area: feature-bus; border-color: var(--primary); }
+        .status-bar { grid-area: status-bar; border-color: var(--border); }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .metric {
+            background: rgba(100, 255, 218, 0.1);
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .beat-indicators {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            justify-content: center;
+        }
+
+        .beat-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #555;
+            transition: all 0.1s ease;
+        }
+
+        .beat-dot.active {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            box-shadow: 0 0 10px var(--secondary);
+            transform: scale(1.2);
+        }
+
+        canvas {
+            width: 100%;
+            height: calc(100% - 60px);
+            max-height: 280px;
+            border-radius: 8px;
+            background: #000;
+            object-fit: contain;
+        }
+
+        .feature-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            height: 100%;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .feature-node {
+            background: rgba(100, 255, 218, 0.2);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 8px 12px;
+            text-align: center;
+            min-width: 100px;
+            flex: 1;
+            max-width: 140px;
+        }
+
+        .feature-arrow {
+            color: var(--primary);
+            font-size: 1.5em;
+            animation: pulse 2s infinite;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            height: 100%;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-bottom: 4px;
+        }
+
+        .status-active { background: var(--success); }
+        .status-training { background: var(--warning); }
+        .status-error { background: var(--error); }
+
+        .training-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .small-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--warning);
+            background: transparent;
+            color: var(--warning);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .small-btn:hover {
+            background: var(--warning);
+            color: var(--bg);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 68, 68, 0.1);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .error-panel {
+            background: var(--card);
+            border: 2px solid var(--error);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(100, 255, 218, 0.3);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .master-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 4px;
+                padding: 4px;
+            }
+
+            .panel {
+                padding: 8px;
+            }
+
+            .feature-node {
+                min-width: 80px;
+                padding: 6px 8px;
+                font-size: 0.9em;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .master-grid {
+                grid-template-areas:
+                    "control-header control-header"
+                    "clock-panel audio-panel"
+                    "training-panel art-canvas"
+                    "world-canvas data-viz"
+                    "feature-bus feature-bus"
+                    "status-bar status-bar";
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 80px 160px 160px 160px 80px 60px;
+            }
+
+            canvas {
+                height: calc(100% - 50px);
+                max-height: 120px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .master-grid {
+                grid-template-areas:
+                    "control-header"
+                    "clock-panel"
+                    "audio-panel"
+                    "training-panel"
+                    "art-canvas"
+                    "world-canvas"
+                    "data-viz"
+                    "feature-bus"
+                    "status-bar";
+                grid-template-columns: 1fr;
+                grid-template-rows: 80px repeat(7, minmax(120px, auto)) 60px;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div style="text-align: center;">
+            <div class="loading-spinner"></div>
+            <div style="margin-top: 20px; color: var(--primary);">
+                <h3>Initializing NEXUS Holy Beat System</h3>
+                <p id="loadingStatus">Loading core modules...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-overlay" id="errorOverlay">
+        <div class="error-panel">
+            <h2 style="color: var(--error); margin-bottom: 15px;">⚠️ System Error</h2>
+            <p id="errorMessage">An error occurred while initializing the system.</p>
+            <button class="master-btn" onclick="try { retryInitialization(); } catch(e) { console.error(\'Button error:\', e); }">🔄 Retry</button>
+        </div>
+    </div>
+
+    <div class="master-grid">
+        <!-- Control Header -->
+        <div class="panel control-header">
+            <div>
+                <div class="master-title">🎵 NEXUS HOLY BEAT - MASTER SYSTEM</div>
+                <div style="font-size: 0.9em; opacity: 0.8;">Unified Mathematical Synthesis Engine</div>
+            </div>
+            <div class="master-controls">
+                <button class="master-btn" id="masterStart">▶ START ALL</button>
+                <button class="master-btn" id="masterStop">⏹ STOP</button>
+                <button class="master-btn" id="masterTrain">🤖 TRAIN</button>
+                <button class="master-btn" id="masterExport">📊 EXPORT</button>
+            </div>
+        </div>
+
+        <!-- Clock Panel -->
+        <div class="panel clock-panel">
+            <div class="panel-title">
+                ⏰ Clock/Bus System
+                <span class="status-dot status-active" id="clockStatus"></span>
+            </div>
+
+            <div class="beat-indicators">
+                <div class="beat-dot" id="beat0"></div>
+                <div class="beat-dot" id="beat1"></div>
+                <div class="beat-dot" id="beat2"></div>
+                <div class="beat-dot" id="beat3"></div>
+            </div>
+
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="currentBPM">120</div>
+                    <div class="metric-label">BPM</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="currentPhase">0.000</div>
+                    <div class="metric-label">φ(t)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="currentBar">0</div>
+                    <div class="metric-label">Bar</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="pendingParams">0</div>
+                    <div class="metric-label">Queue</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Panel -->
+        <div class="panel audio-panel">
+            <div class="panel-title">
+                🎵 Audio Synthesis
+                <span class="status-dot status-active" id="audioStatus"></span>
+            </div>
+
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="spectralCentroid">440</div>
+                    <div class="metric-label">χs (Hz)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="rmsEnergy">0.000</div>
+                    <div class="metric-label">RMS</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="harmonicCount">6</div>
+                    <div class="metric-label">Harmonics</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="synthMode">Active</div>
+                    <div class="metric-label">Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Panel -->
+        <div class="panel training-panel">
+            <div class="panel-title">
+                🤖 ML Training
+                <span class="status-dot status-training" id="trainingStatus"></span>
+            </div>
+
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="trainingDataPoints">0</div>
+                    <div class="metric-label">Data Points</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="learnedPatterns">0</div>
+                    <div class="metric-label">Patterns</div>
+                </div>
+            </div>
+
+            <div class="training-controls">
+                <button class="small-btn" id="startTraining">Start Session</button>
+                <button class="small-btn" id="exportData">Export Data</button>
+            </div>
+        </div>
+
+        <!-- Art Canvas -->
+        <div class="panel art-canvas">
+            <div class="panel-title">
+                🌹 Parametric Art
+                <span class="status-dot status-active" id="artStatus"></span>
+            </div>
+            <canvas id="artCanvas" width="400" height="300"></canvas>
+        </div>
+
+        <!-- World Canvas -->
+        <div class="panel world-canvas">
+            <div class="panel-title">
+                🌍 3D World
+                <span class="status-dot status-active" id="worldStatus"></span>
+            </div>
+            <div id="world3d" style="width: 100%; height: calc(100% - 60px); border-radius: 8px; overflow: hidden;"></div>
+        </div>
+
+        <!-- Data Visualization -->
+        <div class="panel data-viz">
+            <div class="panel-title">
+                📊 Live Data
+                <span class="status-dot status-active" id="dataStatus"></span>
+            </div>
+            <canvas id="dataCanvas" width="400" height="300"></canvas>
+        </div>
+
+        <!-- Feature Bus -->
+        <div class="panel feature-bus">
+            <div class="panel-title">🔗 Cross-Modal Feature Bus</div>
+            <div class="feature-flow">
+                <div class="feature-node">
+                    <div>AUDIO</div>
+                    <div style="font-size: 0.8em;" id="audioFeature">χs: 440Hz</div>
+                </div>
+                <div class="feature-arrow">→</div>
+                <div class="feature-node">
+                    <div>ART</div>
+                    <div style="font-size: 0.8em;" id="artFeature">k: 8 petals</div>
+                </div>
+                <div class="feature-arrow">→</div>
+                <div class="feature-node">
+                    <div>WORLD</div>
+                    <div style="font-size: 0.8em;" id="worldFeature">ρw: 0.4</div>
+                </div>
+                <div class="feature-arrow">→</div>
+                <div class="feature-node">
+                    <div>TRAIN</div>
+                    <div style="font-size: 0.8em;" id="trainFeature">Learning</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="panel status-bar">
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-dot status-active"></div>
+                    <div style="font-size: 0.8em;">Clock</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot status-active"></div>
+                    <div style="font-size: 0.8em;">Audio</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot status-active"></div>
+                    <div style="font-size: 0.8em;">Art</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot status-active"></div>
+                    <div style="font-size: 0.8em;">World</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot status-training"></div>
+                    <div style="font-size: 0.8em;">ML</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js";
+
+        // System state
+        let masterSystem = {
+            running: false,
+            training: false,
+            initialized: false,
+            error: null
+        };
+
+        // Core components (will be loaded dynamically)
+        let clockSystem = null;
+        let audioEngine = null;
+        let artEngine = null;
+        let worldEngine = null;
+        let trainingInterface = null;
+
+        // Visual components
+        let artCanvas, artCtx;
+        let dataCanvas, dataCtx;
+        let world3D = null;
+
+        // Initialize the master system
+        async function initializeMasterSystem() {
+            try {
+                updateLoadingStatus('Initializing audio context...');
+                await initializeAudio();
+
+                updateLoadingStatus('Loading core modules...');
+                await loadCoreModules();
+
+                updateLoadingStatus('Setting up visual components...');
+                initializeVisuals();
+
+                updateLoadingStatus('Connecting event handlers...');
+                setupEventHandlers();
+
+                updateLoadingStatus('System ready!');
+
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    masterSystem.initialized = true;
+                }, 1000);
+
+                console.log('🎵 NEXUS Holy Beat Master System initialized');
+
+            } catch (error) {
+                console.error('Master system initialization error:', error);
+                showError('Failed to initialize system: ' + error.message);
+            }
+        }
+
+        function updateLoadingStatus(status) {
+            document.getElementById('loadingStatus').textContent = status;
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('errorOverlay').style.display = 'flex';
+            masterSystem.error = message;
+        }
+
+        async function initializeAudio() {
+            // Initialize Web Audio API
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                throw new Error('Web Audio API not supported');
+            }
+
+            // Create mock audio engine for demo
+            audioEngine = {
+                context: new AudioContext(),
+                running: false,
+                spectralCentroid: 440,
+                rmsEnergy: 0.1,
+                harmonics: 6
+            };
+        }
+
+        async function loadCoreModules() {
+            // Create mock clock system
+            clockSystem = {
+                bpm: 120,
+                bar: 0,
+                beat: 0,
+                phase: 0,
+                running: false,
+                pendingParams: 0,
+
+                start() {
+                    this.running = true;
+                    this.startTime = Date.now();
+                },
+
+                stop() {
+                    this.running = false;
+                },
+
+                tick() {
+                    if (!this.running) return;
+
+                    const elapsed = (Date.now() - this.startTime) / 1000;
+                    const totalBeats = elapsed * (this.bpm / 60);
+
+                    this.bar = Math.floor(totalBeats / 4);
+                    this.beat = Math.floor(totalBeats) % 4;
+                    this.phase = totalBeats - Math.floor(totalBeats);
+                }
+            };
+
+            // Create mock training interface
+            trainingInterface = {
+                dataPoints: 0,
+                patterns: 0,
+                training: false,
+
+                startSession() {
+                    this.training = true;
+                    console.log('🤖 Training session started');
+                },
+
+                stopSession() {
+                    this.training = false;
+                    console.log('🤖 Training session stopped');
+                },
+
+                collectData(systemState) {
+                    if (this.training) {
+                        this.dataPoints++;
+                    }
+                }
+            };
+        }
+
+        function initializeVisuals() {
+            // Art canvas
+            artCanvas = document.getElementById('artCanvas');
+            artCtx = artCanvas.getContext('2d');
+
+            // Data visualization canvas
+            dataCanvas = document.getElementById('dataCanvas');
+            dataCtx = dataCanvas.getContext('2d');
+
+            // 3D World setup
+            const container = document.getElementById('world3d');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Create a simple cube for demo
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                wireframe: true
+            });
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+
+            camera.position.z = 3;
+
+            world3D = { scene, camera, renderer, cube };
+
+            // Start render loop
+            startRenderLoop();
+        }
+
+        function setupEventHandlers() {
+            document.getElementById('masterStart').addEventListener("click", function(e) { try { startMasterSystem(e); } catch(err) { console.error("Event error:", err); } });
+            document.getElementById('masterStop').addEventListener("click", function(e) { try { stopMasterSystem(e); } catch(err) { console.error("Event error:", err); } });
+            document.getElementById('masterTrain').addEventListener("click", function(e) { try { toggleTraining(e); } catch(err) { console.error("Event error:", err); } });
+            document.getElementById('masterExport').addEventListener("click", function(e) { try { exportSystemData(e); } catch(err) { console.error("Event error:", err); } });
+
+            document.getElementById('startTraining').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                if (trainingInterface) {
+                    trainingInterface.startSession();
+                    updateTrainingDisplay();
+                }
+            });
+
+            document.getElementById('exportData').addEventListener("click", function(e) { try { exportTrainingData(e); } catch(err) { console.error("Event error:", err); } });
+        }
+
+        function startMasterSystem() {
+            if (!masterSystem.initialized) {
+                showError('System not fully initialized yet');
+                return;
+            }
+
+            try {
+                clockSystem.start();
+                audioEngine.running = true;
+                masterSystem.running = true;
+
+                document.getElementById('masterStart').classList.add('active');
+                document.getElementById('masterStop').classList.remove('active');
+
+                console.log('🎵 Master system started');
+
+            } catch (error) {
+                showError('Failed to start system: ' + error.message);
+            }
+        }
+
+        function stopMasterSystem() {
+            clockSystem.stop();
+            audioEngine.running = false;
+            masterSystem.running = false;
+
+            document.getElementById('masterStart').classList.remove('active');
+            document.getElementById('masterStop').classList.add('active');
+
+            // Clear beat indicators
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`beat${i}`).classList.remove('active');
+            }
+
+            console.log('🔇 Master system stopped');
+        }
+
+        function toggleTraining() {
+            if (!trainingInterface) return;
+
+            if (trainingInterface.training) {
+                trainingInterface.stopSession();
+                document.getElementById('masterTrain').classList.remove('active');
+            } else {
+                trainingInterface.startSession();
+                document.getElementById('masterTrain').classList.add('active');
+            }
+
+            masterSystem.training = trainingInterface.training;
+            updateTrainingDisplay();
+        }
+
+        function exportSystemData() {
+            const systemData = {
+                timestamp: new Date().toISOString(),
+                version: '1.0.0',
+                clock: {
+                    bpm: clockSystem.bpm,
+                    bar: clockSystem.bar,
+                    beat: clockSystem.beat,
+                    phase: clockSystem.phase
+                },
+                audio: {
+                    spectralCentroid: audioEngine.spectralCentroid,
+                    rmsEnergy: audioEngine.rmsEnergy,
+                    harmonics: audioEngine.harmonics
+                },
+                training: {
+                    dataPoints: trainingInterface.dataPoints,
+                    patterns: trainingInterface.patterns
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(systemData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nexus-holy-beat-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportTrainingData() {
+            if (!trainingInterface) return;
+
+            const trainingData = {
+                timestamp: new Date().toISOString(),
+                dataPoints: trainingInterface.dataPoints,
+                patterns: trainingInterface.patterns,
+                session: trainingInterface.training ? 'active' : 'inactive'
+            };
+
+            const blob = new Blob([JSON.stringify(trainingData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nexus-training-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function startRenderLoop() {
+            function render() {
+                requestAnimationFrame(render);
+
+                if (masterSystem.running) {
+                    updateSystemState();
+                    updateVisuals();
+                }
+            }
+            render();
+        }
+
+        function updateSystemState() {
+            // Update clock
+            clockSystem.tick();
+
+            // Update audio simulation
+            audioEngine.spectralCentroid = 440 + Math.sin(Date.now() / 1000) * 100;
+            audioEngine.rmsEnergy = 0.1 + Math.abs(Math.sin(Date.now() / 500)) * 0.3;
+
+            // Collect training data
+            if (trainingInterface.training) {
+                trainingInterface.collectData({
+                    clock: clockSystem,
+                    audio: audioEngine
+                });
+            }
+
+            updateDisplays();
+        }
+
+        function updateDisplays() {
+            // Clock display
+            document.getElementById('currentBPM').textContent = clockSystem.bpm;
+            document.getElementById('currentPhase').textContent = clockSystem.phase.toFixed(3);
+            document.getElementById('currentBar').textContent = clockSystem.bar;
+            document.getElementById('pendingParams').textContent = clockSystem.pendingParams;
+
+            // Beat indicators
+            for (let i = 0; i < 4; i++) {
+                const beatDot = document.getElementById(`beat${i}`);
+                if (i === clockSystem.beat) {
+                    beatDot.classList.add('active');
+                } else {
+                    beatDot.classList.remove('active');
+                }
+            }
+
+            // Audio display
+            document.getElementById('spectralCentroid').textContent = Math.round(audioEngine.spectralCentroid);
+            document.getElementById('rmsEnergy').textContent = audioEngine.rmsEnergy.toFixed(3);
+            document.getElementById('harmonicCount').textContent = audioEngine.harmonics;
+
+            // Feature bus
+            document.getElementById('audioFeature').textContent = `χs: ${Math.round(audioEngine.spectralCentroid)}Hz`;
+            document.getElementById('artFeature').textContent = `k: ${Math.floor(audioEngine.spectralCentroid / 55)} petals`;
+            document.getElementById('worldFeature').textContent = `ρw: ${audioEngine.rmsEnergy.toFixed(2)}`;
+            document.getElementById('trainFeature').textContent = trainingInterface.training ? 'Active' : 'Ready';
+
+            updateTrainingDisplay();
+        }
+
+        function updateTrainingDisplay() {
+            document.getElementById('trainingDataPoints').textContent = trainingInterface.dataPoints;
+            document.getElementById('learnedPatterns').textContent = trainingInterface.patterns;
+        }
+
+        function updateVisuals() {
+            // Update art canvas
+            renderParametricArt();
+
+            // Update data visualization
+            renderDataVisualization();
+
+            // Update 3D world
+            if (world3D) {
+                world3D.cube.rotation.x += 0.01;
+                world3D.cube.rotation.y += 0.02;
+
+                // Color based on audio
+                const hue = (audioEngine.spectralCentroid / 880) * 360;
+                world3D.cube.material.color.setHSL(hue / 360, 0.7, 0.5);
+
+                world3D.renderer.render(world3D.scene, world3D.camera);
+            }
+        }
+
+        function renderParametricArt() {
+            const centerX = artCanvas.width / 2;
+            const centerY = artCanvas.height / 2;
+
+            artCtx.fillStyle = '#000';
+            artCtx.fillRect(0, 0, artCanvas.width, artCanvas.height);
+
+            // Rose curve based on spectral centroid
+            const k = Math.floor(audioEngine.spectralCentroid / 55); // petals
+            const radius = Math.min(artCanvas.width, artCanvas.height) * 0.35;
+
+            artCtx.strokeStyle = `hsl(${(audioEngine.spectralCentroid / 880) * 360}, 70%, 60%)`;
+            artCtx.lineWidth = 2;
+            artCtx.beginPath();
+
+            for (let i = 0; i <= 1000; i++) {
+                const theta = i / 1000 * Math.PI * 2;
+                const r = Math.cos(k * theta) * (0.8 + 0.2 * Math.sin(clockSystem.phase * Math.PI * 2));
+                const x = centerX + radius * r * Math.cos(theta);
+                const y = centerY + radius * r * Math.sin(theta);
+
+                if (i === 0) {
+                    artCtx.moveTo(x, y);
+                } else {
+                    artCtx.lineTo(x, y);
+                }
+            }
+
+            artCtx.stroke();
+        }
+
+        function renderDataVisualization() {
+            dataCtx.fillStyle = '#000';
+            dataCtx.fillRect(0, 0, dataCanvas.width, dataCanvas.height);
+
+            // Simple waveform visualization
+            dataCtx.strokeStyle = '#64ffda';
+            dataCtx.lineWidth = 2;
+            dataCtx.beginPath();
+
+            for (let x = 0; x < dataCanvas.width; x++) {
+                const t = x / dataCanvas.width;
+                const frequency = audioEngine.spectralCentroid / 100;
+                const y = dataCanvas.height / 2 +
+                         Math.sin(t * Math.PI * 2 * frequency + Date.now() / 200) *
+                         audioEngine.rmsEnergy * 100;
+
+                if (x === 0) {
+                    dataCtx.moveTo(x, y);
+                } else {
+                    dataCtx.lineTo(x, y);
+                }
+            }
+
+            dataCtx.stroke();
+        }
+
+        function retryInitialization() {
+            document.getElementById('errorOverlay').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            masterSystem.error = null;
+            initializeMasterSystem();
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', initializeMasterSystem);
+
+        console.log('🎵 NEXUS Holy Beat Master Demo loaded');
+    </script>
+</body>
+</html>

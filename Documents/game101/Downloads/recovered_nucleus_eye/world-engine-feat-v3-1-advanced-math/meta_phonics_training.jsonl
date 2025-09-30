@@ -1,0 +1,6 @@
+{"prompt": "if cat is [k][a][t] then [k][a][t] is cat", "expected": "cat"}
+{"prompt": "if phone is [f][o][n] then [f][o][n] is phone", "expected": "phone"}
+{"prompt": "if rebuild is re + build then re + build is rebuild", "expected": "rebuild"}
+{"prompt": "if running is run + ing then run + ing is running", "expected": "running"}
+{"prompt": "if cat is animal then animal is what?", "expected": "cat"}
+{"prompt": "if run is verb then verb is what?", "expected": "run"}

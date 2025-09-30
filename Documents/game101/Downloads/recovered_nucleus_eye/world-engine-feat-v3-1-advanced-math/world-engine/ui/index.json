@@ -1,0 +1,94 @@
+{
+    "ui_framework": {
+        "name": "World Engine UI Framework",
+        "version": "3.1.0",
+        "description": "Comprehensive user interface system for World Engine with VectorLab integration",
+        "components": {
+            "chatbot": {
+                "path": "/ui/chatbot",
+                "description": "AI-powered chatbot interface with context awareness",
+                "features": [
+                    "Toggle visibility",
+                    "Persistent connection",
+                    "Context-aware responses",
+                    "Demo integration"
+                ]
+            },
+            "inspector": {
+                "path": "/ui/inspector",
+                "description": "System inspector for monitoring World Engine state",
+                "features": [
+                    "Domain status",
+                    "Service monitoring",
+                    "Performance metrics",
+                    "Debug console"
+                ]
+            },
+            "trainers": {
+                "path": "/ui/trainers",
+                "description": "Interactive training interfaces",
+                "features": [
+                    "Phonics trainer",
+                    "Math glyph system",
+                    "Progress tracking",
+                    "Adaptive learning"
+                ]
+            },
+            "status_panels": {
+                "path": "/ui/status",
+                "description": "Status and notification panels",
+                "features": [
+                    "System health",
+                    "Connection status",
+                    "Notifications",
+                    "Alert system"
+                ]
+            },
+            "nexus_dashboard": {
+                "path": "/ui/nexus",
+                "description": "VectorLab Nexus control dashboard",
+                "features": [
+                    "Brain state monitoring",
+                    "WebSocket connections",
+                    "Live data streams",
+                    "Control interfaces"
+                ]
+            }
+        },
+        "themes": {
+            "default": {
+                "name": "World Engine Dark",
+                "primary": "#2a2a2a",
+                "secondary": "#4a4a4a",
+                "accent": "#00d4aa",
+                "text": "#ffffff",
+                "background": "#1a1a1a"
+            },
+            "nexus": {
+                "name": "VectorLab Nexus",
+                "primary": "#001122",
+                "secondary": "#003344",
+                "accent": "#00ffcc",
+                "text": "#ccffff",
+                "background": "#000811"
+            }
+        },
+        "layouts": {
+            "demo_mode": {
+                "chatbot": "bottom-right",
+                "inspector": "hidden",
+                "status": "minimal"
+            },
+            "training_mode": {
+                "chatbot": "bottom-left",
+                "trainers": "center",
+                "status": "progress"
+            },
+            "development_mode": {
+                "chatbot": "right-panel",
+                "inspector": "left-panel",
+                "status": "full"
+            }
+        }
+    }
+}

@@ -1,0 +1,214 @@
+cmake_minimum_required(VERSION 3.16)
+project(NexusHolyBeatSystem VERSION 1.0.0 LANGUAGES CXX)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Compiler - specific options
+if (MSVC)
+    add_compile_options(/W4)
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+else ()
+add_compile_options(-Wall - Wextra - pedantic - O3)
+endif()
+
+# Platform detection
+if (WIN32)
+    add_compile_definitions(NEXUS_PLATFORM_WINDOWS)
+set(PLATFORM_LIBS ws2_32 wsock32)
+elseif(APPLE)
+add_compile_definitions(NEXUS_PLATFORM_MACOS)
+find_library(COCOA_LIBRARY Cocoa)
+find_library(OPENGL_LIBRARY OpenGL)
+set(PLATFORM_LIBS ${ COCOA_LIBRARY } ${ OPENGL_LIBRARY })
+else ()
+add_compile_definitions(NEXUS_PLATFORM_LINUX)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK3 REQUIRED gtk + -3.0)
+set(PLATFORM_LIBS ${ GTK3_LIBRARIES } pthread)
+endif()
+
+# Find dependencies
+find_package(OpenGL REQUIRED)
+
+# Include directories
+include_directories(
+    ${ CMAKE_CURRENT_SOURCE_DIR } / include
+    ${ CMAKE_CURRENT_SOURCE_DIR } / src
+)
+
+# Core NEXUS Engine sources
+file(GLOB_RECURSE NEXUS_CORE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
+)
+
+file(GLOB_RECURSE NEXUS_CORE_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+)
+
+# Create NEXUS Core Library
+add_library(NexusCore STATIC ${ NEXUS_CORE_SOURCES } ${ NEXUS_CORE_HEADERS })
+target_link_libraries(NexusCore ${ OPENGL_LIBRARIES } ${ PLATFORM_LIBS })
+
+# === EXECUTABLE TARGETS ===
+
+# 1. Original Resource Demo
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/nexus_resource_demo.cpp")
+add_executable(nexus_resource_demo examples / nexus_resource_demo.cpp)
+target_link_libraries(nexus_resource_demo NexusCore)
+endif()
+
+# 2. Enhanced Holy Beat Demo with WebSocket Integration
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/holy_beat_demo.cpp")
+add_executable(holy_beat_demo examples / holy_beat_demo.cpp)
+target_link_libraries(holy_beat_demo NexusCore)
+endif()
+
+# 3. NEXUS Nova Combat Integration Demo
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/nexus_nova_combat_demo.cpp")
+add_executable(nexus_nova_combat_demo examples / nexus_nova_combat_demo.cpp)
+target_link_libraries(nexus_nova_combat_demo NexusCore)
+endif()
+
+# 4. Comprehensive Test Suite
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/nexus_test_suite.cpp")
+add_executable(nexus_test_suite tests / nexus_test_suite.cpp)
+target_link_libraries(nexus_test_suite NexusCore)
+endif()
+
+# Build all example programs
+file(GLOB EXAMPLE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.cpp")
+foreach(example_source ${ EXAMPLE_SOURCES })
+get_filename_component(example_name ${ example_source } NAME_WE)
+if (NOT TARGET ${ example_name })
+add_executable(${ example_name } ${ example_source })
+target_link_libraries(${ example_name } NexusCore)
+endif()
+endforeach()
+
+# === INSTALLATION ===
+
+    install(TARGETS NexusCore
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+    )
+
+# Install headers
+install(DIRECTORY include /
+    DESTINATION include / nexus
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+)
+
+# Install web assets
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../nexus-live-bridge.html")
+install(FILES../ nexus - live - bridge.html../ nexus - 3d - visualization.html
+        DESTINATION share / nexus / web
+)
+endif()
+
+# === TESTING ===
+
+    enable_testing()
+
+if (TARGET nexus_test_suite)
+add_test(NAME NexusBasicTest COMMAND nexus_test_suite--basic)
+endif()
+
+# === CUSTOM TARGETS ===
+
+# Clean build artifacts
+add_custom_target(clean - all
+    COMMAND ${ CMAKE_COMMAND } --build ${ CMAKE_BINARY_DIR } --target clean
+    COMMAND ${ CMAKE_COMMAND } - E remove_directory ${ CMAKE_BINARY_DIR } / CMakeFiles
+)
+
+# Run Holy Beat demo
+if (TARGET holy_beat_demo)
+add_custom_target(run - holy - beat
+        DEPENDS holy_beat_demo
+        COMMAND echo "🎵✨ Starting NEXUS Holy Beat System Demo ✨🎵"
+        COMMAND echo "🌐 Open nexus-live-bridge.html in your browser for web interface"
+        COMMAND echo "🎨 Open nexus-3d-visualization.html for 3D visualization"
+        COMMAND./ holy_beat_demo
+        WORKING_DIRECTORY ${ CMAKE_BINARY_DIR }
+        COMMENT "Running NEXUS Holy Beat System"
+)
+endif()
+
+# Run Nova Combat demo
+if (TARGET nexus_nova_combat_demo)
+add_custom_target(run - nova - combat
+        DEPENDS nexus_nova_combat_demo
+        COMMAND echo "⚔️✨ Starting NEXUS Nova Combat Integration Demo ✨⚔️"
+        COMMAND echo "🎮 Features: Quantum movement, sacred combat, harmonic resonance"
+        COMMAND./ nexus_nova_combat_demo
+        WORKING_DIRECTORY ${ CMAKE_BINARY_DIR }
+        COMMENT "Running NEXUS Nova Combat Integration"
+)
+endif()
+
+# === BUILD CONFIGURATION SUMMARY ===
+
+    message(STATUS "")
+message(STATUS "🎵✨ NEXUS Holy Beat System Build Configuration ✨🎵")
+message(STATUS "==================================================")
+message(STATUS "Version: ${PROJECT_VERSION}")
+message(STATUS "Platform: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "")
+message(STATUS "Components Found:")
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/nexus_resource_demo.cpp")
+message(STATUS "  ✅ NEXUS Resource Demo")
+else ()
+message(STATUS "  ❌ NEXUS Resource Demo (missing)")
+endif()
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/holy_beat_demo.cpp")
+message(STATUS "  ✅ Holy Beat Demo with WebSocket Integration")
+else ()
+message(STATUS "  ❌ Holy Beat Demo (missing)")
+endif()
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/nexus_nova_combat_demo.cpp")
+message(STATUS "  ✅ NEXUS Nova Combat Integration Demo")
+else ()
+message(STATUS "  ❌ NEXUS Nova Combat Demo (missing)")
+endif()
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/nexus_test_suite.cpp")
+message(STATUS "  ✅ Test Suite")
+else ()
+message(STATUS "  ❌ Test Suite (missing)")
+endif()
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../nexus-live-bridge.html")
+message(STATUS "  ✅ Web Dashboard Interface")
+else ()
+message(STATUS "  ❌ Web Dashboard Interface (missing)")
+endif()
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../nexus-3d-visualization.html")
+message(STATUS "  ✅ 3D Visualization Interface")
+else ()
+message(STATUS "  ❌ 3D Visualization Interface (missing)")
+endif()
+
+message(STATUS "")
+message(STATUS "Quick Start:")
+message(STATUS "  Build: cmake --build . --config Release")
+if (TARGET run - holy - beat)
+message(STATUS "  Holy Beat Demo: make run-holy-beat")
+endif()
+if (TARGET run - nova - combat)
+message(STATUS "  Nova Combat Demo: make run-nova-combat")
+endif()
+message(STATUS "  Test:  make test")
+message(STATUS "  Install: make install")
+message(STATUS "==================================================")
+message(STATUS "")

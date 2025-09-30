@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>💻 NEXUS Code Pad - Development Environment</title>
+  <style>
+    :root {
+      --primary:#64ffda; --secondary:#ff00ff; --accent:#ff7bd5;
+      --success:#00ff88; --warning:#ffaa00; --error:#ff4444;
+      --bg:#0b0f1a; --card:#0f1626; --border:#1a2b46; --text:#e8f0ff;
+      --editor-lh:1.5; --gutter-w:52px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      background:radial-gradient(ellipse at center,#1a0033 0%,#000011 70%,#000 100%);
+      color:var(--text); font-family:Consolas,Monaco,ui-monospace,Menlo,monospace;
+      height:100vh; overflow:hidden;
+    }
+    .code-layout{
+      display:grid; gap:8px; padding:8px; height:100vh;
+      grid-template-areas:
+        "header header header"
+        "file-explorer editor-area output-panel"
+        "ai-assistant editor-area console";
+      grid-template-columns:250px 1fr 300px;
+      grid-template-rows:60px 1fr 200px;
+    }
+    .panel{background:rgba(15,22,38,.95); border:1px solid var(--border); border-radius:8px; padding:12px; backdrop-filter:blur(8px); overflow:hidden}
+    .header{grid-area:header; background:linear-gradient(45deg,rgba(100,255,218,.1),rgba(255,0,255,.1));
+      border-color:var(--primary); display:flex; align-items:center; justify-content:space-between; padding:16px 24px}
+    .header-title{font-size:1.4em; background:linear-gradient(45deg,var(--primary),var(--secondary));
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+    .header-controls{display:flex; gap:10px; flex-wrap:wrap}
+    .btn{padding:8px 12px; border:1px solid var(--primary); background:transparent; color:var(--primary);
+      border-radius:6px; cursor:pointer; font-size:.9em; transition:.2s}
+    .btn:hover{background:var(--primary); color:var(--bg)} .btn[disabled]{opacity:.5; cursor:not-allowed}
+    .btn.active{background:var(--secondary); border-color:var(--secondary); color:#fff}
+
+    .file-explorer{grid-area:file-explorer; border-color:var(--accent)}
+    .editor-area{grid-area:editor-area; border-color:var(--primary); display:flex; flex-direction:column; gap:8px; position:relative}
+    .output-panel{grid-area:output-panel; border-color:var(--success)}
+    .ai-assistant{grid-area:ai-assistant; border-color:var(--secondary)}
+    .console{grid-area:console; border-color:var(--warning)}
+
+    .panel-title{font-weight:600; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border)}
+    .tabs{display:flex; margin-bottom:4px; border-bottom:1px solid var(--border)}
+    .tab{padding:6px 12px; background:transparent; color:var(--text); cursor:pointer; border:none; border-bottom:2px solid transparent}
+    .tab.active{border-bottom-color:var(--primary); color:var(--primary)}
+
+    .editor-wrap{position:relative; display:grid; grid-template-columns:var(--gutter-w) 1fr; column-gap:8px; align-items:stretch; min-height:0; flex:1}
+    .gutter{background:#0a0e17; border:1px solid var(--border); border-radius:6px; padding:12px 8px; color:#6c8bb0;
+      text-align:right; font-size:14px; line-height:var(--editor-lh); user-select:none; white-space:pre; overflow:hidden}
+    .code-editor{background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; font-size:14px; color:var(--text);
+      outline:none; resize:none; line-height:var(--editor-lh); overflow:auto; tab-size:2}
+
+    .file-tree{list-style:none}
+    .file-item{padding:4px 8px; margin:2px 0; border-radius:4px; cursor:pointer}
+    .file-item:hover{background:rgba(100,255,218,.1)} .file-item.active{background:rgba(100,255,218,.2)}
+
+    .output-content,.console-content,.ai-chat{background:#000; border:1px solid var(--border); border-radius:4px; padding:8px; font-size:12px; height:calc(100% - 40px); overflow-y:auto}
+    .ai-chat{height:calc(100% - 80px); margin-bottom:8px}
+    .ai-input{display:flex; gap:6px}
+    .ai-text{flex:1; background:#000; border:1px solid var(--border); border-radius:4px; padding:6px; color:var(--text); font-size:12px}
+    .ai-send{padding:6px 12px; background:var(--secondary); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px}
+
+    .statusbar{display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); padding:6px 8px; font-size:12px; opacity:.9}
+    .statusbar .dim{color:#8aa0bf}
+
+    #toast{position:fixed; left:50%; top:10px; transform:translateX(-50%); background:rgba(0,0,0,.7); color:#fff; padding:8px 12px; border-radius:8px; opacity:0; transition:.25s; pointer-events:none; z-index:9999}
+
+    /* Find panel */
+    .find-panel{position:absolute; top:6px; right:6px; background:#0a0e17; border:1px solid var(--border); border-radius:8px; padding:8px; z-index:20; width:360px; max-width:calc(100% - 12px); box-shadow:0 8px 24px rgba(0,0,0,.35); display:none}
+    .find-row{display:flex; gap:6px; margin-bottom:6px} .find-input{flex:1; background:#05080f; border:1px solid var(--border); border-radius:6px; color:var(--text); padding:6px 8px; font-size:12px}
+    .find-btn{background:transparent; border:1px solid var(--primary); color:var(--primary); border-radius:6px; padding:6px 8px; font-size:12px; cursor:pointer}
+    .find-btn:hover{background:var(--primary); color:var(--bg)} .find-close{background:transparent; border:1px solid var(--border); color:#9fb5d6; border-radius:6px; padding:4px 8px; cursor:pointer}
+    .find-chk{display:flex; gap:6px; align-items:center; font-size:12px; color:#9fb5d6}
+
+    /* Glyphic palette */
+    .glyph-btn{border-color:#8c6eff; color:#c7b5ff}
+    .glyph-panel{position:absolute; inset:auto 6px 6px auto; top:52px; right:6px; width:420px; max-width:calc(100% - 12px);
+      background:#0a0e17; border:1px solid var(--border); border-radius:10px; padding:10px; z-index:19; box-shadow:0 10px 36px rgba(0,0,0,.4); display:none}
+    .glyph-head{display:flex; gap:6px; margin-bottom:8px}
+    .glyph-input{flex:1; background:#05080f; border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px 10px; font-size:12px}
+    .glyph-actions{display:flex; gap:6px}
+    .glyph-grid{display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; max-height:260px; overflow:auto; padding:2px}
+    .glyph-item{background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:8px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px}
+    .glyph-item:hover{border-color:var(--primary)}
+    .glyph-sym{font-size:20px}
+    .glyph-key{font-size:11px; color:#9fb5d6}
+    .glyph-foot{margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+    .glyph-small{font-size:11px; color:#8aa0bf}
+    .glyph-form{display:none; gap:6px; margin-top:6px}
+    .glyph-form input{background:#05080f; border:1px solid var(--border); border-radius:6px; color:var(--text); padding:6px 8px; font-size:12px}
+    .glyph-tag{border:1px dashed #3a4a6a; border-radius:6px; padding:4px 6px; font-size:11px; color:#9fb5d6}
+
+    /* === Drawer Mode =============================================== */
+    body.drawer-mode .code-layout{
+      grid-template-areas:
+        "header"
+        "editor-area";
+      grid-template-columns: 1fr;
+      grid-template-rows: 60px 1fr;
+    }
+    body.drawer-mode .file-explorer,
+    body.drawer-mode .output-panel,
+    body.drawer-mode .ai-assistant,
+    body.drawer-mode .console{
+      position: fixed;
+      top: 60px; bottom: 8px; width: 320px; z-index: 30;
+      transition: transform .25s ease, opacity .25s ease, box-shadow .25s ease;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45), 0 0 0 1px var(--border) inset;
+      opacity: .98; overflow: hidden; /* kill side scrollbars */
+    }
+    body.drawer-mode .file-explorer{ left: 8px; transform: translateX(-110%); }
+    body.drawer-mode .file-explorer.open{ transform: translateX(0); }
+    body.drawer-mode .output-panel,
+    body.drawer-mode .ai-assistant,
+    body.drawer-mode .console{ right: 8px; transform: translateX(110%); }
+    body.drawer-mode .output-panel.open,
+    body.drawer-mode .ai-assistant.open,
+    body.drawer-mode .console.open{ transform: translateX(0); }
+    body.drawer-mode .file-explorer.open::after,
+    body.drawer-mode .output-panel.open::after,
+    body.drawer-mode .ai-assistant.open::after,
+    body.drawer-mode .console.open::after{
+      content: ""; position: absolute; top: 0; bottom: 0; width: 10px; pointer-events: none;
+    }
+    body.drawer-mode .file-explorer.open::after{ right: -10px; background: linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,0)); }
+    body.drawer-mode .output-panel.open::after,
+    body.drawer-mode .ai-assistant.open::after,
+    body.drawer-mode .console.open::after{ left: -10px; background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.35)); }
+
+    #backdrop{
+      position: fixed; z-index: 25; top: 60px; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(1000px 600px at 80% 20%, rgba(15,22,38,.45), transparent 60%),
+        radial-gradient(900px 500px at 20% 80%, rgba(15,22,38,.35), transparent 60%),
+        rgba(0,0,0,.35);
+      backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    }
+    #backdrop.show{ opacity: 1; pointer-events: auto; }
+
+    @media (max-width:1200px){.code-layout{grid-template-columns:200px 1fr 250px; gap:6px; padding:6px} .glyph-panel{width:360px}}
+    @media (max-width:900px){
+      .code-layout{
+        grid-template-areas:"header header" "editor-area output-panel" "ai-assistant console";
+        grid-template-columns:1fr 250px; grid-template-rows:60px 1fr 180px;
+      }
+    }
+    @media (max-width:600px){
+      .code-layout{
+        grid-template-areas:"header" "editor-area" "output-panel" "ai-assistant" "console";
+        grid-template-columns:1fr; grid-template-rows:60px 1fr 150px 120px 100px;
+      }
+      .glyph-panel{inset:auto 6px 6px 6px; width:auto}
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" aria-live="polite"></div>
+  <div id="backdrop" aria-hidden="true"></div>
+
+  <div class="code-layout">
+    <!-- Header -->
+    <div class="panel header" role="banner" aria-label="Header">
+      <div class="header-title">💻 NEXUS Code Pad</div>
+      <div class="header-controls">
+        <button class="btn" id="runBtn" title="Ctrl/Cmd+Enter">▶ Run</button>
+        <button class="btn" id="saveBtn" title="Ctrl/Cmd+S">💾 Save</button>
+        <button class="btn" id="copyBtn" title="Copy current file">⎘ Copy</button>
+        <button class="btn" id="dlBtn"   title="Download current file">⬇ Download</button>
+        <button class="btn" id="wrapBtn" aria-pressed="false" title="Toggle line wrap">↩ Wrap</button>
+        <button class="btn glyph-btn" id="glyphBtn" title="Glyphic (Ctrl/Cmd+I)">🗂 Glyphs</button>
+        <button class="btn" id="toggleFiles"   title="Files (Ctrl/Cmd+B)">📁 Files</button>
+        <button class="btn" id="toggleOutput"  title="Output (Ctrl/Cmd+1)">📊 Output</button>
+        <button class="btn" id="toggleAI"      title="AI (Ctrl/Cmd+2)">🤖 AI</button>
+        <button class="btn" id="toggleConsole" title="Console (Ctrl/Cmd+3)">🖥️ Console</button>
+        <button class="btn" id="aiHubBtn">🤖 AI Hub</button>
+        <button class="btn" id="musicBtn">🎵 Music</button>
+      </div>
+    </div>
+
+    <!-- File Explorer -->
+    <div class="panel file-explorer" role="navigation" aria-label="File Explorer" aria-hidden="true">
+      <div class="panel-title">📁 Files</div>
+      <ul class="file-tree" id="fileTree">
+        <li class="file-item active" data-fn="main.js" tabindex="0">📄 main.js</li>
+        <li class="file-item" data-fn="utils.js" tabindex="0">📄 utils.js</li>
+        <li class="file-item" data-fn="style.css" tabindex="0">🎨 style.css</li>
+        <li class="file-item" data-fn="index.html" tabindex="0">🌐 index.html</li>
+        <li class="file-item" data-fn="package.json" tabindex="0">📦 package.json</li>
+      </ul>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="panel editor-area" role="region" aria-label="Editor">
+      <div class="tabs" role="tablist" aria-label="Open files">
+        <button class="tab active" role="tab" aria-selected="true" data-fn="main.js">main.js</button>
+        <button class="tab" role="tab" aria-selected="false" data-fn="utils.js">utils.js</button>
+      </div>
+
+      <div class="editor-wrap">
+        <div class="gutter" id="lineGutter" aria-hidden="true"></div>
+        <textarea class="code-editor" id="codeEditor" spellcheck="false" aria-label="Code editor"></textarea>
+
+        <!-- Find / Replace -->
+        <div class="find-panel" id="findPanel" role="dialog" aria-label="Find and Replace">
+          <div class="find-row">
+            <input class="find-input" id="findInput" placeholder="Find (Ctrl/Cmd+F)" />
+            <button class="find-btn" id="findPrevBtn" title="Shift+Enter">Prev</button>
+            <button class="find-btn" id="findNextBtn" title="Enter">Next</button>
+          </div>
+          <div class="find-row">
+            <input class="find-input" id="replaceInput" placeholder="Replace (Ctrl/Cmd+H)" />
+            <button class="find-btn" id="replaceOneBtn">Replace</button>
+            <button class="find-btn" id="replaceAllBtn">Replace All</button>
+          </div>
+          <div class="find-row" style="justify-content: space-between;">
+            <label class="find-chk"><input type="checkbox" id="optCase" /> Case</label>
+            <label class="find-chk"><input type="checkbox" id="optWord" /> Word</label>
+            <label class="find-chk"><input type="checkbox" id="optRegex" /> .* (Regex)</label>
+            <label class="find-chk"><input type="checkbox" id="optWrap" checked /> Wrap</label>
+            <button class="find-close" id="findCloseBtn" title="Esc">✕</button>
+          </div>
+        </div>
+
+        <!-- Glyphic / Registry -->
+        <div class="glyph-panel" id="glyphPanel" role="dialog" aria-label="Glyph registry">
+          <div class="glyph-head">
+            <input class="glyph-input" id="glyphSearch" placeholder="Search glyphs/snippets… (e.g., alpha, arrow, log)" />
+            <div class="glyph-actions">
+              <button class="find-btn" id="glyphAddToggle">＋ Add</button>
+              <button class="find-btn" id="glyphExport">Export</button>
+              <label class="find-btn" for="glyphImport" style="cursor:pointer">Import</label>
+              <input type="file" id="glyphImport" accept="application/json" style="display:none" />
+              <button class="find-close" id="glyphClose">✕</button>
+            </div>
+          </div>
+
+          <div class="glyph-form" id="glyphForm">
+            <input id="gKey"  placeholder="key (e.g., alpha, log)" />
+            <input id="gText" placeholder="text or snippet (use $0 for cursor)" />
+            <input id="gLabel" placeholder="label (optional)" />
+            <input id="gTags" placeholder="tags (comma separated, optional)" />
+            <button class="find-btn" id="glyphSave">Save</button>
+          </div>
+
+          <div class="glyph-grid" id="glyphGrid" aria-live="polite"></div>
+          <div class="glyph-foot">
+            <span class="glyph-small">Tip: type <code>:key:</code> in the editor → expands automatically (e.g., <code>:deg:</code> → °)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="statusbar" id="statusbar">
+        <div><span class="dim">File:</span> <span id="sbFile">main.js</span></div>
+        <div><span class="dim">Ln</span> <span id="sbLn">1</span>, <span class="dim">Col</span> <span id="sbCol">1</span></div>
+        <div><span class="dim">Len</span> <span id="sbLen">0</span></div>
+      </div>
+    </div>
+
+    <!-- Output Panel -->
+    <div class="panel output-panel" role="region" aria-label="Output" aria-hidden="true">
+      <div class="panel-title">📊 Output</div>
+      <div class="output-content" id="outputContent">
+        <div style="color: var(--primary);">[NEXUS] Code Pad initialized</div>
+        <div style="color: var(--success);">[SUCCESS] Ready for development</div>
+      </div>
+    </div>
+
+    <!-- AI Assistant -->
+    <div class="panel ai-assistant" role="complementary" aria-label="AI Assistant" aria-hidden="true">
+      <div class="panel-title">🤖 AI Assistant</div>
+      <div class="ai-chat" id="aiChat">
+        <div style="color: var(--secondary);">[AI] NEXUS Code Assistant ready</div>
+        <div style="color: var(--accent);">[AI] Connected to master system</div>
+        <div style="color: var(--success);">[AI] Type commands like: "help", "debug", "optimize"</div>
+      </div>
+      <div class="ai-input">
+        <input type="text" class="ai-text" id="aiInput" placeholder="Ask AI..." aria-label="AI input" />
+        <button class="ai-send" id="aiSendBtn">Send</button>
+      </div>
+    </div>
+
+    <!-- Console -->
+    <div class="panel console" role="region" aria-label="Console" aria-hidden="true">
+      <div class="panel-title">🖥️ Console</div>
+      <div class="console-content" id="consoleContent">
+        <div style="color: var(--warning);">NEXUS Code Pad v1.0.0</div>
+        <div style="color: var(--text);">Ready for commands...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- toast ---------- */
+    function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0',1200); }
+
+    /* ---------- FS ---------- */
+    const LS_KEY='nexus.fs.v1';
+    const defaultFiles={
+      'main.js':`// Welcome to NEXUS Code Pad
+console.log('🎵 NEXUS Code Pad Ready!');
+
+const nexusAPI={
+  clock:{bpm:120,phase:0,start(){console.log('Clock started')},stop(){console.log('Clock stopped')}},
+  audio:{spectralCentroid:440,rmsEnergy:0.1,synthesize(freq){return \`Synthesizing at \${freq}Hz\`}},
+  ai:{training:true,dataPoints:11362,learn(d){console.log('Learning from:',d)}}
+};
+
+// Test the system
+nexusAPI.clock.start();
+console.log(nexusAPI.audio.synthesize(440));
+nexusAPI.ai.learn({type:'audio',value:440});`,
+      'utils.js':`// Utilities (ESM-like; runner strips "export")
+export const NexusUtils={
+  frequencyToNote(freq){const A4=440; const s=Math.log2(freq/A4)*12; return Math.round(s)},
+  audioToColor(sc){const hue=(sc/880)*360; return \`hsl(\${hue},70%,60%)\`},
+  calculatePhase(t,bpm){const d=60/bpm; return (t%d)/d}
+};
+console.log('[utils] loaded');`,
+      'style.css':`.nexus-theme{--primary:#64ffda;--secondary:#ff00ff;background:radial-gradient(ellipse at center,#1a0033 0%,#000011 70%,#000 100%)}
+.code-highlight{color:var(--primary);font-weight:bold}
+.ai-response{color:var(--secondary);border-left:2px solid var(--secondary);padding-left:8px;margin:4px 0}`,
+      'index.html':`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>NEXUS Project</title><link rel="stylesheet" href="style.css"></head><body class="nexus-theme"><h1>🎵 NEXUS Project</h1><script src="utils.js"></script><script src="main.js"></script></body></html>`,
+      'package.json':`{
+  "name": "nexus-project",
+  "version": "1.0.0",
+  "description": "NEXUS Holy Beat development project",
+  "main": "main.js",
+  "scripts": { "start": "node main.js", "dev": "nodemon main.js", "test": "jest" },
+  "dependencies": { "three": "^0.157.0", "express": "^4.18.2" },
+  "devDependencies": { "nodemon": "^3.0.1", "jest": "^29.0.0" }
+}`
+    };
+    let files = loadFS();
+    function loadFS(){ try{ const raw=localStorage.getItem(LS_KEY); if(!raw) return {...defaultFiles}; const parsed=JSON.parse(raw); return {...defaultFiles,...parsed}; }catch{ return {...defaultFiles}; } }
+    function saveFS(){ localStorage.setItem(LS_KEY, JSON.stringify(files)); }
+
+    /* ---------- UI refs ---------- */
+    const fileTree=document.getElementById('fileTree');
+    const editor=document.getElementById('codeEditor');
+    const gutter=document.getElementById('lineGutter');
+    const output=document.getElementById('outputContent');
+    const consolePane=document.getElementById('consoleContent');
+    const aiChat=document.getElementById('aiChat');
+
+    const runBtn=document.getElementById('runBtn');
+    const saveBtn=document.getElementById('saveBtn');
+    const copyBtn=document.getElementById('copyBtn');
+    const dlBtn=document.getElementById('dlBtn');
+    const wrapBtn=document.getElementById('wrapBtn');
+    const glyphBtn=document.getElementById('glyphBtn');
+
+    const sbFile=document.getElementById('sbFile');
+    const sbLn=document.getElementById('sbLn');
+    const sbCol=document.getElementById('sbCol');
+    const sbLen=document.getElementById('sbLen');
+
+    /* ---------- Find/Replace refs ---------- */
+    const findPanel=document.getElementById('findPanel');
+    const findInput=document.getElementById('findInput');
+    const replaceInput=document.getElementById('replaceInput');
+    const findPrevBtn=document.getElementById('findPrevBtn');
+    const findNextBtn=document.getElementById('findNextBtn');
+    const replaceOneBtn=document.getElementById('replaceOneBtn');
+    const replaceAllBtn=document.getElementById('replaceAllBtn');
+    const findCloseBtn=document.getElementById('findCloseBtn');
+    const optCase=document.getElementById('optCase');
+    const optWord=document.getElementById('optWord');
+    const optRegex=document.getElementById('optRegex');
+    const optWrap=document.getElementById('optWrap');
+
+    /* ---------- Glyphic refs ---------- */
+    const GLYPH_LS='nexus.glyphs.v1';
+    const glyphPanel=document.getElementById('glyphPanel');
+    const glyphSearch=document.getElementById('glyphSearch');
+    const glyphGrid=document.getElementById('glyphGrid');
+    const glyphAddToggle=document.getElementById('glyphAddToggle');
+    const glyphExport=document.getElementById('glyphExport');
+    const glyphImport=document.getElementById('glyphImport');
+    const glyphClose=document.getElementById('glyphClose');
+    const glyphForm=document.getElementById('glyphForm');
+    const gKey=document.getElementById('gKey');
+    const gText=document.getElementById('gText');
+    const gLabel=document.getElementById('gLabel');
+    const gTags=document.getElementById('gTags');
+    const glyphSave=document.getElementById('glyphSave');
+
+    /* ---------- Defaults for Glyphic ---------- */
+    const defaultGlyphs=[
+      {key:'alpha', text:'α', label:'Greek alpha', tags:['greek','math']},
+      {key:'beta', text:'β', label:'Greek beta', tags:['greek','math']},
+      {key:'gamma', text:'γ', label:'Greek gamma', tags:['greek','math']},
+      {key:'pi', text:'π', label:'Pi', tags:['math']},
+      {key:'theta', text:'θ', label:'Theta', tags:['math']},
+      {key:'lambda', text:'λ', label:'Lambda', tags:['math']},
+      {key:'deg', text:'°', label:'Degree', tags:['units']},
+      {key:'times', text:'×', label:'Multiply', tags:['math']},
+      {key:'divide', text:'÷', label:'Divide', tags:['math']},
+      {key:'pm', text:'±', label:'Plus/minus', tags:['math']},
+      {key:'arrowr', text:'→', label:'Arrow →', tags:['arrow']},
+      {key:'arrowl', text:'←', label:'Arrow ←', tags:['arrow']},
+      {key:'arrowlr', text:'↔', label:'Arrow ↔', tags:['arrow']},
+      {key:'dblswap', text:'⇄', label:'Swap ⇄', tags:['arrow']},
+      {key:'emdash', text:'—', label:'Em dash', tags:['punct']},
+      {key:'ellipsis', text:'…', label:'Ellipsis', tags:['punct']},
+      {key:'check', text:'✔', label:'Check', tags:['ui']},
+      {key:'cross', text:'✖', label:'Cross', tags:['ui']},
+      {key:'shrug', text:'¯\\_(ツ)_/¯', label:'Shrug', tags:['ascii']},
+      {key:'note', text:'♪', label:'Note', tags:['music']},
+      // Snippets (use $0 for caret)
+      {key:'log', text:'console.log($0);', label:'console.log', tags:['js','snippet']},
+      {key:'try', text:'try {\n  $0\n} catch (e) {\n  console.error(e);\n}', label:'try/catch', tags:['js','snippet']},
+      {key:'forof', text:'for (const item of $0) {\n  console.log(item);\n}', label:'for…of', tags:['js','snippet']},
+      {key:'fn', text:'function name($0) {\n  \n}', label:'function', tags:['js','snippet']},
+    ];
+
+    function loadGlyphs(){
+      try{
+        const raw=localStorage.getItem(GLYPH_LS);
+        const saved=raw?JSON.parse(raw):[];
+        const byKey=new Map(saved.map(g=>[g.key,g]));
+        for(const g of defaultGlyphs){ if(!byKey.has(g.key)) byKey.set(g.key,g); }
+        return Array.from(byKey.values());
+      }catch{ return [...defaultGlyphs]; }
+    }
+    function saveGlyphs(arr){ localStorage.setItem(GLYPH_LS, JSON.stringify(arr)); }
+    let glyphs = loadGlyphs();
+
+    /* ---------- init editor ---------- */
+    let currentFile='main.js';
+    editor.value = files[currentFile];
+
+    /* ---------- gutter + status ---------- */
+    let rafPend=false;
+    function updateGutter(){
+      const lines=editor.value.split('\n').length||1;
+      if(rafPend) return; rafPend=true;
+      requestAnimationFrame(()=>{
+        let s=''; for(let i=1;i<=lines;i++) s+=i+'\n';
+        gutter.textContent=s; rafPend=false;
+      });
+    }
+    function syncGutterScroll(){ gutter.style.transform=`translateY(${-editor.scrollTop}px)`; }
+    function updateStatus(){
+      const pos=editor.selectionStart||0, text=editor.value, before=text.slice(0,pos);
+      const line=(before.match(/\n/g)||[]).length+1;
+      const col=pos-(before.lastIndexOf('\n')+1)+1;
+      sbFile.textContent=currentFile; sbLn.textContent=line; sbCol.textContent=col; sbLen.textContent=text.length;
+    }
+
+    /* ---------- file explorer ---------- */
+    fileTree.addEventListener('click',e=>{ const li=e.target.closest('.file-item'); if(!li) return; openFile(li.dataset.fn); });
+    fileTree.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){ const li=e.target.closest('.file-item'); if(!li) return; openFile(li.dataset.fn); e.preventDefault(); }
+    });
+    document.querySelectorAll('.tab').forEach(tab=>{ tab.addEventListener('click',()=>switchTab(tab.dataset.fn)); });
+
+    function openFile(filename){
+      files[currentFile]=editor.value; saveFS(); currentFile=filename;
+      editor.value=files[filename]??''; editor.scrollTop=0; gutter.style.transform='translateY(0)';
+      document.querySelectorAll('.file-item').forEach(i=>i.classList.toggle('active',i.dataset.fn===filename));
+      document.querySelectorAll('.tab').forEach(t=>{ const a=t.dataset.fn===filename; t.classList.toggle('active',a); t.setAttribute('aria-selected',String(a)); });
+      updateGutter(); updateStatus(); addToConsole(`📄 Opened: ${filename}`);
+    }
+    function switchTab(filename){ openFile(filename); }
+
+    /* ---------- save / copy / download / wrap ---------- */
+    function saveFile(){
+      if(currentFile.endsWith('.json')){
+        try{ const parsed=JSON.parse(editor.value); editor.value=JSON.stringify(parsed,null,2)+'\n'; toast(`Formatted ${currentFile}`); }
+        catch{ toast('Invalid JSON (not formatted)'); }
+      }
+      files[currentFile]=editor.value; saveFS();
+      addToConsole(`💾 Saved: ${currentFile}`); addToOutput(`💾 File saved: ${currentFile}`,'success');
+      updateGutter(); updateStatus();
+    }
+    async function copyFile(){ try{ await navigator.clipboard.writeText(editor.value); toast('Copied to clipboard'); }catch{ toast('Clipboard blocked'); } }
+    function downloadFile(){
+      const blob=new Blob([editor.value],{type:'text/plain'}); const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=currentFile; document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+    }
+    let wrapOn=false; function toggleWrap(){ wrapOn=!wrapOn; wrapBtn.setAttribute('aria-pressed',String(wrapOn)); editor.wrap=wrapOn?'soft':'off'; toast(wrapOn?'Wrap: ON':'Wrap: OFF'); updateGutter(); updateStatus(); }
+
+    /* ---------- shortcuts ---------- */
+    window.addEventListener('keydown',e=>{
+      const mod=e.metaKey||e.ctrlKey;
+      if(mod && e.key.toLowerCase()==='s'){ e.preventDefault(); saveFile(); }
+      if(mod && e.key==='Enter'){ e.preventDefault(); runCode(); }
+      if(mod && e.key.toLowerCase()==='f'){ e.preventDefault(); openFind(true); }
+      if(mod && e.key.toLowerCase()==='h'){ e.preventDefault(); openFind(false,true); }
+      if(mod && e.key.toLowerCase()==='g'){ e.preventDefault(); if(e.shiftKey) findPrev(); else findNext(); }
+      if(mod && e.key.toLowerCase()==='i'){ e.preventDefault(); toggleGlyphPanel(true); }
+    });
+
+    /* ---------- indentation ---------- */
+    editor.addEventListener('keydown',e=>{
+      if(isFindOpen() && (document.activeElement===findInput || document.activeElement===replaceInput)) return;
+      if(e.key==='Tab'){
+        e.preventDefault();
+        const start=editor.selectionStart, end=editor.selectionEnd, val=editor.value, INDENT='  ';
+        if(start!==end){
+          const sel=val.slice(start,end), lines=sel.split('\n');
+          const mod=e.shiftKey? lines.map(l=>l.startsWith(INDENT)?l.slice(INDENT.length):l).join('\n')
+                              : lines.map(l=>INDENT+l).join('\n');
+          editor.value=val.slice(0,start)+mod+val.slice(end);
+          editor.selectionStart=start; editor.selectionEnd=start+mod.length;
+        }else{
+          if(e.shiftKey){
+            const ls=val.lastIndexOf('\n',start-1)+1;
+            if(val.slice(ls,ls+INDENT.length)===INDENT){
+              editor.value=val.slice(0,ls)+val.slice(ls+INDENT.length);
+              editor.selectionStart=editor.selectionEnd=Math.max(ls,start-INDENT.length);
+            }
+          }else{
+            editor.value=val.slice(0,start)+INDENT+val.slice(end);
+            editor.selectionStart=editor.selectionEnd=start+INDENT.length;
+          }
+        }
+        updateGutter(); updateStatus();
+      }
+    });
+
+    /* ---------- inline :key: expansion ---------- */
+    const EXPAND_TRIGGERS=new Set([' ','\n','. ',',',';',')',']','}','\t']);
+    editor.addEventListener('keydown',e=>{
+      const ch = e.key === 'Enter' ? '\n' : (e.key === 'Tab' ? '\t' : e.key);
+      if(!EXPAND_TRIGGERS.has(ch)) return;
+      const pos=editor.selectionStart;
+      if(pos!==editor.selectionEnd) return; // skip if selection
+      const text=editor.value;
+      const left=text.slice(0,pos);
+      const m=left.match(/:([a-zA-Z0-9_-]{1,32}):$/);
+      if(!m) return;
+      const key=m[1];
+      const g=findGlyphByKey(key);
+      if(!g) return;
+      e.preventDefault();
+      const start=pos - (key.length+2);
+      insertSnippetAt(g.text, start, pos, ch==='\t'?'':ch); // don't re-insert \t (we handle Tab)
+    });
+
+    function findGlyphByKey(key){ return glyphs.find(g=>g.key.toLowerCase()===String(key).toLowerCase()); }
+    function insertSnippetAt(text, start, end, suffix=''){
+      const ph = text.indexOf('$0');
+      const clean = text.replace('$0','');
+      const before=editor.value.slice(0,start);
+      const after =editor.value.slice(end);
+      const insert = clean + suffix;
+      editor.value = before + insert + after;
+      const caretPos = before.length + (ph>=0 ? ph : clean.length) + (suffix? suffix.length : 0);
+      editor.selectionStart = editor.selectionEnd = caretPos;
+      updateGutter(); updateStatus();
+    }
+
+    /* ---------- Find/Replace ---------- */
+    function isFindOpen(){ return findPanel.style.display==='block'; }
+    function openFind(prefill=true, focusReplace=false){
+      if(prefill){
+        const s=editor.value.slice(editor.selectionStart,editor.selectionEnd);
+        if(s){ findInput.value=s; } else {
+          const pos=editor.selectionStart, text=editor.value;
+          const L=text.slice(0,pos).match(/[A-Za-z0-9_]+$/); const R=text.slice(pos).match(/^[A-Za-z0-9_]+/);
+          findInput.value=(L?L[0]:'')+(R?R[0]:'');
+        }
+      }
+      findPanel.style.display='block'; (focusReplace?replaceInput:findInput).focus(); findInput.select();
+    }
+    function closeFind(){ findPanel.style.display='none'; editor.focus(); }
+    function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+    function makeRegex(){
+      let q=findInput.value; if(!optRegex.checked) q=escapeRegex(q); if(optWord.checked) q=`\\b${q}\\b`;
+      const flags='g'+(optCase.checked?'':'i'); try{ return new RegExp(q,flags);}catch{ toast('Invalid regex'); return null; }
+    }
+    function findNext(){
+      const re=makeRegex(); if(!re) return; const t=editor.value; const start=editor.selectionEnd??0; re.lastIndex=start;
+      let m=re.exec(t); if(!m && optWrap.checked){ re.lastIndex=0; m=re.exec(t); }
+      if(m){ editor.focus(); editor.selectionStart=m.index; editor.selectionEnd=m.index+m[0].length; updateStatus(); } else { toast('No match'); }
+    }
+    function findPrev(){
+      const re=makeRegex(); if(!re) return; const t=editor.value; const start=editor.selectionStart??0;
+      let last=null, m; while((m=re.exec(t)) && m.index<start){ last=m; if(m[0].length===0) re.lastIndex++; }
+      if(!last && optWrap.checked){ while((m=re.exec(t))){ last=m; if(m[0].length===0) re.lastIndex++; } }
+      if(last){ editor.focus(); editor.selectionStart=last.index; editor.selectionEnd=last.index+last[0].length; updateStatus(); } else { toast('No previous match'); }
+    }
+    function replaceOne(){
+      if(editor.selectionStart===editor.selectionEnd){ findNext(); return; }
+      const re=makeRegex(); if(!re) return; const sel=editor.value.slice(editor.selectionStart,editor.selectionEnd);
+      const test=new RegExp(re.source,re.flags.replace('g','')); if(!test.test(sel)){ findNext(); return; }
+      const pre=editor.value.slice(0,editor.selectionStart), post=editor.value.slice(editor.selectionEnd), repl=replaceInput.value;
+      editor.value=pre+repl+post; const np=pre.length+repl.length; editor.selectionStart=editor.selectionEnd=np; updateGutter(); updateStatus(); findNext();
+    }
+    function replaceAll(){
+      const re=makeRegex(); if(!re) return; const t=editor.value; const repl=replaceInput.value;
+      const count=(t.match(re)||[]).length; editor.value=t.replace(re,repl); editor.selectionStart=editor.selectionEnd=0; updateGutter(); updateStatus();
+      toast(`Replaced ${count} occurrence${count===1?'':'s'}`);
+    }
+    findNextBtn.addEventListener('click',findNext); findPrevBtn.addEventListener('click',findPrev);
+    replaceOneBtn.addEventListener('click',replaceOne); replaceAllBtn.addEventListener('click',replaceAll);
+    findCloseBtn.addEventListener('click',closeFind);
+    [findInput,replaceInput].forEach(el=>el.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){ e.preventDefault(); e.shiftKey?findPrev():findNext(); }
+      if(e.key==='Escape'){ e.preventDefault(); closeFind(); }
+    }));
+
+    /* ---------- Glyphic palette ---------- */
+    function isGlyphOpen(){ return glyphPanel.style.display==='block'; }
+    function toggleGlyphPanel(show){
+      glyphPanel.style.display = show ? 'block' : 'none';
+      if(show){ glyphSearch.value=''; renderGlyphs(''); glyphSearch.focus(); }
+      else editor.focus();
+    }
+    glyphBtn.addEventListener('click',()=>toggleGlyphPanel(!isGlyphOpen()));
+    glyphClose.addEventListener('click',()=>toggleGlyphPanel(false));
+    glyphAddToggle.addEventListener('click',()=>{
+      glyphForm.style.display = glyphForm.style.display==='grid' || glyphForm.style.display==='flex' ? 'none' : 'grid';
+      glyphForm.style.gridTemplateColumns='1fr';
+    });
+    glyphSave.addEventListener('click',()=>{
+      const key=gKey.value.trim(); const text=gText.value||''; if(!key || !text){ toast('Key and text required'); return; }
+      const label=gLabel.value.trim(); const tags=(gTags.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const idx=glyphs.findIndex(x=>x.key===key);
+      const rec={key,text,label:label||key,tags};
+      if(idx>=0) glyphs[idx]=rec; else glyphs.push(rec);
+      saveGlyphs(glyphs); renderGlyphs(glyphSearch.value); toast('Saved glyph');
+      gKey.value=gText.value=gLabel.value=gTags.value='';
+    });
+    glyphExport.addEventListener('click',()=>{
+      const blob=new Blob([JSON.stringify(glyphs,null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='glyphs.json';
+      document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+    });
+    glyphImport.addEventListener('change',async (e)=>{
+      const f=e.target.files?.[0]; if(!f) return;
+      try{
+        const txt=await f.text(); const arr=JSON.parse(txt);
+        if(!Array.isArray(arr)) throw new Error('Invalid file');
+        const byKey=new Map(glyphs.map(g=>[g.key,g]));
+        for(const g of arr){ if(g && g.key && g.text){ byKey.set(g.key,{key:g.key, text:String(g.text), label:g.label||g.key, tags:Array.isArray(g.tags)?g.tags:[]}); } }
+        glyphs=Array.from(byKey.values()); saveGlyphs(glyphs); renderGlyphs(glyphSearch.value); toast('Imported glyphs');
+      }catch{ toast('Import failed'); }
+      e.target.value='';
+    });
+    glyphSearch.addEventListener('input',()=>renderGlyphs(glyphSearch.value));
+
+    function renderGlyphs(q){
+      const query=(q||'').toLowerCase();
+      glyphGrid.innerHTML='';
+      const filtered=glyphs.filter(g=>{
+        if(!query) return true;
+        const hay=[g.key,g.label,(g.tags||[]).join(','),g.text].join(' ').toLowerCase();
+        return hay.includes(query);
+      });
+      for(const g of filtered){
+        const el=document.createElement('button');
+        el.className='glyph-item'; el.type='button'; el.title=`:${g.key}:  ${g.label||''}`;
+        el.innerHTML=`<div class="glyph-sym">${escapeHtml(g.text).slice(0,24)}</div><div class="glyph-key">:${g.key}:</div>`;
+        el.addEventListener('click',()=>{
+          const pos=editor.selectionStart; insertSnippetAt(g.text, pos, pos); toggleGlyphPanel(false);
+        });
+        glyphGrid.appendChild(el);
+      }
+      if(!filtered.length){
+        const d=document.createElement('div'); d.className='glyph-small'; d.textContent='No results.';
+        glyphGrid.appendChild(d);
+      }
+    }
+    function escapeHtml(s){ return String(s).replace(/[&<>\"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+    /* ---------- output/console/AI ---------- */
+    function addToOutput(message,type='info'){
+      const div=document.createElement('div'); div.textContent=message;
+      div.style.color= type==='error'?'var(--error)': type==='warn'?'var(--warning)': type==='success'?'var(--success)':'var(--text)';
+      output.appendChild(div); output.scrollTop=output.scrollHeight;
+    }
+    function addToConsole(message){
+      const div=document.createElement('div'); div.textContent=message; div.style.color='var(--accent)';
+      consolePane.appendChild(div); consolePane.scrollTop=consolePane.scrollHeight;
+    }
+    function addToAIChat(message){
+      const div=document.createElement('div'); div.textContent=message; div.style.color=message.startsWith('[AI]')?'var(--secondary)':'var(--primary)';
+      aiChat.appendChild(div); aiChat.scrollTop=aiChat.scrollHeight;
+    }
+    function sendAIMessage(){
+      const input=document.getElementById('aiInput'); const message=input.value.trim(); if(!message) return;
+      addToAIChat(`[YOU] ${message}`); input.value=''; processAICommand(message);
+    }
+    document.getElementById('aiSendBtn').addEventListener('click', sendAIMessage);
+
+    function processAICommand(message){
+      const m=message.toLowerCase();
+      if(m.includes('help')) addToAIChat('[AI] Available: help, debug, optimize, explain, nexus');
+      else if(m.includes('debug')) addToAIChat('[AI] Quick pass: no syntax errors in editor buffer.');
+      else if(m.includes('optimize')) addToAIChat('[AI] Tips: const for immutables; async/await I/O; cache cosine norms.');
+      else if(m.includes('explain')) addToAIChat('[AI] Your code sets up NEXUS clock/audio/ai and demonstrates a basic run.');
+      else if(m.includes('nexus')) addToAIChat('[AI] NEXUS: 11,362 training points; synthesis active; sandbox worker OK.');
+      else addToAIChat('[AI] I can help with debugging, optimization, explanations, and NEXUS integration.');
+    }
+
+    /* ---------- buttons ---------- */
+    saveBtn.addEventListener('click',saveFile);
+    copyBtn.addEventListener('click',copyFile);
+    dlBtn.addEventListener('click',downloadFile);
+    wrapBtn.addEventListener('click',toggleWrap);
+    document.getElementById('aiHubBtn').addEventListener('click',()=>openWindowSafe('http://localhost:8000/ai-hub.html'));
+    document.getElementById('musicBtn').addEventListener('click',()=>openWindowSafe('http://localhost:8000/demo'));
+    runBtn.addEventListener('click', runCode);
+    function openWindowSafe(url){ try{ window.open(url,'_blank','noopener,noreferrer'); }catch{ toast('Popup blocked'); } }
+
+    /* ---------- worker runner (sandbox) ---------- */
+    let runningWorker=null;
+    function runCode(){
+      const codeFull=editor.value;
+      const sel=editor.selectionStart!==editor.selectionEnd? editor.value.slice(editor.selectionStart,editor.selectionEnd):null;
+      const code= sel && currentFile.endsWith('.js') ? sel : codeFull;
+      addToOutput(`🚀 Running ${currentFile}${sel?' (selection)':''}...`); runBtn.disabled=true;
+
+      let bundled=code;
+      if(currentFile.endsWith('.js')){
+        if(currentFile==='main.js' && typeof files['utils.js']==='string'){
+          const utils=stripESM(files['utils.js']); bundled=`${utils}\n\n${stripESM(code)}`;
+        } else { bundled=stripESM(code); }
+      }
+
+      if(runningWorker) runningWorker.terminate();
+      const workerSrc=`
+        self.console={ log:(...a)=>self.postMessage({type:'log',data:a.map(String).join(' ')}),
+                       warn:(...a)=>self.postMessage({type:'warn',data:a.map(String).join(' ')}),
+                       error:(...a)=>self.postMessage({type:'err',data:a.map(String).join(' ')}) };
+        self.onmessage=(e)=>{ const src=e.data.src; try{ self.NEXUS={started:Date.now()}; (new Function(src))(); self.postMessage({type:'done'}); }
+          catch(err){ self.postMessage({type:'err',data:(err&&err.message)?err.message:String(err)}) } };
+      `;
+      const blob=new Blob([workerSrc],{type:'application/javascript'}); const url=URL.createObjectURL(blob); const w=new Worker(url); runningWorker=w;
+      w.onmessage=(e)=>{ const {type,data}=e.data||{};
+        if(type==='log') addToOutput(String(data));
+        else if(type==='warn') addToOutput(String(data),'warn');
+        else if(type==='err') addToOutput(`❌ Error: ${data}`,'error');
+        else if(type==='done'){ addToOutput('✅ Execution completed','success'); runBtn.disabled=false; w.terminate(); URL.revokeObjectURL(url); runningWorker=null; }
+      };
+      w.onerror=(err)=>{ addToOutput(`❌ Error: ${err.message||err}`,'error'); runBtn.disabled=false; w.terminate(); URL.revokeObjectURL(url); runningWorker=null; };
+      w.postMessage({src:bundled});
+    }
+    function stripESM(src){
+      return String(src)
+        .replace(/^\s*export\s+default\s+/gm,'const __default__ = ')
+        .replace(/^\s*export\s+({[^}]+});?/gm,'/* export strip */ $1;')
+        .replace(/^\s*export\s+(const|let|var|function|class)\s+/gm,'$1 ');
+    }
+
+    /* ---------- sync & boot ---------- */
+    editor.addEventListener('input',()=>{ updateGutter(); updateStatus(); });
+    editor.addEventListener('scroll',syncGutterScroll);
+    editor.addEventListener('click',updateStatus);
+    editor.addEventListener('keyup',updateStatus);
+    editor.addEventListener('select',updateStatus);
+
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden && runningWorker){ runningWorker.terminate(); runningWorker=null; addToOutput('⏹️ Run stopped (tab hidden)','warn'); runBtn.disabled=false; }
+    });
+    document.getElementById('aiInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ sendAIMessage(); } });
+
+    updateGutter(); updateStatus();
+    addToConsole('💻 NEXUS Code Pad initialized');
+
+    /* ===== Drawer Controller (polished) ============================= */
+    (() => {
+      const EXCLUSIVE_TOTAL = true;       // one drawer at a time (left OR right)
+      const PERSIST = true;               // remember last-open drawer
+      const BREAKPOINT = Infinity;        // <= width uses drawer mode; Infinity = always drawers
+      const LS_KEY = 'nexus.drawer.last';
+
+      const body = document.body;
+      const leftDrawer = document.querySelector('.file-explorer');
+      const outDrawer  = document.querySelector('.output-panel');
+      const aiDrawer   = document.querySelector('.ai-assistant');
+      const conDrawer  = document.querySelector('.console');
+      const backdrop   = document.getElementById('backdrop');
+
+      const btnFiles   = document.getElementById('toggleFiles');
+      const btnOutput  = document.getElementById('toggleOutput');
+      const btnAI      = document.getElementById('toggleAI');
+      const btnConsole = document.getElementById('toggleConsole');
+
+      if (!leftDrawer || !outDrawer || !aiDrawer || !conDrawer || !backdrop) return;
+
+      const rightDrawers = [outDrawer, aiDrawer, conDrawer];
+      const rightButtons = [btnOutput, btnAI, btnConsole];
+
+      function isOpen(el) { return el.classList.contains('open'); }
+      function anyOpen()  { return [leftDrawer, ...rightDrawers].some(isOpen); }
+
+      function aria(el, expanded) {
+        if (!el) return;
+        el.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+        try { el.inert = !expanded; } catch {}
+      }
+      function setBtnActive(btn, on) {
+        if (!btn) return;
+        btn.classList.toggle('active', !!on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+
+      function updateBackdrop() {
+        const show = anyOpen();
+        backdrop.classList.toggle('show', show);
+        document.body.style.overflow = show ? 'hidden' : '';
+      }
+      function closeLeft() {
+        leftDrawer.classList.remove('open');
+        setBtnActive(btnFiles, false);
+        aria(leftDrawer, false);
+      }
+      function closeAllRight() {
+        rightDrawers.forEach(d => d.classList.remove('open'));
+        rightButtons.forEach(b => setBtnActive(b, false));
+        rightDrawers.forEach(d => aria(d, false));
+      }
+      function openLeft() {
+        if (EXCLUSIVE_TOTAL) closeAllRight();
+        leftDrawer.classList.add('open');
+        setBtnActive(btnFiles, true);
+        aria(leftDrawer, true);
+        persist('files');
+        updateBackdrop();
+      }
+      function toggleLeft() { const open = !isOpen(leftDrawer); if (open) openLeft(); else { closeLeft(); updateBackdrop(); } }
+
+      function openRight(which) {
+        closeAllRight();
+        if (EXCLUSIVE_TOTAL) closeLeft();
+        const map = { output:{el:outDrawer,btn:btnOutput}, ai:{el:aiDrawer,btn:btnAI}, console:{el:conDrawer,btn:btnConsole} };
+        const t = map[which]; if (!t) return;
+        t.el.classList.add('open'); setBtnActive(t.btn, true); aria(t.el, true);
+        persist(which); updateBackdrop();
+      }
+      function toggleRight(which) {
+        const map = { output: outDrawer, ai: aiDrawer, console: conDrawer };
+        const el = map[which]; if (!el) return;
+        if (isOpen(el)) { closeAllRight(); updateBackdrop(); } else { openRight(which); }
+      }
+      function persist(which) { if (!PERSIST) return; try { localStorage.setItem(LS_KEY, which||''); } catch {} }
+      function restore() {
+        if (!PERSIST) return; try {
+          const last = localStorage.getItem(LS_KEY);
+          if (last === 'files') openLeft();
+          else if (last === 'output' || last === 'ai' || last === 'console') openRight(last);
+        } catch {}
+      }
+
+      function applyMode() {
+        const useDrawer = window.innerWidth <= BREAKPOINT;
+        body.classList.toggle('drawer-mode', useDrawer);
+        if (!useDrawer) {
+          closeLeft(); closeAllRight(); updateBackdrop();
+          document.body.style.overflow = '';
+          [leftDrawer, ...rightDrawers].forEach(d => { aria(d, true); });
+        } else {
+          [leftDrawer, ...rightDrawers].forEach(d => { aria(d, isOpen(d)); });
+          restore();
+        }
+      }
+
+      btnFiles?.addEventListener('click', toggleLeft);
+      btnOutput?.addEventListener('click', () => toggleRight('output'));
+      btnAI?.addEventListener('click',     () => toggleRight('ai'));
+      btnConsole?.addEventListener('click',() => toggleRight('console'));
+
+      backdrop.addEventListener('click', () => { closeLeft(); closeAllRight(); updateBackdrop(); });
+
+      window.addEventListener('keydown', (e) => {
+        const mod = e.metaKey || e.ctrlKey;
+        if (mod && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleLeft(); }
+        if (mod && e.key === '1') { e.preventDefault(); toggleRight('output'); }
+        if (mod && e.key === '2') { e.preventDefault(); toggleRight('ai'); }
+        if (mod && e.key === '3') { e.preventDefault(); toggleRight('console'); }
+        if (e.key === 'Escape') { closeLeft(); closeAllRight(); updateBackdrop(); }
+      });
+
+      window.addEventListener('resize', () => {
+        clearTimeout(window.__drawerResizeT);
+        window.__drawerResizeT = setTimeout(applyMode, 100);
+      });
+
+      applyMode();
+    })();
+  </script>
+</body>
+</html>
+/* ====== Upgraded Code Pad CSS ============================= */

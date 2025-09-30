@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Forge Mathematical Visualization Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: #000;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(90deg, #1a1a2e, #16213e);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 2px solid #00ffff;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px #00ffff;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sidebar {
+            background: rgba(26, 26, 46, 0.9);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #00ffff;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #mathCanvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .control-section h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            color: #ffffff;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .control-button {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 11px;
+        }
+
+        .control-button:hover {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 0, 255, 0.4);
+        }
+
+        .control-button.active {
+            background: linear-gradient(45deg, #ff00ff, #ff0080);
+            color: #fff;
+        }
+
+        .audio-controls {
+            background: rgba(255, 0, 255, 0.1);
+            border-color: #ff00ff;
+        }
+
+        .audio-controls h3 {
+            color: #ff00ff;
+        }
+
+        .visualization-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #00ffff;
+            font-size: 12px;
+            max-width: 300px;
+        }
+
+        .info-item {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .status-inactive {
+            background: #ff4444;
+        }
+
+        .equation-display {
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ffff;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 10px;
+            border: 1px solid #00ffff;
+        }
+
+        .sacred-geometry-controls {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #ffd700;
+        }
+
+        .sacred-geometry-controls h3 {
+            color: #ffd700;
+        }
+
+        .secret-geometry-controls {
+            background: rgba(138, 43, 226, 0.1);
+            border-color: #8a2be2;
+        }
+
+        .secret-geometry-controls h3 {
+            color: #8a2be2;
+        }
+
+        .physics-controls {
+            background: rgba(255, 69, 0, 0.1);
+            border-color: #ff4500;
+        }
+
+        .physics-controls h3 {
+            color: #ff4500;
+        }
+
+        .fractal-controls {
+            background: rgba(0, 255, 127, 0.1);
+            border-color: #00ff7f;
+        }
+
+        .fractal-controls h3 {
+            color: #00ff7f;
+        }
+
+        .resonance-meter {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .resonance-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .secret-unlock {
+            background: rgba(138, 43, 226, 0.8);
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #8a2be2;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 5px #8a2be2; }
+            to { box-shadow: 0 0 20px #8a2be2; }
+        }
+
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .fullscreen-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px auto 1fr;
+            }
+
+            .sidebar {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header class="header">
+            <div class="logo">🔢 NEXUS Mathematical Engine</div>
+            <div class="header-controls">
+                <span class="status-indicator status-active"></span>
+                <span>Mathematical Systems Active</span>
+            </div>
+        </header>
+
+        <aside class="sidebar">
+            <!-- Algebra Controls -->
+            <div class="control-section">
+                <h3>🔢 Algebra System</h3>
+                <div class="control-group">
+                    <label>Equation Type:</label>
+                    <select id="algebraEquation" class="control-input">
+                        <option value="sine_wave">Sine Wave</option>
+                        <option value="cosine_wave">Cosine Wave</option>
+                        <option value="quadratic">Quadratic</option>
+                        <option value="cubic">Cubic</option>
+                        <option value="exponential">Exponential</option>
+                        <option value="logarithmic">Logarithmic</option>
+                        <option value="harmonic_series">Harmonic Series</option>
+                    </select>
+                </div>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Amplitude/A:</label>
+                        <input type="number" id="algebraParam1" class="control-input" value="1" step="0.1">
+                    </div>
+                    <div class="control-group">
+                        <label>Frequency/B:</label>
+                        <input type="number" id="algebraParam2" class="control-input" value="1" step="0.1">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="generateAlgebraVisualization()">Generate</button>
+                    <button class="control-button" onclick="clearVisualization()">Clear</button>
+                </div>
+                <div id="algebraEquationDisplay" class="equation-display"></div>
+            </div>
+
+            <!-- Geometry Controls -->
+            <div class="control-section">
+                <h3>📐 Geometry System</h3>
+                <div class="control-group">
+                    <label>Shape:</label>
+                    <select id="geometryShape" class="control-input">
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="pentagon">Pentagon</option>
+                        <option value="hexagon">Hexagon</option>
+                        <option value="cube">Cube (3D)</option>
+                        <option value="sphere">Sphere (3D)</option>
+                        <option value="tetrahedron">Tetrahedron</option>
+                        <option value="octahedron">Octahedron</option>
+                    </select>
+                </div>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Size/Radius:</label>
+                        <input type="number" id="geometrySize" class="control-input" value="50" step="5">
+                    </div>
+                    <div class="control-group">
+                        <label>Segments:</label>
+                        <input type="number" id="geometrySegments" class="control-input" value="32" step="1">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="generateGeometryVisualization()">Generate</button>
+                    <button class="control-button" onclick="animateGeometry()">Animate</button>
+                </div>
+            </div>
+
+            <!-- Sacred Geometry Controls -->
+            <div class="control-section sacred-geometry-controls">
+                <h3>🕉️ Sacred Geometry</h3>
+                <div class="control-group">
+                    <label>Pattern:</label>
+                    <select id="sacredPattern" class="control-input">
+                        <option value="flower_of_life">Flower of Life</option>
+                        <option value="vesica_piscis">Vesica Piscis</option>
+                        <option value="seed_of_life">Seed of Life</option>
+                        <option value="tree_of_life">Tree of Life</option>
+                        <option value="metatrons_cube">Metatron's Cube</option>
+                        <option value="sri_yantra">Sri Yantra</option>
+                    </select>
+                </div>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Scale:</label>
+                        <input type="number" id="sacredScale" class="control-input" value="30" step="5">
+                    </div>
+                    <div class="control-group">
+                        <label>Layers:</label>
+                        <input type="number" id="sacredLayers" class="control-input" value="3" step="1" min="1" max="6">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="generateSacredGeometry()">Generate</button>
+                    <button class="control-button" onclick="animateSacredPattern()">Animate</button>
+                </div>
+            </div>
+
+            <!-- Secret Geometry Controls -->
+            <div class="control-section secret-geometry-controls">
+                <h3>🔮 Secret Geometry</h3>
+                <div class="control-group">
+                    <label>Secret Pattern:</label>
+                    <select id="secretPattern" class="control-input">
+                        <option value="golden_spiral">Golden Spiral</option>
+                        <option value="platonic_projections">Platonic Projections</option>
+                        <option value="torus_field">Torus Field</option>
+                        <option value="hypercube">Hypercube (4D)</option>
+                        <option value="sacred_mandala">Sacred Mandala</option>
+                        <option value="fibonacci_lattice">Fibonacci Lattice</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Audio Resonance:</label>
+                    <div class="resonance-meter">
+                        <div id="resonanceFill" class="resonance-fill"></div>
+                    </div>
+                    <input type="range" id="resonanceLevel" class="control-input" min="0" max="100" value="25">
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="revealSecretGeometry()">Reveal</button>
+                    <button class="control-button" onclick="unlockAllSecrets()">Unlock All</button>
+                </div>
+                <div id="secretStatus" class="secret-unlock" style="display: none;"></div>
+            </div>
+
+            <!-- Physics Controls -->
+            <div class="control-section physics-controls">
+                <h3>⚛️ Physics System</h3>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Bodies:</label>
+                        <input type="number" id="physicsBodyCount" class="control-input" value="10" step="1" min="1" max="50">
+                    </div>
+                    <div class="control-group">
+                        <label>Gravity:</label>
+                        <input type="number" id="physicsGravity" class="control-input" value="9.81" step="0.5">
+                    </div>
+                </div>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Area Size:</label>
+                        <input type="number" id="physicsArea" class="control-input" value="200" step="10">
+                    </div>
+                    <div class="control-group">
+                        <label>Bass Force:</label>
+                        <input type="range" id="physicsBassForce" class="control-input" min="0" max="100" value="20">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="startPhysicsSimulation()">Start Sim</button>
+                    <button class="control-button" onclick="stopPhysicsSimulation()">Stop Sim</button>
+                </div>
+            </div>
+
+            <!-- Fractal Controls -->
+            <div class="control-section fractal-controls">
+                <h3>🌀 Fractal System</h3>
+                <div class="control-group">
+                    <label>Fractal Type:</label>
+                    <select id="fractalType" class="control-input">
+                        <option value="tree">Tree (L-System)</option>
+                        <option value="dragon">Dragon Curve</option>
+                        <option value="sierpinski_triangle">Sierpinski Triangle</option>
+                        <option value="koch_snowflake">Koch Snowflake</option>
+                        <option value="mandelbrot">Mandelbrot Set</option>
+                        <option value="julia">Julia Set</option>
+                    </select>
+                </div>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Depth/Iterations:</label>
+                        <input type="number" id="fractalDepth" class="control-input" value="5" step="1" min="1" max="8">
+                    </div>
+                    <div class="control-group">
+                        <label>Scale/Size:</label>
+                        <input type="number" id="fractalScale" class="control-input" value="100" step="10">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="generateFractal()">Generate</button>
+                    <button class="control-button" onclick="animateFractal()">Animate</button>
+                </div>
+            </div>
+
+            <!-- Audio Reactive Controls -->
+            <div class="control-section audio-controls">
+                <h3>🎵 Audio Reactive</h3>
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="audioReactive" checked>
+                        Enable Audio Reactivity
+                    </label>
+                </div>
+                <div class="parameter-grid">
+                    <div class="control-group">
+                        <label>Bass Influence:</label>
+                        <input type="range" id="bassInfluence" class="control-input" min="0" max="100" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>Treble Influence:</label>
+                        <input type="range" id="trebleInfluence" class="control-input" min="0" max="100" value="30">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="control-button" onclick="startAudioCapture()">Start Audio</button>
+                    <button class="control-button" onclick="simulateAudioData()">Simulate</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="canvas-container">
+            <canvas id="mathCanvas"></canvas>
+            <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+
+            <div class="visualization-info">
+                <div class="info-item">
+                    <span>Active System:</span>
+                    <span id="activeSystem">None</span>
+                </div>
+                <div class="info-item">
+                    <span>Render FPS:</span>
+                    <span id="renderFPS">60</span>
+                </div>
+                <div class="info-item">
+                    <span>Points/Elements:</span>
+                    <span id="elementCount">0</span>
+                </div>
+                <div class="info-item">
+                    <span>Audio Reactive:</span>
+                    <span id="audioStatus">Enabled</span>
+                </div>
+                <div class="info-item">
+                    <span>Secrets Unlocked:</span>
+                    <span id="secretsUnlocked">0/6</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Include the Mathematical Engine -->
+    <script src="nexus-forge-mathematical-engine.js"></script>
+
+    <script>
+        // Initialize the mathematical engine and visualization system
+        let mathEngine, canvas, ctx;
+        let currentVisualization = null;
+        let animationFrame = null;
+        let physicsSimulation = null;
+        let audioContext = null;
+        let isFullscreen = false;
+
+        // Animation and rendering variables
+        let rotationAngle = 0;
+        let timeOffset = 0;
+        let beatEffect = 0;
+
+        // Initialize everything when page loads
+        window.addEventListener('load', () => {
+            initializeMathEngine();
+            initializeCanvas();
+            initializeAudio();
+            setupEventListeners();
+            startRenderLoop();
+
+            // Generate initial visualization
+            generateAlgebraVisualization();
+        });
+
+        function initializeMathEngine() {
+            try {
+                mathEngine = new NexusForgemathematicalEngine();
+                console.log('✅ Mathematical Engine initialized successfully');
+                updateActiveSystemDisplay('Mathematical Engine');
+            } catch (error) {
+                console.error('❌ Failed to initialize Mathematical Engine:', error);
+                updateActiveSystemDisplay('Error: Engine failed to load');
+            }
+        }
+
+        function initializeCanvas() {
+            canvas = document.getElementById('mathCanvas');
+            ctx = canvas.getContext('2d');
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        function initializeAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('🎵 Audio context initialized');
+            } catch (error) {
+                console.warn('⚠️ Audio context not available:', error);
+            }
+        }
+
+        function setupEventListeners() {
+            // Resonance level slider
+            document.getElementById('resonanceLevel').addEventListener('input', (e) => {
+                const level = e.target.value;
+                document.getElementById('resonanceFill').style.width = level + '%';
+
+                if (mathEngine && mathEngine.secretGeometry) {
+                    mathEngine.secretGeometry.updateAudioResonance(level / 100, 0);
+                }
+            });
+
+            // Canvas interaction
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousemove', handleMouseMove);
+        }
+
+        function handleCanvasClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left - canvas.width / 2;
+            const y = event.clientY - rect.top - canvas.height / 2;
+
+            // Add physics body at click location if physics is active
+            if (physicsSimulation && mathEngine?.physics) {
+                mathEngine.physics.createBody({
+                    position: { x: x, y: -y, z: 0 },
+                    mass: 1,
+                    radius: 5 + Math.random() * 10
+                });
+            }
+        }
+
+        function handleMouseMove(event) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (event.clientX - rect.left) / canvas.width;
+            const mouseY = (event.clientY - rect.top) / canvas.height;
+
+            // Use mouse position to influence visualizations
+            if (mathEngine && currentVisualization) {
+                rotationAngle += (mouseX - 0.5) * 0.01;
+            }
+        }
+
+        function startRenderLoop() {
+            let lastTime = 0;
+            let frameCount = 0;
+            let fpsUpdateTime = 0;
+
+            function render(currentTime) {
+                const deltaTime = currentTime - lastTime;
+                lastTime = currentTime;
+
+                // Update FPS counter
+                frameCount++;
+                if (currentTime - fpsUpdateTime > 1000) {
+                    document.getElementById('renderFPS').textContent = Math.round(frameCount * 1000 / (currentTime - fpsUpdateTime));
+                    frameCount = 0;
+                    fpsUpdateTime = currentTime;
+                }
+
+                // Clear canvas
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Update time-based effects
+                timeOffset += deltaTime * 0.001;
+                rotationAngle += 0.01;
+                beatEffect *= 0.95; // Fade beat effect
+
+                // Update mathematical engine
+                if (mathEngine) {
+                    updateMathEngineWithAudio();
+                }
+
+                // Render current visualization
+                if (currentVisualization) {
+                    renderVisualization(currentVisualization, deltaTime);
+                }
+
+                // Update physics simulation
+                if (physicsSimulation && mathEngine?.physics) {
+                    mathEngine.physics.update(deltaTime);
+                    renderPhysicsBodies();
+                }
+
+                animationFrame = requestAnimationFrame(render);
+            }
+
+            render(0);
+        }
+
+        function updateMathEngineWithAudio() {
+            if (!mathEngine || !document.getElementById('audioReactive').checked) return;
+
+            const bassLevel = document.getElementById('bassInfluence').value / 100;
+            const trebleLevel = document.getElementById('trebleInfluence').value / 100;
+
+            // Simulate audio data based on time and user inputs
+            const audioData = {
+                frequencyBands: {
+                    bass: { value: bassLevel * (0.5 + 0.5 * Math.sin(timeOffset * 2)) },
+                    mid: { value: 0.3 * (0.5 + 0.5 * Math.sin(timeOffset * 3)) },
+                    treble: { value: trebleLevel * (0.5 + 0.5 * Math.sin(timeOffset * 4)) }
+                },
+                beat: {
+                    detected: Math.sin(timeOffset * 6) > 0.8
+                },
+                heart: {
+                    emotionalState: ['excited', 'calm', 'happy', 'peaceful'][Math.floor(timeOffset * 0.1) % 4],
+                    phase: timeOffset
+                }
+            };
+
+            if (audioData.beat.detected) {
+                beatEffect = 1.0;
+            }
+
+            mathEngine.updateWithAudio(audioData);
+        }
+
+        function renderVisualization(viz, deltaTime) {
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+
+            switch (viz.type) {
+                case 'algebra':
+                    renderAlgebraVisualization(viz);
+                    break;
+                case 'geometry':
+                    renderGeometryVisualization(viz);
+                    break;
+                case 'sacred':
+                    renderSacredGeometry(viz);
+                    break;
+                case 'secret':
+                    renderSecretGeometry(viz);
+                    break;
+                case 'fractal':
+                    renderFractalVisualization(viz);
+                    break;
+            }
+
+            ctx.restore();
+        }
+
+        function renderAlgebraVisualization(viz) {
+            if (!viz.data || !viz.data.points) return;
+
+            ctx.strokeStyle = `hsl(${180 + timeOffset * 50}, 80%, 60%)`;
+            ctx.lineWidth = 2 + beatEffect * 2;
+            ctx.beginPath();
+
+            viz.data.points.forEach((point, index) => {
+                const x = point.x * 20;
+                const y = -point.y * 20;
+
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+
+            ctx.stroke();
+
+            // Add equation display
+            updateEquationDisplay(viz.data.equation);
+        }
+
+        function renderGeometryVisualization(viz) {
+            if (!viz.data || !viz.data.points) return;
+
+            ctx.save();
+            ctx.rotate(rotationAngle);
+
+            const hue = (timeOffset * 100) % 360;
+            ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+            ctx.fillStyle = `hsla(${hue}, 60%, 40%, 0.3)`;
+            ctx.lineWidth = 2 + beatEffect * 3;
+
+            // Handle 3D projection for 3D shapes
+            if (viz.data.points[0] && viz.data.points[0].z !== undefined) {
+                render3DShape(viz.data.points);
+            } else {
+                render2DShape(viz.data.points);
+            }
+
+            ctx.restore();
+        }
+
+        function render2DShape(points) {
+            if (points.length === 0) return;
+
+            ctx.beginPath();
+            points.forEach((point, index) => {
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function render3DShape(points) {
+            // Simple 3D to 2D projection
+            const projectedPoints = points.map(point => {
+                const z = point.z + 100; // Prevent division by zero
+                return {
+                    x: point.x * 200 / z,
+                    y: point.y * 200 / z,
+                    z: point.z
+                };
+            });
+
+            // Sort by z-depth and render
+            projectedPoints.sort((a, b) => b.z - a.z);
+
+            projectedPoints.forEach((point, index) => {
+                const alpha = Math.max(0.1, (point.z + 50) / 100);
+                ctx.fillStyle = `hsla(${(timeOffset * 50 + index * 10) % 360}, 80%, 60%, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 3 + beatEffect * 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function renderSacredGeometry(viz) {
+            if (!viz.data) return;
+
+            ctx.strokeStyle = '#ffd700';
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+            ctx.lineWidth = 1 + beatEffect;
+
+            if (Array.isArray(viz.data)) {
+                // Render circles (Flower of Life, Seed of Life, etc.)
+                viz.data.forEach(circle => {
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+            } else if (viz.data.sephiroth) {
+                // Render Tree of Life
+                renderTreeOfLife(viz.data);
+            } else if (viz.data.vertices) {
+                // Render Metatron's Cube
+                renderMetatronsCube(viz.data);
+            }
+        }
+
+        function renderTreeOfLife(data) {
+            // Draw paths
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+            ctx.lineWidth = 1;
+            data.paths.forEach(path => {
+                const from = data.sephiroth[path[0]];
+                const to = data.sephiroth[path[1]];
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            });
+
+            // Draw sephiroth
+            ctx.strokeStyle = '#ffd700';
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+            ctx.lineWidth = 2;
+            data.sephiroth.forEach(sephirah => {
+                ctx.beginPath();
+                ctx.arc(sephirah.x, sephirah.y, sephirah.radius * 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        function renderMetatronsCube(data) {
+            // Draw all edges
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.lineWidth = 1;
+            data.edges.forEach(edge => {
+                const from = data.vertices[edge[0]];
+                const to = data.vertices[edge[1]];
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            });
+
+            // Draw vertices
+            ctx.fillStyle = '#ffd700';
+            data.vertices.forEach(vertex => {
+                ctx.beginPath();
+                ctx.arc(vertex.x, vertex.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function renderSecretGeometry(viz) {
+            if (!viz.revealed) return;
+
+            ctx.strokeStyle = '#8a2be2';
+            ctx.fillStyle = 'rgba(138, 43, 226, 0.3)';
+            ctx.lineWidth = 2 + beatEffect;
+
+            if (Array.isArray(viz.data)) {
+                viz.data.forEach((point, index) => {
+                    const alpha = Math.min(1, viz.resonanceLevel * 2);
+                    const hue = (270 + index * 10 + timeOffset * 20) % 360;
+                    ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+
+                    ctx.beginPath();
+                    ctx.arc(point.x || 0, point.y || 0, 2 + beatEffect, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+        }
+
+        function renderFractalVisualization(viz) {
+            if (!viz.data) return;
+
+            const hue = (120 + timeOffset * 30) % 360;
+            ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+            ctx.lineWidth = 1 + beatEffect * 0.5;
+
+            if (Array.isArray(viz.data) && viz.data[0] && viz.data[0].x1 !== undefined) {
+                // L-System fractals (lines)
+                viz.data.forEach(line => {
+                    ctx.beginPath();
+                    ctx.moveTo(line.x1, line.y1);
+                    ctx.lineTo(line.x2, line.y2);
+                    ctx.stroke();
+                });
+            } else if (Array.isArray(viz.data)) {
+                // Point-based fractals
+                viz.data.forEach(point => {
+                    if (point.escaped === false) {
+                        const intensity = point.iterations || 0;
+                        const alpha = Math.min(1, intensity / 20);
+                        ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+                        ctx.fillRect(point.x - canvas.width/4, point.y - canvas.height/4, 1, 1);
+                    }
+                });
+            }
+        }
+
+        function renderPhysicsBodies() {
+            if (!mathEngine?.physics) return;
+
+            const bodies = Array.from(mathEngine.physics.bodies.values());
+
+            bodies.forEach(body => {
+                const speed = Math.sqrt(
+                    body.velocity.x * body.velocity.x +
+                    body.velocity.y * body.velocity.y
+                );
+
+                const hue = (speed * 10) % 360;
+                ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+
+                ctx.beginPath();
+                ctx.arc(body.position.x, body.position.y, body.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            document.getElementById('elementCount').textContent = bodies.length;
+        }
+
+        // Control Functions
+        function generateAlgebraVisualization() {
+            if (!mathEngine) return;
+
+            const equation = document.getElementById('algebraEquation').value;
+            const param1 = parseFloat(document.getElementById('algebraParam1').value);
+            const param2 = parseFloat(document.getElementById('algebraParam2').value);
+
+            const visualization = mathEngine.algebra.generateEquationVisualization({
+                equation,
+                range: [-10, 10],
+                resolution: 200,
+                args: [param1, param2]
+            });
+
+            currentVisualization = {
+                type: 'algebra',
+                data: visualization
+            };
+
+            updateActiveSystemDisplay('Algebra: ' + equation);
+        }
+
+        function generateGeometryVisualization() {
+            if (!mathEngine) return;
+
+            const shape = document.getElementById('geometryShape').value;
+            const size = parseFloat(document.getElementById('geometrySize').value);
+            const segments = parseInt(document.getElementById('geometrySegments').value);
+
+            const visualization = mathEngine.geometry.generateShape({
+                shape,
+                size,
+                segments
+            });
+
+            currentVisualization = {
+                type: 'geometry',
+                data: visualization
+            };
+
+            updateActiveSystemDisplay('Geometry: ' + shape);
+            document.getElementById('elementCount').textContent = visualization.points?.length || 0;
+        }
+
+        function generateSacredGeometry() {
+            if (!mathEngine) return;
+
+            const pattern = document.getElementById('sacredPattern').value;
+            const scale = parseFloat(document.getElementById('sacredScale').value);
+            const layers = parseInt(document.getElementById('sacredLayers').value);
+
+            const visualization = mathEngine.sacredGeometry.generatePattern({
+                pattern,
+                scale,
+                layers
+            });
+
+            currentVisualization = {
+                type: 'sacred',
+                data: visualization.data
+            };
+
+            updateActiveSystemDisplay('Sacred: ' + pattern);
+        }
+
+        function revealSecretGeometry() {
+            if (!mathEngine) return;
+
+            const secret = document.getElementById('secretPattern').value;
+            const resonance = document.getElementById('resonanceLevel').value / 100;
+
+            mathEngine.secretGeometry.updateAudioResonance(resonance, timeOffset);
+
+            const visualization = mathEngine.secretGeometry.revealPattern({
+                secret,
+                iterations: 8,
+                scale: 2
+            });
+
+            if (visualization.revealed) {
+                currentVisualization = {
+                    type: 'secret',
+                    data: visualization.data,
+                    revealed: true,
+                    resonanceLevel: resonance
+                };
+
+                document.getElementById('secretStatus').style.display = 'block';
+                document.getElementById('secretStatus').innerHTML = `🔮 Secret Revealed: ${secret}<br>Resonance: ${Math.round(resonance * 100)}%`;
+
+                updateActiveSystemDisplay('Secret: ' + secret);
+                updateSecretsUnlocked();
+            } else {
+                document.getElementById('secretStatus').style.display = 'block';
+                document.getElementById('secretStatus').innerHTML = `🔒 Secret Locked: ${secret}<br>Need ${Math.round(visualization.requiredResonance * 100)}% resonance`;
+            }
+        }
+
+        function unlockAllSecrets() {
+            if (!mathEngine) return;
+
+            // Set high resonance to unlock all secrets
+            mathEngine.secretGeometry.updateAudioResonance(1.0, timeOffset);
+            document.getElementById('resonanceLevel').value = 100;
+            document.getElementById('resonanceFill').style.width = '100%';
+
+            // Unlock all secrets
+            const secrets = mathEngine.secretGeometry.getAllSecrets();
+            secrets.forEach(secret => {
+                mathEngine.secretGeometry.secrets.get(secret).unlocked = true;
+                mathEngine.secretGeometry.revealedSecrets.add(secret);
+            });
+
+            updateSecretsUnlocked();
+            revealSecretGeometry();
+        }
+
+        function generateFractal() {
+            if (!mathEngine) return;
+
+            const fractal = document.getElementById('fractalType').value;
+            const depth = parseInt(document.getElementById('fractalDepth').value);
+            const scale = parseFloat(document.getElementById('fractalScale').value);
+
+            let params = { fractal, depth, scale };
+
+            if (fractal === 'mandelbrot' || fractal === 'julia') {
+                params = { fractal, width: 200, height: 200 };
+            }
+
+            const visualization = mathEngine.fractals.generate(params);
+
+            currentVisualization = {
+                type: 'fractal',
+                data: visualization.data
+            };
+
+            updateActiveSystemDisplay('Fractal: ' + fractal);
+        }
+
+        function startPhysicsSimulation() {
+            if (!mathEngine) return;
+
+            const bodyCount = parseInt(document.getElementById('physicsBodyCount').value);
+            const area = parseFloat(document.getElementById('physicsArea').value);
+
+            // Clear existing bodies
+            mathEngine.physics.bodies.clear();
+
+            // Create simulation
+            mathEngine.physics.simulateSystem({ bodyCount, area });
+            physicsSimulation = true;
+
+            updateActiveSystemDisplay('Physics: ' + bodyCount + ' bodies');
+        }
+
+        function stopPhysicsSimulation() {
+            physicsSimulation = false;
+            if (mathEngine) {
+                mathEngine.physics.bodies.clear();
+            }
+            updateActiveSystemDisplay('Physics stopped');
+        }
+
+        function animateGeometry() {
+            // Add rotation animation to geometry
+            if (currentVisualization && currentVisualization.type === 'geometry') {
+                setInterval(() => {
+                    rotationAngle += 0.05;
+                }, 50);
+            }
+        }
+
+        function animateSacredPattern() {
+            // Add pulsing animation to sacred geometry
+            if (currentVisualization && currentVisualization.type === 'sacred') {
+                let pulsePhase = 0;
+                setInterval(() => {
+                    pulsePhase += 0.1;
+                    // Implement pulsing effect
+                }, 100);
+            }
+        }
+
+        function animateFractal() {
+            // Add parameter animation to fractals
+            if (currentVisualization && currentVisualization.type === 'fractal') {
+                setInterval(() => {
+                    generateFractal();
+                }, 1000);
+            }
+        }
+
+        function clearVisualization() {
+            currentVisualization = null;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            updateActiveSystemDisplay('Cleared');
+        }
+
+        function startAudioCapture() {
+            if (!audioContext) {
+                alert('Audio context not available');
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    const source = audioContext.createMediaStreamSource(stream);
+                    const analyser = audioContext.createAnalyser();
+                    source.connect(analyser);
+
+                    // Implement real audio analysis
+                    console.log('🎵 Audio capture started');
+                    document.getElementById('audioStatus').textContent = 'Live Audio';
+                })
+                .catch(error => {
+                    console.warn('⚠️ Audio capture failed:', error);
+                    alert('Could not access microphone');
+                });
+        }
+
+        function simulateAudioData() {
+            // Enable simulated audio data
+            document.getElementById('audioReactive').checked = true;
+            document.getElementById('audioStatus').textContent = 'Simulated';
+            console.log('🎵 Audio simulation enabled');
+        }
+
+        function toggleFullscreen() {
+            if (!isFullscreen) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                }
+                isFullscreen = true;
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                isFullscreen = false;
+            }
+        }
+
+        // Helper Functions
+        function updateActiveSystemDisplay(system) {
+            document.getElementById('activeSystem').textContent = system;
+        }
+
+        function updateSecretsUnlocked() {
+            if (!mathEngine) return;
+            const unlocked = mathEngine.secretGeometry.getRevealedSecrets().length;
+            const total = mathEngine.secretGeometry.getAllSecrets().length;
+            document.getElementById('secretsUnlocked').textContent = `${unlocked}/${total}`;
+        }
+
+        function updateEquationDisplay(equation) {
+            const display = document.getElementById('algebraEquationDisplay');
+            const equations = {
+                'sine_wave': 'y = A·sin(f·x + φ)',
+                'cosine_wave': 'y = A·cos(f·x + φ)',
+                'quadratic': 'y = ax² + bx + c',
+                'cubic': 'y = ax³ + bx² + cx + d',
+                'exponential': 'y = a·b^x',
+                'logarithmic': 'y = a·log_b(x)',
+                'harmonic_series': 'y = Σ(sin(n·f·x)/n)'
+            };
+            display.textContent = equations[equation] || equation;
+        }
+
+        // Initialize resonance display
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('resonanceFill').style.width = '25%';
+        });
+    </script>
+</body>
+</html>

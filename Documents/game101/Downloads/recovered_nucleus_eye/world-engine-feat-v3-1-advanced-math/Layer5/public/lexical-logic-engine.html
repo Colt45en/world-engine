@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexical Logic Engine - Math-First Word Buttons</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .lle-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            min-height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .main-workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        /* Stationary Unit Display */
+        .su-display {
+            background: linear-gradient(135deg, rgba(30, 40, 60, 0.8), rgba(20, 30, 50, 0.8));
+            border: 2px solid #4a90e2;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .su-display h2 {
+            color: #4a90e2;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.4em;
+        }
+
+        .su-state {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .state-vector, .state-meta {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #555;
+        }
+
+        .state-vector h3, .state-meta h3 {
+            color: #7dd3fc;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .vector-component {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-family: monospace;
+        }
+
+        .component-value {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .level-indicator {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+            transition: width 0.3s ease;
+        }
+
+        /* Button Grid */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            padding: 20px;
+            background: rgba(15, 25, 35, 0.8);
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        .word-button {
+            background: linear-gradient(135deg, #374151, #4b5563);
+            border: 2px solid #6b7280;
+            border-radius: 8px;
+            color: #f3f4f6;
+            padding: 12px 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.9em;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .word-button:hover {
+            background: linear-gradient(135deg, #4b5563, #6b7280);
+            border-color: #9ca3af;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .word-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .button-abbr {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #fbbf24;
+            display: block;
+        }
+
+        .button-label {
+            font-size: 0.8em;
+            color: #d1d5db;
+            margin-top: 2px;
+        }
+
+        .button-delta {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 0.7em;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        /* Button Classes */
+        .button-action { border-color: #3b82f6; }
+        .button-action:hover { border-color: #60a5fa; }
+
+        .button-state { border-color: #8b5cf6; }
+        .button-state:hover { border-color: #a78bfa; }
+
+        .button-structure { border-color: #10b981; }
+        .button-structure:hover { border-color: #34d399; }
+
+        .button-constraint { border-color: #ef4444; }
+        .button-constraint:hover { border-color: #f87171; }
+
+        .button-modifier { border-color: #f59e0b; }
+        .button-modifier:hover { border-color: #fbbf24; }
+
+        /* Scaling Controls */
+        .scaling-controls {
+            background: rgba(25, 35, 45, 0.8);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .scaling-controls h3 {
+            color: #7dd3fc;
+            margin-bottom: 10px;
+        }
+
+        .scale-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .scale-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #1f2937, #374151);
+            border: 1px solid #6b7280;
+            color: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
+        }
+
+        .scale-btn:hover {
+            background: linear-gradient(135deg, #374151, #4b5563);
+            border-color: #9ca3af;
+        }
+
+        .upscale { border-color: #10b981; }
+        .downscale { border-color: #ef4444; }
+
+        /* History Panel */
+        .history-panel h3 {
+            color: #7dd3fc;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .history-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+
+        .history-operation {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        .history-time {
+            color: #6b7280;
+            font-size: 0.75em;
+        }
+
+        /* Matrix Visualization */
+        .matrix-viz {
+            margin-top: 15px;
+        }
+        /* optional tiny heatmap tiles for Σ */
+        .sigma-tile { width:16px; height:16px; border-radius:3px; border:1px solid #333; }
+
+        .matrix-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8em;
+            line-height: 1.2;
+        }
+
+        .matrix-row {
+            color: #e0e0e0;
+        }
+
+        /* Controls */
+        .engine-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ctrl-btn {
+            background: #1f2937;
+            border: 1px solid #4b5563;
+            color: #f3f4f6;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ctrl-btn:hover {
+            background: #374151;
+            border-color: #6b7280;
+        }
+
+        .reset-btn {
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+
+        .reset-btn:hover {
+            background: #7f1d1d;
+            border-color: #dc2626;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .lle-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: 50vh;
+            }
+        }
+
+        /* Animation for state changes */
+        .state-change {
+            animation: stateHighlight 0.5s ease;
+        }
+
+        @keyframes stateHighlight {
+            0% { background-color: rgba(251, 191, 36, 0.3); }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body>
+    <div class="lle-container">
+        <div class="main-workspace">
+            <!-- Controls -->
+            <div class="engine-controls">
+                <button class="ctrl-btn reset-btn" onclick="try { resetEngine(); } catch(e) { console.error(\'Button error:\', e); }">Reset SU</button>
+                <button class="ctrl-btn" onclick="try { undo(); } catch(e) { console.error(\'Button error:\', e); }">Undo</button>
+                <button class="ctrl-btn" onclick="try { redo(); } catch(e) { console.error(\'Button error:\', e); }">Redo</button>
+                <button class="ctrl-btn" onclick="try { exportState(); } catch(e) { console.error(\'Button error:\', e); }">Export State</button>
+                <button class="ctrl-btn" onclick="try { loadDemo(); } catch(e) { console.error(\'Button error:\', e); }">Load Demo</button>
+                <span style="color: #6b7280; margin-left: auto; padding: 8px;">
+                    Click word buttons to transform the Stationary Unit
+                </span>
+            </div>
+
+            <!-- Stationary Unit Display -->
+            <div class="su-display">
+                <h2 id="su-head">Stationary Unit ⟨x, Σ, κ, ℓ⟩</h2>
+                <div class="su-state">
+                    <div class="state-vector">
+                        <h3>Meaning Vector (x)</h3>
+                        <div id="vector-display"></div>
+                        <div class="matrix-viz">
+                            <h4 style="color: #7dd3fc; margin-bottom: 5px;">Structure Matrix (Σ)</h4>
+                            <div id="sigma-display" class="matrix-display"></div>
+                        </div>
+                    </div>
+                    <div class="state-meta">
+                        <h3>Meta Properties</h3>
+                        <div class="meta-info">
+                            <span>Confidence (κ):</span>
+                            <span id="kappa-value" class="component-value">0.70</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div id="confidence-fill" class="confidence-fill" style="width: 70%"></div>
+                        </div>
+                        <div class="meta-info" style="margin-top: 15px;">
+                            <span>Abstraction Level (ℓ):</span>
+                            <span id="level-value" class="level-indicator">0</span>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.85em; color: #9ca3af;">
+                            <div>Last Operation: <span id="last-op">None</span></div>
+                            <div>Operations Count: <span id="op-count">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word Buttons -->
+            <div class="button-grid" id="button-grid">
+                <!-- Buttons will be generated here -->
+            </div>
+
+            <!-- Scaling Controls -->
+            <div class="scaling-controls">
+                <h3>Scaling Operations</h3>
+                <div class="scale-buttons">
+                    <button class="scale-btn downscale" onclick="try { downscaleOperation(); } catch(e) { console.error(\'Button error:\', e); }">
+                        ↓ Downscale (Concrete)
+                    </button>
+                    <button class="scale-btn upscale" onclick="try { upscaleOperation(); } catch(e) { console.error(\'Button error:\', e); }">
+                        ↑ Upscale (Abstract)
+                    </button>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.8em; color: #9ca3af;">
+                    Downscale: Project to concrete features • Upscale: Abstract via Galois connection
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="history-panel">
+                <h3>Operation History</h3>
+                <div id="history-list">
+                    <div class="history-item">
+                        <div class="history-operation">Engine Initialized</div>
+                        <div class="history-time">Ready for operations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { LexicalLogicEngine } from './lexical-logic-engine.js';
+        import {
+            createIDBIndexStorage,
+            buildShardKeys,
+            createUpflowAutomation
+        } from './upflow-automation.js';
+        import { createLLEMorphology } from './morphology-integration.js';
+
+        // Initialize the engine
+        let lle = new LexicalLogicEngine(3);
+        let upflow = null;
+        let operationCount = 0;
+        // undo/redo stacks
+        let undoStack = [];
+        let redoStack = [];
+        // history cap
+        const HISTORY_CAP = 200;
+
+        // Initialize upflow automation
+        async function initUpflow() {
+            try {
+                const morpho = createLLEMorphology();
+                const storage = await createIDBIndexStorage({
+                    dbName: 'LLEUpflow',
+                    storeName: 'lexicon',
+                    preloadKeys: buildShardKeys('lle.index', 16)
+                });
+
+                upflow = createUpflowAutomation({
+                    storage,
+                    indexKey: 'lle.index',
+                    shards: 16,
+                    morph: morpho
+                });
+
+                console.log('🔗 Upflow automation initialized');
+            } catch (error) {
+                console.warn('Failed to initialize upflow:', error);
+            }
+        }
+
+        // Set up event listeners
+        lle.addEventListener('stateChanged', (data) => {
+            // Create state snapshot for undo if needed
+            if (data.operation !== 'undo' && data.operation !== 'redo') {
+                saveToUndoStack(data.previousState);
+            }
+
+            updateDisplay(data);
+            addToHistory(data.operation, data.button);
+            operationCount++;
+
+            // Index button operations in upflow
+            if (upflow && data.button) {
+                indexButtonOperation(data.button, data.currentState);
+            }
+        });
+
+        // Index button operation in upflow
+        async function indexButtonOperation(button, state) {
+            try {
+                const result = upflow.addWord(button.label, button.description, {
+                    abbr: button.abbr,
+                    class: button.wordClass,
+                    deltaLevel: button.deltaLevel,
+                    state: {
+                        x: [...state.x],
+                        kappa: state.kappa,
+                        level: state.level
+                    },
+                    operation: true,
+                    timestamp: Date.now()
+                });
+
+                console.log('📚 Indexed operation:', result);
+            } catch (error) {
+                console.warn('Failed to index operation:', error);
+            }
+        }
+
+        // Keyboard shortcuts handler
+        document.addEventListener('keydown', (event) => {
+            // Prevent shortcuts when typing in input fields
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            const key = event.key;
+
+            // Number keys 1-9 for button shortcuts
+            if (key >= '1' && key <= '9') {
+                const buttonIndex = parseInt(key) - 1;
+                const buttons = document.querySelectorAll('.word-button');
+                if (buttons[buttonIndex]) {
+                    event.preventDefault();
+                    buttons[buttonIndex].click();
+                }
+                return;
+            }
+
+            // Bracket keys for scale operations
+            if (key === '[') {
+                event.preventDefault();
+                performSafeOperation('scale_down');
+                return;
+            }
+            if (key === ']') {
+                event.preventDefault();
+                performSafeOperation('scale_up');
+                return;
+            }
+
+            // Backspace for undo
+            if (key === 'Backspace' && !event.shiftKey) {
+                event.preventDefault();
+                performUndo();
+                return;
+            }
+
+            // Shift+Backspace for redo
+            if (key === 'Backspace' && event.shiftKey) {
+                event.preventDefault();
+                performRedo();
+                return;
+            }
+        });
+
+        // Safe operation wrappers
+        function performSafeOperation(operation) {
+            try {
+                if (operation === 'scale_up') {
+                    lle.adjustKappa(0.1);
+                } else if (operation === 'scale_down') {
+                    lle.adjustKappa(-0.1);
+                }
+            } catch (error) {
+                console.error('Operation failed:', error);
+                showError('Operation failed: ' + error.message);
+            }
+        }
+
+        // Undo/Redo functions
+        function performUndo() {
+            if (undoStack.length === 0) {
+                showInfo('Nothing to undo');
+                return;
+            }
+
+            try {
+                const previousState = undoStack.pop();
+                redoStack.push(lle.getCurrentState());
+                lle.restoreState(previousState);
+                showInfo('Undone');
+            } catch (error) {
+                console.error('Undo failed:', error);
+                showError('Undo failed: ' + error.message);
+            }
+        }
+
+        function performRedo() {
+            if (redoStack.length === 0) {
+                showInfo('Nothing to redo');
+                return;
+            }
+
+            try {
+                const nextState = redoStack.pop();
+                undoStack.push(lle.getCurrentState());
+                lle.restoreState(nextState);
+                showInfo('Redone');
+            } catch (error) {
+                console.error('Redo failed:', error);
+                showError('Redo failed: ' + error.message);
+            }
+        }
+
+        // Utility functions for user feedback
+        function showInfo(message) {
+            // Could enhance with toast notifications
+            console.info(message);
+        }
+
+        function showError(message) {
+            // Could enhance with toast notifications
+            console.error(message);
+            alert(message); // Fallback for critical errors
+        }
+
+        // Undo stack management
+        function saveToUndoStack(state) {
+            undoStack.push(JSON.parse(JSON.stringify(state))); // Deep copy
+            if (undoStack.length > HISTORY_CAP) {
+                undoStack.shift(); // Remove oldest entry
+            }
+            redoStack = []; // Clear redo stack on new operation
+        }
+
+        // Generate button grid
+        function generateButtons() {
+            const grid = document.getElementById('button-grid');
+            grid.innerHTML = '';
+
+            lle.buttons.forEach((button, id) => {
+                const btn = document.createElement('button');
+                btn.className = `word-button button-${button.wordClass.toLowerCase().replace(/[^a-z]/g, '')}`;
+                btn.onclick = () => clickButton(id);
+
+                // Enhanced explainability tooltip with effect preview
+                const currentLevel = lle.level;
+                const predictedLevel = Math.max(0, Math.min(100, currentLevel + button.deltaLevel));
+                const effectStrength = Math.abs(button.deltaLevel);
+                const effectDirection = button.deltaLevel > 0 ? 'increase' : 'decrease';
+
+                const explainabilityTooltip = `${button.description}
+Class: ${button.wordClass}
+Current Level: ${currentLevel}
+Change: ${button.deltaLevel >= 0 ? '+' : ''}${button.deltaLevel}
+Predicted Result: ${predictedLevel}
+Effect: ${effectStrength} ${effectDirection}
+Keyboard: ${id + 1}`;
+
+                btn.innerHTML = `
+                    <span class="button-abbr">${button.abbr}</span>
+                    <span class="button-label">${button.label}</span>
+                    <span class="button-delta">${button.deltaLevel >= 0 ? '+' : ''}${button.deltaLevel}</span>
+                `;
+
+                btn.title = explainabilityTooltip;
+                btn.setAttribute('aria-label', `${button.label}: ${button.description}`);
+                btn.setAttribute('data-keyboard-shortcut', id + 1);
+
+                grid.appendChild(btn);
+            });
+        }
+
+        // Click button handler
+        function clickButton(buttonId) {
+            try {
+                lle.click(buttonId);
+            } catch (error) {
+                console.error('Button click error:', error);
+                addToHistory({ type: 'error', error: error.message });
+            }
+        }
+
+        // Update display
+        function updateDisplay(data) {
+            const su = data.currentState;
+
+            // Update vector display
+            const vectorDisplay = document.getElementById('vector-display');
+            vectorDisplay.innerHTML = su.x.map((val, i) => `
+                <div class="vector-component">
+                    <span>x[${i}]:</span>
+                    <span class="component-value">${val.toFixed(4)}</span>
+                </div>
+            `).join('');
+
+            // Update Sigma matrix
+            const sigmaDisplay = document.getElementById('sigma-display');
+            sigmaDisplay.innerHTML = su.Sigma.map(row =>
+                `<div class="matrix-row">[${row.map(v => v.toFixed(2)).join(', ')}]</div>`
+            ).join('');
+
+            // Update meta properties
+            document.getElementById('kappa-value').textContent = su.kappa.toFixed(4);
+            document.getElementById('confidence-fill').style.width = `${su.kappa * 100}%`;
+            document.getElementById('level-value').textContent = su.level;
+
+            // Update operation info
+            if (data.operation && data.operation.type !== 'reset') {
+                document.getElementById('last-op').textContent =
+                    data.button ? `${data.button.abbr} (${data.button.label})` : data.operation.type;
+            }
+            document.getElementById('op-count').textContent = operationCount;
+
+            // Add animation
+            const suDisplay = document.querySelector('.su-display');
+            suDisplay.classList.add('state-change');
+            setTimeout(() => suDisplay.classList.remove('state-change'), 500);
+        }
+
+        // Add to history
+        function addToHistory(operation, button) {
+            const historyList = document.getElementById('history-list');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+
+            let opText = operation.type;
+            if (button) {
+                opText = `${button.abbr}: ${button.label}`;
+            }
+
+            item.innerHTML = `
+                <div class="history-operation">${opText}</div>
+                <div class="history-time">${new Date().toLocaleTimeString()}</div>
+            `;
+
+            historyList.insertBefore(item, historyList.firstChild);
+
+            // Keep only last 10 items
+            while (historyList.children.length > 10) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        // Global functions for buttons
+        window.resetEngine = function() {
+            lle.reset();
+            operationCount = 0;
+            document.getElementById('last-op').textContent = 'Reset';
+            document.getElementById('op-count').textContent = '0';
+
+            addToHistory({ type: 'reset' });
+        };
+
+        window.downscaleOperation = function() {
+            lle.downscale([0, 2]); // Keep dimensions 0 and 2
+        };
+
+        window.upscaleOperation = function() {
+            lle.upscale(); // Use default abstraction matrix
+        };
+
+        window.exportState = function() {
+            const state = lle.getState();
+
+            // Include upflow data if available
+            if (upflow) {
+                const upflowSnapshot = upflow.librarian.snapshot();
+                state.upflow = upflowSnapshot;
+            }
+
+            const blob = new Blob([JSON.stringify(state, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lle-state-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        window.loadDemo = function() {
+            // Demo sequence: MD → CV → PR → CP
+            setTimeout(() => lle.click('MD'), 500);
+            setTimeout(() => lle.click('CV'), 1000);
+            setTimeout(() => lle.click('PR'), 1500);
+            setTimeout(() => lle.click('CP'), 2000);
+        };
+
+        window.queryUpflow = function(type, value) {
+            if (!upflow) {
+                console.warn('Upflow not initialized');
+                return [];
+            }
+
+            switch (type) {
+                case 'root': return upflow.query.byRoot(value);
+                case 'prefix': return upflow.query.byPrefix(value);
+                case 'suffix': return upflow.query.bySuffix(value);
+                case 'abbr': return upflow.query.byAbbrev(value);
+                default: return [];
+            }
+        };
+
+        // Initialize everything
+        async function initializeSystem() {
+            await initUpflow();
+            generateButtons();
+            updateDisplay({ currentState: lle.su, operation: { type: 'init' } });
+
+            // Add some helpful info to console
+            console.log('🧠 Lexical Logic Engine with Upflow loaded!');
+            console.log('Available buttons:', Array.from(lle.buttons.keys()));
+            console.log('Try: lle.click("MD") or queryUpflow("root", "build")');
+
+            // Connect Undo/Redo buttons
+            document.getElementById('undo-btn').onclick = performUndo;
+            document.getElementById('redo-btn').onclick = performRedo;
+
+            // Make systems available globally for console interaction
+            window.lle = lle;
+            window.upflow = upflow;
+        }
+
+        // Start initialization
+        initializeSystem();
+    </script>
+    <script src="dashboard-nav.js"></script>
+    <script>
+        // Initialize dashboard navigation for Lexical Logic Engine
+        document.addEventListener('DOMContentLoaded', () => {
+            const relatedDashboards = [
+                { name: 'World Engine Tier 5', url: 'world_engine_tier4.html', icon: '🧠' },
+                { name: 'Glyph Forge', url: 'glyph_forge.html', icon: '⚡' },
+                { name: 'Quantum Graphics', url: 'quantum_graphics_demo.html', icon: '🌊' },
+                { name: 'Code Pad', url: 'http://localhost:8000/code-pad.html', icon: '💻' }
+            ];
+
+            initDashboardNav(
+                'Lexical Logic Engine',
+                'lexical-engine',
+                relatedDashboards
+            );
+        });
+    </script>
+</body>
+</html>

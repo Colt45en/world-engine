@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en" class="cshrink-1">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Advanced Systems Integration</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46; --acc:#54f0b8;
+    --chip:#182741; --warn:#ffd166; --bad:#ff6b6b; --success:#00ff88;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden}
+  .hide{display:none !important}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;transition:all 0.2s ease}
+  .btn:hover{background:var(--chip);border-color:var(--acc)}
+  .btn.primary{background:var(--acc);color:#000;font-weight:600}
+  .chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 10px}
+  .chip.success{background:var(--success);color:#000}
+  .chip.warn{background:var(--warn);color:#000}
+  .chip.error{background:var(--bad);color:#fff}
+  .mini{font-size:12px;color:var(--mut)}
+
+  /* ===== Full Shell Layout ===== */
+  .shell{display:grid;grid-template-columns:320px 1fr;grid-template-rows:auto 1fr;gap:8px;height:100%;padding:8px}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#0d1322}
+  .brand{font-weight:800;color:var(--acc)}
+  .sp{flex:1}
+  .col{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);overflow:hidden;min-height:0}
+  .L{display:grid;grid-template-rows:auto 1fr auto auto;gap:8px;padding:8px;min-width:0}
+  .R{display:grid;grid-template-rows:auto 1fr;gap:8px;padding:8px;min-width:0}
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .msgs{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:8px;overflow:auto;min-height:0}
+  .msg{margin:6px 0;padding:8px;border-radius:10px;background:#0f1a2f;white-space:pre-wrap;font-size:13px}
+  .msg.me{background:#11203a}
+  .msg.sys{background:#122222;color:#9eead3}
+  .msg.success{background:#0a2f1a;color:#9effd3;border-left:4px solid var(--success)}
+  .msg.warn{background:#2f2a0a;color:#ffe99e;border-left:4px solid var(--warn)}
+  .msg.error{background:#2f0a0a;color:#ff9e9e;border-left:4px solid var(--bad)}
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);transition:border-color 0.2s ease}
+  input[type=text]:focus{outline:none;border-color:var(--acc)}
+  textarea{width:100%;min-height:90px;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;transition:border-color 0.2s ease}
+  textarea:focus{outline:none;border-color:var(--acc)}
+  .space{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:0}
+  .frame{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#06101c;min-height:0}
+  .frame>iframe{display:block;width:100%;height:100%;border:0}
+  .label{position:absolute;top:6px;left:10px;font-size:12px;background:#0008;padding:3px 8px;border-radius:999px;border:1px solid #ffffff20}
+  .hint{font-size:12px;color:#96a8cc}
+  .footer{padding:6px;text-align:center;color:#6eaeb0}
+
+  /* ===== Advanced Systems Status Panel ===== */
+  .status-panel{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:12px;margin-bottom:8px}
+  .status-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px}
+  .status-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:#0f1523}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--bad)}
+  .status-dot.online{background:var(--success)}
+  .status-dot.loading{background:var(--warn);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+  .status-text{font-size:11px;font-weight:500}
+
+  /* ===== Performance Metrics ===== */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:6px;margin-top:8px}
+  .metric{text-align:center;padding:8px;border-radius:6px;background:#0f1a2f}
+  .metric-value{font-size:16px;font-weight:700;color:var(--acc)}
+  .metric-label{font-size:10px;color:var(--mut);margin-top:2px}
+
+  /* ===== Corner Chat Widget ===== */
+  .dock{position:fixed;right:18px;bottom:18px;z-index:999999}
+  .fab{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a2440,#0f1523);
+       color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 12px;cursor:pointer;
+       box-shadow:0 8px 30px #0008;transition:all 0.2s ease}
+  .fab:hover{background:linear-gradient(135deg,#2a3450,#1f2533);transform:translateY(-2px)}
+  .fab .dot{width:8px;height:8px;background:var(--acc);border-radius:999px;box-shadow:0 0 10px var(--acc)}
+  .drawer{position:fixed;right:18px;bottom:74px;width:360px;max-width:85vw;height:60vh;max-height:78vh;
+          background:linear-gradient(180deg,#0f1523,#0b1020);border:1px solid var(--line);border-radius:16px;
+          overflow:hidden;box-shadow:0 16px 60px #0009;transform:translateY(18px) scale(0.98);opacity:0;
+          pointer-events:none;transition:all .18s ease}
+  .drawer.open{transform:none;opacity:1;pointer-events:auto}
+  .drawer .head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .drawer .title{font-weight:700}
+  .drawer .msgs{height:calc(60vh - 130px);overflow:auto;padding:8px}
+  .drawer .msg{margin:6px 8px;padding:8px;border-radius:10px;background:#0a0f1c}
+  .drawer .msg.me{background:#11203a}
+  .drawer .msg.sys{background:#122222;color:#9eead3}
+  .drawer .ctrls{display:grid;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .drawer input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink)}
+
+  /* ===== Shrink Modes ===== */
+  .cshrink-1 body{font-size:13px}
+  .cshrink-2 body{font-size:12px; line-height:1.25}
+  .cshrink-3 body{font-size:10px; line-height:1.12}
+</style>
+</head>
+<body>
+  <!-- ===== Full Shell ===== -->
+  <div id="fullShell" class="shell hide" aria-hidden="true">
+    <div class="top">
+      <div class="brand">World Engine Studio</div>
+      <div class="mini">Advanced Systems Integration — Layer 4 Tier</div>
+      <div class="sp"></div>
+      <button id="toggleLayoutBtn" class="btn" title="Switch to Corner Widget" aria-pressed="false">Widget Mode</button>
+      <span class="chip" title="Shrink Mode" id="shrinkChip">C1</span>
+    </div>
+
+    <section class="col L" aria-label="AI Chatbot — Advanced Engine Control">
+      <div class="title">AI Chatbot — Advanced Engine Control</div>
+
+      <!-- Advanced Systems Status -->
+      <div class="status-panel">
+        <div class="title" style="margin:0 0 8px 0;font-size:12px">System Status</div>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-dot" id="morphologyStatus"></div>
+            <div class="status-text">Morphology v2</div>
+          </div>
+          <div class="status-item">
+            <div class="status-dot" id="indexStatus"></div>
+            <div class="status-text">Index Manager</div>
+          </div>
+          <div class="status-item">
+            <div class="status-dot" id="uxStatus"></div>
+            <div class="status-text">UX Pipeline</div>
+          </div>
+          <div class="status-item">
+            <div class="status-dot" id="agentStatus"></div>
+            <div class="status-text">Agent System</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-value" id="processedCount">0</div>
+            <div class="metric-label">Processed</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="avgTime">0ms</div>
+            <div class="metric-label">Avg Time</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="successRate">0%</div>
+            <div class="metric-label">Success Rate</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="cacheHits">0%</div>
+            <div class="metric-label">Cache Hits</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="msgsShell" class="msgs" aria-live="polite"></div>
+      <div class="row">
+        <input id="chatShell" type="text" placeholder="/analyze word  /search query  /comprehensive text  /benchmark"/>
+        <button id="sendShell" class="btn primary">Analyze</button>
+      </div>
+      <div class="mini">
+        Commands: <span class="kbd">/analyze</span> word • <span class="kbd">/search</span> query • <span class="kbd">/comprehensive</span> text • <span class="kbd">/benchmark</span>
+      </div>
+    </section>
+
+    <section class="col R" aria-label="Advanced Systems Visualization">
+      <div class="title row">
+        <div>Advanced Systems Visualization</div>
+        <div class="sp"></div>
+        <div class="hint">Real-time morphology, indexing, and agent system monitoring</div>
+      </div>
+      <div class="space">
+        <div class="frame" id="fWorld">
+          <div class="label">Advanced Demo Interface</div>
+          <iframe id="weShell" src="world-engine-advanced-demo.html" title="World Engine Advanced Systems"></iframe>
+        </div>
+        <div class="frame" id="fRecord">
+          <div class="label">Performance Dashboard</div>
+          <iframe id="rtShell" src="./nexus-dashboard.html" title="Performance Dashboard"></iframe>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== Corner Chat Widget Mode ===== -->
+  <div id="widgetRoot" class="dock" aria-hidden="false">
+    <div id="fab" class="fab" title="World Engine Studio (Ctrl+K)">
+      <div class="dot"></div>
+      <div>Advanced Systems</div>
+    </div>
+    <div id="drawer" class="drawer">
+      <div class="head">
+        <div class="title">World Engine Studio</div>
+        <div class="sp"></div>
+        <button id="toggleLayoutBtn2" class="btn" title="Switch to Full Shell">Shell Mode</button>
+        <span class="chip" title="Shrink Mode" id="shrinkChip2">C1</span>
+        <button id="close" class="btn">&times;</button>
+      </div>
+      <div id="msgsWidget" class="msgs" aria-live="polite"></div>
+      <div class="ctrls">
+        <input id="chatWidget" type="text" placeholder="/analyze counterproductivity"/>
+        <div class="row">
+          <button id="sendWidget" class="btn primary">Analyze</button>
+          <button id="benchmarkBtn" class="btn">Benchmark</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ===== World Engine Advanced Systems Integration =====
+  var NAME='world-engine-studio-bridge';
+  var VERSION='2.0.0-advanced';
+
+  if (typeof window.__WORLD_ENGINE_STUDIO__ === 'object') {
+    try{
+      var ex=window.__WORLD_ENGINE_STUDIO__;
+      if(ex && ex.version){ var cmp=compareSemver(ex.version, VERSION); if(cmp>=0) return; }
+    }catch(_){/* ignore */}
+  }
+  Object.defineProperty(window,'__WORLD_ENGINE_STUDIO__',{
+    value:{
+      version:VERSION,
+      installedAt:Date.now(),
+      systems: {
+        morphology: null,
+        indexManager: null,
+        uxPipeline: null,
+        agentSystem: null
+      },
+      metrics: {
+        processedCount: 0,
+        totalTime: 0,
+        successCount: 0,
+        cacheHits: 0,
+        totalRequests: 0
+      }
+    },
+    writable:false,
+    configurable:false,
+    enumerable:true
+  });
+
+  var studio = window.__WORLD_ENGINE_STUDIO__;
+
+  // ===== Helpers =====
+  function $(id){ return document.getElementById(id); }
+  function compareSemver(a,b){ var pa=a.split('-')[0].split('.').map(Number), pb=b.split('-')[0].split('.').map(Number); for(var i=0;i<3;i++){ var d=(pa[i]||0)-(pb[i]||0); if(d) return d; } return 0; }
+
+  function say(host, text, cls){
+    var div=document.createElement('div');
+    div.className='msg ' + (cls||'');
+    div.textContent=text;
+    host.appendChild(div);
+    host.scrollTop=host.scrollHeight;
+    return div;
+  }
+
+  function sayJSON(host, obj, cls){
+    var div=document.createElement('div');
+    div.className='msg ' + (cls||'');
+    div.innerHTML = '<pre style="margin:0;font-size:11px;line-height:1.3">' + JSON.stringify(obj,null,2) + '</pre>';
+    host.appendChild(div);
+    host.scrollTop=host.scrollHeight;
+    return div;
+  }
+
+  function parseCmd(t){
+    t=(t||'').trim();
+    if(t.startsWith('/analyze')) return {k:'analyze',v:t.replace(/^\/analyze\s*/, '')};
+    if(t.startsWith('/search')) return {k:'search',v:t.replace(/^\/search\s*/, '')};
+    if(t.startsWith('/comprehensive')) return {k:'comprehensive',v:t.replace(/^\/comprehensive\s*/, '')};
+    if(t.startsWith('/benchmark')) return {k:'benchmark',v:t.replace(/^\/benchmark\s*/, '')};
+    return {k:'analyze',v:t};
+  }
+
+  // ===== Layout Management =====
+  var fullShell=$('fullShell'), widgetRoot=$('widgetRoot');
+  var qs=new URLSearchParams(location.search);
+  var initial=qs.get('layout');
+
+  function setLayout(mode){
+    var shell = (mode==='shell');
+    fullShell.classList.toggle('hide', !shell);
+    fullShell.setAttribute('aria-hidden', String(!shell));
+    widgetRoot.classList.toggle('hide', shell);
+    widgetRoot.setAttribute('aria-hidden', String(shell));
+    $('toggleLayoutBtn').setAttribute('aria-pressed', String(shell));
+    $('toggleLayoutBtn2').setAttribute('aria-pressed', String(!shell));
+  }
+
+  function nextShrink(){
+    var html=document.documentElement;
+    var c1=html.classList.contains('cshrink-1');
+    var c2=html.classList.contains('cshrink-2');
+    var c3=html.classList.contains('cshrink-3');
+    html.classList.remove('cshrink-1','cshrink-2','cshrink-3');
+    if(c1&&!c2&&!c3){ html.classList.add('cshrink-2'); setShrinkLabel('C2'); return; }
+    if(c2){ html.classList.add('cshrink-3'); setShrinkLabel('C3'); return; }
+    html.classList.add('cshrink-1'); setShrinkLabel('C1');
+  }
+
+  function setShrinkLabel(t){
+    var a=$('shrinkChip'), b=$('shrinkChip2');
+    if(a) a.textContent=t;
+    if(b) b.textContent=t;
+  }
+
+  setLayout(initial==='shell' ? 'shell' : 'widget');
+
+  // Buttons
+  $('toggleLayoutBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } })=>setLayout('widget'));
+  $('toggleLayoutBtn2').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } })=>setLayout('shell'));
+  $('shrinkChip').addEventListener("click", function(e) { try { nextShrink(e); } catch(err) { console.error("Event error:", err); } });
+  $('shrinkChip2').addEventListener("click", function(e) { try { nextShrink(e); } catch(err) { console.error("Event error:", err); } });
+
+  // ===== Widget Drawer Controls =====
+  var fab=$('fab'), drawer=$('drawer'), closeBtn=$('close');
+  function toggleDrawer(open){ drawer.classList[open?'add':'remove']('open'); }
+  fab.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } })=>toggleDrawer(true));
+  closeBtn.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } })=>toggleDrawer(false));
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape') toggleDrawer(false);
+    if(e.ctrlKey && e.key.toLowerCase()==='k'){
+      e.preventDefault();
+      toggleDrawer(true);
+      $('chatWidget').focus();
+    }
+  });
+
+  // ===== Advanced Systems Integration =====
+
+  // Status Management
+  function updateSystemStatus(system, status) {
+    var dot = $(system + 'Status');
+    if (!dot) return;
+
+    dot.className = 'status-dot ' + status;
+  }
+
+  function updateMetrics() {
+    var m = studio.metrics;
+    var avgTime = m.totalRequests > 0 ? (m.totalTime / m.totalRequests).toFixed(1) : 0;
+    var successRate = m.totalRequests > 0 ? ((m.successCount / m.totalRequests) * 100).toFixed(1) : 0;
+    var cacheRate = m.totalRequests > 0 ? ((m.cacheHits / m.totalRequests) * 100).toFixed(1) : 0;
+
+    $('processedCount').textContent = m.processedCount;
+    $('avgTime').textContent = avgTime + 'ms';
+    $('successRate').textContent = successRate + '%';
+    $('cacheHits').textContent = cacheRate + '%';
+  }
+
+  // Initialize system status
+  updateSystemStatus('morphology', 'loading');
+  updateSystemStatus('index', 'loading');
+  updateSystemStatus('ux', 'loading');
+  updateSystemStatus('agent', 'loading');
+
+  // Simulate system initialization
+  setTimeout(() => {
+    updateSystemStatus('morphology', 'online');
+    updateSystemStatus('index', 'online');
+    updateSystemStatus('ux', 'online');
+    updateSystemStatus('agent', 'online');
+
+    say($('msgsWidget'), '🚀 Advanced Systems initialized and ready!', 'success');
+    say($('msgsShell'), '🚀 Advanced Systems initialized and ready!', 'success');
+  }, 1500);
+
+  // ===== Advanced System Commands =====
+
+  async function runMorphologyAnalysis(text) {
+    if (!text.trim()) return;
+
+    var startTime = Date.now();
+    studio.metrics.totalRequests++;
+
+    try {
+      say($('msgsWidget'), `🔬 Analyzing: "${text}"`, 'sys');
+      say($('msgsShell'), `🔬 Analyzing: "${text}"`, 'sys');
+
+      // Simulate morphology analysis
+      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+
+      var mockResult = {
+        text: text,
+        morphemes: Math.floor(Math.random() * 4) + 1,
+        complexity: (Math.random() * 8 + 2).toFixed(2),
+        classification: ['Entity', 'Action', 'Structure', 'Creative', 'Technical'][Math.floor(Math.random() * 5)],
+        semanticVector: '128-dimensional',
+        processingType: text.length > 10 ? 'longest-match' : 'standard'
+      };
+
+      var processingTime = Date.now() - startTime;
+      studio.metrics.totalTime += processingTime;
+      studio.metrics.processedCount++;
+      studio.metrics.successCount++;
+
+      say($('msgsWidget'), `✅ Analysis complete (${processingTime}ms)`, 'success');
+      say($('msgsShell'), `✅ Analysis complete (${processingTime}ms)`, 'success');
+      sayJSON($('msgsWidget'), mockResult, '');
+      sayJSON($('msgsShell'), mockResult, '');
+
+      updateMetrics();
+
+    } catch (error) {
+      say($('msgsWidget'), `❌ Analysis failed: ${error.message}`, 'error');
+      say($('msgsShell'), `❌ Analysis failed: ${error.message}`, 'error');
+    }
+  }
+
+  async function runSearch(query) {
+    if (!query.trim()) return;
+
+    var startTime = Date.now();
+    studio.metrics.totalRequests++;
+
+    try {
+      say($('msgsWidget'), `🔍 Searching: "${query}"`, 'sys');
+      say($('msgsShell'), `🔍 Searching: "${query}"`, 'sys');
+
+      await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+
+      var resultCount = Math.floor(Math.random() * 8) + 2;
+      var processingTime = Date.now() - startTime;
+
+      studio.metrics.totalTime += processingTime;
+      studio.metrics.successCount++;
+
+      say($('msgsWidget'), `✅ Found ${resultCount} results (${processingTime}ms)`, 'success');
+      say($('msgsShell'), `✅ Found ${resultCount} results (${processingTime}ms)`, 'success');
+
+      updateMetrics();
+
+    } catch (error) {
+      say($('msgsWidget'), `❌ Search failed: ${error.message}`, 'error');
+      say($('msgsShell'), `❌ Search failed: ${error.message}`, 'error');
+    }
+  }
+
+  async function runComprehensiveProcessing(text) {
+    if (!text.trim()) return;
+
+    var startTime = Date.now();
+    studio.metrics.totalRequests++;
+
+    try {
+      say($('msgsWidget'), `🎯 Comprehensive processing: "${text}"`, 'sys');
+      say($('msgsShell'), `🎯 Comprehensive processing: "${text}"`, 'sys');
+
+      // Simulate comprehensive processing
+      await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+
+      var processingTime = Date.now() - startTime;
+      studio.metrics.totalTime += processingTime;
+      studio.metrics.processedCount++;
+      studio.metrics.successCount++;
+
+      var result = {
+        morphology: '✅ Complete',
+        indexing: '✅ Complete',
+        uxProcessing: '✅ Complete',
+        agentInsights: Math.random() > 0.3 ? '✅ Complete' : '❌ Limited',
+        totalTime: processingTime + 'ms'
+      };
+
+      say($('msgsWidget'), `🎉 Comprehensive processing complete (${processingTime}ms)`, 'success');
+      say($('msgsShell'), `🎉 Comprehensive processing complete (${processingTime}ms)`, 'success');
+      sayJSON($('msgsWidget'), result, '');
+      sayJSON($('msgsShell'), result, '');
+
+      updateMetrics();
+
+    } catch (error) {
+      say($('msgsWidget'), `❌ Comprehensive processing failed: ${error.message}`, 'error');
+      say($('msgsShell'), `❌ Comprehensive processing failed: ${error.message}`, 'error');
+    }
+  }
+
+  async function runBenchmark() {
+    say($('msgsWidget'), '📊 Running performance benchmark...', 'sys');
+    say($('msgsShell'), '📊 Running performance benchmark...', 'sys');
+
+    var testWords = ['productivity', 'counterproductivity', 'bioengineering', 'machine learning algorithms'];
+    var totalTime = 0;
+
+    for (var i = 0; i < testWords.length; i++) {
+      var word = testWords[i];
+      var start = Date.now();
+      await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 150));
+      var time = Date.now() - start;
+      totalTime += time;
+
+      say($('msgsWidget'), `  ${i+1}. "${word}" - ${time}ms`, '');
+      say($('msgsShell'), `  ${i+1}. "${word}" - ${time}ms`, '');
+    }
+
+    var avgTime = (totalTime / testWords.length).toFixed(1);
+    var wordsPerSecond = (testWords.length / totalTime * 1000).toFixed(1);
+
+    say($('msgsWidget'), `🏆 Benchmark complete: ${avgTime}ms avg, ${wordsPerSecond} words/sec`, 'success');
+    say($('msgsShell'), `🏆 Benchmark complete: ${avgTime}ms avg, ${wordsPerSecond} words/sec`, 'success');
+  }
+
+  function interpretAndDispatch(text){
+    var {k,v} = parseCmd(text);
+
+    if(k==='analyze') runMorphologyAnalysis(v);
+    else if(k==='search') runSearch(v);
+    else if(k==='comprehensive') runComprehensiveProcessing(v);
+    else if(k==='benchmark') runBenchmark();
+  }
+
+  // ===== Chat Interface Wiring =====
+  function wireChat(inputId, sendId, msgsId){
+    var input=$(inputId), send=$(sendId), msgs=$(msgsId);
+    function sayMe(t){ say(msgs,t,'me'); }
+    send.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } })=>{
+      var v=input.value.trim();
+      if(!v) return;
+      sayMe(v);
+      input.value='';
+      interpretAndDispatch(v);
+    });
+    input.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        send.click();
+      }
+    });
+  }
+
+  wireChat('chatWidget','sendWidget','msgsWidget');
+  wireChat('chatShell','sendShell','msgsShell');
+
+  // Benchmark button
+  $('benchmarkBtn').addEventListener("click", function(e) { try { runBenchmark(e); } catch(err) { console.error("Event error:", err); } });
+
+  // Boot messages
+  say($('msgsWidget'),'🌍 World Engine Studio v2.0 - Advanced Systems Integration','sys');
+  say($('msgsWidget'),'Use /analyze, /search, /comprehensive, or /benchmark commands','sys');
+  say($('msgsShell'),'🌍 World Engine Studio v2.0 - Advanced Systems Integration','sys');
+  say($('msgsShell'),'Commands: /analyze word, /search query, /comprehensive text, /benchmark','sys');
+
+  // Update metrics every 5 seconds
+  setInterval(updateMetrics, 5000);
+
+  console.log('[WorldEngineStudio:init] v'+VERSION+' - Advanced Systems Integration Ready');
+})();
+</script>
+</body>
+</html>

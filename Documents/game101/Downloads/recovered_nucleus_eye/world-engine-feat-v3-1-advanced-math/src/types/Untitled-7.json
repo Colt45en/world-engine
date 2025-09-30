@@ -1,0 +1,2293 @@
+{
+    "input": "rebuild",
+    "breakdown": {
+        "prefixes": [
+            "re"
+        ],
+        "root": "build",
+        "suffixes": []
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "re",
+                "M": [
+                    [
+                        0.95,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.05,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "deltaLevel": -1,
+                    "alpha": 0.98,
+                    "description": "again/restore"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.15,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.15,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0.05,
+                    0.05,
+                    0
+                ],
+                "effects": {
+                    "deltaLevel": 1,
+                    "description": "construct"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "reconstruct",
+            "score": 0.72
+        },
+        {
+            "candidate": "rebuild",
+            "score": 0.91
+        }
+    ],
+    "collapse": "rebuild",
+    "reconstruction": {
+        "text": "to build again",
+        "sound": {
+            "fm": "slow rise modulation",
+            "am": "steady envelope"
+        },
+        "shape": "spiral expanding and returning to base"
+    }
+}
+{
+    "input": "unscale",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "scale",
+        "suffixes": []
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        -1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "negation"
+                }
+            },
+            {
+                "symbol": "scale",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "resize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "shrink",
+            "score": 0.66
+        },
+        {
+            "candidate": "reduce size",
+            "score": 0.88
+        }
+    ],
+    "collapse": "reduce size",
+    "reconstruction": {
+        "text": "to reverse scaling / make smaller",
+        "sound": {
+            "fm": "falling modulation depth",
+            "am": "diminishing amplitude"
+        },
+        "shape": "contracting circle"
+    }
+}
+{
+    "input": "multimove",
+    "breakdown": {
+        "prefixes": [
+            "multi"
+        ],
+        "root": "move",
+        "suffixes": []
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "multi",
+                "M": [
+                    [
+                        1.4,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.4,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.15
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0.05
+                ],
+                "effects": {
+                    "description": "many/scale up"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0.2,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "translate"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "scatter",
+            "score": 0.77
+        },
+        {
+            "candidate": "move many",
+            "score": 0.81
+        }
+    ],
+    "collapse": "move many",
+    "reconstruction": {
+        "text": "to move in multiple ways or directions",
+        "sound": {
+            "fm": "complex overlapping oscillators",
+            "am": "layered pulses"
+        },
+        "shape": "branching figure-8"
+    }
+}
+{
+    "input": "unbuildize",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ize"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ize",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-build",
+            "score": 0.87
+        },
+        {
+            "candidate": "buildize",
+            "score": 0.84
+        }
+    ],
+    "collapse": "buildize",
+    "reconstruction": {
+        "text": "un+build+ize meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "spiral"
+    }
+}
+{
+    "input": "multimoveness",
+    "breakdown": {
+        "prefixes": [
+            "multi"
+        ],
+        "root": "move",
+        "suffixes": [
+            "ness"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "multi",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of multi"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of move"
+                }
+            },
+            {
+                "symbol": "ness",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ness"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "multi-move",
+            "score": 0.85
+        },
+        {
+            "candidate": "moveness",
+            "score": 0.89
+        }
+    ],
+    "collapse": "moveness",
+    "reconstruction": {
+        "text": "multi+move+ness meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "circle"
+    }
+}
+{
+    "input": "unscaleing",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "scale",
+        "suffixes": [
+            "ing"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "scale",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of scale"
+                }
+            },
+            {
+                "symbol": "ing",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ing"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-scale",
+            "score": 0.61
+        },
+        {
+            "candidate": "scaleing",
+            "score": 0.77
+        }
+    ],
+    "collapse": "scaleing",
+    "reconstruction": {
+        "text": "un+scale+ing meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "figure-8"
+    }
+}
+{
+    "input": "rebuildness",
+    "breakdown": {
+        "prefixes": [
+            "re"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ness"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "re",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of re"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ness",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ness"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "re-build",
+            "score": 0.67
+        },
+        {
+            "candidate": "buildness",
+            "score": 0.84
+        }
+    ],
+    "collapse": "buildness",
+    "reconstruction": {
+        "text": "re+build+ness meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "spiral"
+    }
+}
+{
+    "input": "unbuildize",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ize"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ize",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-build",
+            "score": 0.83
+        },
+        {
+            "candidate": "buildize",
+            "score": 0.79
+        }
+    ],
+    "collapse": "buildize",
+    "reconstruction": {
+        "text": "un+build+ize meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "circle"
+    }
+}
+{
+    "input": "removeness",
+    "breakdown": {
+        "prefixes": [
+            "re"
+        ],
+        "root": "move",
+        "suffixes": [
+            "ness"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "re",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of re"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of move"
+                }
+            },
+            {
+                "symbol": "ness",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ness"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "re-move",
+            "score": 0.71
+        },
+        {
+            "candidate": "moveness",
+            "score": 0.71
+        }
+    ],
+    "collapse": "moveness",
+    "reconstruction": {
+        "text": "re+move+ness meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "figure-8"
+    }
+}
+{
+    "input": "multiscaleize",
+    "breakdown": {
+        "prefixes": [
+            "multi"
+        ],
+        "root": "scale",
+        "suffixes": [
+            "ize"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "multi",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of multi"
+                }
+            },
+            {
+                "symbol": "scale",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of scale"
+                }
+            },
+            {
+                "symbol": "ize",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "multi-scale",
+            "score": 0.6
+        },
+        {
+            "candidate": "scaleize",
+            "score": 0.84
+        }
+    ],
+    "collapse": "scaleize",
+    "reconstruction": {
+        "text": "multi+scale+ize meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "figure-8"
+    }
+}
+{
+    "input": "multibuildness",
+    "breakdown": {
+        "prefixes": [
+            "multi"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ness"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "multi",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of multi"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ness",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ness"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "multi-build",
+            "score": 0.6
+        },
+        {
+            "candidate": "buildness",
+            "score": 0.79
+        }
+    ],
+    "collapse": "buildness",
+    "reconstruction": {
+        "text": "multi+build+ness meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "triangle"
+    }
+}
+{
+    "input": "countermoveness",
+    "breakdown": {
+        "prefixes": [
+            "counter"
+        ],
+        "root": "move",
+        "suffixes": [
+            "ness"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "counter",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of counter"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of move"
+                }
+            },
+            {
+                "symbol": "ness",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ness"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "counter-move",
+            "score": 0.79
+        },
+        {
+            "candidate": "moveness",
+            "score": 0.93
+        }
+    ],
+    "collapse": "moveness",
+    "reconstruction": {
+        "text": "counter+move+ness meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "triangle"
+    }
+}
+{
+    "input": "unscaleing",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "scale",
+        "suffixes": [
+            "ing"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "scale",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of scale"
+                }
+            },
+            {
+                "symbol": "ing",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ing"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-scale",
+            "score": 0.67
+        },
+        {
+            "candidate": "scaleing",
+            "score": 0.88
+        }
+    ],
+    "collapse": "scaleing",
+    "reconstruction": {
+        "text": "un+scale+ing meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "circle"
+    }
+}
+{
+    "input": "unmoveing",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "move",
+        "suffixes": [
+            "ing"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of move"
+                }
+            },
+            {
+                "symbol": "ing",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ing"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-move",
+            "score": 0.67
+        },
+        {
+            "candidate": "moveing",
+            "score": 0.82
+        }
+    ],
+    "collapse": "moveing",
+    "reconstruction": {
+        "text": "un+move+ing meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "grid"
+    }
+}
+{
+    "input": "counterbuildize",
+    "breakdown": {
+        "prefixes": [
+            "counter"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ize"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "counter",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of counter"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ize",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "counter-build",
+            "score": 0.83
+        },
+        {
+            "candidate": "buildize",
+            "score": 0.93
+        }
+    ],
+    "collapse": "buildize",
+    "reconstruction": {
+        "text": "counter+build+ize meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "triangle"
+    }
+}
+{
+    "input": "unscaleize",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "scale",
+        "suffixes": [
+            "ize"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "scale",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of scale"
+                }
+            },
+            {
+                "symbol": "ize",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-scale",
+            "score": 0.82
+        },
+        {
+            "candidate": "scaleize",
+            "score": 0.88
+        }
+    ],
+    "collapse": "scaleize",
+    "reconstruction": {
+        "text": "un+scale+ize meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "triangle"
+    }
+}
+{
+    "input": "multibuilding",
+    "breakdown": {
+        "prefixes": [
+            "multi"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ing"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "multi",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of multi"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ing",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ing"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "multi-build",
+            "score": 0.66
+        },
+        {
+            "candidate": "building",
+            "score": 0.73
+        }
+    ],
+    "collapse": "building",
+    "reconstruction": {
+        "text": "multi+build+ing meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "triangle"
+    }
+}
+{
+    "input": "removeing",
+    "breakdown": {
+        "prefixes": [
+            "re"
+        ],
+        "root": "move",
+        "suffixes": [
+            "ing"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "re",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of re"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of move"
+                }
+            },
+            {
+                "symbol": "ing",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ing"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "re-move",
+            "score": 0.84
+        },
+        {
+            "candidate": "moveing",
+            "score": 0.84
+        }
+    ],
+    "collapse": "moveing",
+    "reconstruction": {
+        "text": "re+move+ing meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "circle"
+    }
+}
+{
+    "input": "unbuildness",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "build",
+        "suffixes": [
+            "ness"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "build",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of build"
+                }
+            },
+            {
+                "symbol": "ness",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ness"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-build",
+            "score": 0.88
+        },
+        {
+            "candidate": "buildness",
+            "score": 0.78
+        }
+    ],
+    "collapse": "buildness",
+    "reconstruction": {
+        "text": "un+build+ness meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "spiral"
+    }
+}
+{
+    "input": "unmoveize",
+    "breakdown": {
+        "prefixes": [
+            "un"
+        ],
+        "root": "move",
+        "suffixes": [
+            "ize"
+        ]
+    },
+    "math": {
+        "operations": [
+            {
+                "symbol": "un",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "prefix effect of un"
+                }
+            },
+            {
+                "symbol": "move",
+                "M": [
+                    [
+                        1.1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1.1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1.05
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "root action of move"
+                }
+            },
+            {
+                "symbol": "ize",
+                "M": [
+                    [
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "b": [
+                    0,
+                    0,
+                    0
+                ],
+                "effects": {
+                    "description": "suffix effect of ize"
+                }
+            }
+        ]
+    },
+    "superposition": [
+        {
+            "candidate": "un-move",
+            "score": 0.87
+        },
+        {
+            "candidate": "moveize",
+            "score": 0.83
+        }
+    ],
+    "collapse": "moveize",
+    "reconstruction": {
+        "text": "un+move+ize meaning recombined",
+        "sound": {
+            "fm": "modulated",
+            "am": "scaled"
+        },
+        "shape": "grid"
+    }
+}

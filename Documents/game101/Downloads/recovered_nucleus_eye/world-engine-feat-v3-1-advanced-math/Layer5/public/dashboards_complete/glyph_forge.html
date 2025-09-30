@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VectorLab Glyph Forge - World Engine</title>
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --panel: #0f1523;
+            --ink: #e6f0ff;
+            --mut: #9ab0d6;
+            --line: #1e2b46;
+            --acc: #54f0b8;
+            --heart: #ff69b4;
+            --temporal: #9d4edd;
+            --worldshift: #f77f00;
+            --emotional: #06ffa5;
+            --mechanical: #4cc9f0;
+            --warning: #ffc107;
+            --error: #dc3545;
+            --success: #28a745;
+            --tiny: 11px;
+            --small: 12px;
+            --base: 14px;
+            --large: 16px;
+            --radius: 12px;
+            --gap: 8px;
+            --pad: 12px;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--pad);
+        }
+
+        .logo {
+            font-size: var(--large);
+            font-weight: 700;
+            color: var(--acc);
+        }
+
+        .heart-status {
+            display: flex;
+            align-items: center;
+            gap: var(--gap);
+        }
+
+        .heart-pulse {
+            width: 20px;
+            height: 20px;
+            background: var(--heart);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, var(--panel), #1a2332);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            padding: 0 var(--pad);
+            gap: var(--gap);
+        }
+
+        .logo {
+            font-size: var(--large);
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--acc), var(--heart));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .heart-status {
+            display: flex;
+            align-items: center;
+            gap: var(--gap);
+            margin-left: auto;
+        }
+
+        .heart-pulse {
+            width: 24px;
+            height: 24px;
+            background: var(--heart);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            position: relative;
+        }
+
+        .heart-pulse::before {
+            content: '💓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .left-panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        .main-canvas {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .right-panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: repeat(3, 1fr);
+            gap: var(--gap);
+            padding: var(--gap);
+        }
+
+        .panel-section {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            overflow: auto;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: var(--acc);
+            margin-bottom: var(--gap);
+            display: flex;
+            align-items: center;
+            gap: var(--gap);
+            border-bottom: 1px dashed var(--line);
+            padding-bottom: var(--gap);
+        }
+
+        .glyph-library {
+            padding: var(--pad);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .glyph-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            margin-bottom: var(--gap);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .glyph-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: var(--acc);
+            transform: translateY(-2px);
+        }
+
+        .glyph-item.selected {
+            border-color: var(--acc);
+            background: rgba(84, 240, 184, 0.1);
+        }
+
+        .glyph-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--gap);
+        }
+
+        .glyph-name {
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .glyph-symbol {
+            font-size: var(--large);
+        }
+
+        .glyph-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: var(--tiny);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .glyph-type.emotional { background: var(--emotional); color: #000; }
+        .glyph-type.mechanical { background: var(--mechanical); color: #000; }
+        .glyph-type.temporal { background: var(--temporal); color: #fff; }
+        .glyph-type.worldshift { background: var(--worldshift); color: #000; }
+
+        .glyph-intensity {
+            margin-top: var(--gap);
+            font-size: var(--small);
+            opacity: 0.8;
+        }
+
+        .intensity-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .intensity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--acc), var(--heart));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .glyph-tags {
+            display: flex;
+            gap: 4px;
+            margin-top: var(--gap);
+            flex-wrap: wrap;
+        }
+
+        .glyph-tag {
+            background: rgba(255,255,255,0.1);
+            color: var(--mut);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: var(--tiny);
+        }
+
+        .world-canvas {
+            width: 100%;
+            height: 100%;
+            background: #06101c;
+            border-radius: var(--radius);
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: var(--pad);
+            left: var(--pad);
+            right: var(--pad);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+
+        .canvas-stats {
+            background: rgba(11, 14, 20, 0.9);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            font-size: var(--small);
+            font-family: 'Consolas', monospace;
+            pointer-events: all;
+        }
+
+        .canvas-controls {
+            display: flex;
+            gap: var(--gap);
+            pointer-events: all;
+        }
+
+        .control-btn {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            padding: 6px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: var(--small);
+        }
+
+        .control-btn:hover {
+            background: var(--acc);
+            color: var(--bg);
+        }
+
+        .control-btn.active {
+            background: var(--acc);
+            color: var(--bg);
+            border-color: var(--acc);
+        }
+
+        .glyph-editor {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .editor-form {
+            display: grid;
+            gap: var(--pad);
+        }
+
+        .form-group {
+            display: grid;
+            gap: 4px;
+        }
+
+        .form-label {
+            font-size: var(--small);
+            font-weight: 600;
+            color: var(--mut);
+        }
+
+        .form-input {
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px;
+            color: var(--ink);
+            font-size: var(--small);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--acc);
+            box-shadow: 0 0 0 2px rgba(84, 240, 184, 0.2);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            font-family: 'Consolas', monospace;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6f0ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+            padding-right: 32px;
+        }
+
+        .intensity-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+        }
+
+        .intensity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--acc);
+            cursor: pointer;
+            border: 2px solid var(--bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--gap);
+            margin-top: var(--pad);
+        }
+
+        .btn {
+            background: var(--acc);
+            color: var(--bg);
+            border: none;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: var(--small);
+        }
+
+        .btn:hover {
+            background: #46d158;
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: var(--panel);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .btn.secondary:hover {
+            background: var(--mut);
+            color: var(--bg);
+        }
+
+        .btn.danger {
+            background: var(--error);
+        }
+
+        .btn.danger:hover {
+            background: #c82333;
+        }
+
+        .timeline-controls {
+            background: rgba(255,255,255,0.02);
+            border-radius: var(--radius);
+            padding: var(--pad);
+            display: flex;
+            align-items: center;
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .timeline-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--acc), var(--heart));
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+
+        .timeline-frame {
+            font-family: 'Consolas', monospace;
+            font-size: var(--small);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .stat-value {
+            color: var(--acc);
+            font-weight: 600;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        .toast.warning {
+            background: var(--warning);
+            color: var(--bg);
+        }
+
+        .scrollbar-thin {
+            scrollbar-width: thin;
+            scrollbar-color: var(--line) transparent;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: var(--line);
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: var(--mut);
+        }
+    </style>
+</head>
+<body>
+    <div class="forge-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">⚡ VectorLab Glyph Forge</div>
+            <div style="font-size: var(--small); opacity: 0.7;">World Engine Integration</div>
+            <div class="heart-status">
+                <div class="heart-pulse" id="heartPulse"></div>
+                <div>
+                    <div style="font-size: var(--tiny); opacity: 0.7;">Heart Resonance</div>
+                    <div id="heartValue" class="stat-value">0.000</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Left Panel: Glyph Library -->
+        <div class="left-panel">
+            <div class="panel-title" style="padding: var(--pad); margin: 0;">
+                🔮 Glyph Library
+                <div style="margin-left: auto; font-size: var(--tiny); opacity: 0.7;" id="glyphCount">0 glyphs</div>
+            </div>
+            <div class="glyph-library scrollbar-thin" id="glyphLibrary">
+                <!-- Glyphs will be populated here -->
+            </div>
+            <div class="timeline-controls">
+                <button class="control-btn" id="timelinePlay">⏸️</button>
+                <div class="timeline-bar" id="timelineBar">
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                </div>
+                <div class="timeline-frame" id="timelineFrame">0000</div>
+            </div>
+        </div>
+
+        <!-- Main Canvas -->
+        <div class="main-canvas">
+            <canvas class="world-canvas" id="worldCanvas"></canvas>
+            <div class="canvas-overlay">
+                <div class="canvas-stats">
+                    <div>Frame: <span id="frameCounter" class="stat-value">0</span></div>
+                    <div>Objects: <span id="objectCounter" class="stat-value">0</span></div>
+                    <div>Terrain: <span id="terrainCounter" class="stat-value">0</span></div>
+                    <div>Memory: <span id="memoryCounter" class="stat-value">0</span></div>
+                </div>
+                <div class="canvas-controls">
+                    <button class="control-btn" id="resetCamera">🎯 Reset View</button>
+                    <button class="control-btn" id="toggleGrid">📊 Grid</button>
+                    <button class="control-btn active" id="toggleTerrain">🌍 Terrain</button>
+                    <button class="control-btn active" id="toggleMemory">🧠 Memory</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Glyph Editor and Status -->
+        <div class="right-panel">
+            <!-- Glyph Editor -->
+            <div class="panel-section">
+                <div class="panel-title">✏️ Glyph Editor</div>
+                <div class="glyph-editor scrollbar-thin">
+                    <form class="editor-form" id="glyphEditor">
+                        <div class="form-group">
+                            <label class="form-label" for="glyphName">Name</label>
+                            <input type="text" class="form-input" id="glyphName" placeholder="Enter glyph name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="glyphType">Type</label>
+                            <select class="form-input form-select" id="glyphType">
+                                <option value="Emotional">Emotional</option>
+                                <option value="Mechanical">Mechanical</option>
+                                <option value="Temporal">Temporal</option>
+                                <option value="Worldshift">Worldshift</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Intensity <span id="intensityValue">0.5</span></label>
+                            <input type="range" class="intensity-slider" id="glyphIntensity"
+                                   min="0" max="1" step="0.01" value="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tags (comma-separated)</label>
+                            <input type="text" class="form-input" id="glyphTags" placeholder="memory, echo, bind">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Effect Code (JavaScript)</label>
+                            <textarea class="form-input form-textarea" id="glyphEffect" placeholder="(context) => {
+    console.log('Glyph activated!', context);
+    return { type: 'custom', result: true };
+}"></textarea>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="button" class="btn" id="createGlyph">Create Glyph</button>
+                            <button type="button" class="btn secondary" id="testGlyph">Test</button>
+                            <button type="button" class="btn danger" id="deleteGlyph" style="display: none;">Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="panel-section">
+                <div class="panel-title">📊 System Status</div>
+                <div style="font-size: var(--small); line-height: 1.6;">
+                    <div>Timeline: <span id="timelineStatus" class="stat-value">Playing</span></div>
+                    <div>Codex Violations: <span id="codexViolations" class="stat-value">0</span></div>
+                    <div>Active Events: <span id="activeEvents" class="stat-value">0</span></div>
+                    <div>Heart State: <span id="heartState" class="stat-value">idle</span></div>
+                    <div style="margin-top: var(--gap); font-size: var(--tiny); opacity: 0.7;">
+                        Last validation: <span id="lastValidation">never</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="panel-section">
+                <div class="panel-title">⚡ Quick Actions</div>
+                <div style="display: grid; gap: var(--gap);">
+                    <button class="btn secondary" id="heartPulseBtn">💓 Pulse Heart</button>
+                    <button class="btn secondary" id="generateTerrain">🌍 Generate Terrain</button>
+                    <button class="btn secondary" id="spawnMemory">🧠 Spawn Memory</button>
+                    <button class="btn secondary" id="createStorm">🌪️ Create Storm</button>
+                    <button class="btn secondary" id="exportWorld">💾 Export World</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification container -->
+    <div id="toastContainer"></div>
+
+    <!-- Load the VectorLab World Engine -->
+    <script src="vectorlab_world_engine.js"></script>
+
+    <script>
+        // Initialize the Glyph Forge Interface
+        class GlyphForgeUI {
+            constructor() {
+                this.worldEngine = new VectorLabWorldEngine('worldCanvas');
+                this.selectedGlyph = null;
+                this.isEditMode = false;
+
+                this.initializeCanvas();
+                this.bindEvents();
+                this.populateGlyphLibrary();
+                this.startUpdateLoop();
+
+                this.showToast('🚀 Glyph Forge initialized successfully!', 'success');
+            }
+
+            initializeCanvas() {
+                const canvas = document.getElementById('worldCanvas');
+                const container = canvas.parentElement;
+
+                const resizeCanvas = () => {
+                    const rect = container.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                };
+
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                // Start the world engine
+                this.worldEngine.start();
+            }
+
+            bindEvents() {
+                // Timeline controls
+                document.getElementById('timelinePlay').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.worldEngine.timelineEngine.togglePlay();
+                    this.updateTimelineUI();
+                });
+
+                // Canvas controls
+                document.getElementById('resetCamera').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.worldEngine.camera.position = new Vector3(0, 0, 10);
+                    this.worldEngine.camera.target = new Vector3(0, 0, 0);
+                    this.showToast('📷 Camera reset', 'info');
+                });
+
+                // Glyph editor
+                document.getElementById('glyphIntensity').addEventListener('input', (e) => {
+                    document.getElementById('intensityValue').textContent = parseFloat(e.target.value).toFixed(2);
+                });
+
+                document.getElementById('createGlyph').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.createCustomGlyph();
+                });
+
+                document.getElementById('testGlyph').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.testGlyph();
+                });
+
+                document.getElementById('deleteGlyph').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.deleteSelectedGlyph();
+                });
+
+                // Quick actions
+                document.getElementById('heartPulseBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.worldEngine.heartEngine.pulse(0.2);
+                    this.showToast('💓 Heart pulsed!', 'success');
+                });
+
+                document.getElementById('generateTerrain').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.worldEngine.generateTerrainFromGlyphs();
+                    this.showToast('🌍 Terrain regenerated!', 'success');
+                });
+
+                document.getElementById('spawnMemory').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    const pos = new Vector3(Math.random() * 10 - 5, 0, Math.random() * 10 - 5);
+                    this.worldEngine.createMemoryEcho(pos);
+                    this.showToast('🧠 Memory echo spawned!', 'success');
+                });
+
+                document.getElementById('createStorm').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    const center = [Math.random() * 6 - 3, 0, Math.random() * 6 - 3];
+                    this.worldEngine.spawnEnvironmentalEvent('storm', center, 0.8, 120);
+                    this.showToast('🌪️ Storm created!', 'warning');
+                });
+
+                document.getElementById('exportWorld').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.exportWorldState();
+                });
+            }
+
+            populateGlyphLibrary() {
+                const library = document.getElementById('glyphLibrary');
+                const glyphs = this.worldEngine.glyphRegistry.getAll();
+
+                library.innerHTML = '';
+
+                glyphs.forEach(glyph => {
+                    const glyphElement = this.createGlyphElement(glyph);
+                    library.appendChild(glyphElement);
+                });
+
+                document.getElementById('glyphCount').textContent = `${glyphs.length} glyphs`;
+            }
+
+            createGlyphElement(glyph) {
+                const element = document.createElement('div');
+                element.className = 'glyph-item';
+                element.dataset.glyphId = glyph.id;
+
+                element.innerHTML = `
+                    <div class="glyph-header">
+                        <div>
+                            <div class="glyph-name">${glyph.name}</div>
+                            <div class="glyph-type ${glyph.type.toLowerCase()}">${glyph.type}</div>
+                        </div>
+                        <div class="glyph-symbol">${glyph.getSymbol()}</div>
+                    </div>
+                    <div class="glyph-intensity">
+                        Intensity: ${(glyph.intensity * 100).toFixed(0)}%
+                        <div class="intensity-bar">
+                            <div class="intensity-fill" style="width: ${glyph.intensity * 100}%"></div>
+                        </div>
+                    </div>
+                    <div class="glyph-tags">
+                        ${glyph.tags.map(tag => `<span class="glyph-tag">${tag}</span>`).join('')}
+                    </div>
+                `;
+
+                // Add click handlers
+                element.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.selectGlyph(glyph);
+                });
+
+                element.addEventListener('dblclick', () => {
+                    this.activateGlyph(glyph);
+                });
+
+                return element;
+            }
+
+            selectGlyph(glyph) {
+                // Remove previous selection
+                document.querySelectorAll('.glyph-item.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+
+                // Select new glyph
+                const element = document.querySelector(`[data-glyph-id="${glyph.id}"]`);
+                if (element) {
+                    element.classList.add('selected');
+                }
+
+                this.selectedGlyph = glyph;
+                this.loadGlyphIntoEditor(glyph);
+            }
+
+            loadGlyphIntoEditor(glyph) {
+                document.getElementById('glyphName').value = glyph.name;
+                document.getElementById('glyphType').value = glyph.type;
+                document.getElementById('glyphIntensity').value = glyph.intensity;
+                document.getElementById('intensityValue').textContent = glyph.intensity.toFixed(2);
+                document.getElementById('glyphTags').value = glyph.tags.join(', ');
+                document.getElementById('glyphEffect').value = glyph.effect.toString();
+
+                document.getElementById('deleteGlyph').style.display = 'block';
+                this.isEditMode = true;
+            }
+
+            activateGlyph(glyph) {
+                const context = {
+                    position: new Vector3(Math.random() * 4 - 2, 0, Math.random() * 4 - 2),
+                    timestamp: Date.now()
+                };
+
+                const result = this.worldEngine.activateGlyph(glyph.name, context);
+                this.showToast(`✨ ${glyph.name} activated!`, 'success');
+
+                // Update glyph display to show it was activated
+                this.populateGlyphLibrary();
+
+                return result;
+            }
+
+            createCustomGlyph() {
+                const name = document.getElementById('glyphName').value.trim();
+                const type = document.getElementById('glyphType').value;
+                const intensity = parseFloat(document.getElementById('glyphIntensity').value);
+                const tags = document.getElementById('glyphTags').value
+                    .split(',').map(tag => tag.trim()).filter(tag => tag);
+                const effectCode = document.getElementById('glyphEffect').value.trim();
+
+                if (!name) {
+                    this.showToast('⚠️ Glyph name is required!', 'error');
+                    return;
+                }
+
+                if (!effectCode) {
+                    this.showToast('⚠️ Effect code is required!', 'error');
+                    return;
+                }
+
+                try {
+                    const glyphId = this.worldEngine.createCustomGlyph(name, type, tags, intensity, effectCode);
+                    if (glyphId) {
+                        this.populateGlyphLibrary();
+                        this.clearEditor();
+                        this.showToast(`✨ Glyph "${name}" created successfully!`, 'success');
+                    } else {
+                        this.showToast('❌ Failed to create glyph', 'error');
+                    }
+                } catch (error) {
+                    this.showToast(`❌ Error creating glyph: ${error.message}`, 'error');
+                }
+            }
+
+            testGlyph() {
+                const effectCode = document.getElementById('glyphEffect').value.trim();
+
+                if (!effectCode) {
+                    this.showToast('⚠️ No effect code to test!', 'error');
+                    return;
+                }
+
+                try {
+                    const testFunction = new Function('context', effectCode);
+                    const testContext = {
+                        position: new Vector3(0, 0, 0),
+                        test: true
+                    };
+
+                    const result = testFunction(testContext);
+                    console.log('Test result:', result);
+                    this.showToast('✅ Effect code test passed!', 'success');
+                } catch (error) {
+                    console.error('Test error:', error);
+                    this.showToast(`❌ Effect code error: ${error.message}`, 'error');
+                }
+            }
+
+            deleteSelectedGlyph() {
+                if (!this.selectedGlyph) return;
+
+                if (confirm(`Are you sure you want to delete "${this.selectedGlyph.name}"?`)) {
+                    this.worldEngine.glyphRegistry.glyphs.delete(this.selectedGlyph.id);
+                    this.populateGlyphLibrary();
+                    this.clearEditor();
+                    this.showToast(`🗑️ Glyph "${this.selectedGlyph.name}" deleted`, 'info');
+                    this.selectedGlyph = null;
+                }
+            }
+
+            clearEditor() {
+                document.getElementById('glyphName').value = '';
+                document.getElementById('glyphType').value = 'Emotional';
+                document.getElementById('glyphIntensity').value = '0.5';
+                document.getElementById('intensityValue').textContent = '0.50';
+                document.getElementById('glyphTags').value = '';
+                document.getElementById('glyphEffect').value = '';
+                document.getElementById('deleteGlyph').style.display = 'none';
+                this.isEditMode = false;
+            }
+
+            exportWorldState() {
+                const worldState = this.worldEngine.exportWorldState();
+                const dataStr = JSON.stringify(worldState, null, 2);
+
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vectorlab_world_${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.showToast('💾 World state exported!', 'success');
+            }
+
+            updateTimelineUI() {
+                const timeline = this.worldEngine.timelineEngine;
+                const isPlaying = timeline.isPlaying;
+
+                document.getElementById('timelinePlay').textContent = isPlaying ? '⏸️' : '▶️';
+                document.getElementById('timelineFrame').textContent = timeline.currentFrame.toString().padStart(4, '0');
+                document.getElementById('timelineStatus').textContent = isPlaying ? 'Playing' : 'Paused';
+
+                const progress = (timeline.currentFrame % 1000) / 1000;
+                document.getElementById('timelineProgress').style.width = `${progress * 100}%`;
+            }
+
+            updateStatusPanels() {
+                const heart = this.worldEngine.heartEngine;
+                const codex = this.worldEngine.codexEngine.getViolationSummary();
+
+                // Heart status
+                document.getElementById('heartValue').textContent = heart.resonance.toFixed(3);
+                document.getElementById('heartState').textContent = heart.getEmotionalState();
+
+                const pulse = document.getElementById('heartPulse');
+                pulse.style.animationDuration = `${2 - heart.resonance}s`;
+
+                // System status
+                document.getElementById('codexViolations').textContent = codex.globalViolations;
+                document.getElementById('activeEvents').textContent = this.worldEngine.environmentalEvents.length;
+                document.getElementById('lastValidation').textContent = new Date().toLocaleTimeString();
+
+                // Canvas stats
+                document.getElementById('frameCounter').textContent = this.worldEngine.timelineEngine.currentFrame;
+                document.getElementById('objectCounter').textContent = this.worldEngine.worldObjects.size;
+                document.getElementById('terrainCounter').textContent = this.worldEngine.terrainNodes.size;
+                document.getElementById('memoryCounter').textContent =
+                    Array.from(this.worldEngine.worldObjects.values())
+                        .filter(obj => obj.type === 'memory_echo').length;
+            }
+
+            startUpdateLoop() {
+                const update = () => {
+                    this.updateTimelineUI();
+                    this.updateStatusPanels();
+                    requestAnimationFrame(update);
+                };
+                requestAnimationFrame(update);
+            }
+
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+
+                container.appendChild(toast);
+
+                setTimeout(() => toast.classList.add('show'), 100);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => container.removeChild(toast), 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize the Glyph Forge when the page loads
+        let glyphForge;
+        document.addEventListener('DOMContentLoaded', () => {
+            glyphForge = new GlyphForgeUI();
+        });
+
+        // Global functions for console access
+        window.activateGlyph = (glyphName, context) => {
+            return glyphForge.worldEngine.activateGlyph(glyphName, context);
+        };
+
+        window.pulseHeart = (intensity) => {
+            return glyphForge.worldEngine.heartEngine.pulse(intensity);
+        };
+
+        window.getCurrentWorldState = () => {
+            return glyphForge.worldEngine.exportWorldState();
+        };
+
+        window.spawnStorm = (x, y, z, intensity = 0.8) => {
+            return glyphForge.worldEngine.spawnEnvironmentalEvent('storm', [x, y, z], intensity, 120);
+        };
+    </script>
+    <script src="dashboard-nav.js"></script>
+    <script>
+        // Initialize dashboard navigation for Glyph Forge
+        document.addEventListener('DOMContentLoaded', () => {
+            const relatedDashboards = [
+                { name: 'World Engine Tier 5', url: 'world_engine_tier4.html', icon: '🧠' },
+                { name: 'Lexical Logic Engine', url: 'lexical-logic-engine.html', icon: '🔤' },
+                { name: 'Quantum Graphics', url: 'quantum_graphics_demo.html', icon: '🌊' },
+                { name: 'NEXUS Holy Beat', url: 'http://localhost:8000/demo', icon: '🎵' }
+            ];
+            
+            initDashboardNav(
+                'VectorLab Glyph Forge',
+                'glyph-forge',
+                relatedDashboards
+            );
+        });
+    </script>
+</body>
+</html>

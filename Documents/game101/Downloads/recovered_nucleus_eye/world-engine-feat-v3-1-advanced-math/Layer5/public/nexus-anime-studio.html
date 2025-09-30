@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 NEXUS Anime Generation Studio - Advanced Animation Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0a0a1a 0%, #050510 50%, #000005 100%);
+            color: #00ffaa;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated particles background */
+        .particles-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00ffaa;
+            border-radius: 50%;
+            animation: particleFloat linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "animation-canvas control-panel timeline"
+                "layers-panel properties-panel effects";
+            grid-template-rows: 80px 1fr 300px;
+            grid-template-columns: 1fr 350px 400px;
+            height: 100vh;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .studio-panel {
+            background: rgba(0, 20, 40, 0.95);
+            border: 1px solid #004466;
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .studio-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffaa, transparent);
+            animation: panelGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes panelGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(0, 255, 170, 0.3), rgba(0, 170, 255, 0.2));
+            border: 2px solid #00ffaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .studio-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffaa, #00aaff, #0088cc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+        }
+
+        .animation-canvas { grid-area: animation-canvas; border-color: #00ffaa; }
+        .control-panel { grid-area: control-panel; border-color: #ffaa00; }
+        .timeline { grid-area: timeline; border-color: #aa00ff; }
+        .layers-panel { grid-area: layers-panel; border-color: #ff00aa; }
+        .properties-panel { grid-area: properties-panel; border-color: #00aaff; }
+        .effects { grid-area: effects; border-color: #ff6600; }
+
+        /* Playback Controls (Top Right Pattern) */
+        .playback-controls {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(20, 20, 40, 0.95);
+            border: 1px solid #004466;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .playback-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .playback-btn {
+            background: linear-gradient(45deg, #334466, #445577);
+            border: 1px solid #5566aa;
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            min-width: 35px;
+            text-align: center;
+        }
+
+        .playback-btn:hover {
+            background: linear-gradient(45deg, #445577, #5566aa);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(85, 102, 170, 0.3);
+        }
+
+        .playback-btn.active {
+            background: linear-gradient(45deg, #006600, #00aa00);
+            border-color: #00cc00;
+        }
+
+        .speed-control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .speed-label {
+            font-size: 12px;
+            color: #99aacc;
+            text-align: center;
+        }
+
+        .speed-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            outline: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffaa;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 170, 0.5);
+        }
+
+        .speed-display {
+            font-size: 14px;
+            color: #00ffaa;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .frame-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #99aacc;
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #004466;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .animation-preview {
+            width: 400px;
+            height: 300px;
+            background: linear-gradient(45deg, #001122, #002244);
+            border: 1px solid #004466;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .animation-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .animation-frame.active {
+            opacity: 1;
+        }
+
+        /* Timeline */
+        .timeline-track {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #004466;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffaa, #00aaff);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .timeline-scrubber {
+            position: absolute;
+            top: -2px;
+            left: 0%;
+            width: 4px;
+            height: 44px;
+            background: #ffffff;
+            border-radius: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .keyframe-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .keyframe {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: #ffaa00;
+            border-radius: 50%;
+            border: 1px solid #ffffff;
+        }
+
+        /* Control Sections */
+        .control-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ffaa;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .control-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #445566;
+            border-radius: 4px;
+            color: #ffffff;
+            padding: 4px 8px;
+            font-family: inherit;
+            min-width: 60px;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #00ffaa;
+            box-shadow: 0 0 6px rgba(0, 255, 170, 0.3);
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .layer-item:hover {
+            background: rgba(0, 255, 170, 0.1);
+            border-color: #00ffaa;
+        }
+
+        .layer-item.active {
+            background: rgba(0, 255, 170, 0.2);
+            border-color: #00ffaa;
+        }
+
+        .layer-visibility {
+            width: 16px;
+            height: 16px;
+            border: 1px solid #666666;
+            border-radius: 3px;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .layer-visibility.visible {
+            background: #00ffaa;
+        }
+
+        .layer-name {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        /* Effects Panel */
+        .effect-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #445566;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .effect-item:hover {
+            border-color: #00ffaa;
+            background: rgba(0, 255, 170, 0.1);
+        }
+
+        .effect-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .effect-description {
+            font-size: 10px;
+            color: #999999;
+            margin-top: 2px;
+        }
+
+        /* Generation Progress */
+        .generation-progress {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            background: rgba(20, 20, 40, 0.95);
+            border: 1px solid #004466;
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+        }
+
+        .generation-progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffaa, #00aaff);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #99aacc;
+            text-align: center;
+        }
+
+        .scrollable {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #004466;
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #006699;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Particles Background -->
+    <div class="particles-bg" id="particlesBg"></div>
+
+    <!-- Generation Progress Overlay -->
+    <div class="generation-progress" id="generationProgress">
+        <div class="progress-text" id="progressText">Generating animation frames...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="studio-layout">
+        <!-- Header -->
+        <div class="studio-panel header">
+            <div>
+                <div class="studio-title">🎬 NEXUS Anime Generation Studio</div>
+                <div style="font-size: 14px; color: #88ccff; margin-top: 4px;">Advanced Animation Control & Timeline</div>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: #99aacc;">
+                <div>Version 5.0.0 - Animation Suite</div>
+                <div>Build 2025.09.27 - Anime Studio</div>
+            </div>
+        </div>
+
+        <!-- Animation Canvas -->
+        <div class="studio-panel animation-canvas">
+            <!-- Playback Controls (Top Right Pattern) -->
+            <div class="playback-controls">
+                <div class="playback-buttons">
+                    <button class="playback-btn" id="stepBackBtn">⏮️</button>
+                    <button class="playback-btn" id="playPauseBtn">▶️</button>
+                    <button class="playback-btn" id="stepForwardBtn">⏭️</button>
+                    <button class="playback-btn" id="stopBtn">⏹️</button>
+                </div>
+
+                <div class="speed-control">
+                    <div class="speed-label">Speed Control</div>
+                    <input type="range" class="speed-slider" id="speedSlider"
+                           min="0.1" max="3.0" step="0.1" value="1.0">
+                    <div class="speed-display" id="speedDisplay">1.0x</div>
+                </div>
+
+                <div class="frame-control">
+                    <span>Frame:</span>
+                    <span id="currentFrame">1</span>
+                    <span>/</span>
+                    <span id="totalFrames">30</span>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <div class="animation-preview" id="animationPreview">
+                    <div class="animation-frame active" style="background: linear-gradient(45deg, #001122, #003344); display: flex; align-items: center; justify-content: center; color: #00ffaa; font-size: 24px;">
+                        🎬 Frame 1
+                    </div>
+                    <div class="animation-frame" style="background: linear-gradient(45deg, #003344, #004466); display: flex; align-items: center; justify-content: center; color: #00aaff; font-size: 24px;">
+                        🌟 Frame 2
+                    </div>
+                    <div class="animation-frame" style="background: linear-gradient(45deg, #004466, #005588); display: flex; align-items: center; justify-content: center; color: #0066cc; font-size: 24px;">
+                        ⚡ Frame 3
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="studio-panel control-panel">
+            <div class="control-section">
+                <div class="section-title">🎯 Generation Settings</div>
+                <div class="control-item">
+                    <label>Style:</label>
+                    <select class="control-input" id="styleSelect">
+                        <option>Anime</option>
+                        <option>Manga</option>
+                        <option>Realistic</option>
+                        <option>Abstract</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>Quality:</label>
+                    <select class="control-input" id="qualitySelect">
+                        <option>Draft</option>
+                        <option>Standard</option>
+                        <option>High</option>
+                        <option>Ultra</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>FPS:</label>
+                    <input type="number" class="control-input" id="fpsInput" value="24" min="12" max="60">
+                </div>
+                <div class="control-item">
+                    <label>Duration (s):</label>
+                    <input type="number" class="control-input" id="durationInput" value="2" min="1" max="30">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">🌈 Color Settings</div>
+                <div class="control-item">
+                    <label>Palette:</label>
+                    <select class="control-input" id="paletteSelect">
+                        <option>Vibrant</option>
+                        <option>Pastel</option>
+                        <option>Monochrome</option>
+                        <option>Neon</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>Saturation:</label>
+                    <input type="range" class="control-input" id="saturationSlider" min="0" max="2" step="0.1" value="1">
+                </div>
+                <div class="control-item">
+                    <label>Contrast:</label>
+                    <input type="range" class="control-input" id="contrastSlider" min="0.5" max="2" step="0.1" value="1">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">⚡ Generation Actions</div>
+                <button class="playback-btn" style="width: 100%; margin: 4px 0;" onclick="generateAnimation()">🎬 Generate Animation</button>
+                <button class="playback-btn" style="width: 100%; margin: 4px 0;" onclick="previewFrame()">👁️ Preview Frame</button>
+                <button class="playback-btn" style="width: 100%; margin: 4px 0;" onclick="exportAnimation()">💾 Export Animation</button>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="studio-panel timeline">
+            <div class="section-title">⏱️ Timeline Control</div>
+
+            <div class="timeline-track" id="timelineTrack">
+                <div class="timeline-progress" id="timelineProgress"></div>
+                <div class="timeline-scrubber" id="timelineScrubber"></div>
+                <div class="keyframe-markers" id="keyframeMarkers">
+                    <div class="keyframe" style="left: 0%"></div>
+                    <div class="keyframe" style="left: 33%"></div>
+                    <div class="keyframe" style="left: 66%"></div>
+                    <div class="keyframe" style="left: 100%"></div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">🎭 Animation Properties</div>
+                <div class="control-item">
+                    <label>Easing:</label>
+                    <select class="control-input" id="easingSelect">
+                        <option>Linear</option>
+                        <option>Ease In</option>
+                        <option>Ease Out</option>
+                        <option>Ease In-Out</option>
+                        <option>Bounce</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>Loop:</label>
+                    <input type="checkbox" id="loopCheck" checked>
+                </div>
+                <div class="control-item">
+                    <label>Reverse:</label>
+                    <input type="checkbox" id="reverseCheck">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">🎯 Keyframe Controls</div>
+                <button class="playback-btn" style="width: 48%; margin: 2px;" onclick="addKeyframe()">➕ Add</button>
+                <button class="playback-btn" style="width: 48%; margin: 2px;" onclick="deleteKeyframe()">➖ Delete</button>
+                <button class="playback-btn" style="width: 100%; margin: 4px 0;" onclick="interpolateFrames()">🔄 Interpolate</button>
+            </div>
+        </div>
+
+        <!-- Layers Panel -->
+        <div class="studio-panel layers-panel">
+            <div class="section-title">📚 Layers</div>
+            <div class="scrollable">
+                <div class="layer-item active">
+                    <div class="layer-visibility visible"></div>
+                    <div class="layer-name">Background</div>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-visibility visible"></div>
+                    <div class="layer-name">Character</div>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-visibility visible"></div>
+                    <div class="layer-name">Effects</div>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-visibility"></div>
+                    <div class="layer-name">Overlay</div>
+                </div>
+                <div class="layer-item">
+                    <div class="layer-visibility visible"></div>
+                    <div class="layer-name">UI Elements</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 12px;">
+                <button class="playback-btn" style="width: 48%; margin: 1%;" onclick="addLayer()">➕ Add</button>
+                <button class="playback-btn" style="width: 48%; margin: 1%;" onclick="deleteLayer()">➖ Delete</button>
+            </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="studio-panel properties-panel">
+            <div class="section-title">🎛️ Properties</div>
+            <div class="scrollable">
+                <div class="control-section">
+                    <div class="section-title">🔧 Transform</div>
+                    <div class="control-item">
+                        <label>X Position:</label>
+                        <input type="number" class="control-input" value="0">
+                    </div>
+                    <div class="control-item">
+                        <label>Y Position:</label>
+                        <input type="number" class="control-input" value="0">
+                    </div>
+                    <div class="control-item">
+                        <label>Scale:</label>
+                        <input type="range" class="control-input" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="control-item">
+                        <label>Rotation:</label>
+                        <input type="range" class="control-input" min="0" max="360" step="1" value="0">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <div class="section-title">🎨 Appearance</div>
+                    <div class="control-item">
+                        <label>Opacity:</label>
+                        <input type="range" class="control-input" min="0" max="1" step="0.1" value="1">
+                    </div>
+                    <div class="control-item">
+                        <label>Blur:</label>
+                        <input type="range" class="control-input" min="0" max="10" step="0.5" value="0">
+                    </div>
+                    <div class="control-item">
+                        <label>Brightness:</label>
+                        <input type="range" class="control-input" min="0" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Effects Panel -->
+        <div class="studio-panel effects">
+            <div class="section-title">✨ Effects Library</div>
+            <div class="scrollable">
+                <div class="effect-item" onclick="applyEffect('sparkle')">
+                    <div class="effect-name">✨ Sparkle</div>
+                    <div class="effect-description">Magical sparkle particles</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('glow')">
+                    <div class="effect-name">🌟 Glow</div>
+                    <div class="effect-description">Soft luminous glow effect</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('wave')">
+                    <div class="effect-name">🌊 Wave Distortion</div>
+                    <div class="effect-description">Flowing wave distortion</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('lightning')">
+                    <div class="effect-name">⚡ Lightning</div>
+                    <div class="effect-description">Electric lightning bolts</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('fire')">
+                    <div class="effect-name">🔥 Fire</div>
+                    <div class="effect-description">Realistic fire animation</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('smoke')">
+                    <div class="effect-name">💨 Smoke</div>
+                    <div class="effect-description">Wispy smoke trails</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('rain')">
+                    <div class="effect-name">🌧️ Rain</div>
+                    <div class="effect-description">Falling rain drops</div>
+                </div>
+                <div class="effect-item" onclick="applyEffect('explosion')">
+                    <div class="effect-name">💥 Explosion</div>
+                    <div class="effect-description">Dynamic explosion burst</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NexusAnimeStudio {
+            constructor() {
+                this.isPlaying = false;
+                this.currentFrame = 1;
+                this.totalFrames = 30;
+                this.speed = 1.0;
+                this.animationFrames = [];
+                this.layers = [];
+                this.effects = [];
+
+                this.initializeStudio();
+            }
+
+            initializeStudio() {
+                console.log('🎬 NEXUS Anime Generation Studio initializing...');
+
+                // Create animated particles background
+                this.createParticleBackground();
+
+                // Setup playback controls
+                this.setupPlaybackControls();
+
+                // Setup timeline
+                this.setupTimeline();
+
+                // Setup layers
+                this.setupLayers();
+
+                // Start animation loop
+                this.startAnimationLoop();
+
+                console.log('✅ Anime Studio ready');
+                this.showNotification('🎬 NEXUS Anime Studio ready for creation!', 'success');
+            }
+
+            createParticleBackground() {
+                const particlesBg = document.getElementById('particlesBg');
+
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDuration = (Math.random() * 10 + 5) + 's';
+                    particle.style.animationDelay = Math.random() * 5 + 's';
+                    particlesBg.appendChild(particle);
+                }
+            }
+
+            setupPlaybackControls() {
+                const stepBackBtn = document.getElementById('stepBackBtn');
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                const stepForwardBtn = document.getElementById('stepForwardBtn');
+                const stopBtn = document.getElementById('stopBtn');
+                const speedSlider = document.getElementById('speedSlider');
+                const speedDisplay = document.getElementById('speedDisplay');
+
+                stepBackBtn.addEventListener('click', () => this.stepBack());
+                playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+                stepForwardBtn.addEventListener('click', () => this.stepForward());
+                stopBtn.addEventListener('click', () => this.stop());
+
+                speedSlider.addEventListener('input', (e) => {
+                    this.speed = parseFloat(e.target.value);
+                    speedDisplay.textContent = this.speed.toFixed(1) + 'x';
+                });
+            }
+
+            setupTimeline() {
+                const timelineTrack = document.getElementById('timelineTrack');
+                const timelineScrubber = document.getElementById('timelineScrubber');
+
+                timelineTrack.addEventListener('click', (e) => {
+                    const rect = timelineTrack.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percentage = x / rect.width;
+                    const frame = Math.round(percentage * this.totalFrames) + 1;
+                    this.setCurrentFrame(frame);
+                });
+
+                // Make scrubber draggable
+                let isDragging = false;
+
+                timelineScrubber.addEventListener('mousedown', () => {
+                    isDragging = true;
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const rect = timelineTrack.getBoundingClientRect();
+                        const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                        const percentage = x / rect.width;
+                        const frame = Math.round(percentage * this.totalFrames) + 1;
+                        this.setCurrentFrame(frame);
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+            }
+
+            setupLayers() {
+                const layerItems = document.querySelectorAll('.layer-item');
+
+                layerItems.forEach((item, index) => {
+                    item.addEventListener('click', () => {
+                        layerItems.forEach(l => l.classList.remove('active'));
+                        item.classList.add('active');
+                        this.selectLayer(index);
+                    });
+
+                    const visibility = item.querySelector('.layer-visibility');
+                    visibility.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        visibility.classList.toggle('visible');
+                        this.toggleLayerVisibility(index);
+                    });
+                });
+            }
+
+            startAnimationLoop() {
+                const loop = () => {
+                    if (this.isPlaying) {
+                        this.advanceFrame();
+                    }
+
+                    this.updateTimelineDisplay();
+                    requestAnimationFrame(loop);
+                };
+
+                loop();
+            }
+
+            togglePlayPause() {
+                const playPauseBtn = document.getElementById('playPauseBtn');
+
+                this.isPlaying = !this.isPlaying;
+
+                if (this.isPlaying) {
+                    playPauseBtn.textContent = '⏸️';
+                    playPauseBtn.classList.add('active');
+                    this.showNotification('▶️ Animation playing', 'info');
+                } else {
+                    playPauseBtn.textContent = '▶️';
+                    playPauseBtn.classList.remove('active');
+                    this.showNotification('⏸️ Animation paused', 'info');
+                }
+            }
+
+            stepBack() {
+                if (this.currentFrame > 1) {
+                    this.setCurrentFrame(this.currentFrame - 1);
+                }
+            }
+
+            stepForward() {
+                if (this.currentFrame < this.totalFrames) {
+                    this.setCurrentFrame(this.currentFrame + 1);
+                }
+            }
+
+            stop() {
+                this.isPlaying = false;
+                this.setCurrentFrame(1);
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                playPauseBtn.textContent = '▶️';
+                playPauseBtn.classList.remove('active');
+                this.showNotification('⏹️ Animation stopped', 'info');
+            }
+
+            setCurrentFrame(frame) {
+                this.currentFrame = Math.max(1, Math.min(this.totalFrames, frame));
+                document.getElementById('currentFrame').textContent = this.currentFrame;
+
+                // Update frame display
+                this.displayFrame(this.currentFrame);
+            }
+
+            advanceFrame() {
+                const frameInterval = 1000 / (24 * this.speed); // 24 FPS base
+
+                if (Date.now() - (this.lastFrameTime || 0) >= frameInterval) {
+                    if (this.currentFrame >= this.totalFrames) {
+                        const loopCheck = document.getElementById('loopCheck');
+                        if (loopCheck.checked) {
+                            this.setCurrentFrame(1);
+                        } else {
+                            this.togglePlayPause();
+                        }
+                    } else {
+                        this.setCurrentFrame(this.currentFrame + 1);
+                    }
+                    this.lastFrameTime = Date.now();
+                }
+            }
+
+            displayFrame(frameNumber) {
+                const frames = document.querySelectorAll('.animation-frame');
+                frames.forEach((frame, index) => {
+                    frame.classList.remove('active');
+                    if (index === (frameNumber - 1) % frames.length) {
+                        frame.classList.add('active');
+                    }
+                });
+            }
+
+            updateTimelineDisplay() {
+                const progress = (this.currentFrame - 1) / (this.totalFrames - 1) * 100;
+                const timelineProgress = document.getElementById('timelineProgress');
+                const timelineScrubber = document.getElementById('timelineScrubber');
+
+                timelineProgress.style.width = progress + '%';
+                timelineScrubber.style.left = progress + '%';
+            }
+
+            selectLayer(layerIndex) {
+                console.log(`Selected layer ${layerIndex}`);
+                // Update properties panel based on selected layer
+            }
+
+            toggleLayerVisibility(layerIndex) {
+                console.log(`Toggled visibility for layer ${layerIndex}`);
+                // Update layer visibility in animation
+            }
+
+            showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 255, 170, 0.9);
+                    color: #000000;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 12px;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0, 255, 170, 0.3);
+                `;
+
+                const colors = {
+                    success: 'rgba(0, 255, 170, 0.9)',
+                    error: 'rgba(255, 68, 68, 0.9)',
+                    warning: 'rgba(255, 170, 0, 0.9)',
+                    info: 'rgba(0, 170, 255, 0.9)'
+                };
+
+                notification.style.background = colors[type] || colors.info;
+                notification.textContent = message;
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+            }
+        }
+
+        // Global functions for UI interactions
+        function generateAnimation() {
+            const progressOverlay = document.getElementById('generationProgress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            progressOverlay.classList.add('active');
+            progressText.textContent = 'Initializing AI generation...';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10 + 5;
+                progressFill.style.width = Math.min(100, progress) + '%';
+
+                if (progress < 30) {
+                    progressText.textContent = 'Generating keyframes...';
+                } else if (progress < 60) {
+                    progressText.textContent = 'Applying effects...';
+                } else if (progress < 90) {
+                    progressText.textContent = 'Rendering frames...';
+                } else if (progress >= 100) {
+                    progressText.textContent = 'Animation generation complete!';
+                    clearInterval(interval);
+
+                    setTimeout(() => {
+                        progressOverlay.classList.remove('active');
+                        window.nexusAnimeStudio.showNotification('🎬 Animation generated successfully!', 'success');
+                    }, 1000);
+                }
+            }, 200);
+        }
+
+        function previewFrame() {
+            window.nexusAnimeStudio.showNotification('👁️ Previewing current frame...', 'info');
+        }
+
+        function exportAnimation() {
+            window.nexusAnimeStudio.showNotification('💾 Exporting animation...', 'success');
+        }
+
+        function addKeyframe() {
+            window.nexusAnimeStudio.showNotification('➕ Keyframe added', 'success');
+        }
+
+        function deleteKeyframe() {
+            window.nexusAnimeStudio.showNotification('➖ Keyframe deleted', 'warning');
+        }
+
+        function interpolateFrames() {
+            window.nexusAnimeStudio.showNotification('🔄 Interpolating between keyframes...', 'info');
+        }
+
+        function addLayer() {
+            window.nexusAnimeStudio.showNotification('➕ New layer added', 'success');
+        }
+
+        function deleteLayer() {
+            window.nexusAnimeStudio.showNotification('➖ Layer deleted', 'warning');
+        }
+
+        function applyEffect(effectName) {
+            window.nexusAnimeStudio.showNotification(`✨ Applied ${effectName} effect`, 'success');
+        }
+
+        // Initialize studio when page loads
+        window.addEventListener('load', () => {
+            window.nexusAnimeStudio = new NexusAnimeStudio();
+            console.log('🎬 NEXUS Anime Generation Studio ready');
+        });
+    </script>
+</body>
+</html>

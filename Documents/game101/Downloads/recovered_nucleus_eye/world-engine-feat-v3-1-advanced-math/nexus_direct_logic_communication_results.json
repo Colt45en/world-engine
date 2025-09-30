@@ -1,0 +1,38 @@
+[
+  {
+    "prompt": "if 1 = 1 then 1-2 = 1",
+    "response": "1  1-2 = ? (uncertain)",
+    "score": 0.3,
+    "note": "Pattern not fully recognized."
+  },
+  {
+    "prompt": "if 2 = 2 then 2-1 = 2",
+    "response": "2  2-1 = ? (uncertain)",
+    "score": 0.3,
+    "note": "Pattern not fully recognized."
+  },
+  {
+    "prompt": "if 3 = 3 then 3-2 = 3",
+    "response": "3  3-2 = ? (uncertain)",
+    "score": 0.3,
+    "note": "Pattern not fully recognized."
+  },
+  {
+    "prompt": "if there = location then location = where?",
+    "response": "location  location = ? (uncertain)",
+    "score": 0.3,
+    "note": "Pattern not fully recognized."
+  },
+  {
+    "prompt": "if cat = animal then animal = what?",
+    "response": "animal  animal = ? (uncertain)",
+    "score": 0.3,
+    "note": "Pattern not fully recognized."
+  },
+  {
+    "prompt": "if run = verb then verb = action?",
+    "response": "verb  verb = ? (uncertain)",
+    "score": 0.3,
+    "note": "Pattern not fully recognized."
+  }
+]

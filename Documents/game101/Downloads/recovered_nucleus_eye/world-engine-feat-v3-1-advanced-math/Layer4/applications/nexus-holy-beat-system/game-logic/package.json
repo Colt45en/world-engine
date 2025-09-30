@@ -1,0 +1,39 @@
+{
+  "name": "nexus-game-logic",
+  "version": "1.0.0",
+  "description": "C++ Game Logic for NEXUS Holy Beat System",
+  "main": "nexus_game.node",
+  "scripts": {
+    "build": "cmake-js build",
+    "clean": "cmake-js clean",
+    "rebuild": "npm run clean && npm run build",
+    "test": "node examples/test_bindings.js"
+  },
+  "dependencies": {
+    "cmake-js": "^7.2.1",
+    "node-addon-api": "^7.0.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.0"
+  },
+  "gypfile": false,
+  "cmake-js": {
+    "buildType": "Release",
+    "generator": "Visual Studio 16 2019",
+    "arch": "x64"
+  },
+  "repository": {
+    "type": "git",
+    "url": "local"
+  },
+  "keywords": [
+    "nexus",
+    "game-engine",
+    "audio-sync",
+    "art-engine",
+    "c++",
+    "node-addon"
+  ],
+  "author": "NEXUS Holy Beat System",
+  "license": "MIT"
+}

@@ -1,0 +1,3 @@
+extensions/*.ts
+extensions/src/**/*.ts
+extensions/src/**/*.js

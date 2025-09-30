@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Canvas Node Editor + Preview</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root { --bg:#0b0f14; --panel:#0f1620; --accent:#10e0e0; --text:#e8f0ff; --muted:#92a0b3; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+  .stack { position:fixed; inset:0; }
+  canvas.layer { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #nodeCanvas { pointer-events:none; } /* turned on in edit mode */
+  .ui {
+    position:fixed; top:12px; left:12px; z-index:10;
+    background:color-mix(in oklab, var(--panel) 85%, transparent);
+    backdrop-filter: blur(6px); border:1px solid #1e2a3a; border-radius:14px; padding:10px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn {
+    appearance:none; border:1px solid #204055; background:#0d1b26; color:var(--text);
+    padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:14px;
+  }
+  .btn:hover { border-color:#2b6e7a; }
+  .btn.accent { background:var(--accent); color:#022; border-color:#0cc; }
+  .sep { width:1px; height:28px; background:#22313f; margin:0 4px; }
+  .preview {
+    position:fixed; right:12px; bottom:12px; z-index:10;
+    background:color-mix(in oklab, var(--panel) 85%, transparent);
+    border:1px solid #1e2a3a; border-radius:14px; padding:10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .label { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  #preview { display:block; width:320px; height:180px; border-radius:10px; background:#000; }
+  /* Node visuals (drawn in canvas; these are for cursor hints only) */
+  #nodeCanvas.editing { pointer-events:auto; cursor:crosshair; }
+</style>
+</head>
+<body>
+  <!-- UI -->
+  <div class="ui">
+    <div class="row">
+      <button class="btn" id="toolDraw">Draw</button>
+      <button class="btn" id="toolErase">Erase</button>
+      <button class="btn" id="clearDrawing">Clear</button>
+      <div class="sep"></div>
+      <button class="btn" id="toggleNodeEditor">Edit Nodes</button>
+      <button class="btn accent" id="saveComposite">Save Composite</button>
+    </div>
+  </div>
+
+  <div class="preview">
+    <div class="label">Preview</div>
+    <canvas id="preview" width="320" height="180"></canvas>
+  </div>
+
+  <!-- Canvas stack -->
+  <div class="stack">
+    <canvas id="gridCanvas"   class="layer"></canvas>
+    <canvas id="drawingCanvas" class="layer"></canvas>
+    <canvas id="nodeCanvas"    class="layer"></canvas>
+  </div>
+
+<script>
+(() => {
+  // ---------- DOM ----------
+  const gridCanvas    = document.getElementById('gridCanvas');
+  const drawingCanvas = document.getElementById('drawingCanvas');
+  const nodeCanvas    = document.getElementById('nodeCanvas');
+  const previewCanvas = document.getElementById('preview');
+
+  const btnDraw   = document.getElementById('toolDraw');
+  const btnErase  = document.getElementById('toolErase');
+  const btnClear  = document.getElementById('clearDrawing');
+  const btnEdit   = document.getElementById('toggleNodeEditor');
+  const btnSave   = document.getElementById('saveComposite');
+
+  // ---------- Sizing / DPR ----------
+  const DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  let W = 0, H = 0; // CSS pixels
+
+  function setupCanvas(canvas) {
+    const rectW = window.innerWidth;
+    const rectH = window.innerHeight;
+    canvas.width = Math.floor(rectW * DPR);
+    canvas.height = Math.floor(rectH * DPR);
+    canvas.style.width = rectW + 'px';
+    canvas.style.height = rectH + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // work in CSS pixels
+    ctx.imageSmoothingEnabled = true;
+    return ctx;
+  }
+
+  let gctx = setupCanvas(gridCanvas);
+  let dctx = setupCanvas(drawingCanvas);
+  let nctx = setupCanvas(nodeCanvas);
+
+  function resizeAll() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    gctx = setupCanvas(gridCanvas);
+    dctx = setupCanvas(drawingCanvas);
+    nctx = setupCanvas(nodeCanvas);
+    drawGrid();
+    redrawNodes();
+    updatePreview();
+  }
+  window.addEventListener('resize', resizeAll);
+
+  // ---------- Grid ----------
+  const GRID_SPACING = 20;
+  function drawGrid() {
+    gctx.clearRect(0,0,W,H);
+    gctx.lineWidth = 1;
+    gctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    for (let x=0.5; x<=W; x+=GRID_SPACING) {
+      gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,H); gctx.stroke();
+    }
+    for (let y=0.5; y<=H; y+=GRID_SPACING) {
+      gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W,y); gctx.stroke();
+    }
+  }
+
+  // ---------- Drawing Tool (for testing composite) ----------
+  let tool = 'draw'; // 'draw' | 'erase'
+  let isDrawing = false, lastX = 0, lastY = 0;
+
+  function setTool(t) {
+    tool = t;
+    btnDraw.style.borderColor  = t==='draw'  ? '#38e1e1' : '#204055';
+    btnErase.style.borderColor = t==='erase' ? '#38e1e1' : '#204055';
+  }
+  btnDraw.addEventListener('click', () => setTool('draw'));
+  btnErase.addEventListener('click', () => setTool('erase'));
+  setTool('draw');
+
+  drawingCanvas.addEventListener('pointerdown', e => {
+    if (nodeEditorEnabled) return; // node editor consumes interactions
+    isDrawing = true;
+    const {x,y} = toCanvasXY(drawingCanvas, e);
+    lastX = x; lastY = y;
+    dctx.beginPath();
+    dctx.moveTo(x,y);
+  });
+  drawingCanvas.addEventListener('pointermove', e => {
+    if (!isDrawing || nodeEditorEnabled) return;
+    const {x,y} = toCanvasXY(drawingCanvas, e);
+    dctx.lineCap = 'round';
+    dctx.lineJoin = 'round';
+    dctx.lineWidth = tool==='erase' ? 18 : 3;
+    dctx.strokeStyle = tool==='erase' ? '#0b0f14' : '#ff33aa';
+    dctx.lineTo(x,y);
+    dctx.stroke();
+    lastX = x; lastY = y;
+    updatePreview();
+  });
+  drawingCanvas.addEventListener('pointerup',   () => { isDrawing = false; updatePreview(); });
+  drawingCanvas.addEventListener('pointerleave',() => { isDrawing = false; });
+
+  btnClear.addEventListener('click', () => {
+    dctx.clearRect(0,0,W,H);
+    updatePreview();
+  });
+
+  function toCanvasXY(canvas, e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  // ---------- Node Editor (Canvas) ----------
+  let nodeEditorEnabled = false;
+  let nodes = [];        // {x,y} in CSS pixels
+  let edges = [];        // [i,j]
+  const NODE_R = 8;
+  const EDGE_W = 2;
+  const SHOW_GLYPES = true;
+  const MAX_DOTS = 4000;
+
+  // Drag / click state
+  let edgeStart = null;        // index
+  let pointer = { x:0, y:0 };  // for rubber band
+  let maybeDragIdx = -1;       // pressed on a node; may become a drag
+  let dragIdx = -1;
+  let downX = 0, downY = 0;
+
+  function toggleNodeEditor() {
+    nodeEditorEnabled = !nodeEditorEnabled;
+    if (nodeEditorEnabled) {
+      if (nodes.length === 0) seedNodes();
+      nodeCanvas.classList.add('editing');
+      btnEdit.textContent = 'Done Editing';
+      attachNodeHandlers();
+      redrawNodes();
+    } else {
+      nodeCanvas.classList.remove('editing');
+      btnEdit.textContent = 'Edit Nodes';
+      detachNodeHandlers();
+      clearNodesLayer();
+    }
+    updatePreview();
+  }
+  btnEdit.addEventListener('click', toggleNodeEditor);
+
+  function seedNodes() {
+    const cx = W*0.5, cy = H*0.5, r = Math.min(W,H)*0.25;
+    nodes = [
+      {x: cx + r, y: cy},
+      {x: cx,     y: cy + r},
+      {x: cx - r, y: cy},
+      {x: cx,     y: cy - r},
+    ];
+    edges = [[0,1],[1,2],[2,3],[3,0]];
+  }
+
+  function clearNodesLayer() {
+    nctx.clearRect(0,0,W,H);
+  }
+
+  // rAF gate
+  let rafId = null, needs = false;
+  function scheduleRedraw() {
+    if (rafId) { needs = true; return; }
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      const again = needs; needs = false;
+      redrawNodes();
+      if (again) scheduleRedraw();
+    });
+  }
+
+  function redrawNodes() {
+    nctx.clearRect(0,0,W,H);
+
+    // Glype markers
+    if (nodeEditorEnabled && SHOW_GLYPES) {
+      let count=0;
+      nctx.fillStyle = 'rgba(16,224,224,0.22)';
+      for (let x=GRID_SPACING; x<W; x+=GRID_SPACING) {
+        for (let y=GRID_SPACING; y<H; y+=GRID_SPACING) {
+          if (++count>MAX_DOTS) break;
+          nctx.beginPath(); nctx.arc(x,y,1.8,0,Math.PI*2); nctx.fill();
+        }
+      }
+    }
+
+    // Edges
+    nctx.lineWidth = EDGE_W;
+    nctx.strokeStyle = '#10e0e0';
+    nctx.lineJoin = 'round';
+    nctx.lineCap = 'round';
+    edges.forEach(([i,j]) => {
+      const a = nodes[i], b = nodes[j];
+      nctx.beginPath(); nctx.moveTo(a.x,a.y); nctx.lineTo(b.x,b.y); nctx.stroke();
+    });
+
+    // Rubber band
+    if (edgeStart !== null) {
+      const a = nodes[edgeStart];
+      nctx.setLineDash([6,4]);
+      nctx.strokeStyle = 'rgba(16,224,224,0.6)';
+      nctx.beginPath(); nctx.moveTo(a.x,a.y); nctx.lineTo(pointer.x,pointer.y); nctx.stroke();
+      nctx.setLineDash([]);
+    }
+
+    // Nodes
+    nodes.forEach((p,idx) => {
+      // halo
+      nctx.beginPath(); nctx.arc(p.x,p.y,NODE_R+3,0,Math.PI*2);
+      nctx.strokeStyle = 'rgba(16,224,224,0.35)'; nctx.lineWidth = 1; nctx.stroke();
+
+      // body
+      nctx.beginPath(); nctx.arc(p.x,p.y,NODE_R,0,Math.PI*2);
+      nctx.fillStyle = '#111'; nctx.fill();
+      nctx.lineWidth = 2;
+      nctx.strokeStyle = idx===edgeStart ? 'yellow' : '#10e0e0';
+      nctx.stroke();
+    });
+  }
+
+  function attachNodeHandlers() {
+    nodeCanvas.addEventListener('pointerdown', onNodePointerDown);
+    nodeCanvas.addEventListener('pointermove', onNodePointerMove);
+    nodeCanvas.addEventListener('pointerup',   onNodePointerUp);
+    nodeCanvas.addEventListener('pointerleave',onNodePointerLeave);
+  }
+  function detachNodeHandlers() {
+    nodeCanvas.removeEventListener('pointerdown', onNodePointerDown);
+    nodeCanvas.removeEventListener('pointermove', onNodePointerMove);
+    nodeCanvas.removeEventListener('pointerup',   onNodePointerUp);
+    nodeCanvas.removeEventListener('pointerleave',onNodePointerLeave);
+  }
+
+  function findNodeAt(x,y) {
+    let hit=-1, best=Infinity;
+    const r2 = (NODE_R+4)*(NODE_R+4);
+    for (let i=0;i<nodes.length;i++) {
+      const dx=x-nodes[i].x, dy=y-nodes[i].y, d=dx*dx+dy*dy;
+      if (d<=r2 && d<best){ best=d; hit=i; }
+    }
+    return hit;
+  }
+
+  function snap(x,y) {
+    return { x: Math.round(x/GRID_SPACING)*GRID_SPACING, y: Math.round(y/GRID_SPACING)*GRID_SPACING };
+  }
+
+  function onNodePointerDown(e) {
+    const {x,y} = toCanvasXY(nodeCanvas,e);
+    pointer.x=x; pointer.y=y;
+    const idx = findNodeAt(x,y);
+    if (idx !== -1) {
+      maybeDragIdx = idx;
+      downX = x; downY = y;
+      nodeCanvas.setPointerCapture?.(e.pointerId);
+    }
+  }
+
+  function onNodePointerMove(e) {
+    const {x,y} = toCanvasXY(nodeCanvas,e);
+    pointer.x=x; pointer.y=y;
+
+    // promote to drag if moved a bit
+    if (maybeDragIdx !== -1 && dragIdx === -1) {
+      const dx = x - downX, dy = y - downY;
+      if (dx*dx + dy*dy > 9) { dragIdx = maybeDragIdx; maybeDragIdx = -1; }
+    }
+
+    if (dragIdx !== -1) {
+      nodes[dragIdx].x = x;
+      nodes[dragIdx].y = y;
+    }
+
+    scheduleRedraw();
+  }
+
+  function onNodePointerUp(e) {
+    const {x,y} = toCanvasXY(nodeCanvas,e);
+
+    // If actively dragging, snap and finish
+    if (dragIdx !== -1) {
+      const s = snap(x,y);
+      nodes[dragIdx].x = s.x; nodes[dragIdx].y = s.y;
+      dragIdx = -1;
+      scheduleRedraw();
+      updatePreview();
+      return;
+    }
+
+    // If we pressed on a node but didn't drag -> treat as click (edge creation)
+    if (maybeDragIdx !== -1) {
+      const idx = maybeDragIdx;
+      maybeDragIdx = -1;
+
+      if (edgeStart === null) {
+        edgeStart = idx;
+      } else if (edgeStart !== idx) {
+        edges.push([edgeStart, idx]);
+        edgeStart = null;
+      } else {
+        edgeStart = null; // cancel
+      }
+      scheduleRedraw();
+      updatePreview();
+    }
+  }
+
+  function onNodePointerLeave() {
+    // cancel pending drag (don't create edges accidentally)
+    maybeDragIdx = -1; dragIdx = -1;
+  }
+
+  // ---------- Save Composite + Preview ----------
+  btnSave.addEventListener('click', saveComposite);
+
+  function saveComposite() {
+    // Use device-pixel dimensions for crisp export
+    const out = document.createElement('canvas');
+    out.width  = Math.floor(W * DPR);
+    out.height = Math.floor(H * DPR);
+    const octx = out.getContext('2d');
+    // draw at 1:1 device pixel scale
+    octx.drawImage(gridCanvas,    0, 0);
+    octx.drawImage(drawingCanvas, 0, 0);
+    octx.drawImage(nodeCanvas,    0, 0);
+
+    const a = document.createElement('a');
+    a.download = 'composite.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  }
+
+  function updatePreview() {
+    // Preview canvas works in its own CSS space; draw scaled
+    const pw = previewCanvas.clientWidth;
+    const ph = previewCanvas.clientHeight;
+
+    // Resize internal buffer for crispness on HiDPI
+    previewCanvas.width  = Math.floor(pw * DPR);
+    previewCanvas.height = Math.floor(ph * DPR);
+    const pctx = previewCanvas.getContext('2d');
+    pctx.setTransform(DPR,0,0,DPR,0,0);
+    pctx.clearRect(0,0,pw,ph);
+
+    // Letterbox to fit
+    const scale = Math.min(pw / W, ph / H);
+    const tw = W * scale, th = H * scale;
+    const ox = (pw - tw) * 0.5, oy = (ph - th) * 0.5;
+
+    pctx.save();
+    pctx.imageSmoothingEnabled = true;
+    pctx.drawImage(gridCanvas,    0,0, gridCanvas.width,    gridCanvas.height,    ox,oy, tw,th);
+    pctx.drawImage(drawingCanvas, 0,0, drawingCanvas.width, drawingCanvas.height, ox,oy, tw,th);
+    pctx.drawImage(nodeCanvas,    0,0, nodeCanvas.width,    nodeCanvas.height,    ox,oy, tw,th);
+    pctx.restore();
+
+    // subtle border
+    pctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    pctx.lineWidth = 1;
+    pctx.strokeRect(0.5,0.5,pw-1,ph-1);
+  }
+
+  // ---------- Boot ----------
+  resizeAll(); // sets W/H, draws grid, nodes, preview
+
+  // Optional: keep preview updating while editing (cheap throttled loop)
+  let previewRAF = null;
+  function tickPreview() {
+    previewRAF = requestAnimationFrame(tickPreview);
+    // Only redraw preview during active operations to keep it light.
+    // Here we err on the side of "often", it's cheap: sample every frame.
+    updatePreview();
+  }
+  tickPreview();
+})();
+</script>
+</body>
+</html>

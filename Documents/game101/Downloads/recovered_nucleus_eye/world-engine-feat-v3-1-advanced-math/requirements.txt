@@ -1,0 +1,10 @@
+# NEXUS AI Bot Server Requirements
+# Install with: pip install - r requirements.txt
+
+flask == 2.3.3
+flask - socketio == 5.3.6
+python - socketio == 5.9.0
+python - engineio == 4.7.1
+websocket - client == 1.6.4
+requests == 2.31.0
+eventlet == 0.33.3

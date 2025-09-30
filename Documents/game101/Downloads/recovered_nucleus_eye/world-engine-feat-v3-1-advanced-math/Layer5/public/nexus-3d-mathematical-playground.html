@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS 3D Mathematical Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .playground-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: 80px 1fr 100px;
+            height: 100vh;
+            gap: 2px;
+            background: #000;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(90deg, #1a1a2e, #16213e);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 3px solid #00ffff;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.3), transparent);
+            animation: headerScan 6s linear infinite;
+        }
+
+        @keyframes headerScan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00, #00ff00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px #00ffff;
+        }
+
+        .status-panel {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .math-indicator {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            position: relative;
+            animation: mathPulse 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        @keyframes mathPulse {
+            0%, 100% { box-shadow: 0 0 20px #00ffff; transform: scale(1); }
+            50% { box-shadow: 0 0 40px #00ffff; transform: scale(1.1); }
+        }
+
+        .control-panel {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #00ffff;
+        }
+
+        .main-3d-display {
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-panel {
+            background: rgba(22, 33, 62, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #00ffff;
+        }
+
+        .footer {
+            grid-column: 1 / -1;
+            background: rgba(15, 52, 96, 0.95);
+            padding: 15px 30px;
+            border-top: 2px solid #00ffff;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-section {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-section h3 {
+            color: #00ffff;
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            border-bottom: 1px solid #00ffff;
+            padding-bottom: 6px;
+        }
+
+        .math-equation {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #ffff00;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Times New Roman', serif;
+            text-align: center;
+            color: #ffff00;
+        }
+
+        .equation-title {
+            font-size: 12px;
+            color: #ffd700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .equation-formula {
+            font-size: 18px;
+            margin: 8px 0;
+        }
+
+        .equation-result {
+            font-size: 14px;
+            color: #00ffff;
+            margin-top: 8px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            font-size: 12px;
+            color: #00ffff;
+            text-transform: uppercase;
+        }
+
+        .math-input {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+            color: #00ffff;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .math-input:focus {
+            outline: none;
+            border-color: #ffff00;
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+        }
+
+        .calculate-btn {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            padding: 10px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .calculate-btn:hover {
+            background: linear-gradient(45deg, #ffff00, #ffd700);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 255, 0.4);
+        }
+
+        .visualization-controls {
+            background: rgba(255, 0, 255, 0.1);
+            border-color: #ff00ff;
+        }
+
+        .visualization-controls h3 {
+            color: #ff00ff;
+        }
+
+        .viz-button {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .viz-button:hover {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            transform: scale(1.05);
+        }
+
+        .viz-button.active {
+            background: linear-gradient(45deg, #ffd700, #ffb000);
+            color: #000;
+        }
+
+        .info-section {
+            background: rgba(138, 43, 226, 0.1);
+            border: 1px solid #8a2be2;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-section h3 {
+            color: #8a2be2;
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            border-bottom: 1px solid #8a2be2;
+            padding-bottom: 6px;
+        }
+
+        .calculation-log {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #8a2be2;
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 6px;
+            background: rgba(138, 43, 226, 0.1);
+            border-radius: 4px;
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 10px;
+        }
+
+        .learning-metrics {
+            background: rgba(255, 69, 0, 0.1);
+            border-color: #ff4500;
+        }
+
+        .learning-metrics h3 {
+            color: #ff4500;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .metric-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, rgba(0,100,200,0.1) 0%, rgba(0,0,0,0.8) 100%);
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 100;
+        }
+
+        .canvas-overlay h4 {
+            color: #00ffff;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .current-calculation {
+            color: #ffff00;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .loading-indicator {
+            color: #ff00ff;
+            font-size: 12px;
+        }
+
+        .nucleus-status-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .nucleus-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: nucleusBlink 2s ease-in-out infinite;
+        }
+
+        @keyframes nucleusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .quick-formulas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .formula-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #00ffff;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .formula-card:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .formula-name {
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .formula-math {
+            color: #00ffff;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .real-time-data {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff00;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .data-stream {
+            font-size: 10px;
+            color: #00ff00;
+            font-family: monospace;
+            line-height: 1.4;
+        }
+
+        .performance-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+        }
+
+        .stat-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            color: #888;
+            margin-bottom: 2px;
+        }
+
+        .stat-number {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .auto-calculate {
+            background: rgba(0, 255, 127, 0.1);
+            border-color: #00ff7f;
+        }
+
+        .auto-calculate h3 {
+            color: #00ff7f;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #00ff7f;
+        }
+
+        .toggle-slider {
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(20px);
+        }
+
+        .frequency-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .frequency-slider {
+            flex: 1;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .frequency-value {
+            color: #00ff7f;
+            font-size: 12px;
+            min-width: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="playground-container">
+        <header class="header">
+            <div class="logo">🧮 NEXUS 3D Mathematical Playground</div>
+            <div class="status-panel">
+                <div class="math-indicator" id="mathIndicator">∑</div>
+                <div class="nucleus-status-mini">
+                    <div class="nucleus-dot" id="nucleusDot"></div>
+                    <span id="nucleusStatus">Nucleus AI</span>
+                </div>
+            </div>
+        </header>
+
+        <aside class="control-panel">
+            <!-- Pythagorean Calculator -->
+            <div class="control-section">
+                <h3>🔺 Pythagorean Theorem</h3>
+                <div class="math-equation">
+                    <div class="equation-title">3D Distance Formula</div>
+                    <div class="equation-formula">d = √(Δx² + Δy² + Δz²)</div>
+                    <div class="equation-result" id="pythagoreanResult">Calculate to see result</div>
+                </div>
+
+                <div class="input-group">
+                    <label>Point 1 (x, y, z):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" id="x1" class="math-input" placeholder="x1" value="0" step="0.1">
+                        <input type="number" id="y1" class="math-input" placeholder="y1" value="0" step="0.1">
+                        <input type="number" id="z1" class="math-input" placeholder="z1" value="0" step="0.1">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Point 2 (x, y, z):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" id="x2" class="math-input" placeholder="x2" value="3" step="0.1">
+                        <input type="number" id="y2" class="math-input" placeholder="y2" value="4" step="0.1">
+                        <input type="number" id="z2" class="math-input" placeholder="z2" value="0" step="0.1">
+                    </div>
+                </div>
+
+                <button class="calculate-btn" onclick="calculateDistance()">Calculate Distance</button>
+            </div>
+
+            <!-- Vector Calculator -->
+            <div class="control-section">
+                <h3>📐 Vector Operations</h3>
+                <div class="math-equation">
+                    <div class="equation-title">Vector Magnitude</div>
+                    <div class="equation-formula">|v| = √(x² + y² + z²)</div>
+                    <div class="equation-result" id="vectorResult">Enter vector components</div>
+                </div>
+
+                <div class="input-group">
+                    <label>Vector (x, y, z):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" id="vx" class="math-input" placeholder="x" value="1" step="0.1">
+                        <input type="number" id="vy" class="math-input" placeholder="y" value="1" step="0.1">
+                        <input type="number" id="vz" class="math-input" placeholder="z" value="1" step="0.1">
+                    </div>
+                </div>
+
+                <button class="calculate-btn" onclick="calculateVector()">Calculate Magnitude</button>
+                <button class="calculate-btn" onclick="normalizeVector()">Normalize Vector</button>
+            </div>
+
+            <!-- Visualization Controls -->
+            <div class="control-section visualization-controls">
+                <h3>🎨 3D Visualization</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <button class="viz-button active" onclick="setVisualizationMode('pythagorean')">Pythagorean</button>
+                    <button class="viz-button" onclick="setVisualizationMode('distance')">Distance</button>
+                    <button class="viz-button" onclick="setVisualizationMode('vectors')">Vectors</button>
+                    <button class="viz-button" onclick="setVisualizationMode('collision')">Collision</button>
+                    <button class="viz-button" onclick="setVisualizationMode('lighting')">Lighting</button>
+                    <button class="viz-button" onclick="setVisualizationMode('all')">Show All</button>
+                </div>
+            </div>
+
+            <!-- Auto-Calculate -->
+            <div class="control-section auto-calculate">
+                <h3>🤖 Auto-Calculate</h3>
+                <div class="toggle-container">
+                    <div class="toggle-switch" id="autoCalcToggle" onclick="toggleAutoCalculate()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <span>Auto-send to Nucleus</span>
+                </div>
+                <div class="frequency-control">
+                    <input type="range" id="autoFrequency" class="frequency-slider" min="1" max="10" value="3" oninput="updateFrequency()">
+                    <span class="frequency-value" id="frequencyDisplay">3s</span>
+                </div>
+            </div>
+
+            <!-- Quick Formulas -->
+            <div class="control-section">
+                <h3>⚡ Quick Formulas</h3>
+                <div class="quick-formulas">
+                    <div class="formula-card" onclick="loadFormula('distance')">
+                        <div class="formula-name">Distance</div>
+                        <div class="formula-math">d = √(Δx² + Δy² + Δz²)</div>
+                    </div>
+                    <div class="formula-card" onclick="loadFormula('magnitude')">
+                        <div class="formula-name">Magnitude</div>
+                        <div class="formula-math">|v| = √(x² + y² + z²)</div>
+                    </div>
+                    <div class="formula-card" onclick="loadFormula('normalize')">
+                        <div class="formula-name">Normalize</div>
+                        <div class="formula-math">v̂ = v / |v|</div>
+                    </div>
+                    <div class="formula-card" onclick="loadFormula('dot')">
+                        <div class="formula-name">Dot Product</div>
+                        <div class="formula-math">a · b = |a||b|cosθ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Educational Learning -->
+            <div class="control-section" style="background: rgba(0, 255, 127, 0.1); border-color: #00ff7f;">
+                <h3 style="color: #00ff7f;">🎓 Guided Learning</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px;">
+                    <button class="viz-button" onclick="startGuidedLearning()">Start Tutorial</button>
+                    <button class="viz-button" onclick="skipToTier('tier5')">Tier 5</button>
+                    <button class="viz-button" onclick="skipToTier('tier6')">Tier 6</button>
+                    <button class="viz-button" onclick="skipToTier('tier7')">Tier 7</button>
+                    <button class="viz-button" onclick="skipToTier('tier8')">Tier 8</button>
+                    <button class="viz-button" onclick="showLearningProgress()">Progress</button>
+                </div>
+                <div id="currentTierInfo" style="font-size: 11px; color: #00ff7f; text-align: center; margin-top: 8px;">
+                    Ready for guided learning
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-3d-display">
+            <div class="canvas-container" id="canvasContainer">
+                <div class="canvas-overlay">
+                    <h4>🧮 Current Calculation</h4>
+                    <div class="current-calculation" id="currentCalculation">Ready for calculations...</div>
+                    <div class="loading-indicator" id="loadingIndicator" style="display: none;">Processing with Nucleus AI...</div>
+                </div>
+                <!-- 3D Canvas will be inserted here by JavaScript -->
+            </div>
+        </main>
+
+        <aside class="info-panel">
+            <!-- Real-time Data -->
+            <div class="info-section">
+                <h3>📊 Real-time Data</h3>
+                <div class="real-time-data">
+                    <div class="data-stream" id="dataStream">
+                        Initializing mathematical systems...<br>
+                        Connecting to Nucleus AI...<br>
+                        3D engine ready for visualization...<br>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculation Log -->
+            <div class="info-section">
+                <h3>📋 Calculation Log</h3>
+                <div class="calculation-log" id="calculationLog">
+                    <div class="log-entry">
+                        <div class="log-timestamp">System initialized</div>
+                        <div>Ready for mathematical operations</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Metrics -->
+            <div class="info-section learning-metrics">
+                <h3>🧠 Learning Metrics</h3>
+                <div class="metric-item">
+                    <span>Calculations:</span>
+                    <span class="metric-value" id="calcCount">0</span>
+                </div>
+                <div class="metric-item">
+                    <span>Patterns Found:</span>
+                    <span class="metric-value" id="patternCount">0</span>
+                </div>
+                <div class="metric-item">
+                    <span>AI Training:</span>
+                    <span class="metric-value" id="trainingCount">0</span>
+                </div>
+                <div class="metric-item">
+                    <span>Accuracy:</span>
+                    <span class="metric-value" id="accuracyRate">100%</span>
+                </div>
+            </div>
+        </aside>
+
+        <footer class="footer">
+            <div class="performance-stats">
+                <div class="stat-group">
+                    <div class="stat-label">FPS</div>
+                    <div class="stat-number" id="fpsCounter">60</div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat-label">Calculations/sec</div>
+                    <div class="stat-number" id="calcRate">0</div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat-label">3D Objects</div>
+                    <div class="stat-number" id="objectCount">0</div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat-label">Nucleus Sync</div>
+                    <div class="stat-number" id="syncRate">100%</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <button class="calculate-btn" onclick="exportData()">💾 Export Data</button>
+                <button class="calculate-btn" onclick="resetPlayground()">🔄 Reset</button>
+                <button class="calculate-btn" onclick="openNucleusTraining()">🧠 Nucleus Training</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Include all required JavaScript files -->
+    <script src="nexus-forge-mathematical-engine.js"></script>
+    <script src="nexus-forge-mathematical-sandbox.js"></script>
+    <script src="nexus-forge-nucleus-communicator.js"></script>
+    <script src="nexus-forge-nucleus-integration.js"></script>
+    <script src="nexus-forge-3d-math-engine.js"></script>
+    <script src="nexus-forge-educational-bridge.js"></script>
+
+    <script>
+        // Global playground state
+        let playground = {
+            math3DEngine: null,
+            nucleusIntegration: null,
+            autoCalculateEnabled: false,
+            autoCalculateInterval: null,
+            currentVisualizationMode: 'pythagorean',
+            metrics: {
+                calculations: 0,
+                patterns: 0,
+                training: 0,
+                accuracy: 100
+            },
+            lastCalculations: []
+        };
+
+        // Initialize the playground
+        window.addEventListener('load', async () => {
+            console.log("🚀 Initializing NEXUS 3D Mathematical Playground...");
+            await initializePlayground();
+            startRealtimeUpdates();
+            setupEventHandlers();
+        });
+
+        async function initializePlayground() {
+            try {
+                // Wait for all engines to be ready
+                await waitForEngines();
+
+                // Initialize 3D Math Engine
+                if (window.nexus3DMathEngine) {
+                    playground.math3DEngine = window.nexus3DMathEngine;
+                    playground.math3DEngine.attachToElement('canvasContainer');
+                    console.log("✅ 3D Math Engine connected");
+                } else {
+                    console.log("⚠️ 3D Math Engine not available");
+                }
+
+                // Initialize Nucleus Integration
+                if (window.nucleusIntegration) {
+                    playground.nucleusIntegration = window.nucleusIntegration;
+                    console.log("✅ Nucleus Integration connected");
+                }
+
+                // Send initialization message
+                updateDataStream("Playground fully initialized");
+                updateCurrentCalculation("All systems operational");
+
+                // Set default values
+                loadDefaultValues();
+
+            } catch (error) {
+                console.error("❌ Playground initialization failed:", error);
+                updateDataStream(`Initialization error: ${error.message}`);
+            }
+        }
+
+        async function waitForEngines() {
+            let retries = 0;
+            const maxRetries = 50;
+
+            while (retries < maxRetries) {
+                if (window.nexus3DMathEngine && window.nucleusIntegration) {
+                    return;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+
+            console.log("⚠️ Some engines may not be fully loaded");
+        }
+
+        function loadDefaultValues() {
+            // Set default Pythagorean example (3-4-5 triangle)
+            document.getElementById('x1').value = 0;
+            document.getElementById('y1').value = 0;
+            document.getElementById('z1').value = 0;
+            document.getElementById('x2').value = 3;
+            document.getElementById('y2').value = 4;
+            document.getElementById('z2').value = 0;
+
+            // Set default vector
+            document.getElementById('vx').value = 1;
+            document.getElementById('vy').value = 1;
+            document.getElementById('vz').value = 1;
+
+            // Calculate initial examples
+            setTimeout(() => {
+                calculateDistance();
+                calculateVector();
+            }, 500);
+        }
+
+        // Mathematical calculation functions
+
+        async function calculateDistance() {
+            const x1 = parseFloat(document.getElementById('x1').value) || 0;
+            const y1 = parseFloat(document.getElementById('y1').value) || 0;
+            const z1 = parseFloat(document.getElementById('z1').value) || 0;
+            const x2 = parseFloat(document.getElementById('x2').value) || 0;
+            const y2 = parseFloat(document.getElementById('y2').value) || 0;
+            const z2 = parseFloat(document.getElementById('z2').value) || 0;
+
+            const point1 = [x1, y1, z1];
+            const point2 = [x2, y2, z2];
+
+            try {
+                updateCurrentCalculation(`Calculating distance between (${x1}, ${y1}, ${z1}) and (${x2}, ${y2}, ${z2})`);
+                showLoadingIndicator(true);
+
+                // Use 3D Math Engine if available
+                let distance;
+                if (playground.math3DEngine) {
+                    distance = await playground.math3DEngine.calculateDistance3D(point1, point2);
+                } else {
+                    // Fallback calculation
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const dz = z2 - z1;
+                    distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                }
+
+                // Update display
+                const resultText = `Distance: ${distance.toFixed(4)} units`;
+                document.getElementById('pythagoreanResult').textContent = resultText;
+
+                // Log calculation
+                logCalculation('Distance', `${point1} to ${point2}`, distance.toFixed(4));
+
+                // Update metrics
+                playground.metrics.calculations++;
+                updateMetricsDisplay();
+
+                // Send to Nucleus if integration available
+                if (playground.nucleusIntegration) {
+                    await playground.nucleusIntegration.trainDirectly({
+                        operation: 'distance-3d-playground',
+                        points: { point1, point2 },
+                        result: distance,
+                        context: '3d-mathematical-playground',
+                        timestamp: Date.now()
+                    }, 'geometric-calculation');
+                    playground.metrics.training++;
+                }
+
+                updateDataStream(`Distance calculated: ${distance.toFixed(4)} units`);
+                updateCurrentCalculation(`Latest: Distance = ${distance.toFixed(4)}`);
+
+            } catch (error) {
+                console.error("❌ Distance calculation failed:", error);
+                updateDataStream(`Distance calculation error: ${error.message}`);
+            } finally {
+                showLoadingIndicator(false);
+            }
+        }
+
+        async function calculateVector() {
+            const vx = parseFloat(document.getElementById('vx').value) || 0;
+            const vy = parseFloat(document.getElementById('vy').value) || 0;
+            const vz = parseFloat(document.getElementById('vz').value) || 0;
+
+            const vector = [vx, vy, vz];
+
+            try {
+                updateCurrentCalculation(`Calculating magnitude of vector (${vx}, ${vy}, ${vz})`);
+                showLoadingIndicator(true);
+
+                // Calculate magnitude
+                let magnitude;
+                if (playground.math3DEngine) {
+                    magnitude = await playground.math3DEngine.calculateVectorMagnitude(vector);
+                } else {
+                    magnitude = Math.sqrt(vx*vx + vy*vy + vz*vz);
+                }
+
+                // Update display
+                const resultText = `Magnitude: ${magnitude.toFixed(4)}`;
+                document.getElementById('vectorResult').textContent = resultText;
+
+                // Log calculation
+                logCalculation('Vector Magnitude', `(${vx}, ${vy}, ${vz})`, magnitude.toFixed(4));
+
+                // Update metrics
+                playground.metrics.calculations++;
+                updateMetricsDisplay();
+
+                // Send to Nucleus
+                if (playground.nucleusIntegration) {
+                    await playground.nucleusIntegration.trainDirectly({
+                        operation: 'vector-magnitude-playground',
+                        vector: vector,
+                        result: magnitude,
+                        context: '3d-mathematical-playground',
+                        timestamp: Date.now()
+                    }, 'mathematical-patterns');
+                    playground.metrics.training++;
+                }
+
+                updateDataStream(`Vector magnitude: ${magnitude.toFixed(4)}`);
+                updateCurrentCalculation(`Latest: |v| = ${magnitude.toFixed(4)}`);
+
+            } catch (error) {
+                console.error("❌ Vector calculation failed:", error);
+                updateDataStream(`Vector calculation error: ${error.message}`);
+            } finally {
+                showLoadingIndicator(false);
+            }
+        }
+
+        async function normalizeVector() {
+            const vx = parseFloat(document.getElementById('vx').value) || 0;
+            const vy = parseFloat(document.getElementById('vy').value) || 0;
+            const vz = parseFloat(document.getElementById('vz').value) || 0;
+
+            const vector = [vx, vy, vz];
+
+            try {
+                updateCurrentCalculation(`Normalizing vector (${vx}, ${vy}, ${vz})`);
+                showLoadingIndicator(true);
+
+                // Normalize vector
+                let normalized;
+                if (playground.math3DEngine) {
+                    normalized = await playground.math3DEngine.normalizeVector(vector);
+                } else {
+                    const magnitude = Math.sqrt(vx*vx + vy*vy + vz*vz);
+                    if (magnitude === 0) {
+                        normalized = [0, 0, 0];
+                    } else {
+                        normalized = [vx/magnitude, vy/magnitude, vz/magnitude];
+                    }
+                }
+
+                // Update display
+                const resultText = `Normalized: (${normalized[0].toFixed(4)}, ${normalized[1].toFixed(4)}, ${normalized[2].toFixed(4)})`;
+                document.getElementById('vectorResult').textContent = resultText;
+
+                // Log calculation
+                logCalculation('Vector Normalization', `(${vx}, ${vy}, ${vz})`, `(${normalized.map(n => n.toFixed(2)).join(', ')})`);
+
+                // Update metrics
+                playground.metrics.calculations++;
+                updateMetricsDisplay();
+
+                // Send to Nucleus
+                if (playground.nucleusIntegration) {
+                    await playground.nucleusIntegration.trainDirectly({
+                        operation: 'vector-normalization-playground',
+                        input: vector,
+                        result: normalized,
+                        context: '3d-mathematical-playground',
+                        timestamp: Date.now()
+                    }, 'algebraic-operations');
+                    playground.metrics.training++;
+                }
+
+                updateDataStream(`Vector normalized: (${normalized.map(n => n.toFixed(2)).join(', ')})`);
+                updateCurrentCalculation(`Latest: v̂ = (${normalized.map(n => n.toFixed(2)).join(', ')})`);
+
+            } catch (error) {
+                console.error("❌ Vector normalization failed:", error);
+                updateDataStream(`Vector normalization error: ${error.message}`);
+            } finally {
+                showLoadingIndicator(false);
+            }
+        }
+
+        // Visualization control functions
+
+        function setVisualizationMode(mode) {
+            playground.currentVisualizationMode = mode;
+
+            // Update button states
+            document.querySelectorAll('.viz-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update 3D engine if available
+            if (playground.math3DEngine) {
+                playground.math3DEngine.setVisualizationMode(mode);
+            }
+
+            updateDataStream(`Visualization mode: ${mode}`);
+        }
+
+        function toggleAutoCalculate() {
+            playground.autoCalculateEnabled = !playground.autoCalculateEnabled;
+            const toggle = document.getElementById('autoCalcToggle');
+
+            if (playground.autoCalculateEnabled) {
+                toggle.classList.add('active');
+                startAutoCalculate();
+                updateDataStream("Auto-calculate enabled");
+            } else {
+                toggle.classList.remove('active');
+                stopAutoCalculate();
+                updateDataStream("Auto-calculate disabled");
+            }
+        }
+
+        function startAutoCalculate() {
+            const frequency = parseInt(document.getElementById('autoFrequency').value) * 1000;
+
+            playground.autoCalculateInterval = setInterval(() => {
+                // Randomly vary input values slightly for continuous learning
+                const currentX2 = parseFloat(document.getElementById('x2').value);
+                const currentY2 = parseFloat(document.getElementById('y2').value);
+                const currentZ2 = parseFloat(document.getElementById('z2').value);
+
+                // Add small random variations
+                document.getElementById('x2').value = (currentX2 + (Math.random() - 0.5) * 0.5).toFixed(2);
+                document.getElementById('y2').value = (currentY2 + (Math.random() - 0.5) * 0.5).toFixed(2);
+                document.getElementById('z2').value = (currentZ2 + (Math.random() - 0.5) * 0.5).toFixed(2);
+
+                // Perform calculations
+                calculateDistance();
+
+                setTimeout(() => {
+                    calculateVector();
+                }, 100);
+
+            }, frequency);
+        }
+
+        function stopAutoCalculate() {
+            if (playground.autoCalculateInterval) {
+                clearInterval(playground.autoCalculateInterval);
+                playground.autoCalculateInterval = null;
+            }
+        }
+
+        function updateFrequency() {
+            const frequency = document.getElementById('autoFrequency').value;
+            document.getElementById('frequencyDisplay').textContent = frequency + 's';
+
+            if (playground.autoCalculateEnabled) {
+                stopAutoCalculate();
+                startAutoCalculate();
+            }
+        }
+
+        // Quick formula functions
+
+        function loadFormula(type) {
+            switch(type) {
+                case 'distance':
+                    document.getElementById('x1').value = 0;
+                    document.getElementById('y1').value = 0;
+                    document.getElementById('z1').value = 0;
+                    document.getElementById('x2').value = 3;
+                    document.getElementById('y2').value = 4;
+                    document.getElementById('z2').value = 5;
+                    calculateDistance();
+                    break;
+                case 'magnitude':
+                    document.getElementById('vx').value = 2;
+                    document.getElementById('vy').value = 3;
+                    document.getElementById('vz').value = 6;
+                    calculateVector();
+                    break;
+                case 'normalize':
+                    document.getElementById('vx').value = 5;
+                    document.getElementById('vy').value = 0;
+                    document.getElementById('vz').value = 0;
+                    normalizeVector();
+                    break;
+                case 'dot':
+                    updateDataStream("Dot product visualization coming soon!");
+                    break;
+            }
+
+            updateDataStream(`Loaded ${type} formula example`);
+        }
+
+        // UI Update functions
+
+        function updateCurrentCalculation(text) {
+            document.getElementById('currentCalculation').textContent = text;
+        }
+
+        function updateDataStream(text) {
+            const dataStream = document.getElementById('dataStream');
+            const timestamp = new Date().toLocaleTimeString();
+            const newLine = `[${timestamp}] ${text}<br>`;
+
+            dataStream.innerHTML = newLine + dataStream.innerHTML;
+
+            // Keep only last 10 lines
+            const lines = dataStream.innerHTML.split('<br>');
+            if (lines.length > 10) {
+                dataStream.innerHTML = lines.slice(0, 10).join('<br>');
+            }
+        }
+
+        function logCalculation(operation, input, result) {
+            const log = document.getElementById('calculationLog');
+            const timestamp = new Date().toLocaleTimeString();
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <div class="log-timestamp">${timestamp}</div>
+                <div><strong>${operation}</strong>: ${input} → ${result}</div>
+            `;
+
+            log.insertBefore(logEntry, log.firstChild);
+
+            // Keep only last 10 entries
+            while (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+
+            // Store in playground history
+            playground.lastCalculations.unshift({
+                timestamp: Date.now(),
+                operation,
+                input,
+                result
+            });
+
+            if (playground.lastCalculations.length > 50) {
+                playground.lastCalculations = playground.lastCalculations.slice(0, 25);
+            }
+        }
+
+        function showLoadingIndicator(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        function updateMetricsDisplay() {
+            document.getElementById('calcCount').textContent = playground.metrics.calculations;
+            document.getElementById('patternCount').textContent = playground.metrics.patterns;
+            document.getElementById('trainingCount').textContent = playground.metrics.training;
+            document.getElementById('accuracyRate').textContent = playground.metrics.accuracy + '%';
+        }
+
+        // Real-time updates
+
+        function startRealtimeUpdates() {
+            let frameCount = 0;
+            let lastTime = Date.now();
+
+            setInterval(() => {
+                // Update FPS counter
+                frameCount++;
+                const currentTime = Date.now();
+                if (currentTime - lastTime >= 1000) {
+                    document.getElementById('fpsCounter').textContent = frameCount;
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+
+                // Update calculation rate
+                const calcRate = playground.metrics.calculations > 0 ?
+                    Math.round(playground.metrics.calculations / ((currentTime - startTime) / 1000)) : 0;
+                document.getElementById('calcRate').textContent = calcRate;
+
+                // Update object count (mock data)
+                document.getElementById('objectCount').textContent =
+                    playground.math3DEngine ? Math.floor(Math.random() * 5) + 5 : 0;
+
+                // Update sync rate
+                document.getElementById('syncRate').textContent =
+                    playground.nucleusIntegration ? '100%' : '0%';
+
+                // Update nucleus status
+                updateNucleusStatus();
+
+            }, 100);
+        }
+
+        function updateNucleusStatus() {
+            const dot = document.getElementById('nucleusDot');
+            const status = document.getElementById('nucleusStatus');
+
+            if (playground.nucleusIntegration) {
+                dot.style.background = '#00ff00';
+                status.textContent = 'Nucleus AI';
+            } else {
+                dot.style.background = '#ff4444';
+                status.textContent = 'Disconnected';
+            }
+        }
+
+        // Event handlers
+
+        function setupEventHandlers() {
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey) {
+                    switch(e.key) {
+                        case 'Enter':
+                            e.preventDefault();
+                            calculateDistance();
+                            break;
+                        case 'd':
+                            e.preventDefault();
+                            calculateDistance();
+                            break;
+                        case 'v':
+                            e.preventDefault();
+                            calculateVector();
+                            break;
+                        case 'n':
+                            e.preventDefault();
+                            normalizeVector();
+                            break;
+                    }
+                }
+            });
+
+            // Add input change listeners for auto-calculation
+            const inputs = ['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'vx', 'vy', 'vz'];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    if (playground.autoCalculateEnabled) {
+                        // Debounce the auto-calculation
+                        clearTimeout(playground.inputTimeout);
+                        playground.inputTimeout = setTimeout(() => {
+                            if (id.includes('v')) {
+                                calculateVector();
+                            } else {
+                                calculateDistance();
+                            }
+                        }, 300);
+                    }
+                });
+            });
+        }
+
+        // Control functions
+
+        function exportData() {
+            const data = {
+                playground: playground,
+                calculations: playground.lastCalculations,
+                metrics: playground.metrics,
+                timestamp: Date.now()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `nexus-3d-math-data-${Date.now()}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            updateDataStream("Mathematical data exported");
+        }
+
+        function resetPlayground() {
+            playground.metrics = { calculations: 0, patterns: 0, training: 0, accuracy: 100 };
+            playground.lastCalculations = [];
+
+            document.getElementById('calculationLog').innerHTML = `
+                <div class="log-entry">
+                    <div class="log-timestamp">System reset</div>
+                    <div>Playground cleared and ready</div>
+                </div>
+            `;
+
+            document.getElementById('dataStream').innerHTML = 'Playground reset - systems ready<br>';
+
+            updateMetricsDisplay();
+            loadDefaultValues();
+
+            updateDataStream("Playground reset completed");
+        }
+
+        function openNucleusTraining() {
+            // Open nucleus training interface in new window
+            window.open('nucleus-training-interface.html', '_blank', 'width=1400,height=900');
+            updateDataStream("Nucleus training interface opened");
+        }
+
+        // Educational functions
+
+        function startGuidedLearning() {
+            if (window.educationalBridge) {
+                window.educationalBridge.startGuidedLearning();
+                updateDataStream("Guided learning sequence started");
+                updateCurrentTierInfo("Starting Tier 5: 3D Distance Calculation");
+            } else {
+                updateDataStream("Educational bridge not available");
+            }
+        }
+
+        async function skipToTier(tier) {
+            if (window.educationalBridge) {
+                const success = await window.educationalBridge.skipToTier(tier);
+                if (success) {
+                    updateDataStream(`Jumped to ${tier}`);
+                    updateCurrentTierInfo(`Current: ${tier.toUpperCase()}`);
+                } else {
+                    updateDataStream(`Failed to jump to ${tier}`);
+                }
+            }
+        }
+
+        function showLearningProgress() {
+            if (window.educationalBridge) {
+                const progress = window.educationalBridge.getLearningProgress();
+                const metrics = window.educationalBridge.getEducationalMetrics();
+
+                updateDataStream(`Learning Progress: ${progress.masteryLevel.toFixed(1)}% mastery`);
+                updateDataStream(`Lessons: ${metrics.lessonsCompleted}, Concepts: ${metrics.conceptsLearned}`);
+                updateCurrentTierInfo(`Mastery: ${progress.masteryLevel.toFixed(1)}%`);
+            }
+        }
+
+        function updateCurrentTierInfo(text) {
+            const element = document.getElementById('currentTierInfo');
+            if (element) {
+                element.textContent = text;
+            }
+        }
+
+        // Monitor educational bridge connection
+        function monitorEducationalBridge() {
+            if (window.educationalBridge) {
+                const progress = window.educationalBridge.getLearningProgress();
+                if (progress.currentTier) {
+                    updateCurrentTierInfo(`Current: ${progress.currentTier.toUpperCase()}`);
+                }
+            }
+        }
+
+        // Add educational monitoring to real-time updates
+        const originalStartRealtimeUpdates = startRealtimeUpdates;
+        function startRealtimeUpdatesWithEducation() {
+            originalStartRealtimeUpdates();
+
+            // Add educational monitoring
+            setInterval(monitorEducationalBridge, 5000);
+        }
+
+        // Override the original function
+        startRealtimeUpdates = startRealtimeUpdatesWithEducation;
+
+        // Start time tracking
+        const startTime = Date.now();
+    </script>
+</body>
+</html>

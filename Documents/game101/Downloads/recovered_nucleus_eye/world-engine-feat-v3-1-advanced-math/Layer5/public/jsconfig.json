@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json.schemastore.org/jsconfig",
+    "compilerOptions": {
+        "target": "ES2020",
+        "lib": [
+            "ES2020",
+            "DOM"
+        ],
+        "allowJs": true,
+        "checkJs": false,
+        "noEmit": true,
+        "strict": false,
+        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "declaration": false,
+        "declarationMap": false,
+        "sourceMap": false,
+        "removeComments": false,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "noImplicitReturns": false,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false
+    },
+    "include": [
+        "*.js"
+, "../demo/demos/world-engine-math-demo.js", "tests/llex-test.js", "../src/automations/upflow-automation.js", "_archive/world-engine-v3-mathematical.js", "_archive/type-lattice.js", "_archive/word_engine_init.js", "_archive/world_engine_init.js", "_archive/studio-bridge.js", "_archive/recorder-controller.js", "_archive/engine-controller.js", "_archive/ai-bot-controller.js", "_archive/chat-controller.js"    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

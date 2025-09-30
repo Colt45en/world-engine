@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏰 Interactive LEGO Web Development Castle</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(to bottom, skyblue, lightgreen);
+            min-height: 100vh;
+        }
+
+        .castle {
+            max-width: 800px;
+            margin: 0 auto;
+            background: lightgray;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: all 0.5s ease;
+        }
+
+        .tower {
+            background: brown;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid darkbrown;
+        }
+
+        .tower:hover {
+            transform: scale(1.05);
+            background: darkgoldenrod;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+
+        button {
+            background: purple;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+
+        button:hover {
+            background: darkviolet;
+            transform: scale(1.1);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.4);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #message-area {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 60px;
+        }
+
+        .flying-element {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 3em;
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .sparkle {
+            position: absolute;
+            color: gold;
+            font-size: 0.8em;
+            animation: sparkle 1s ease-out forwards;
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 1; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5) translateY(-20px); }
+        }
+
+        .explanation-box {
+            background: lightyellow;
+            border-left: 4px solid orange;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .code-demo {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="castle">
+        <h1>🏰 Welcome to LEGO Web Development Castle!</h1>
+
+        <div class="explanation-box">
+            <strong>🧱 How This Works:</strong> This webpage is built like LEGO! HTML creates the structure, CSS makes it pretty, and JavaScript adds the magic interactions. Click around to see each piece in action!
+        </div>
+
+        <div class="tower" onclick="exploreRoom('html')">
+            <h2>🦴 HTML Structure Room</h2>
+            <p>Click to learn about the skeleton of web pages!</p>
+        </div>
+
+        <div class="tower" onclick="exploreRoom('css')">
+            <h2>🎨 CSS Styling Tower</h2>
+            <p>Discover how we paint and decorate!</p>
+        </div>
+
+        <div class="tower" onclick="exploreRoom('javascript')">
+            <h2>⚡ JavaScript Magic Chamber</h2>
+            <p>See how we bring things to life!</p>
+        </div>
+
+        <div class="tower" onclick="exploreRoom('tools')">
+            <h2>🔧 Developer Tools Workshop</h2>
+            <p>Learn about the builder's toolbox!</p>
+        </div>
+
+        <div class="controls">
+            <h3>🎮 Magic Spells (JavaScript in Action)</h3>
+            <button onclick="castSpell('light')">☀️ Light Spell</button>
+            <button onclick="castSpell('dark')">🌙 Dark Spell</button>
+            <button onclick="castSpell('rainbow')">🌈 Rainbow Spell</button>
+            <button onclick="summonDragon()">🐉 Summon Dragon</button>
+            <button onclick="addSparkles()">✨ Add Sparkles</button>
+            <button onclick="resetCastle()">🔄 Reset Castle</button>
+        </div>
+
+        <div id="message-area">
+            <p>🎯 <strong>Welcome!</strong> Click on the towers above to learn about different web technologies, then try the magic spells to see JavaScript in action!</p>
+        </div>
+
+        <div class="code-demo" id="code-display" style="display: none;">
+            <strong>Code Example:</strong>
+            <pre id="code-content"></pre>
+        </div>
+    </div>
+
+    <script>
+        function exploreRoom(roomType) {
+            const messageArea = document.getElementById('message-area');
+            const codeDisplay = document.getElementById('code-display');
+            const codeContent = document.getElementById('code-content');
+
+            codeDisplay.style.display = 'block';
+
+            switch(roomType) {
+                case 'html':
+                    messageArea.innerHTML = `
+                        <h3>🦴 HTML - The Skeleton</h3>
+                        <p><strong>What it does:</strong> HTML creates the basic structure of web pages, like the foundation and walls of a LEGO house.</p>
+                        <p><strong>Real example:</strong> The towers you see are made with HTML &lt;div&gt; elements!</p>
+                    `;
+                    codeContent.textContent = `<div class="tower">
+    <h2>🎨 CSS Styling Tower</h2>
+    <p>Discover how we paint and decorate!</p>
+</div>`;
+                    break;
+
+                case 'css':
+                    messageArea.innerHTML = `
+                        <h3>🎨 CSS - The Paint and Decorations</h3>
+                        <p><strong>What it does:</strong> CSS makes everything look beautiful with colors, animations, and layouts.</p>
+                        <p><strong>Real example:</strong> The hover effects and gradients you see are all CSS magic!</p>
+                    `;
+                    codeContent.textContent = `.tower:hover {
+    transform: scale(1.05);
+    background: darkgoldenrod;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+}`;
+                    break;
+
+                case 'javascript':
+                    messageArea.innerHTML = `
+                        <h3>⚡ JavaScript - The Electricity</h3>
+                        <p><strong>What it does:</strong> JavaScript makes web pages interactive and alive!</p>
+                        <p><strong>Real example:</strong> This very message appearing is JavaScript in action!</p>
+                    `;
+                    codeContent.textContent = `function exploreRoom(roomType) {
+    const messageArea = document.getElementById('message-area');
+    messageArea.innerHTML = 'New content here!';
+}`;
+                    break;
+
+                case 'tools':
+                    messageArea.innerHTML = `
+                        <h3>🔧 Developer Tools</h3>
+                        <p><strong>VS Code:</strong> Your workbench for building everything</p>
+                        <p><strong>NPM:</strong> The LEGO shop where you get pre-built pieces</p>
+                        <p><strong>Chrome DevTools:</strong> Inspector to debug and fix problems</p>
+                        <p><strong>CodePen:</strong> Playground for experimenting</p>
+                    `;
+                    codeContent.textContent = `// Installing a package from NPM (the LEGO shop)
+npm install three.js
+
+// Using it in your project
+import * as THREE from 'three';`;
+                    break;
+            }
+
+            // Add sparkle effect when exploring
+            addSparkles();
+        }
+
+        function castSpell(spellName) {
+            const castle = document.querySelector('.castle');
+            const messageArea = document.getElementById('message-area');
+
+            switch(spellName) {
+                case 'light':
+                    castle.style.background = 'linear-gradient(45deg, lightyellow, lightblue)';
+                    castle.style.color = 'black';
+                    messageArea.innerHTML = '<p>✨ <strong>Light Spell Cast!</strong> CSS transforms your castle with magical gradients and colors! This shows how CSS can dynamically change the appearance of elements.</p>';
+                    break;
+                case 'dark':
+                    castle.style.background = 'linear-gradient(45deg, darkblue, darkpurple)';
+                    castle.style.color = 'lightgray';
+                    messageArea.innerHTML = '<p>🌙 <strong>Dark Spell Cast!</strong> JavaScript changes the styling in real-time! This demonstrates DOM manipulation and dynamic CSS updates.</p>';
+                    break;
+                case 'rainbow':
+                    castle.style.background = 'linear-gradient(45deg, red, orange, yellow, green, blue, purple)';
+                    castle.style.color = 'white';
+                    messageArea.innerHTML = '<p>🌈 <strong>Rainbow Spell Cast!</strong> HTML+CSS+JavaScript working together creates this magical effect! This is the power of full-stack frontend development.</p>';
+                    break;
+            }
+        }
+
+        function summonDragon() {
+            const dragon = document.createElement('div');
+            dragon.innerHTML = '🐉';
+            dragon.className = 'flying-element';
+            dragon.style.left = '-100px';
+            dragon.style.top = '50%';
+
+            document.body.appendChild(dragon);
+
+            let position = -100;
+            const flyInterval = setInterval(() => {
+                position += 8;
+                dragon.style.left = position + 'px';
+                dragon.style.top = Math.sin(position / 30) * 100 + window.innerHeight/2 + 'px';
+
+                if (position > window.innerWidth + 100) {
+                    clearInterval(flyInterval);
+                    dragon.remove();
+                }
+            }, 50);
+
+            document.getElementById('message-area').innerHTML = '<p>🐉 <strong>Dragon Summoned!</strong> This demonstrates createElement(), setInterval(), and DOM manipulation - core JavaScript concepts for creating dynamic content!</p>';
+        }
+
+        function addSparkles() {
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.innerHTML = '✨';
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = Math.random() * window.innerWidth + 'px';
+                    sparkle.style.top = Math.random() * window.innerHeight + 'px';
+
+                    document.body.appendChild(sparkle);
+
+                    setTimeout(() => sparkle.remove(), 1000);
+                }, i * 200);
+            }
+        }
+
+        function resetCastle() {
+            const castle = document.querySelector('.castle');
+            castle.style.background = 'lightgray';
+            castle.style.color = 'black';
+
+            document.getElementById('message-area').innerHTML = '<p>🔄 <strong>Castle Reset!</strong> Back to the original state. This shows how JavaScript can restore initial conditions.</p>';
+            document.getElementById('code-display').style.display = 'none';
+        }
+
+        // Welcome animation
+        setTimeout(() => {
+            document.getElementById('message-area').innerHTML += '<div style="margin-top: 10px; font-style: italic;">💡 <strong>Pro Tip:</strong> Right-click and "Inspect Element" to see the HTML, CSS, and JavaScript code that makes this work!</div>';
+        }, 2000);
+
+        // Add some initial sparkles
+        setTimeout(() => {
+            addSparkles();
+        }, 1000);
+    </script>
+</body>
+</html>

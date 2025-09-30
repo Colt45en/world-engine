@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nexus 3D Sculptor — AI-Enhanced Silhouette Meshing</title>
+<style>
+  :root{color-scheme:dark;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter}
+  html,body{height:100%;margin:0;background:#0b0e13;color:#e6f0ff}
+  #wrap{display:grid;grid-template-rows:auto 1fr;min-height:100%}
+  header{padding:10px 16px;border-bottom:1px solid #1b2030;background:#0e1320;position:sticky;top:0;z-index:20}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .row-fw-gap8 { flex-wrap: wrap; gap: 8px; }
+  .row-fw-gap8-mt5 { flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+  .row-fw-gap8-mt8 { flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .row-jc-sb { justify-content: space-between; }
+  .cta{cursor:pointer;padding:8px 12px;border-radius:10px;border:1px solid #667eea;background:#2563eb;color:#fff;font-weight:600;transition:all 0.3s ease}
+  .cta:hover{background:#1d4ed8;transform:translateY(-1px)}
+  .cta.nexus{background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-color:#667eea}
+  .ghost{opacity:.55;cursor:not-allowed}
+  label{font-size:12px;opacity:.9;margin-right:5px}
+  input[type="range"]{width:120px}
+  .sml{font-size:12px;opacity:.78}
+  #main{display:grid;grid-template-columns:var(--panel-w,380px) 1fr;min-height:0}
+  #panel{padding:14px;border-right:1px solid #1b2030;overflow:auto;background:#0b0e13}
+  #panel.hidden{display:none}
+  #drop{border:2px dashed #667eea66;border-radius:12px;padding:20px;text-align:center;margin-top:10px;transition:all 0.3s ease}
+  #drop:hover{border-color:#667eea;background:rgba(102, 126, 234, 0.05)}
+  #masks{display:none;gap:12px;margin-top:10px;flex-wrap:wrap}
+  #masks canvas{background:#0b0e13;border:1px solid #273047;border-radius:8px;max-width:360px;height:auto;image-rendering:pixelated}
+  #list{max-height:30vh;overflow:auto;border:1px solid #273047;border-radius:8px;padding:8px;margin-top:10px;background:#0b0e13}
+  #viewport{position:relative;min-height:calc(100vh - 64px);background:linear-gradient(135deg, #0b0e13 0%, #1b2030 100%)}
+  #three{display:block;width:100%;height:100%}
+  #togglePanel{position:fixed;right:12px;bottom:12px;z-index:25;border-radius:999px;padding:10px 12px;background:#0e1320;border:1px solid #667eea}
+
+  /* Custom classes for moved inline styles */
+  .mask-label {
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .ai-panel-title {
+    margin: 0 0 8px 0;
+    color: #667eea;
+  }
+  .ai-ask-btn {
+    width: 100%;
+    margin-top: 5px;
+  }
+  /* Use [hidden] attribute for hiding aiResponse */
+  #aiResponse[hidden] {
+    display: none;
+  }
+
+  /* Nexus Status Panel */
+  .nexus-status{
+    background:rgba(102, 126, 234, 0.1);
+    border:1px solid rgba(102, 126, 234, 0.3);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:15px;
+  }
+  .nexus-indicator{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#4CAF50;
+    margin-right:8px;
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{opacity:1;transform:scale(1)}
+    50%{opacity:0.7;transform:scale(1.1)}
+    100%{opacity:1;transform:scale(1)}
+  }
+
+  /* AI Assistant Panel */
+  .ai-panel{
+    background:rgba(102, 126, 234, 0.05);
+    border:1px solid rgba(102, 126, 234, 0.2);
+    border-radius:10px;
+    padding:12px;
+    margin-top:15px;
+  }
+  .ai-input{
+    width:100%;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(102, 126, 234, 0.3);
+    border-radius:6px;
+    color:#e6f0ff;
+    padding:8px;
+    margin:8px 0;
+  }
+  .ai-response{
+    background:rgba(0,0,0,0.3);
+    border-radius:6px;
+    padding:10px;
+    margin-top:8px;
+    max-height:120px;
+    overflow-y:auto;
+    font-size:11px;
+  }
+
+  /* Parameter Groups */
+  .param-group{
+    background:rgba(255,255,255,0.02);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:8px;
+    padding:10px;
+    margin:10px 0;
+  }
+  .param-group h4{
+    margin:0 0 8px 0;
+    color:#667eea;
+    font-size:13px;
+  }
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;place-items:center;z-index:30}
+  .modal > .card{background:#0e1320;border:1px solid #1b2030;border-radius:12px;padding:20px;max-width:900px;width:92vw;max-height:86vh;overflow:auto}
+  .modal h3{margin:6px 0 10px;font-size:16px;letter-spacing:.06em;color:#667eea}
+  .divider{height:1px;background:#1b2030;margin:15px 0}
+
+  /* Bulk Modal Drop and List */
+  #bulkDrop {
+    border:2px dashed #667eea66;
+    border-radius:12px;
+    padding:20px;
+    text-align:center;
+    margin-top:10px;
+  }
+  #bulkList {
+    max-height:40vh;
+    overflow:auto;
+    border:1px solid #273047;
+    border-radius:8px;
+    padding:12px;
+    margin-top:10px;
+    background:#0b0e13;
+  }
+  .dual-block-hidden {
+    display: none;
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/examples/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div class="row">
+      <h2 style="margin:0;color:#667eea">🎯 Nexus 3D Sculptor</h2>
+      <button id="build" class="cta">Build Mesh</button>
+      <button id="export" class="cta" disabled>Export GLB</button>
+      <button id="aiOptimize" class="cta nexus">AI Optimize</button>
+      <button id="enterGL" class="cta">Enter WebGL</button>
+      <button id="openBulk" class="cta">Batch Process</button>
+      <span id="status" class="sml" style="margin-left:10px;"></span>
+    </div>
+  </header>
+
+        <div><div class="sml mask-label">Front</div><canvas id="prevFront"></canvas></div>
+        <div><div class="sml mask-label">Side</div><canvas id="prevSide"></canvas></div>
+      </div>
+
+      <!-- AI Assistant -->
+      <div class="ai-panel">
+        <h4 class="ai-panel-title">🤖 AI Assistant</h4>
+        <input id="aiQuery" class="ai-input" placeholder="Ask about mesh parameters, optimization tips..." maxlength="200">
+      <!-- Threshold Parameters -->
+      <div class="param-group">
+        <h4>🎚️ Threshold Control</h4>
+        <div class="row row-fw-gap8">
+          <label for="autoThr">Auto-threshold</label>
+          <input id="autoThr" type="checkbox" checked title="Enable automatic thresholding">
+          <label for="dualThr">Dual threshold</label>
+          <input id="dualThr" type="checkbox" title="Enable dual threshold for front/side">
+        </div>
+        <div id="thrBlock" class="row row-fw-gap8-mt8">
+          <label for="thr">Threshold</label>
+        <div id="dualBlock" class="mt8 dual-block-hidden">
+          <span id="thrV" class="sml">190</span>
+        </div>
+        <div id="dualBlock" class="mt8 dual-block-hidden">
+          <div class="row row-fw-gap8">
+            <label for="thrF">Front</label>
+            <input id="thrF" type="range" min="0" max="255" value="90" title="Front threshold" placeholder="Front threshold">
+            <span id="thrFV" class="sml">90</span>
+          </div>
+          <div class="row row-fw-gap8-mt5">
+            <label for="thrS">Side</label>
+            <input id="thrS" type="range" min="0" max="255" value="103" title="Side threshold" placeholder="Side threshold">
+            <span id="thrSV" class="sml">103</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mesh Parameters -->
+      <div class="param-group">
+        <h4>⚙️ Mesh Quality</h4>
+        <div class="row row-fw-gap8">
+          <label for="kern">Clean pixels</label>
+          <input id="kern" type="range" min="0" max="6" value="2" title="Clean pixels (kernel size)" placeholder="Clean pixels">
+          <span id="kernV" class="sml">2</span>
+        </div>
+        <div class="row row-fw-gap8-mt5">
+          <label for="res">Resolution</label>
+          <input id="res" type="range" min="48" max="192" value="128" title="Resolution" placeholder="Resolution">
+          <span id="resV" class="sml">128</span>
+        </div>
+        <div class="row row-fw-gap8-mt5">
+          <label for="iso">Iso level</label>
+          <input id="iso" type="range" min="0.1" max="0.9" step="0.01" value="0.50" title="Iso level" placeholder="Iso level">
+          <span id="isoV" class="sml">0.50</span>
+        </div>
+      </div>
+
+      <!-- Shape Parameters -->
+      <div class="param-group">
+        <h4>📐 Shape Control</h4>
+        <div class="row row-fw-gap8">
+          <label for="hgt">Height</label>
+          <input id="hgt" type="range" min="0.9" max="2.4" step="0.01" value="1.70" title="Height" placeholder="Height">
+          <span id="hgtV" class="sml">1.70</span>
+        </div>
+        <div class="row row-fw-gap8-mt5">
+          <label for="subs">Smoothing</label>
+          <input id="subs" type="range" min="0" max="2" value="1" title="Smoothing" placeholder="Smoothing">
+          <span id="subsV" class="sml">1</span>
+        </div>
+        <div class="row row-fw-gap8-mt5">
+          <label for="flipSide">Flip Side X</label>
+          <input id="flipSide" type="checkbox" title="Flip side mask horizontally">
+          <label for="showMasks">Show masks</label>
+          <input id="showMasks" type="checkbox" title="Show silhouette masks">
+        </div>
+      </div>
+    </div>
+
+    <div id="viewport"></div>
+  </div>
+</div>
+<button id="togglePanel" type="button" title="Toggle tool sidebar" class="cta">☰ Tools</button>
+
+<!-- Batch Processing Modal -->
+<div id="bulkModal" class="modal">
+  <div class="card">
+    <div class="row row-jc-sb">
+      <h3>🔄 Batch Processing</h3>
+      <button id="bulkClose" type="button" class="cta">Close</button>
+    </div>
+    <div class="row">
+      <button id="batchGLB" type="button" class="cta">Batch GLB Export</button>
+      <button id="masksExport" type="button" class="cta">Export Masks</button>
+      <button id="bulkRunBoth" type="button" class="cta">Process All</button>
+      <button id="aiOptimizeBatch" type="button" class="cta nexus">AI Optimize Batch</button>
+      <span id="bulkStatus" class="sml"></span>
+    </div>
+    <div class="divider"></div>
+    <div class="sml">Drop a .zip with silhouette pairs for batch processing.</div>
+    <div id="bulkDrop" class="sml">Drop .zip here</div>
+    <div id="bulkList" class="sml"></div>
+  </div>
+</div>
+<!-- Removed duplicate togglePanel button and bulkModal modal -->
+
+<!-- Include Nexus Connector -->
+<script src="nexus-widget-connector.js" data-widget-id="3d-sculptor" data-auto-connect="true" data-show-ui="false"></script>
+
+<script type="module">
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/controls/OrbitControls.js'
+import { MarchingCubes } from 'three/examples/objects/MarchingCubes.js'
+import { GLTFExporter } from 'three/examples/exporters/GLTFExporter.js'
+import { SubdivisionModifier } from 'three/examples/modifiers/SubdivisionModifier.js'
+
+// Dynamic JSZip loader
+const loadJSZip = async () => (await import('https://cdn.skypack.dev/jszip@3.10.1')).default
+
+const $ = (id) => document.getElementById(id)
+const status = $('status')
+
+// Enhanced state with Nexus integration
+const state = {
+  pairs: [],
+  mesh: null,
+  masks: {front: null, side: null},
+  nexusConnected: false,
+  aiOptimizing: false
+}
+
+/* ---------- Nexus AI Integration ---------- */
+let nexusConnector = null;
+
+const initNexusIntegration = () => {
+  if (window.nexusConnector) {
+    nexusConnector = window.nexusConnector;
+    setupNexusHandlers();
+  } else {
+    setTimeout(initNexusIntegration, 1000);
+  }
+};
+
+const setupNexusHandlers = () => {
+  const statusEl = $('nexus-status');
+
+  nexusConnector.on('connected', () => {
+    state.nexusConnected = true;
+    statusEl.textContent = 'Connected to Nexus AI Core';
+    addLog('🔗 Nexus Bridge connected');
+  });
+
+  nexusConnector.on('bridgeReady', (bridge) => {
+    statusEl.textContent = 'Nexus AI ready for 3D optimization';
+    addLog('🤖 AI capabilities available');
+  });
+
+  nexusConnector.on('queryResponse', (response) => {
+    const responseDiv = $('aiResponse');
+    responseDiv.innerHTML = `<strong>Nexus AI:</strong> ${response.answer || response.message || 'No response'}`;
+    responseDiv.style.display = 'block';
+    addLog('🧠 AI response received');
+  });
+
+  nexusConnector.on('statusResponse', (status) => {
+    addLog(`📊 System: ${JSON.stringify(status)}`);
+  });
+};
+
+const addLog = (message) => {
+  const timestamp = new Date().toLocaleTimeString();
+  console.log(`[${timestamp}] ${message}`);
+};
+
+// AI-powered parameter optimization
+const aiOptimizeParameters = async () => {
+  if (!nexusConnector || !state.nexusConnected) {
+    status.textContent = 'Nexus AI not connected';
+    return;
+  }
+
+  state.aiOptimizing = true;
+  $('aiOptimize').textContent = 'Optimizing...';
+  $('aiOptimize').disabled = true;
+
+  const currentParams = readPresetFromUI();
+  const query = `Optimize 3D mesh parameters for silhouette-based marching cubes generation. Current settings: resolution=${currentParams.res}, iso=${currentParams.iso}, height=${currentParams.height}, smoothing=${currentParams.subs}, threshold=${currentParams.thr}. Suggest better values for quality and performance.`;
+
+  nexusConnector.query(query, (response) => {
+    // Parse AI response and apply suggestions
+    try {
+      const suggestion = response.answer || response.message;
+      const responseDiv = $('aiResponse');
+      responseDiv.innerHTML = `<strong>AI Optimization:</strong> ${suggestion}`;
+      responseDiv.style.display = 'block';
+
+      // Try to extract numeric suggestions and apply them
+      applyAISuggestions(suggestion);
+    } catch (error) {
+      addLog('❌ AI optimization failed');
+    }
+
+    state.aiOptimizing = false;
+    $('aiOptimize').textContent = 'AI Optimize';
+    $('aiOptimize').disabled = false;
+  });
+};
+
+const applyAISuggestions = (suggestion) => {
+  // Simple pattern matching for parameter suggestions
+  const resMatch = suggestion.match(/resolution[:\s]+(\d+)/i);
+  const isoMatch = suggestion.match(/iso[:\s]+([\d.]+)/i);
+  const heightMatch = suggestion.match(/height[:\s]+([\d.]+)/i);
+
+  if (resMatch) {
+    const newRes = Math.max(48, Math.min(192, parseInt(resMatch[1])));
+    $('res').value = newRes;
+    addLog(`🎯 AI suggested resolution: ${newRes}`);
+  }
+
+  if (isoMatch) {
+    const newIso = Math.max(0.1, Math.min(0.9, parseFloat(isoMatch[1])));
+    $('iso').value = newIso;
+    addLog(`🎯 AI suggested iso level: ${newIso}`);
+  }
+
+  if (heightMatch) {
+    const newHeight = Math.max(0.9, Math.min(2.4, parseFloat(heightMatch[1])));
+    $('hgt').value = newHeight;
+    addLog(`🎯 AI suggested height: ${newHeight}`);
+  }
+
+  mirrorValueLabels();
+  status.textContent = 'AI optimization applied';
+};
+
+/* ---------- Enhanced UI helpers ---------- */
+const setText = (id, v) => ($(''+id).textContent = v)
+const mirrorValueLabels = () => {
+  setText('thrV', $('thr').value);
+  setText('thrFV', $('thrF').value);
+  setText('thrSV', $('thrS').value);
+  setText('kernV', $('kern').value);
+  setText('resV', $('res').value);
+  setText('isoV', (+$('iso').value).toFixed(2));
+  setText('hgtV', (+$('hgt').value).toFixed(2));
+  setText('subsV', $('subs').value);
+};
+
+['thr','thrF','thrS','kern','res','iso','hgt','subs'].forEach(id => {
+  $(''+id).addEventListener('input', mirrorValueLabels);
+});
+
+const updateThrDisabled = () => {
+  const dis = $('autoThr').checked;
+  ['thr','thrF','thrS'].forEach(id => $(''+id).disabled = dis);
+  ['thrV','thrFV','thrSV'].forEach(id => $(''+id).style.opacity = dis ? .5 : .9);
+};
+
+const updateThrVisibility = () => {
+  const dual = $('dualThr').checked;
+  $('thrBlock').style.display = dual ? 'none' : 'block';
+  $('dualBlock').style.display = dual ? 'block' : 'none';
+};
+
+$('autoThr').addEventListener('change', updateThrDisabled);
+$('dualThr').addEventListener('change', updateThrVisibility);
+
+/* ---------- File pairing logic ---------- */
+const FRONT_KEYS = [/front/i, /frontal/i, /facefront/i];
+const SIDE_KEYS = [/side/i, /profile/i, /lateral/i, /lat/i, /left/i, /right/i];
+const isFront = name => FRONT_KEYS.some(rx => rx.test(name));
+const isSide = name => SIDE_KEYS.some(rx => rx.test(name));
+const byStem = n => n.toLowerCase()
+  .replace(/\.[a-z0-9]+$/i, '')
+  .replace(/[-_.](front|frontal|facefront|side|profile|lateral|lat|left|right)/, '')
+  .replace(/\s+/g, '')
+  .replace(/[-_.]+/g, '');
+
+const pairFiles = (files) => {
+  const fronts = [], sides = [];
+  for (const f of files) {
+    const lower = f.name.toLowerCase();
+    if (isFront(lower)) fronts.push(f);
+    else if (isSide(lower)) sides.push(f);
+  }
+
+  const used = new Set(), pairs = [];
+  for (const fr of fronts) {
+    const stem = byStem(fr.name);
+    let best = null, score = -1;
+    for (const sd of sides) {
+      if (used.has(sd.name)) continue;
+      const sstem = byStem(sd.name);
+      let sc = (sstem === stem) ? 100 : -Math.abs(sd.name.length - fr.name.length);
+      if (sc > score) { score = sc; best = sd; }
+    }
+    if (best) {
+      used.add(best.name);
+      pairs.push({base: stem || fr.name, front: fr, side: best});
+    }
+  }
+  return pairs;
+};
+
+/* ---------- Core meshing functions (same as original) ---------- */
+const canvasFromBlob = (blob) => new Promise((res, rej) => {
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'), ctx = c.getContext('2d');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    res(c);
+  };
+  img.onerror = rej;
+  img.src = url;
+});
+
+const otsu = (imgData) => {
+  const d = imgData.data, h = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4) {
+    const L = (0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2]) | 0;
+    h[L]++;
+  }
+
+  let sum = 0, sumB = 0, q1 = 0, varMax = -1, thr = 127, total = imgData.width * imgData.height;
+  for (let i = 0; i < 256; i++) sum += i * h[i];
+
+  for (let t = 0; t < 256; t++) {
+    q1 += h[t];
+    if (!q1) continue;
+    const q2 = total - q1;
+    if (!q2) break;
+    sumB += t * h[t];
+    const m1 = sumB / q1, m2 = (sum - sumB) / q2, vb = q1 * q2 * (m1 - m2) * (m1 - m2);
+    if (vb > varMax) { varMax = vb; thr = t; }
+  }
+  return thr;
+};
+
+const morph = (img, k, expand) => {
+  const {width: w, height: h, data: d} = img, out = new Uint8ClampedArray(d);
+  const R = k | 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let v = expand ? 0 : 255;
+      for (let j = -R; j <= R; j++) {
+        const yy = y + j;
+        if (yy < 0 || yy >= h) continue;
+        for (let i = -R; i <= R; i++) {
+          const xx = x + i;
+          if (xx < 0 || xx >= w) continue;
+          const a = d[(yy * w + xx) * 4 + 3];
+          v = expand ? Math.max(v, a) : Math.min(v, a);
+        }
+      }
+      const idx = (y * w + x) * 4;
+      out[idx] = out[idx+1] = out[idx+2] = out[idx+3] = v;
+    }
+  }
+  img.data.set(out);
+};
+
+const bbox = (img) => {
+  const {data: d, width: w, height: h} = img;
+  let minx = w, miny = h, maxx = -1, maxy = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = d[(y * w + x) * 4 + 3];
+      if (a) {
+        if (x < minx) minx = x;
+        if (y < miny) miny = y;
+        if (x > maxx) maxx = x;
+        if (y > maxy) maxy = y;
+      }
+    }
+  }
+  if (maxx < 0) return {x: 0, y: 0, w: 1, h: 1};
+  return {x: minx, y: miny, w: maxx - minx + 1, h: maxy - miny + 1};
+};
+
+const cleanMask = (srcCanvas, {auto = true, threshold = 190, kernel = 2, maxSide = 640, flipX = false}) => {
+  const w = srcCanvas.width, h = srcCanvas.height, sctx = srcCanvas.getContext('2d');
+  const img = sctx.getImageData(0, 0, w, h);
+  const thr = auto ? otsu(img) : threshold | 0;
+  const d = img.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    const L = 0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2];
+    const on = (L > thr) ? 255 : 0;
+    d[i] = d[i+1] = d[i+2] = on;
+    d[i+3] = on;
+  }
+
+  if (kernel > 0) {
+    morph(img, kernel, true);
+    morph(img, kernel, false);
+  }
+
+  const r = bbox(img), margin = Math.round(Math.max(r.w, r.h) * 0.04);
+  r.x = Math.max(0, r.x - margin);
+  r.y = Math.max(0, r.y - margin);
+  r.w = Math.min(w - r.x, r.w + margin * 2);
+  r.h = Math.min(h - r.y, r.h + margin * 2);
+
+  const tmp = document.createElement('canvas'), tctx = tmp.getContext('2d');
+  tmp.width = w;
+  tmp.height = h;
+  tctx.putImageData(img, 0, 0);
+
+  const out = document.createElement('canvas'), ctx = out.getContext('2d');
+  const scale = maxSide / Math.max(r.w, r.h);
+  out.width = Math.round(r.w * scale);
+  out.height = Math.round(r.h * scale);
+
+  if (flipX) {
+    ctx.translate(out.width, 0);
+    ctx.scale(-1, 1);
+  }
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(tmp, r.x, r.y, r.w, r.h, 0, 0, out.width, out.height);
+  return out;
+};
+
+/* ---------- Three.js scene initialization ---------- */
+let renderer, scene, camera, controls;
+
+const initScene = () => {
+  if (renderer) return;
+
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  const cv = renderer.domElement;
+  cv.id = 'three';
+  $('viewport').appendChild(cv);
+
+  const vw = $('viewport').clientWidth, vh = $('viewport').clientHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(vw, vh);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color('#0b0e13');
+
+  camera = new THREE.PerspectiveCamera(60, vw / vh, 0.1, 200);
+  camera.position.set(0, 1.1, 2.4);
+
+  // Enhanced lighting for better 3D visualization
+  scene.add(new THREE.HemisphereLight(0x667eea, 0x223344, 0.8));
+
+  const dir1 = new THREE.DirectionalLight(0xffffff, 1.2);
+  dir1.position.set(5, 8, 5);
+  dir1.castShadow = true;
+  dir1.shadow.mapSize.set(2048, 2048);
+  scene.add(dir1);
+
+  const dir2 = new THREE.DirectionalLight(0x667eea, 0.6);
+  dir2.position.set(-3, 4, -2);
+  scene.add(dir2);
+
+  // Add a ground plane
+  const groundGeometry = new THREE.PlaneGeometry(10, 10);
+  const groundMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1a2e,
+    roughness: 0.8,
+    metalness: 0.1
+  });
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0.9, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.update();
+
+  window.addEventListener('resize', () => {
+    const W = $('viewport').clientWidth, H = $('viewport').clientHeight;
+    renderer.setSize(W, H);
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+  });
+
+  (function loop() {
+    if (state.mesh) {
+      state.mesh.rotation.y += 0.003;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  })();
+};
+
+/* ---------- Field generation and meshing ---------- */
+const buildField = (frontMask, sideMask, N) => {
+  const fctx = frontMask.getContext('2d'), sctx = sideMask.getContext('2d');
+  const fw = frontMask.width, fh = frontMask.height, sw = sideMask.width, sh = sideMask.height;
+  const f = fctx.getImageData(0, 0, fw, fh).data, s = sctx.getImageData(0, 0, sw, sh).data;
+  const field = new Float32Array(N * N * N);
+
+  let i = 0;
+  for (let z = 0; z < N; z++) {
+    const uz = z / (N - 1);
+    for (let y = 0; y < N; y++) {
+      const v = 1 - y / (N - 1);
+      for (let x = 0; x < N; x++, i++) {
+        const u = x / (N - 1);
+        const fx = Math.min(fw - 1, (u * fw) | 0), fy = Math.min(fh - 1, (v * fh) | 0);
+        const sx = Math.min(sw - 1, (uz * sw) | 0), sy = Math.min(sh - 1, (v * sh) | 0);
+        const af = f[(fy * fw + fx) * 4 + 3] / 255, as = s[(sy * sw + sx) * 4 + 3] / 255;
+        field[i] = Math.min(af, as);
+      }
+    }
+  }
+  return field;
+};
+
+const meshFromField = (field, N, iso, H, subs) => {
+  const mc = new MarchingCubes(N, new THREE.MeshBasicMaterial(), false, false);
+  mc.reset();
+  mc.isolation = iso;
+
+  if (mc.field.length !== field.length) mc.init(N);
+  mc.field.set(field);
+
+  let geom;
+  if (typeof mc.generateGeometry === 'function') {
+    geom = mc.generateGeometry();
+  } else {
+    mc.render();
+    geom = mc.geometry.clone();
+  }
+
+  geom.scale(0.5 * H, 0.5 * H, 0.5 * H);
+  geom.translate(0, 0.5 * H, 0);
+
+  if (subs > 0) {
+    const mod = new SubdivisionModifier(subs);
+    geom = mod.modify(geom);
+  }
+
+  geom.computeVertexNormals();
+
+  // Enhanced material with Nexus styling
+  const mat = new THREE.MeshStandardMaterial({
+    color: '#667eea',
+    roughness: 0.4,
+    metalness: 0.3,
+    envMapIntensity: 0.8
+  });
+
+  const m = new THREE.Mesh(geom, mat);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+};
+
+/* ---------- Preview and building ---------- */
+const drawPreview = (src, dst) => {
+  const r = 320 / Math.max(src.width, src.height);
+  dst.width = Math.round(src.width * r);
+  dst.height = Math.round(src.height * r);
+  const ctx = dst.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, dst.width, dst.height);
+  ctx.drawImage(src, 0, 0, dst.width, dst.height);
+  ctx.strokeStyle = '#667eea88';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, dst.width - 2, dst.height - 2);
+};
+
+const readPresetFromUI = () => ({
+  auto: $('autoThr').checked,
+  dual: $('dualThr').checked,
+  thr: +$('thr').value,
+  thrF: +$('thrF').value,
+  thrS: +$('thrS').value,
+  kern: +$('kern').value,
+  res: +$('res').value,
+  iso: parseFloat($('iso').value),
+  height: parseFloat($('hgt').value),
+  subs: +$('subs').value,
+  flip: $('flipSide').checked
+});
+
+const buildFromPair = async (pair) => {
+  status.textContent = 'Processing silhouettes...';
+  const p = readPresetFromUI();
+
+  const [cFraw, cSraw] = await Promise.all([
+    canvasFromBlob(pair.front.blob),
+    canvasFromBlob(pair.side.blob)
+  ]);
+
+  const frontMask = cleanMask(cFraw, {
+    auto: p.auto,
+    threshold: p.dual ? p.thrF : p.thr,
+    kernel: p.kern,
+    maxSide: 640,
+    flipX: false
+  });
+
+  const sideMask = cleanMask(cSraw, {
+    auto: p.auto,
+    threshold: p.dual ? p.thrS : p.thr,
+    kernel: p.kern,
+    maxSide: 640,
+    flipX: p.flip
+  });
+
+  state.masks.front = frontMask;
+  state.masks.side = sideMask;
+
+  if ($('showMasks').checked) {
+    $('masks').style.display = 'flex';
+    drawPreview(frontMask, $('prevFront'));
+    drawPreview(sideMask, $('prevSide'));
+  } else {
+    $('masks').style.display = 'none';
+  }
+
+  status.textContent = 'Generating 3D mesh...';
+  const field = buildField(frontMask, sideMask, p.res);
+  const m = meshFromField(field, p.res, p.iso, p.height, p.subs);
+
+  if (state.mesh) {
+    scene && scene.remove(state.mesh);
+    state.mesh.geometry.dispose();
+    state.mesh.material.dispose();
+  }
+
+  state.mesh = m;
+  if (scene) scene.add(m);
+
+  status.textContent = `✅ Mesh generated (${m.geometry.attributes.position.count} vertices)`;
+  $('export').disabled = false;
+
+  // Notify Nexus of successful generation
+  if (nexusConnector) {
+    addLog(`🎯 Generated mesh with ${m.geometry.attributes.position.count} vertices`);
+  }
+};
+
+/* ---------- GLB Export ---------- */
+const glbBlobFromMesh = (mesh) => new Promise((resolve) => {
+  const exporter = new GLTFExporter();
+  const s = new THREE.Scene();
+  s.add(mesh.clone());
+  exporter.parse(s, (result) => {
+    const blob = result instanceof ArrayBuffer ?
+      new Blob([result], {type: 'model/gltf-binary'}) :
+      new Blob([JSON.stringify(result)], {type: 'application/json'});
+    resolve(blob);
+  }, {binary: true});
+});
+
+/* ---------- File handling ---------- */
+const pickFilesFromZip = async (blob) => {
+  const JSZip = await loadJSZip();
+  const zip = await JSZip.loadAsync(blob);
+  const imgs = [];
+
+  await Promise.all(Object.keys(zip.files).map(async path => {
+    if (/\.(png|jpg|jpeg|webp)$/i.test(path)) {
+      const file = zip.files[path];
+      const b = await file.async('blob');
+      imgs.push({name: path.split('/').pop(), blob: b});
+    }
+  }));
+
+  return imgs;
+};
+
+const handleZipFile = async (blob, listEl, statusEl) => {
+  statusEl.textContent = 'Reading ZIP file...';
+  const imgs = await pickFilesFromZip(blob);
+  statusEl.textContent = `Found ${imgs.length} images. Detecting pairs...`;
+  const pairs = pairFiles(imgs);
+  state.pairs = pairs;
+
+  const html = pairs.length ?
+    pairs.map((p, i) => `<div class="sml" style="padding:8px;border-bottom:1px solid #273047">${i+1}. <strong style="color:#667eea">${p.base}</strong><br>📄 Front: ${p.front.name}<br>📄 Side: ${p.side.name}</div>`).join('') :
+    '<div class="sml">❌ No front/side pairs detected. Check filename conventions.</div>';
+
+  listEl.innerHTML = html;
+
+  if (pairs.length) {
+    await buildFromPair(pairs[0]);
+    addLog(`📁 Loaded ${pairs.length} silhouette pairs`);
+  }
+};
+
+/* ---------- Event Listeners ---------- */
+$('build').addEventListener('click', async () => {
+  if (!state.pairs.length) {
+    status.textContent = '⚠️ Drop a ZIP with silhouette pairs first';
+    return;
+  }
+  await buildFromPair(state.pairs[0]);
+});
+
+$('export').addEventListener('click', async () => {
+  if (!state.mesh) return;
+  status.textContent = 'Exporting GLB...';
+  const blob = await glbBlobFromMesh(state.mesh);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nexus-sculpture.glb';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  status.textContent = '✅ GLB exported successfully';
+  addLog('💾 GLB export completed');
+});
+
+$('aiOptimize').addEventListener('click', aiOptimizeParameters);
+
+$('enterGL').addEventListener('click', () => {
+  initScene();
+  if (state.mesh && !scene.children.includes(state.mesh)) {
+    scene.add(state.mesh);
+  }
+  status.textContent = '🎮 3D viewport active';
+});
+
+$('togglePanel').addEventListener('click', () => {
+  $('panel').classList.toggle('hidden');
+});
+
+$('openBulk').addEventListener('click', () => {
+  $('bulkModal').style.display = 'grid';
+});
+
+$('bulkClose').addEventListener('click', () => {
+  $('bulkModal').style.display = 'none';
+});
+
+// AI Assistant
+$('askAI').addEventListener('click', () => {
+  const query = $('aiQuery').value.trim();
+  if (!query || !nexusConnector) {
+    status.textContent = '⚠️ Enter a question and ensure Nexus is connected';
+    return;
+  }
+
+  nexusConnector.query(`3D Sculpting: ${query}`, (response) => {
+    addLog('🤖 AI query completed');
+  });
+
+  $('aiQuery').value = '';
+});
+
+$('aiQuery').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    $('askAI').click();
+  }
+});
+
+/* ---------- Drag & Drop ---------- */
+const drop = $('drop');
+drop.addEventListener('dragover', e => {
+  e.preventDefault();
+  drop.style.borderColor = '#667eea';
+  drop.style.background = 'rgba(102, 126, 234, 0.1)';
+});
+
+drop.addEventListener('dragleave', e => {
+  drop.style.borderColor = '#667eea66';
+  drop.style.background = 'transparent';
+});
+
+drop.addEventListener('drop', async e => {
+  e.preventDefault();
+  drop.style.borderColor = '#667eea66';
+  drop.style.background = 'transparent';
+
+  const f = e.dataTransfer.files[0];
+  if (!f || !/\.zip$/i.test(f.name)) {
+    status.textContent = '⚠️ Please drop a .zip file containing silhouettes';
+    return;
+  }
+
+  await handleZipFile(f, $('list'), status);
+});
+
+/* ---------- Initialize ---------- */
+const init = () => {
+  mirrorValueLabels();
+  updateThrVisibility();
+  updateThrDisabled();
+  status.textContent = '🚀 Nexus 3D Sculptor ready';
+
+  // Initialize Nexus connection
+  initNexusIntegration();
+};
+
+init();
+
+// Self-test
+(function runSelfTests() {
+  try {
+    const cA = document.createElement('canvas');
+    cA.width = cA.height = 32;
+    const cB = document.createElement('canvas');
+    cB.width = cB.height = 32;
+
+    const a = cA.getContext('2d'), b = cB.getContext('2d');
+    a.fillStyle = '#fff';
+    a.fillRect(4, 4, 24, 24);
+    b.fillStyle = '#fff';
+    b.fillRect(8, 4, 20, 24);
+
+    const N = 16;
+    const field = buildField(cA, cB, N);
+
+    if (field instanceof Float32Array && field.length === N * N * N) {
+      addLog('✅ Self-test passed: Field generation working');
+    } else {
+      addLog('❌ Self-test failed: Field generation issue');
+    }
+  } catch (e) {
+    addLog('❌ Self-test error: ' + (e.message || e));
+  }
+})();
+</script>
+</body>
+</html>

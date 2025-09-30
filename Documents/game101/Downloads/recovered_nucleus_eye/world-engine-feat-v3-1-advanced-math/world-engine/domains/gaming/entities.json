@@ -1,0 +1,338 @@
+{
+    "entities": {
+        "player": {
+            "base_stats": {
+                "health": 100,
+                "mana": 50,
+                "stamina": 75,
+                "level": 1,
+                "experience": 0
+            },
+            "attributes": {
+                "strength": 10,
+                "dexterity": 10,
+                "intelligence": 10,
+                "wisdom": 10,
+                "charisma": 10,
+                "constitution": 10
+            },
+            "inventory": {
+                "max_slots": 20,
+                "gold": 100,
+                "items": []
+            }
+        },
+        "npc": {
+            "merchant": {
+                "dialogue_trees": [
+                    "greeting",
+                    "shop",
+                    "farewell"
+                ],
+                "inventory": {
+                    "items": [],
+                    "gold": 1000
+                },
+                "reputation": 50
+            },
+            "guard": {
+                "patrol_routes": [],
+                "aggro_threshold": 0.3,
+                "dialogue_trees": [
+                    "halt",
+                    "warning",
+                    "arrest"
+                ]
+            },
+            "quest_giver": {
+                "available_quests": [],
+                "completed_quests": [],
+                "dialogue_trees": [
+                    "greeting",
+                    "quest_offer",
+                    "quest_complete"
+                ]
+            }
+        },
+        "creatures": {
+            "goblin": {
+                "health": 25,
+                "damage": 5,
+                "speed": 1.2,
+                "ai_behavior": "aggressive",
+                "loot_table": [
+                    "goblin_ear",
+                    "copper_coin",
+                    "rusty_dagger"
+                ]
+            },
+            "wolf": {
+                "health": 40,
+                "damage": 8,
+                "speed": 1.8,
+                "ai_behavior": "pack_hunter",
+                "loot_table": [
+                    "wolf_pelt",
+                    "wolf_tooth"
+                ]
+            },
+            "dragon": {
+                "health": 500,
+                "damage": 50,
+                "speed": 0.8,
+                "ai_behavior": "territorial",
+                "special_abilities": [
+                    "fire_breath",
+                    "wing_buffet",
+                    "roar"
+                ],
+                "loot_table": [
+                    "dragon_scale",
+                    "dragon_heart",
+                    "treasure_hoard"
+                ]
+            }
+        }
+    },
+    "items": {
+        "weapons": {
+            "sword": {
+                "damage": 12,
+                "durability": 100,
+                "weight": 3.5,
+                "material": "steel",
+                "enchantments": []
+            },
+            "bow": {
+                "damage": 8,
+                "range": 50,
+                "durability": 80,
+                "weight": 2.0,
+                "ammo_type": "arrow"
+            },
+            "staff": {
+                "damage": 6,
+                "mana_bonus": 20,
+                "durability": 60,
+                "weight": 1.5,
+                "spell_focus": true
+            }
+        },
+        "armor": {
+            "helmet": {
+                "defense": 5,
+                "durability": 80,
+                "weight": 2.0,
+                "coverage": [
+                    "head"
+                ]
+            },
+            "chestplate": {
+                "defense": 15,
+                "durability": 120,
+                "weight": 8.0,
+                "coverage": [
+                    "chest",
+                    "back"
+                ]
+            },
+            "boots": {
+                "defense": 3,
+                "durability": 60,
+                "weight": 1.5,
+                "coverage": [
+                    "feet"
+                ],
+                "speed_bonus": 0.1
+            }
+        },
+        "consumables": {
+            "health_potion": {
+                "effect": "heal",
+                "amount": 50,
+                "duration": "instant",
+                "cooldown": 5
+            },
+            "mana_potion": {
+                "effect": "restore_mana",
+                "amount": 30,
+                "duration": "instant",
+                "cooldown": 3
+            },
+            "food": {
+                "bread": {
+                    "effect": "restore_stamina",
+                    "amount": 25,
+                    "duration": "instant"
+                },
+                "cheese": {
+                    "effect": "restore_health",
+                    "amount": 10,
+                    "duration": "over_time",
+                    "duration_seconds": 30
+                }
+            }
+        }
+    },
+    "world": {
+        "regions": {
+            "starting_village": {
+                "name": "Willowbrook",
+                "population": 150,
+                "climate": "temperate",
+                "biome": "grasslands",
+                "notable_npcs": [
+                    "mayor",
+                    "blacksmith",
+                    "tavern_keeper"
+                ],
+                "shops": [
+                    "general_store",
+                    "blacksmith",
+                    "inn"
+                ],
+                "quests": [
+                    "rat_problem",
+                    "missing_cat",
+                    "delivery_quest"
+                ]
+            },
+            "dark_forest": {
+                "name": "Shadowwood",
+                "danger_level": 3,
+                "climate": "humid",
+                "biome": "forest",
+                "creatures": [
+                    "wolf",
+                    "goblin",
+                    "spider"
+                ],
+                "resources": [
+                    "hardwood",
+                    "mushrooms",
+                    "herbs"
+                ],
+                "secrets": [
+                    "ancient_ruins",
+                    "hidden_treasure"
+                ]
+            },
+            "mountain_peaks": {
+                "name": "Dragonspine Mountains",
+                "danger_level": 8,
+                "climate": "cold",
+                "biome": "mountains",
+                "creatures": [
+                    "dragon",
+                    "ice_troll",
+                    "yeti"
+                ],
+                "resources": [
+                    "rare_ore",
+                    "ice_crystals"
+                ],
+                "weather_effects": [
+                    "blizzard",
+                    "avalanche"
+                ]
+            }
+        },
+        "dungeons": {
+            "goblin_cave": {
+                "levels": 3,
+                "boss": "goblin_chief",
+                "min_level": 5,
+                "loot_tier": "common",
+                "mechanics": [
+                    "traps",
+                    "puzzles"
+                ]
+            },
+            "abandoned_mine": {
+                "levels": 5,
+                "boss": "mine_wraith",
+                "min_level": 12,
+                "loot_tier": "uncommon",
+                "mechanics": [
+                    "darkness",
+                    "gas_pockets",
+                    "cave_ins"
+                ]
+            },
+            "dragon_lair": {
+                "levels": 1,
+                "boss": "ancient_dragon",
+                "min_level": 25,
+                "loot_tier": "legendary",
+                "mechanics": [
+                    "fire_traps",
+                    "treasure_room",
+                    "dragon_fear"
+                ]
+            }
+        }
+    },
+    "game_mechanics": {
+        "combat": {
+            "turn_based": false,
+            "damage_calculation": "base_damage + (attribute_modifier * level_scaling)",
+            "critical_hit_chance": 0.05,
+            "critical_damage_multiplier": 2.0,
+            "status_effects": [
+                "poison",
+                "burn",
+                "freeze",
+                "stun",
+                "blind"
+            ]
+        },
+        "leveling": {
+            "experience_formula": "100 * (level ^ 1.5)",
+            "max_level": 50,
+            "attribute_points_per_level": 2,
+            "skill_points_per_level": 1
+        },
+        "crafting": {
+            "stations": [
+                "anvil",
+                "alchemy_table",
+                "enchanting_table"
+            ],
+            "material_tiers": [
+                "copper",
+                "iron",
+                "steel",
+                "mithril",
+                "adamantine"
+            ],
+            "success_rates": {
+                "novice": 0.7,
+                "apprentice": 0.8,
+                "journeyman": 0.9,
+                "expert": 0.95,
+                "master": 0.99
+            }
+        },
+        "magic": {
+            "schools": [
+                "fire",
+                "ice",
+                "lightning",
+                "earth",
+                "healing",
+                "illusion"
+            ],
+            "mana_costs": {
+                "cantrip": 5,
+                "spell": 15,
+                "greater_spell": 30,
+                "ultimate": 60
+            },
+            "spell_components": [
+                "verbal",
+                "somatic",
+                "material"
+            ]
+        }
+    }
+}

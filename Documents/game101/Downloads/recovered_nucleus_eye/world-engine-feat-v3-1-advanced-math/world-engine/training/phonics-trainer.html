@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonics Training - World Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Trebuchet MS', cursive;
+            background: linear-gradient(135deg, #FF9A8B 0%, #FECFEF 50%, #FECFEF 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .training-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .training-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .training-title {
+            font-size: 2.8rem;
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .training-subtitle {
+            color: #666;
+            font-size: 1.3rem;
+        }
+
+        .phonics-workspace {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            flex: 1;
+            max-height: calc(100vh - 200px);
+        }
+
+        .word-building-area {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .phoneme-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .phoneme-btn {
+            background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .phoneme-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .phoneme-btn.selected {
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+            color: white;
+        }
+
+        .word-assembly {
+            background: #f8f9fa;
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .assembled-phoneme {
+            background: #4ECDC4;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .assembled-phoneme:hover {
+            background: #FF6B6B;
+            transform: scale(1.1);
+        }
+
+        .word-result {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .progress-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #4ECDC4 0%, #44A08D 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .achievement-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .achievement-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4ECDC4;
+        }
+
+        /* Toggle Chatbox Styles - Left Position */
+        .chatbox-toggle {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .chatbox-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(78, 205, 196, 0.6);
+        }
+
+        .chatbox-toggle.active {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+        }
+
+        .chatbox-container {
+            position: fixed;
+            bottom: 100px;
+            left: 30px;
+            width: 350px;
+            height: 450px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chatbox-container.visible {
+            display: flex;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chatbox-header {
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbox-header .minimize-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .chatbox-header .minimize-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .chatbox-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            color: #333;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #4ECDC4;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.ai {
+            background: #f1f3f4;
+            color: #333;
+        }
+
+        .chatbox-input {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chatbox-input input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 10px 15px;
+            outline: none;
+        }
+
+        .chatbox-input button {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .training-controls {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            z-index: 1001;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .audio-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .audio-btn:hover {
+            background: #FF5252;
+        }
+    </style>
+</head>
+<body>
+    <div class="training-container">
+        <div class="main-content">
+            <div class="training-header">
+                <h1 class="training-title">🗣️ Phonics Training</h1>
+                <p class="training-subtitle">Learn to blend sounds and build words!</p>
+            </div>
+
+            <div class="phonics-workspace">
+                <div class="word-building-area">
+                    <div class="audio-controls">
+                        <button class="audio-btn" onclick="playCurrentWord()">🔊 Play Word</button>
+                        <button class="audio-btn" onclick="playPhonemes()">🎵 Play Sounds</button>
+                        <button class="audio-btn" onclick="slowPlayback()">🐌 Slow</button>
+                    </div>
+
+                    <div class="phoneme-buttons" id="phonemeButtons">
+                        <!-- Phoneme buttons will be populated by JavaScript -->
+                    </div>
+
+                    <div class="word-assembly" id="wordAssembly">
+                        <div style="color: #999; font-size: 1.2rem;">Click phonemes to build a word</div>
+                    </div>
+
+                    <div class="word-result" id="wordResult">
+                        Ready to build words!
+                    </div>
+                </div>
+
+                <div class="progress-panel">
+                    <div class="level-badge">
+                        Level: Beginner
+                    </div>
+
+                    <div>
+                        <h3>Progress</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 35%"></div>
+                        </div>
+                        <small>7 of 20 words completed</small>
+                    </div>
+
+                    <div>
+                        <h3>Recent Achievements</h3>
+                        <ul class="achievement-list">
+                            <li class="achievement-item">✨ First CVC word!</li>
+                            <li class="achievement-item">🎯 Perfect blending</li>
+                            <li class="achievement-item">⭐ 5 words in a row</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3>Next Goal</h3>
+                        <p>Master consonant blends (bl, cr, st)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="training-controls">
+                <button class="control-btn" onclick="newWord()">New Word</button>
+                <button class="control-btn" onclick="clearWord()">Clear</button>
+                <button class="control-btn" onclick="getHint()">Hint</button>
+                <button class="control-btn" onclick="showPronunciation()">Pronunciation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint">
+        Press 'H' to toggle chatbox | Press 'Space' for help
+    </div>
+
+    <!-- Toggle Chatbox Button -->
+    <button class="chatbox-toggle" id="chatboxToggle" title="Toggle Language Helper (H)">
+        🤖
+    </button>
+
+    <!-- Chatbox Container -->
+    <div class="chatbox-container" id="chatboxContainer">
+        <div class="chatbox-header">
+            <span>🗣️ Language Helper</span>
+            <button class="minimize-btn" onclick="toggleChatbox()">−</button>
+        </div>
+        <div class="chatbox-messages" id="chatboxMessages">
+            <div class="message ai">
+                👋 Hi there! I'm your phonics helper. I can help you with pronunciation, word building, and understanding sounds. Try building a word and I'll give you feedback!
+            </div>
+        </div>
+        <div class="chatbox-input">
+            <input type="text" id="chatInput" placeholder="Ask about sounds or words...">
+            <button onclick="sendMessage()">→</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Phonics training data
+        const phonemeData = [
+            // Consonants
+            {sound: 'b', type: 'consonant', difficulty: 1},
+            {sound: 'c', type: 'consonant', difficulty: 1},
+            {sound: 'd', type: 'consonant', difficulty: 1},
+            {sound: 'f', type: 'consonant', difficulty: 1},
+            {sound: 'g', type: 'consonant', difficulty: 1},
+            {sound: 'h', type: 'consonant', difficulty: 1},
+            {sound: 'j', type: 'consonant', difficulty: 1},
+            {sound: 'k', type: 'consonant', difficulty: 1},
+            {sound: 'l', type: 'consonant', difficulty: 1},
+            {sound: 'm', type: 'consonant', difficulty: 1},
+            {sound: 'n', type: 'consonant', difficulty: 1},
+            {sound: 'p', type: 'consonant', difficulty: 1},
+            {sound: 'r', type: 'consonant', difficulty: 1},
+            {sound: 's', type: 'consonant', difficulty: 1},
+            {sound: 't', type: 'consonant', difficulty: 1},
+            {sound: 'v', type: 'consonant', difficulty: 1},
+            {sound: 'w', type: 'consonant', difficulty: 1},
+            {sound: 'x', type: 'consonant', difficulty: 2},
+            {sound: 'y', type: 'consonant', difficulty: 2},
+            {sound: 'z', type: 'consonant', difficulty: 2},
+            // Vowels
+            {sound: 'a', type: 'vowel', difficulty: 1},
+            {sound: 'e', type: 'vowel', difficulty: 1},
+            {sound: 'i', type: 'vowel', difficulty: 1},
+            {sound: 'o', type: 'vowel', difficulty: 1},
+            {sound: 'u', type: 'vowel', difficulty: 1}
+        ];
+
+        const targetWords = ['cat', 'dog', 'bat', 'run', 'sun', 'fun', 'big', 'red', 'top', 'cup'];
+
+        let currentWord = [];
+        let chatboxVisible = false;
+        let currentTarget = 'cat';
+
+        function initTraining() {
+            populatePhonemeButtons();
+            setupEventListeners();
+            setupKeyboardShortcuts();
+            selectNewTarget();
+        }
+
+        function populatePhonemeButtons() {
+            const buttonsContainer = document.getElementById('phonemeButtons');
+            buttonsContainer.innerHTML = phonemeData.map(phoneme => `
+                <button class="phoneme-btn" onclick="addPhoneme('${phoneme.sound}')" data-sound="${phoneme.sound}">
+                    ${phoneme.sound.toUpperCase()}
+                </button>
+            `).join('');
+        }
+
+        function setupEventListeners() {
+            document.getElementById('chatInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                switch(e.key.toLowerCase()) {
+                    case 'h':
+                        if (!e.ctrlKey && !e.altKey) {
+                            toggleChatbox();
+                        }
+                        break;
+                    case ' ':
+                        if (!e.ctrlKey && !e.altKey) {
+                            e.preventDefault();
+                            showHelp();
+                        }
+                        break;
+                }
+            });
+        }
+
+        window.addPhoneme = function(sound) {
+            currentWord.push(sound);
+            updateWordAssembly();
+            updateWordResult();
+
+            // Add visual feedback
+            const btn = document.querySelector(`[data-sound="${sound}"]`);
+            btn.classList.add('selected');
+            setTimeout(() => btn.classList.remove('selected'), 300);
+
+            // Auto-feedback from AI
+            checkWordProgress();
+        }
+
+        function updateWordAssembly() {
+            const assembly = document.getElementById('wordAssembly');
+            if (currentWord.length === 0) {
+                assembly.innerHTML = '<div style="color: #999; font-size: 1.2rem;">Click phonemes to build a word</div>';
+            } else {
+                assembly.innerHTML = currentWord.map((phoneme, index) =>
+                    `<span class="assembled-phoneme" onclick="removePhoneme(${index})">${phoneme}</span>`
+                ).join('');
+            }
+        }
+
+        function updateWordResult() {
+            const result = document.getElementById('wordResult');
+            const builtWord = currentWord.join('');
+
+            if (builtWord === currentTarget) {
+                result.style.background = 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)';
+                result.innerHTML = `🎉 Perfect! You built "${builtWord}"!`;
+                setTimeout(() => {
+                    addMessage('ai', `Excellent work! You successfully built the word "${builtWord}". The sounds blend together perfectly!`);
+                    if (!chatboxVisible) toggleChatbox();
+                }, 1000);
+            } else if (builtWord.length > 0) {
+                result.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                result.innerHTML = `Building: "${builtWord}" (Target: "${currentTarget}")`;
+            } else {
+                result.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                result.innerHTML = 'Ready to build words!';
+            }
+        }
+
+        window.removePhoneme = function(index) {
+            currentWord.splice(index, 1);
+            updateWordAssembly();
+            updateWordResult();
+        }
+
+        function checkWordProgress() {
+            const builtWord = currentWord.join('');
+            const target = currentTarget;
+
+            if (builtWord.length === 1) {
+                addMessage('ai', `Good start! You added "${builtWord}". Keep building toward "${target}".`);
+            } else if (builtWord.length > 1 && builtWord !== target) {
+                const isOnTrack = target.startsWith(builtWord);
+                if (isOnTrack) {
+                    addMessage('ai', `Great progress! "${builtWord}" is heading toward "${target}". What sound comes next?`);
+                } else {
+                    addMessage('ai', `Hmm, "${builtWord}" doesn't match our target "${target}". Try clearing and starting fresh!`);
+                }
+            }
+        }
+
+        function selectNewTarget() {
+            currentTarget = targetWords[Math.floor(Math.random() * targetWords.length)];
+            updateWordResult();
+            addMessage('ai', `New challenge! Try to build the word "${currentTarget}". Listen for the sounds: ${currentTarget.split('').join(' - ')}`);
+        }
+
+        window.newWord = function() {
+            currentWord = [];
+            selectNewTarget();
+            updateWordAssembly();
+            updateWordResult();
+        }
+
+        window.clearWord = function() {
+            currentWord = [];
+            updateWordAssembly();
+            updateWordResult();
+            addMessage('ai', `Cleared! Ready to build "${currentTarget}" again.`);
+        }
+
+        window.getHint = function() {
+            if (currentWord.length < currentTarget.length) {
+                const nextSound = currentTarget[currentWord.length];
+                addMessage('ai', `💡 Hint: The next sound is "${nextSound}". Look for it in the phoneme buttons!`);
+
+                // Highlight the correct button briefly
+                const correctBtn = document.querySelector(`[data-sound="${nextSound}"]`);
+                if (correctBtn) {
+                    correctBtn.style.boxShadow = '0 0 20px #FFD700';
+                    setTimeout(() => {
+                        correctBtn.style.boxShadow = '';
+                    }, 2000);
+                }
+            } else {
+                addMessage('ai', `You've built a complete word! "${currentWord.join('')}" - does it match "${currentTarget}"?`);
+            }
+
+            if (!chatboxVisible) toggleChatbox();
+        }
+
+        window.showPronunciation = function() {
+            addMessage('ai', `📢 "${currentTarget}" sounds like: ${currentTarget.split('').map(s => `/${s}/`).join(' + ')}. Try saying each sound slowly, then blend them together!`);
+            if (!chatboxVisible) toggleChatbox();
+        }
+
+        window.playCurrentWord = function() {
+            addMessage('ai', `🔊 Playing "${currentTarget}"... (In a real app, you'd hear the pronunciation)`);
+        }
+
+        window.playPhonemes = function() {
+            addMessage('ai', `🎵 Playing sounds: ${currentTarget.split('').join(' ... ')} (Individual phonemes would play)`);
+        }
+
+        window.slowPlayback = function() {
+            addMessage('ai', `🐌 Slow playback: ${currentTarget.split('').join(' --- ')} (Slower pronunciation would play)`);
+        }
+
+        window.toggleChatbox = function() {
+            const container = document.getElementById('chatboxContainer');
+            const toggle = document.getElementById('chatboxToggle');
+
+            chatboxVisible = !chatboxVisible;
+
+            if (chatboxVisible) {
+                container.classList.add('visible');
+                toggle.classList.add('active');
+                toggle.innerHTML = '✖';
+            } else {
+                container.classList.remove('visible');
+                toggle.classList.remove('active');
+                toggle.innerHTML = '🤖';
+            }
+        }
+
+        window.sendMessage = function() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addMessage('user', message);
+            input.value = '';
+
+            setTimeout(() => {
+                const response = generateLanguageResponse(message);
+                addMessage('ai', response);
+            }, 1000);
+        }
+
+        function addMessage(sender, content) {
+            const messages = document.getElementById('chatboxMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = content;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function generateLanguageResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+
+            if (message.includes('help') || message.includes('how')) {
+                return `I'm here to help with phonics! Click the phoneme buttons to build words. Our current target is "${currentTarget}". Try breaking it into sounds: ${currentTarget.split('').join(' - ')}`;
+            }
+
+            if (message.includes('sound') || message.includes('phoneme')) {
+                return `Phonemes are the individual sounds in words. For example, "cat" has 3 sounds: /c/ /a/ /t/. Each button represents one sound. Try blending them together!`;
+            }
+
+            if (message.includes('blend') || message.includes('together')) {
+                return `Blending means connecting sounds smoothly! Start with the first sound, add the second, then the third. Practice: /c/...a/...t/ becomes "cat"!`;
+            }
+
+            if (message.includes('word') || message.includes('build')) {
+                return `To build words, click phoneme buttons in order. I'll help you know if you're on the right track. Current target: "${currentTarget}"`;
+            }
+
+            if (message.includes(currentTarget)) {
+                return `Yes! "${currentTarget}" is our target word. The sounds are: ${currentTarget.split('').map(s => `/${s}/`).join(' + ')}. Keep practicing!`;
+            }
+
+            return `Great question! Remember, we're working on building "${currentTarget}". Break it into individual sounds and click the phoneme buttons. I'm here if you need hints!`;
+        }
+
+        function showHelp() {
+            addMessage('ai', `
+🎯 Phonics Training Help:
+• Click phoneme buttons to build words
+• Target word: "${currentTarget}"
+• Use 'H' to toggle this helper
+• Click assembled phonemes to remove them
+• Ask me about sounds, blending, or pronunciation!
+            `);
+            if (!chatboxVisible) {
+                toggleChatbox();
+            }
+        }
+
+        // Initialize training when page loads
+        document.addEventListener('DOMContentLoaded', initTraining);
+
+        // Setup chatbox toggle click handler
+        document.getElementById('chatboxToggle').addEventListener('click', toggleChatbox);
+
+    </script>
+</body>
+</html>

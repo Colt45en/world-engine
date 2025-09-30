@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 World Engine Tier 5+ - Unified Master Interface</title>
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --panel: #0f1523;
+            --ink: #e6f0ff;
+            --mut: #9ab0d6;
+            --line: #1e2b46;
+            --acc: #54f0b8;
+            --warn: #ff6b6b;
+            --success: #51cf66;
+            --chip: #182741;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .master-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, var(--panel), var(--chip));
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--acc);
+            text-shadow: 0 0 20px var(--acc);
+        }
+
+        .tier-status {
+            background: var(--success);
+            color: #000;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .system-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+        }
+
+        .stat {
+            background: var(--chip);
+            border: 1px solid var(--line);
+            padding: 4px 8px;
+            border-radius: 16px;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, var(--panel), var(--bg));
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .nav-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .nav-title {
+            color: var(--acc);
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            margin: 4px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--ink);
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: var(--chip);
+            border-color: var(--line);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: var(--acc);
+            color: var(--bg);
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        .content-header {
+            background: var(--chip);
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .content-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--acc);
+        }
+
+        .content-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--panel);
+            color: var(--ink);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--acc);
+            color: var(--bg);
+            transform: translateY(-1px);
+        }
+
+        .btn.primary {
+            background: var(--acc);
+            color: var(--bg);
+        }
+
+        .btn.danger {
+            background: var(--warn);
+            color: white;
+        }
+
+        .content-body {
+            padding: 0;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .iframe-container {
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .iframe-header {
+            background: var(--chip);
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--acc);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: blink 1.5s infinite;
+        }
+
+        .status-indicator.error {
+            background: var(--warn);
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .iframe-body {
+            flex: 1;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: var(--bg);
+        }
+
+        .system-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .system-card {
+            background: linear-gradient(135deg, var(--panel), var(--chip));
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .system-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(84, 240, 184, 0.1);
+            border-color: var(--acc);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            font-size: 24px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--acc);
+        }
+
+        .card-description {
+            color: var(--mut);
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--mut);
+            font-style: italic;
+        }
+
+        .error-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--warn);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .websocket-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .connected {
+            color: var(--success);
+        }
+
+        .disconnected {
+            color: var(--warn);
+        }
+    </style>
+</head>
+<body>
+    <div class="master-container">
+        <div class="header">
+            <div class="logo">🚀 World Engine</div>
+            <div class="tier-status">TIER 5+ ACTIVE</div>
+            <div class="system-stats">
+                <div class="stat">🧠 Advanced AI: Online</div>
+                <div class="stat">🎭 Glyphs: 12 Loaded</div>
+                <div class="stat">🔗 WebSockets: Connected</div>
+                <div class="stat">📊 Systems: All Operational</div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="nav-section">
+                <div class="nav-title">🎯 Core Systems</div>
+                <a href="#dashboard" class="nav-item active" onclick="loadContent('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    <span>Master Dashboard</span>
+                </a>
+                <a href="#engine-room" class="nav-item" onclick="loadContent('engine-room')">
+                    <span class="nav-icon">⚛️</span>
+                    <span>Enhanced Engine Room</span>
+                </a>
+                <a href="#unified-studio" class="nav-item" onclick="loadContent('unified-studio')">
+                    <span class="nav-icon">🎨</span>
+                    <span>Unified Studio</span>
+                </a>
+                <a href="#world-engine" class="nav-item" onclick="loadContent('world-engine')">
+                    <span class="nav-icon">🌍</span>
+                    <span>World Engine Core</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">🧠 Advanced AI</div>
+                <a href="#ai-bot" class="nav-item" onclick="loadContent('ai-bot')">
+                    <span class="nav-icon">🤖</span>
+                    <span>AI Bot System</span>
+                </a>
+                <a href="#meta-librarian" class="nav-item" onclick="loadContent('meta-librarian')">
+                    <span class="nav-icon">📚</span>
+                    <span>Meta Librarian</span>
+                </a>
+                <a href="#vector-lab" class="nav-item" onclick="loadContent('vector-lab')">
+                    <span class="nav-icon">🔬</span>
+                    <span>Vector Lab</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">🎭 Creative Tools</div>
+                <a href="#glyph-nexus" class="nav-item" onclick="loadContent('glyph-nexus')">
+                    <span class="nav-icon">🎭</span>
+                    <span>Advanced Glyphs</span>
+                </a>
+                <a href="#audio-shapes" class="nav-item" onclick="loadContent('audio-shapes')">
+                    <span class="nav-icon">🎵</span>
+                    <span>Audio Shape Generator</span>
+                </a>
+                <a href="#scene-generator" class="nav-item" onclick="loadContent('scene-generator')">
+                    <span class="nav-icon">🏞️</span>
+                    <span>Scene Generator</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">🔧 Development</div>
+                <a href="#integration-test" class="nav-item" onclick="loadContent('integration-test')">
+                    <span class="nav-icon">🧪</span>
+                    <span>Integration Tests</span>
+                </a>
+                <a href="#system-monitor" class="nav-item" onclick="loadContent('system-monitor')">
+                    <span class="nav-icon">📈</span>
+                    <span>System Monitor</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="content-header">
+                <div class="content-title" id="content-title">Master Dashboard</div>
+                <div class="content-actions">
+                    <button class="btn primary" onclick="try { refreshContent(); } catch(e) { console.error(\'Button error:\', e); }">🔄 Refresh</button>
+                    <button class="btn" onclick="try { openInNewTab(); } catch(e) { console.error(\'Button error:\', e); }">🚀 Open in Tab</button>
+                    <button class="btn" onclick="try { toggleFullscreen(); } catch(e) { console.error(\'Button error:\', e); }">⛶ Fullscreen</button>
+                </div>
+            </div>
+            <div class="content-body" id="content-body">
+                <div class="system-grid">
+                    <div class="system-card">
+                        <div class="card-header">
+                            <span class="card-icon">⚛️</span>
+                            <span class="card-title">Enhanced Engine Room</span>
+                        </div>
+                        <div class="card-description">
+                            Real-time iframe integration with WebSocket synchronization, clock debugging, and timing analysis.
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn primary" onclick="try { loadEngineRoom(); } catch(e) { console.error(\'Button error:\', e); }">🚀 Launch</button>
+                            <button class="btn" onclick="try { testWebSocket(); } catch(e) { console.error(\'Button error:\', e); }">🔗 Test WebSocket</button>
+                        </div>
+                    </div>
+
+                    <div class="system-card">
+                        <div class="card-header">
+                            <span class="card-icon">🎭</span>
+                            <span class="card-title">Advanced Glyph System</span>
+                        </div>
+                        <div class="card-description">
+                            12 advanced glyphs with complex effects: aurora_lattice, keystone_memory, echo_weaver, and more.
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn primary" onclick="try { loadGlyphNexus(); } catch(e) { console.error(\'Button error:\', e); }">🎭 Open Nexus</button>
+                            <button class="btn" onclick="try { testGlyphs(); } catch(e) { console.error(\'Button error:\', e); }">✨ Test Effects</button>
+                        </div>
+                    </div>
+
+                    <div class="system-card">
+                        <div class="card-header">
+                            <span class="card-icon">🤖</span>
+                            <span class="card-title">AI Bot System</span>
+                        </div>
+                        <div class="card-description">
+                            Multi-agent intelligence with role-based routing and nucleus operator mappings.
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn primary" onclick="try { loadAIBot(); } catch(e) { console.error(\'Button error:\', e); }">🤖 Launch AI</button>
+                            <button class="btn" onclick="try { testOperators(); } catch(e) { console.error(\'Button error:\', e); }">⚡ Test Operators</button>
+                        </div>
+                    </div>
+
+                    <div class="system-card">
+                        <div class="card-header">
+                            <span class="card-icon">🎵</span>
+                            <span class="card-title">Audio Shape Generator</span>
+                        </div>
+                        <div class="card-description">
+                            Real-time FFT analysis generating heart, rose, spiral, dragon, lissajous shapes from audio.
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn primary" onclick="try { loadAudioShapes(); } catch(e) { console.error(\'Button error:\', e); }">🎵 Launch</button>
+                            <button class="btn" onclick="try { testAudioInput(); } catch(e) { console.error(\'Button error:\', e); }">🎤 Test Mic</button>
+                        </div>
+                    </div>
+
+                    <div class="system-card">
+                        <div class="card-header">
+                            <span class="card-icon">🌍</span>
+                            <span class="card-title">Unified World Studio</span>
+                        </div>
+                        <div class="card-description">
+                            Complete unified interface with all systems integrated into collaborative workspace.
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn primary" onclick="try { loadUnifiedStudio(); } catch(e) { console.error(\'Button error:\', e); }">🎨 Open Studio</button>
+                            <button class="btn" onclick="try { loadCollaborative(); } catch(e) { console.error(\'Button error:\', e); }">👥 Collaborative</button>
+                        </div>
+                    </div>
+
+                    <div class="system-card">
+                        <div class="card-header">
+                            <span class="card-icon">🔬</span>
+                            <span class="card-title">Vector Lab & Brain</span>
+                        </div>
+                        <div class="card-description">
+                            69KB C++ brain system with advanced vector operations and neural network integration.
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn primary" onclick="try { loadVectorLab(); } catch(e) { console.error(\'Button error:\', e); }">🔬 Open Lab</button>
+                            <button class="btn" onclick="try { testVectors(); } catch(e) { console.error(\'Button error:\', e); }">🧮 Test Vectors</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="websocket-status" id="ws-status">
+        <span class="connected">🔗 WebSocket Connected</span>
+    </div>
+
+    <script>
+        // Master interface controller
+        class WorldEngineInterface {
+            constructor() {
+                this.websocket = null;
+                this.currentContent = 'dashboard';
+                this.iframes = new Map();
+                this.init();
+            }
+
+            init() {
+                this.connectWebSocket();
+                this.loadContent('dashboard');
+                console.log('🚀 World Engine Tier 5+ Interface Initialized');
+            }
+
+            connectWebSocket() {
+                try {
+                    this.websocket = new WebSocket('ws://localhost:9000');
+
+                    this.websocket.onopen = () => {
+                        console.log('🔗 WebSocket Connected');
+                        this.updateStatus('connected', '🔗 WebSocket Connected');
+                    };
+
+                    this.websocket.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleWebSocketMessage(data);
+                    };
+
+                    this.websocket.onclose = () => {
+                        console.log('❌ WebSocket Disconnected');
+                        this.updateStatus('disconnected', '❌ WebSocket Disconnected');
+                        setTimeout(() => this.connectWebSocket(), 5000);
+                    };
+
+                } catch (error) {
+                    console.log('⚠️ WebSocket connection failed, continuing without real-time features');
+                    this.updateStatus('disconnected', '⚠️ WebSocket Offline');
+                }
+            }
+
+            updateStatus(status, message) {
+                const statusEl = document.getElementById('ws-status');
+                statusEl.innerHTML = `<span class="${status}">${message}</span>`;
+            }
+
+            handleWebSocketMessage(data) {
+                // Handle real-time updates from various systems
+                console.log('📨 WebSocket message:', data);
+
+                if (data.type === 'clock.sync') {
+                    this.updateClockSync(data.data);
+                } else if (data.type === 'glyph.applied') {
+                    this.updateGlyphStatus(data.data);
+                } else if (data.type === 'ai.response') {
+                    this.updateAIResponse(data.data);
+                }
+            }
+
+            loadContent(section) {
+                this.currentContent = section;
+                document.getElementById('content-title').textContent = this.getSectionTitle(section);
+
+                // Remove active class from all nav items
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+                // Add active class to current nav item
+                const currentNav = document.querySelector(`[href="#${section}"]`);
+                if (currentNav) currentNav.classList.add('active');
+
+                // Load section content
+                this.renderContent(section);
+            }
+
+            getSectionTitle(section) {
+                const titles = {
+                    'dashboard': 'Master Dashboard',
+                    'engine-room': 'Enhanced Engine Room',
+                    'unified-studio': 'Unified Studio',
+                    'world-engine': 'World Engine Core',
+                    'ai-bot': 'AI Bot System',
+                    'meta-librarian': 'Meta Librarian',
+                    'vector-lab': 'Vector Lab',
+                    'glyph-nexus': 'Advanced Glyph Nexus',
+                    'audio-shapes': 'Audio Shape Generator',
+                    'scene-generator': 'Scene Generator',
+                    'integration-test': 'Integration Tests',
+                    'system-monitor': 'System Monitor'
+                };
+                return titles[section] || 'Unknown Section';
+            }
+
+            renderContent(section) {
+                const body = document.getElementById('content-body');
+
+                switch (section) {
+                    case 'dashboard':
+                        this.renderDashboard(body);
+                        break;
+                    case 'engine-room':
+                        this.renderIframePair(body, 'Enhanced Engine Room', [
+                            { title: 'Engine Room Core', src: './demos/tier4_collaborative_demo.html' },
+                            { title: 'Engine Room Bridge', src: './studio-engine-bridge.html' }
+                        ]);
+                        break;
+                    case 'unified-studio':
+                        this.renderFullIframe(body, 'Unified World Engine Studio', './unified-world-engine-studio.html');
+                        break;
+                    case 'glyph-nexus':
+                        this.renderFullIframe(body, 'Advanced Glyph Nexus', './advanced-glyph-nexus.html');
+                        break;
+                    default:
+                        this.renderPlaceholder(body, section);
+                }
+            }
+
+            renderDashboard(container) {
+                container.innerHTML = `
+                    <div class="system-grid">
+                        <div class="system-card">
+                            <div class="card-header">
+                                <span class="card-icon">⚛️</span>
+                                <span class="card-title">Enhanced Engine Room</span>
+                            </div>
+                            <div class="card-description">
+                                Real-time iframe integration with WebSocket synchronization, clock debugging, and timing analysis.
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn primary" onclick="worldEngine.loadContent('engine-room')">🚀 Launch</button>
+                                <button class="btn" onclick="try { worldEngine.testWebSocket(); } catch(e) { console.error(\'Button error:\', e); }">🔗 Test WebSocket</button>
+                            </div>
+                        </div>
+
+                        <div class="system-card">
+                            <div class="card-header">
+                                <span class="card-icon">🎭</span>
+                                <span class="card-title">Advanced Glyph System</span>
+                            </div>
+                            <div class="card-description">
+                                12 advanced glyphs with complex effects: aurora_lattice, keystone_memory, echo_weaver, and more.
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn primary" onclick="worldEngine.loadContent('glyph-nexus')">🎭 Open Nexus</button>
+                                <button class="btn" onclick="try { worldEngine.testGlyphs(); } catch(e) { console.error(\'Button error:\', e); }">✨ Test Effects</button>
+                            </div>
+                        </div>
+
+                        <div class="system-card">
+                            <div class="card-header">
+                                <span class="card-icon">🌍</span>
+                                <span class="card-title">Unified World Studio</span>
+                            </div>
+                            <div class="card-description">
+                                Complete unified interface with all systems integrated into collaborative workspace.
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn primary" onclick="worldEngine.loadContent('unified-studio')">🎨 Open Studio</button>
+                                <button class="btn" onclick="try { worldEngine.openCollaborative(); } catch(e) { console.error(\'Button error:\', e); }">👥 Collaborative</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderIframePair(container, title, iframes) {
+                container.innerHTML = `
+                    <div class="iframe-container">
+                        <div class="iframe-header">
+                            <span class="status-indicator"></span>
+                            ${iframes[0].title}
+                        </div>
+                        <div class="iframe-body">
+                            <iframe src="${iframes[0].src}" title="${iframes[0].title}"></iframe>
+                        </div>
+                    </div>
+                    <div class="iframe-container">
+                        <div class="iframe-header">
+                            <span class="status-indicator"></span>
+                            ${iframes[1].title}
+                        </div>
+                        <div class="iframe-body">
+                            <iframe src="${iframes[1].src}" title="${iframes[1].title}"></iframe>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderFullIframe(container, title, src) {
+                container.innerHTML = `
+                    <div class="iframe-container" style="grid-column: 1 / -1;">
+                        <div class="iframe-header">
+                            <span class="status-indicator"></span>
+                            ${title}
+                        </div>
+                        <div class="iframe-body">
+                            <iframe src="${src}" title="${title}"></iframe>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderPlaceholder(container, section) {
+                container.innerHTML = `
+                    <div class="loading" style="grid-column: 1 / -1; height: 300px;">
+                        <div>
+                            <h3>🚧 ${this.getSectionTitle(section)} Coming Soon</h3>
+                            <p>This section is being developed. Check back soon!</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Action methods
+            testWebSocket() {
+                if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                    this.websocket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                    alert('🔗 WebSocket test message sent!');
+                } else {
+                    alert('❌ WebSocket not connected');
+                }
+            }
+
+            testGlyphs() {
+                alert('🎭 Testing advanced glyph effects...');
+                // Simulate glyph effect
+                console.log('Applying aurora_lattice glyph...');
+            }
+
+            openCollaborative() {
+                window.open('./world-studio-collaborative.html', '_blank');
+            }
+        }
+
+        // Global functions for HTML onclick handlers
+        function loadContent(section) {
+            worldEngine.loadContent(section);
+        }
+
+        function refreshContent() {
+            worldEngine.renderContent(worldEngine.currentContent);
+        }
+
+        function openInNewTab() {
+            const currentSrc = worldEngine.currentContent;
+            window.open(`#${currentSrc}`, '_blank');
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Initialize the world engine interface
+        const worldEngine = new WorldEngineInterface();
+
+        console.log('🚀 World Engine Tier 5+ Master Interface Loaded');
+
+            function connectWebSocket() {
+                try {
+                    websocket = new WebSocket('ws://localhost:9000');
+                    websocket.onopen = () => console.log('WebSocket connected');
+                    websocket.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('WebSocket message:', data);
+                    };
+                    websocket.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        setTimeout(connectWebSocket, 5000);
+                    };
+                } catch (error) {
+                    console.error('WebSocket connection failed:', error);
+                }
+            }
+            </script>
+</body>
+</html>

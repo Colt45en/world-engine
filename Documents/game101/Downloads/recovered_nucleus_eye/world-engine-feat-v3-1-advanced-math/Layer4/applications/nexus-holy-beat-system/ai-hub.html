@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 NEXUS AI Hub - Universal Dashboard Controller</title>
+    <style>
+        :root {
+            --primary: #64ffda;
+            --secondary: #ff00ff;
+            --accent: #ff7bd5;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+            --bg: #0b0f1a;
+            --card: #0f1626;
+            --border: #1a2b46;
+            --text: #e8f0ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .hub-container {
+            display: grid;
+            grid-template-areas:
+                "sidebar nucleus"
+                "launcher launcher";
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: 1fr 200px;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .hub-container {
+                grid-template-areas:
+                    "nucleus"
+                    "sidebar"
+                    "launcher";
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 150px 200px;
+                padding: 4px;
+                gap: 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hub-container {
+                grid-template-rows: 1fr 150px 120px;
+                padding: 2px;
+                gap: 2px;
+            }
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .sidebar-title {
+            font-size: 1.1em;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .dashboard-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .dashboard-item {
+            background: rgba(100, 255, 218, 0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            text-align: center;
+            font-size: 0.8em;
+        }
+
+        .dashboard-item:hover {
+            border-color: var(--primary);
+            background: rgba(100, 255, 218, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .dashboard-item.active {
+            border-color: var(--secondary);
+            background: rgba(255, 0, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .dashboard-name {
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .dashboard-desc {
+            font-size: 0.7em;
+            opacity: 0.8;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .dashboard-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            gap: 4px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .launch-btn {
+            background: linear-gradient(135deg, var(--primary), #4fc3f7);
+            color: #000;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-top: 4px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .launch-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(46, 160, 220, 0.4);
+        }
+
+        .nucleus-display {
+            grid-area: nucleus;
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nucleus-title {
+            font-size: 1.3em;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .launcher-panel {
+            grid-area: launcher;
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid var(--secondary);
+            border-radius: 16px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-online { background: var(--success); }
+        .status-offline { background: var(--error); }
+        .status-loading { background: var(--warning); animation: pulse 1s infinite; }
+
+        .ai-panel {
+            grid-area: ai-panel;
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid var(--secondary);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .chat-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 90vw;
+            max-width: 800px;
+            height: 80vh;
+            max-height: 600px;
+            background: rgba(15, 22, 38, 0.98);
+            border: 2px solid var(--secondary);
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-window.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .chat-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .chat-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(45deg, rgba(100, 255, 218, 0.1), rgba(255, 0, 255, 0.1));
+        }
+
+        .chat-title {
+            font-size: 1.4em;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-close {
+            background: none;
+            border: 2px solid var(--error);
+            color: var(--error);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            margin-left: auto;
+        }
+
+        .chat-close:hover {
+            background: var(--error);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .chat-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        .chat-message.user {
+            background: rgba(46, 160, 220, 0.1);
+            border-left: 3px solid var(--primary);
+            color: var(--primary);
+            margin-left: 20px;
+        }
+
+        .chat-message.ai {
+            background: rgba(255, 0, 255, 0.1);
+            border-left: 3px solid var(--secondary);
+            color: var(--secondary);
+            margin-right: 20px;
+        }
+
+        .chat-message.system {
+            background: rgba(100, 255, 218, 0.1);
+            border-left: 3px solid var(--success);
+            color: var(--success);
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-input-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .chat-mode-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-mode-btn:hover, .chat-mode-btn.active {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .chat-input-field {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .chat-textarea {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chat-send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--primary), #4fc3f7);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .chat-send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(46, 160, 220, 0.4);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive design for chat window */
+        @media (max-width: 768px) {
+            .chat-window {
+                width: 95vw;
+                height: 90vh;
+                border-radius: 16px;
+            }
+
+            .chat-header {
+                padding: 16px 20px;
+            }
+
+            .chat-title {
+                font-size: 1.2em;
+            }
+
+            .chat-messages {
+                padding: 16px;
+            }
+
+            .chat-message {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+
+            .chat-message.user {
+                margin-left: 10px;
+            }
+
+            .chat-message.ai {
+                margin-right: 10px;
+            }
+
+            .chat-input-area {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chat-window {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .chat-messages {
+                padding: 12px;
+            }
+
+            .chat-input-area {
+                padding: 12px;
+            }
+        }
+
+        .ai-title {
+            font-size: 1.2em;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ai-toggle {
+            padding: 8px 16px;
+            border: 1px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .ai-toggle:hover {
+            background: var(--primary);
+            color: var(--bg);
+        }
+
+        .ai-toggle.active {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            color: white;
+        }
+
+        .ai-chat {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .ai-input {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-text-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            color: var(--text);
+            font-family: monospace;
+        }
+
+        .ai-send {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .main-dashboard {
+            grid-area: main-dashboard;
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dashboard-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 14px;
+        }
+
+        .dashboard-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(100, 255, 218, 0.3);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .context-indicator {
+            background: var(--warning);
+            color: var(--bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .voice-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+
+        .voice-btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .voice-btn.recording {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+            animation: pulse 0.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="hub-container">
+        <!-- Compact Dashboard Selector -->
+        <div class="sidebar">
+            <div class="sidebar-title">🎛️ NEXUS Control Hub</div>
+
+            <div class="dashboard-list">
+                <div class="dashboard-item" data-dashboard="nexus-music">
+                    <div class="dashboard-name">🎵 Beat Room</div>
+                    <div class="dashboard-desc">Holy Beat Tri-Engine</div>
+                    <div class="dashboard-status">
+                        <div class="status-dot status-online"></div>
+                        <span>Online</span>
+                    </div>
+                    <button class="launch-btn" onclick="launchApp('./beat-room.html')">Launch</button>
+                </div>
+
+                <div class="dashboard-item" data-dashboard="general-test">
+                    <div class="dashboard-name">🧪 Test Room</div>
+                    <div class="dashboard-desc">General Testing</div>
+                    <div class="dashboard-status">
+                        <div class="status-dot status-online"></div>
+                        <span>Online</span>
+                    </div>
+                    <button class="launch-btn" onclick="launchApp('http://localhost:8000/demo')">Launch</button>
+                </div>
+
+                <div class="dashboard-item" data-dashboard="studio">
+                    <div class="dashboard-name">� Studio</div>
+                    <div class="dashboard-desc">World Engine</div>
+                    <div class="dashboard-status">
+                        <div class="status-dot status-online"></div>
+                        <span>Online</span>
+                    </div>
+                    <button class="launch-btn" onclick="launchApp('../web/world_engine_tier4.html')">Launch</button>
+                </div>
+
+                <div class="dashboard-item" data-dashboard="code-pad">
+                    <div class="dashboard-name">💻 Code</div>
+                    <div class="dashboard-desc">Development</div>
+                    <div class="dashboard-status">
+                        <div class="status-dot status-online"></div>
+                        <span>Online</span>
+                    </div>
+                    <button class="launch-btn" onclick="launchApp('http://localhost:8000/code-pad.html')">Launch</button>
+                </div>
+
+                <div class="dashboard-item" data-dashboard="nucleus">
+                    <div class="dashboard-name">🧠 Nucleus</div>
+                    <div class="dashboard-desc">Core Engine</div>
+                    <div class="dashboard-status">
+                        <div class="status-dot status-online"></div>
+                        <span>Online</span>
+                    </div>
+                    <button class="launch-btn" onclick="launchApp('../demo/nucleus-demo.html')">Launch</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nucleus Display -->
+        <div class="nucleus-display">
+            <div class="nucleus-title">🌌 World Engine Nucleus</div>
+            <div style="position: relative; height: 100%; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 120px; height: 120px; background: radial-gradient(circle, #64ffda 0%, #2ea0dc 50%, #1a1f2e 100%); border-radius: 50%; animation: pulse 3s infinite; box-shadow: 0 0 40px rgba(100, 255, 218, 0.5);"></div>
+                <div style="position: absolute; top: 20px; left: 20px; font-size: 0.8em; color: var(--success);">
+                    ⚡ Librarians: Online<br>
+                    📚 Data Stores: Active<br>
+                    🌊 Thought Flow: Connected<br>
+                    🎯 Processing: Real-time
+                </div>
+            </div>
+        </div>
+
+        <!-- Launcher Panel -->
+        <div class="launcher-panel">
+            <div style="font-size: 1.1em; color: var(--secondary); margin-bottom: 12px; text-align: center;">
+                🚀 <span>Quick Launch System</span>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                <button class="launch-btn" onclick="launchApp('../demo/nucleus-demo.html')" style="width: auto; padding: 8px 16px;">
+                    🧠 Open Nucleus Room
+                </button>
+                <button class="launch-btn" onclick="launchApp('http://localhost:8000/demo')" style="width: auto; padding: 8px 16px;">
+                    🎵 Music Synthesis
+                </button>
+                <button class="launch-btn" onclick="launchApp('../web/world_engine_tier4.html')" style="width: auto; padding: 8px 16px;">
+                    🎨 World Engine
+                </button>
+                <button class="launch-btn" onclick="try { openChatWindow(); } catch(e) { console.error(\'Button error:\', e); }" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, var(--secondary), #ff7bd5);">
+                    💬 AI Interface
+                </button>
+            </div>
+            <div style="margin-top: 12px; text-align: center; font-size: 0.8em; opacity: 0.7;">
+                Each application connects to the central nucleus for shared AI consciousness and data flow
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Window Overlay -->
+    <div class="chat-overlay" id="chatOverlay"></div>
+
+    <!-- Expandable Chat Window -->
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <div class="chat-title">
+                🤖 <span>NEXUS AI Chat</span>
+                <div style="margin-left: 20px; font-size: 0.8em; color: var(--accent);" id="chatContext">Context: MUSIC</div>
+            </div>
+            <button class="chat-close" id="chatClose">×</button>
+        </div>
+
+        <div class="chat-content">
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message system">🌟 NEXUS AI Chat initialized! Ready for advanced interactions.</div>
+                <div class="chat-message ai">Welcome to the enhanced NEXUS experience! I'm your contextual AI assistant. I understand which dashboard you're using and can provide targeted help, commands, and insights.</div>
+                <div class="chat-message system">💡 Try commands like: "status", "help", "what can you do", or ask questions about your current dashboard context.</div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="chat-input-controls">
+                    <button class="chat-mode-btn active" data-chat-mode="text">💬 Text</button>
+                    <button class="chat-mode-btn" data-chat-mode="voice">🎤 Voice</button>
+                    <button class="chat-mode-btn" data-chat-mode="video">🎥 Video</button>
+                    <button class="chat-mode-btn" data-chat-mode="json">📋 JSON</button>
+                    <button class="chat-mode-btn" data-chat-mode="code">💻 Code</button>
+                </div>
+
+                <div class="video-controls" id="videoControls" style="display: none;">
+                    <video id="videoPreview" style="width: 100%; height: 200px; background: #000; border-radius: 8px;" autoplay muted></video>
+                    <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: center;">
+                        <button class="chat-mode-btn" id="startVideoRecord">🎥 Start Recording</button>
+                        <button class="chat-mode-btn" id="stopVideoRecord" style="display: none; background: var(--error);">⏹ Stop Recording</button>
+                        <button class="chat-mode-btn" id="downloadVideo" style="display: none; background: var(--success);">📥 Download</button>
+                    </div>
+                </div>
+
+                <div class="chat-input-field">
+                    <textarea class="chat-textarea" id="chatInput"
+                        placeholder="Ask me anything about NEXUS, your current dashboard, or request assistance..."
+                        rows="1"></textarea>
+                    <button class="chat-send-btn" id="chatSendBtn">Send 🚀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dashboard configuration
+        const dashboards = {
+            'nexus-music': {
+                name: 'NEXUS Beat Room',
+                url: './beat-room.html',
+                context: 'BEAT',
+                aiCommands: ['start', 'stop', 'bpm', 'preset', 'harmonics', 'sync']
+            },
+            'general-test': {
+                name: 'General Test Room',
+                url: 'http://localhost:8000/demo',
+                context: 'TEST',
+                aiCommands: ['test', 'analyze', 'train', 'export', 'status']
+            },
+            'studio': {
+                name: 'World Engine Studio',
+                url: '../web/studio.html',
+                context: 'STUDIO',
+                aiCommands: ['build', 'compile', 'deploy', 'analyze', 'optimize']
+            },
+            'code-pad': {
+                name: 'Code Pad',
+                url: 'http://localhost:8000/code-pad.html',
+                context: 'CODE',
+                aiCommands: ['run', 'debug', 'test', 'format', 'lint']
+            },
+            'vibe-nexus': {
+                name: 'Vibe Nexus',
+                url: '../vibe_nexus_demo.html',
+                context: 'VIBE',
+                aiCommands: ['rebuild', 'update', 'status', 'voice on', 'voice off']
+            }
+        };
+
+        let currentDashboard = 'nexus-music';
+        let currentAIMode = 'text';
+        let isRecording = false;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let videoStream = null;
+        let isVideoRecording = false;
+        let videoRecordedChunks = [];
+
+        // Initialize the hub
+        function initializeHub() {
+            setupChatWindow();
+            console.log('🤖 NEXUS AI Hub initialized as compact launcher');
+            console.log('🌌 Connected to World Engine Nucleus');
+        }
+
+        function launchApp(url) {
+            // Open the application in a new window/tab
+            const newWindow = window.open(url, '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+
+            if (newWindow) {
+                newWindow.focus();
+                console.log(`🚀 Launched application: ${url}`);
+
+                // Add visual feedback
+                const launcher = document.querySelector(`button[onclick="launchApp('${url}')"]`);
+                if (launcher) {
+                    const originalText = launcher.textContent;
+                    launcher.textContent = '🚀 Launching...';
+                    launcher.style.background = 'linear-gradient(135deg, var(--success), #81c784)';
+
+                    setTimeout(() => {
+                        launcher.textContent = originalText;
+                        launcher.style.background = '';
+                    }, 2000);
+                }
+            } else {
+                alert('Please allow popups for this site to launch applications');
+            }
+        }
+
+        function setupDashboardSwitching() {
+            const dashboardItems = document.querySelectorAll('.dashboard-item');
+
+            dashboardItems.forEach(item => {
+                item.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    const dashboardId = item.getAttribute('data-dashboard');
+
+                    // Update active state
+                    dashboardItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Switch dashboard
+                    switchDashboard(dashboardId);
+                });
+            });
+        }
+
+        function setupAIControls() {
+            const aiToggles = document.querySelectorAll('.ai-toggle');
+            const aiTextInput = document.getElementById('aiTextInput');
+            const aiSendBtn = document.getElementById('aiSendBtn');
+
+            aiToggles.forEach(toggle => {
+                toggle.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    aiToggles.forEach(t => t.classList.remove('active'));
+                    toggle.classList.add('active');
+
+                    currentAIMode = toggle.getAttribute('data-mode');
+                    updateAIModeUI();
+                });
+            });
+
+            aiSendBtn.addEventListener("click", function(e) { try { sendAICommand(e); } catch(err) { console.error("Event error:", err); } });
+            aiTextInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendAICommand();
+                }
+            });
+        }
+
+        function setupVoiceRecording() {
+            const startRecording = document.getElementById('startRecording');
+            const stopRecording = document.getElementById('stopRecording');
+            const playback = document.getElementById('playback');
+
+            startRecording.addEventListener("click", function(e) { try { startVoiceRecording(e); } catch(err) { console.error("Event error:", err); } });
+            stopRecording.addEventListener("click", function(e) { try { stopVoiceRecording(e); } catch(err) { console.error("Event error:", err); } });
+            playback.addEventListener("click", function(e) { try { playRecordedAudio(e); } catch(err) { console.error("Event error:", err); } });
+        }
+
+        function setupChatWindow() {
+            const textToggle = document.querySelector('[data-mode="text"]');
+            const chatOverlay = document.getElementById('chatOverlay');
+            const chatClose = document.getElementById('chatClose');
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+
+            // Open chat window when text toggle is clicked
+            textToggle.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                if (textToggle.classList.contains('active')) {
+                    openChatWindow();
+                } else {
+                    closeChatWindow();
+                }
+            });
+
+            // Close chat window
+            chatClose.addEventListener("click", function(e) { try { closeChatWindow(e); } catch(err) { console.error("Event error:", err); } });
+            chatOverlay.addEventListener("click", function(e) { try { closeChatWindow(e); } catch(err) { console.error("Event error:", err); } });
+
+            // Send message on button click
+            chatSendBtn.addEventListener("click", function(e) { try { sendChatMessage(e); } catch(err) { console.error("Event error:", err); } });
+
+            // Send message on Enter (Shift+Enter for new line)
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            chatInput.addEventListener('input', autoResizeTextarea);
+
+            // Setup chat mode switching
+            const chatModeBtns = document.querySelectorAll('.chat-mode-btn');
+            chatModeBtns.forEach(btn => {
+                btn.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    const mode = btn.getAttribute('data-chat-mode');
+                    switchChatMode(mode);
+                });
+            });
+
+            // Setup video recording
+            setupVideoRecording();
+        }
+
+        function openChatWindow() {
+            const chatWindow = document.getElementById('chatWindow');
+            const chatOverlay = document.getElementById('chatOverlay');
+
+            chatOverlay.classList.add('active');
+            chatWindow.classList.add('active');
+
+            // Focus the input
+            setTimeout(() => {
+                document.getElementById('chatInput').focus();
+            }, 400);
+        }
+
+        function closeChatWindow() {
+            const chatWindow = document.getElementById('chatWindow');
+            const chatOverlay = document.getElementById('chatOverlay');
+            const textToggle = document.querySelector('[data-mode="text"]');
+
+            if (chatOverlay) chatOverlay.classList.remove('active');
+            if (chatWindow) chatWindow.classList.remove('active');
+
+            // Remove active state from text toggle
+            if (textToggle) textToggle.classList.remove('active');
+
+            console.log('🚪 Chat window closed');
+        }
+
+        function sendChatMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const message = chatInput.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addChatMessage(message, 'user');
+            chatInput.value = '';
+
+            // Auto-resize textarea back to single line
+            chatInput.style.height = 'auto';
+
+            // Process the message with enhanced AI
+            processEnhancedAICommand(message);
+        }
+
+        function addChatMessage(message, type = 'ai') {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+
+            // Format different message types
+            if (type === 'user') {
+                messageDiv.textContent = `[YOU] ${message}`;
+            } else if (type === 'system') {
+                messageDiv.textContent = `[SYSTEM] ${message}`;
+            } else {
+                messageDiv.textContent = `[NEXUS AI] ${message}`;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('chatInput');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function switchDashboard(dashboardId) {
+            currentDashboard = dashboardId;
+            const dashboard = dashboards[dashboardId];
+
+            // Update context in both panels
+            document.getElementById('currentContext').textContent = `Context: ${dashboard.context}`;
+            const chatContext = document.getElementById('chatContext');
+            if (chatContext) {
+                chatContext.textContent = `Context: ${dashboard.context}`;
+            }
+
+            // Update AI chat
+            addAIMessage(`[NEXUS AI] Switched to ${dashboard.name} context`);
+            addAIMessage(`[SYSTEM] Available commands: ${dashboard.aiCommands.join(', ')}`);
+
+            // Add message to chat window if it exists
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) {
+                addChatMessage(`🔄 Switched to ${dashboard.name} context! I'm now optimized for ${dashboard.context} workflows.`, 'system');
+            }
+
+            // Load dashboard
+            loadDashboard(dashboardId);
+        }
+
+        function loadDashboard(dashboardId) {
+            const dashboard = dashboards[dashboardId];
+            const frame = document.getElementById('dashboardFrame');
+            const loading = document.getElementById('dashboardLoading');
+
+            if (dashboard.url === '#') {
+                addAIMessage(`[ERROR] ${dashboard.name} dashboard not yet configured`);
+                return;
+            }
+
+            loading.style.display = 'block';
+            frame.style.display = 'none';
+
+            frame.src = dashboard.url;
+            frame.onload = () => {
+                loading.style.display = 'none';
+                frame.style.display = 'block';
+                addAIMessage(`[SYSTEM] ${dashboard.name} loaded successfully`);
+            };
+        }
+
+        function updateAIModeUI() {
+            const voiceControls = document.getElementById('voiceControls');
+
+            if (currentAIMode === 'voice' || currentAIMode === 'record') {
+                voiceControls.style.display = 'flex';
+            } else {
+                voiceControls.style.display = 'none';
+            }
+
+            addAIMessage(`[SYSTEM] AI mode switched to: ${currentAIMode.toUpperCase()}`);
+        }
+
+        function switchChatMode(mode) {
+            // Update UI to show active mode
+            const chatModeBtns = document.querySelectorAll('.chat-mode-btn');
+            chatModeBtns.forEach(btn => {
+                if (btn.getAttribute('data-chat-mode') === mode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Show/hide relevant controls
+            const videoControls = document.getElementById('videoControls');
+            if (mode === 'video') {
+                videoControls.style.display = 'block';
+                addChatMessage('🎥 Video mode activated. Click Start Recording to begin.', 'system');
+            } else {
+                videoControls.style.display = 'none';
+                if (isVideoRecording) {
+                    stopVideoRecording();
+                }
+            }
+
+            currentAIMode = mode;
+        }
+
+        function setupVideoRecording() {
+            const startBtn = document.getElementById('startVideoRecord');
+            const stopBtn = document.getElementById('stopVideoRecord');
+            const downloadBtn = document.getElementById('downloadVideo');
+
+            startBtn.addEventListener("click", function(e) { try { startVideoRecording(e); } catch(err) { console.error("Event error:", err); } });
+            stopBtn.addEventListener("click", function(e) { try { stopVideoRecording(e); } catch(err) { console.error("Event error:", err); } });
+            downloadBtn.addEventListener("click", function(e) { try { downloadVideoRecording(e); } catch(err) { console.error("Event error:", err); } });
+        }
+
+        async function startVideoRecording() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 },
+                    audio: true
+                });
+
+                const videoPreview = document.getElementById('videoPreview');
+                videoPreview.srcObject = videoStream;
+
+                mediaRecorder = new MediaRecorder(videoStream);
+                videoRecordedChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    videoRecordedChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(videoRecordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Show download button
+                    document.getElementById('downloadVideo').style.display = 'inline-block';
+                    document.getElementById('downloadVideo').setAttribute('data-url', url);
+
+                    videoStream.getTracks().forEach(track => track.stop());
+                    videoPreview.srcObject = null;
+
+                    addChatMessage('✅ Video recording completed! Click Download to save.', 'system');
+                };
+
+                mediaRecorder.start();
+                isVideoRecording = true;
+
+                document.getElementById('startVideoRecord').style.display = 'none';
+                document.getElementById('stopVideoRecord').style.display = 'inline-block';
+
+                addChatMessage('🔴 Video recording started...', 'system');
+            } catch (error) {
+                addChatMessage(`❌ Could not access camera/microphone: ${error.message}`, 'system');
+            }
+        }
+
+        function stopVideoRecording() {
+            if (mediaRecorder && isVideoRecording) {
+                mediaRecorder.stop();
+                isVideoRecording = false;
+
+                document.getElementById('startVideoRecord').style.display = 'inline-block';
+                document.getElementById('stopVideoRecord').style.display = 'none';
+
+                addChatMessage('⏹ Video recording stopped.', 'system');
+            }
+        }
+
+        function downloadVideoRecording() {
+            const downloadBtn = document.getElementById('downloadVideo');
+            const url = downloadBtn.getAttribute('data-url');
+
+            if (url) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `nexus-hub-session-${Date.now()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Hide download button after use
+                downloadBtn.style.display = 'none';
+
+                addChatMessage('📥 Video downloaded successfully!', 'system');
+            }
+        }
+
+        function sendAICommand() {
+            const input = document.getElementById('aiTextInput');
+            const command = input.value.trim();
+
+            if (!command) return;
+
+            addAIMessage(`[USER] ${command}`);
+            input.value = '';
+
+            // Process command based on current dashboard context
+            processAICommand(command);
+        }
+
+        function processAICommand(command) {
+            const dashboard = dashboards[currentDashboard];
+            const lowerCommand = command.toLowerCase();
+
+            // Context-aware command processing
+            if (dashboard.aiCommands.some(cmd => lowerCommand.includes(cmd))) {
+                addAIMessage(`[${dashboard.context}] Processing: ${command}`);
+
+                // Send command to dashboard frame
+                try {
+                    const frame = document.getElementById('dashboardFrame');
+                    frame.contentWindow.postMessage({
+                        type: 'ai-command',
+                        command: command,
+                        context: dashboard.context
+                    }, '*');
+                } catch (error) {
+                    addAIMessage(`[ERROR] Could not send command to dashboard: ${error.message}`);
+                }
+
+            } else {
+                addAIMessage(`[${dashboard.context}] Unknown command. Try: ${dashboard.aiCommands.join(', ')}`);
+            }
+        }
+
+        function processEnhancedAICommand(message) {
+            const dashboard = dashboards[currentDashboard];
+            const lowerMessage = message.toLowerCase();
+
+            // Update chat context display
+            document.getElementById('chatContext').textContent = `Context: ${dashboard.context}`;
+
+            // Add thinking indicator
+            addChatMessage('Processing your request...', 'system');
+
+            // Simulate AI processing delay
+            setTimeout(() => {
+                let response = '';
+
+                // Context-specific responses with more detail
+                if (currentDashboard === 'nexus-music') {
+                    if (lowerMessage.includes('play') || lowerMessage.includes('start')) {
+                        response = '🎵 Initializing NEXUS Holy Beat synthesis engine! The φ(t) timing system is now active with quantum-synchronized beats. Cross-modal audio features are driving 3D visual elements in perfect mathematical harmony. Ready to create!';
+                    } else if (lowerMessage.includes('stop') || lowerMessage.includes('pause')) {
+                        response = '⏸️ Pausing musical synthesis gracefully. All cross-modal harmonics are preserved in memory. The cube rotation and color patterns will resume from the exact same state when you continue.';
+                    } else if (lowerMessage.includes('train') || lowerMessage.includes('ml')) {
+                        response = '🧠 ML Training system is active! Currently have 11,362+ data points collected. Each interaction is building a more sophisticated understanding of your creative patterns and preferences.';
+                    } else if (lowerMessage.includes('export') || lowerMessage.includes('save')) {
+                        response = '💾 Export functionality ready! I can save your current synthesis parameters, training data, visual settings, and session configuration. What would you like to export?';
+                    } else if (lowerMessage.includes('help') || lowerMessage.includes('what')) {
+                        response = '🎼 MUSIC Context Active!\n\nAvailable Commands:\n• "start all" - Begin full synthesis\n• "stop" - Pause system\n• "train" - ML training mode\n• "export" - Save configuration\n• "status" - System overview\n• "bpm [number]" - Set tempo\n• "sync" - Synchronize all components\n\nI can also answer questions about music theory, synthesis, or help optimize your creative workflow!';
+                    } else if (lowerMessage.includes('status')) {
+                        response = `🌟 NEXUS Holy Beat Status:\n• Synthesis Engine: Active\n• φ(t) Timing: Synchronized\n• Cross-Modal Features: Online\n• 3D Visualization: Rendering\n• ML Training: ${Math.floor(Math.random() * 1000) + 11000}+ samples\n• Audio Processing: Real-time\n• System Harmony: Perfect ✨`;
+                    } else {
+                        response = '🎵 Musical command processed! The NEXUS Holy Beat system is optimized for creativity. Try asking about synthesis techniques, requesting status updates, or exploring cross-modal audio-visual harmony!';
+                    }
+                } else if (currentDashboard === 'code-pad') {
+                    if (lowerMessage.includes('run') || lowerMessage.includes('execute')) {
+                        response = '💻 Code execution ready! The Monaco Editor is synchronized with the NEXUS quantum thinking engine. I can help you run Python, JavaScript, HTML, or CSS code with real-time feedback and optimization suggestions.';
+                    } else if (lowerMessage.includes('debug') || lowerMessage.includes('error')) {
+                        response = '🔍 Debug mode activated! I can analyze your code patterns, identify potential issues, suggest optimizations, and help you understand error messages. Share your code and I\'ll provide detailed insights.';
+                    } else if (lowerMessage.includes('help') || lowerMessage.includes('what')) {
+                        response = '👨‍💻 CODE Context Active!\n\nAvailable Commands:\n• "run" - Execute code\n• "debug" - Analyze issues\n• "test" - Run tests\n• "save" - Save files\n• "format" - Code formatting\n• "lint" - Code quality check\n\nI can help with Python, JavaScript, HTML, CSS, algorithms, debugging, optimization, and best practices!';
+                    } else {
+                        response = '💻 Development command processed! The Code Pad is ready for innovation. I can assist with coding, debugging, optimization, and turning your ideas into reality!';
+                    }
+                } else if (currentDashboard === 'studio') {
+                    if (lowerMessage.includes('build') || lowerMessage.includes('compile')) {
+                        response = '🏗️ World Engine Studio build initiated! All components are synchronizing through the quantum processing pipeline. Dependencies resolved, optimization passes complete!';
+                    } else if (lowerMessage.includes('help') || lowerMessage.includes('what')) {
+                        response = '🎨 STUDIO Context Active!\n\nAvailable Commands:\n• "build" - Compile project\n• "deploy" - Publish to production\n• "analyze" - Performance metrics\n• "optimize" - System tuning\n• "test" - Quality assurance\n\nI can help with project architecture, deployment strategies, performance optimization, and creative workflows!';
+                    } else {
+                        response = '🎨 Studio command processed! The World Engine is ready for creation. I can assist with building, deploying, and optimizing your creative projects!';
+                    }
+                } else if (currentDashboard === 'vibe-nexus') {
+                    if (lowerMessage.includes('voice') || lowerMessage.includes('listen')) {
+                        response = '🎤 Voice interface fully activated! Quantum audio processing is online and ready to understand natural language commands, voice patterns, and emotional context.';
+                    } else if (lowerMessage.includes('help') || lowerMessage.includes('what')) {
+                        response = '🌊 VIBE Context Active!\n\nAvailable Commands:\n• "voice on/off" - Toggle voice control\n• "vibe check" - Energy assessment\n• "status" - System overview\n• "energy" - Resonance patterns\n\nI can help with voice commands, energy optimization, and creating the perfect creative atmosphere!';
+                    } else {
+                        response = '🌊 Vibe command processed! The quantum energy field is stabilized and resonating with your creative frequency. Ready to amplify your inspiration!';
+                    }
+                }
+
+                // Special universal commands
+                if (lowerMessage.includes('nexus') || lowerMessage.includes('about')) {
+                    response = '🤖 I\'m the NEXUS Universal AI - your contextual creative assistant! I adapt to each dashboard, understanding your current workflow and providing targeted help. I can assist with music synthesis, code development, project building, and energy optimization. What would you like to explore?';
+                } else if (lowerMessage.includes('switch') || lowerMessage.includes('dashboard')) {
+                    response = '🔄 You can switch dashboards using the sidebar on the left! Each context unlocks different AI capabilities:\n• 🎵 Music: Synthesis & audio\n• 💻 Code: Development & debugging\n• 🎨 Studio: Building & deployment\n• 🌊 Vibe: Voice & energy\n\nI\'ll automatically adapt to provide relevant assistance!';
+                }
+
+                addChatMessage(response, 'ai');
+
+                // Occasionally add system insights
+                if (Math.random() > 0.6) {
+                    setTimeout(() => {
+                        addChatMessage(`💡 System Insight: Currently optimized for ${dashboard.context} workflows with ${dashboard.aiCommands.length} specialized commands available.`, 'system');
+                    }, 1500);
+                }
+            }, 1800);
+        }
+
+        function addAIMessage(message) {
+            const chat = document.getElementById('aiChat');
+            const div = document.createElement('div');
+            div.textContent = message;
+            div.style.marginBottom = '4px';
+
+            if (message.includes('[ERROR]')) {
+                div.style.color = 'var(--error)';
+            } else if (message.includes('[SYSTEM]')) {
+                div.style.color = 'var(--accent)';
+            } else if (message.includes('[USER]')) {
+                div.style.color = 'var(--success)';
+            }
+
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function startVoiceRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    recordedChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    addAIMessage(`[VOICE] Recording complete (${blob.size} bytes)`);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+
+                document.getElementById('startRecording').classList.add('recording');
+                addAIMessage(`[VOICE] Recording started...`);
+
+            } catch (error) {
+                addAIMessage(`[ERROR] Could not access microphone: ${error.message}`);
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                isRecording = false;
+
+                document.getElementById('startRecording').classList.remove('recording');
+                addAIMessage(`[VOICE] Recording stopped`);
+            }
+        }
+
+        function playRecordedAudio() {
+            if (recordedChunks.length > 0) {
+                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(blob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+
+                addAIMessage(`[VOICE] Playing back recording...`);
+            } else {
+                addAIMessage(`[ERROR] No recording available`);
+            }
+        }
+
+        // Listen for messages from dashboard frames
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'dashboard-response') {
+                addAIMessage(`[${currentDashboard.toUpperCase()}] ${event.data.message}`);
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', initializeHub);
+
+        console.log('🤖 NEXUS AI Hub loaded');
+    </script>
+</body>
+</html>

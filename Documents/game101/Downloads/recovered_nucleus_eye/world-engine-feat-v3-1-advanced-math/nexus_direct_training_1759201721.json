@@ -1,0 +1,119 @@
+{
+  "conversation_patterns": [
+    {
+      "type": "conversation",
+      "input": "hey",
+      "response": "hey how are you?",
+      "context": "predefined",
+      "timestamp": 1759201635.8584204
+    },
+    {
+      "type": "conversation",
+      "input": "hello",
+      "response": "hello! nice to see you",
+      "context": "predefined",
+      "timestamp": 1759201639.9172928
+    },
+    {
+      "type": "conversation",
+      "input": "hi",
+      "response": "hi there! how's it going?",
+      "context": "predefined",
+      "timestamp": 1759201644.0153863
+    },
+    {
+      "type": "conversation",
+      "input": "good morning",
+      "response": "good morning! have a great day",
+      "context": "predefined",
+      "timestamp": 1759201648.1043355
+    },
+    {
+      "type": "conversation",
+      "input": "how are you",
+      "response": "I'm doing well, thanks for asking!",
+      "context": "predefined",
+      "timestamp": 1759201652.168121
+    },
+    {
+      "type": "conversation",
+      "input": "bye",
+      "response": "goodbye! take care",
+      "context": "predefined",
+      "timestamp": 1759201656.281648
+    },
+    {
+      "type": "conversation",
+      "input": "thanks",
+      "response": "you're welcome!",
+      "context": "predefined",
+      "timestamp": 1759201660.3533285
+    },
+    {
+      "type": "conversation",
+      "input": "what's up",
+      "response": "not much, just here to help!",
+      "context": "predefined",
+      "timestamp": 1759201664.4440923
+    }
+  ],
+  "conditional_patterns": [
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "1",
+      "result": "2",
+      "timestamp": 1759201668.5321107
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "input is hello",
+      "result": "output is greeting",
+      "timestamp": 1759201672.6515033
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "user is confused",
+      "result": "provide clear explanation",
+      "timestamp": 1759201676.714732
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "question about math",
+      "result": "give step-by-step solution",
+      "timestamp": 1759201680.8139458
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "user says goodbye",
+      "result": "respond politely",
+      "timestamp": 1759201684.9472036
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "error occurs",
+      "result": "handle gracefully",
+      "timestamp": 1759201689.025439
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "user is frustrated",
+      "result": "show empathy",
+      "timestamp": 1759201693.1219811
+    },
+    {
+      "type": "conditional",
+      "logic_type": "if-then",
+      "condition": "task is complete",
+      "result": "confirm and offer more help",
+      "timestamp": 1759201697.2040248
+    }
+  ],
+  "session_timestamp": 1759201721.799417
+}

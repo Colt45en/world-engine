@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R3F Compact Toolbar Demo</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/@react-three/fiber@8.13.0/dist/index.umd.js"></script>
+  <script src="https://unpkg.com/@react-three/drei@9.79.0/dist/index.umd.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: white;
+      font-family: monospace;
+      overflow: hidden;
+    }
+
+    #root {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .spectral-mode {
+      filter: hue-rotate(180deg) brightness(1.3) contrast(1.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Vector Forge iframe (hidden by default) -->
+  <iframe
+    id="vector-forge-iframe"
+    src="./vector-forge-unified-engine.html"
+    style="display: none;"
+  ></iframe>
+
+  <script type="text/babel">
+    const { Canvas, useFrame } = ReactThreeFiber;
+    const { OrbitControls, Box, Sphere, Text } = drei;
+    const { useState, useRef, useEffect } = React;
+
+    // R3F Compact Toolbar Component (inline for demo)
+    function R3FCompactToolbar({ vectorForgeTools, onSettingsChange }) {
+      const [settings, setSettings] = useState({
+        resolution: 1.0,
+        brightness: 1.0,
+        contrast: 1.0,
+        saturation: 1.0,
+        vectorForgeEnabled: false,
+        spectralMode: false,
+        heartPulse: 0.0,
+        isExpanded: false,
+        position: 'top'
+      });
+
+      const [activeTab, setActiveTab] = useState('display');
+
+      const updateSetting = (key, value) => {
+        const newSettings = { ...settings, [key]: value };
+        setSettings(newSettings);
+        onSettingsChange?.(newSettings);
+      };
+
+      const toggleToolbar = () => {
+        updateSetting('isExpanded', !settings.isExpanded);
+      };
+
+      const resetDisplaySettings = () => {
+        updateSetting('resolution', 1.0);
+        updateSetting('brightness', 1.0);
+        updateSetting('contrast', 1.0);
+        updateSetting('saturation', 1.0);
+      };
+
+      // Apply display settings
+      useEffect(() => {
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+          canvas.style.filter = `
+            brightness(${settings.brightness})
+            contrast(${settings.contrast})
+            saturate(${settings.saturation})
+          `;
+        }
+      }, [settings.brightness, settings.contrast, settings.saturation]);
+
+      return React.createElement('div', {
+        className: `r3f-compact-toolbar ${settings.position} ${settings.isExpanded ? 'expanded' : 'collapsed'}`,
+        style: {
+          position: 'fixed',
+          zIndex: 1000,
+          background: 'rgba(0, 0, 0, 0.9)',
+          border: '1px solid #333',
+          borderRadius: '8px',
+          backdropFilter: 'blur(10px)',
+          fontFamily: 'monospace',
+          fontSize: '12px',
+          color: 'white',
+          transition: 'all 0.3s ease',
+          maxWidth: '400px',
+          ...(settings.position === 'top' ? { top: '10px', right: '10px' } : { bottom: '10px', right: '10px' }),
+          ...(settings.isExpanded ? { width: '300px', minHeight: '200px', padding: '10px' } : { width: '60px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' })
+        }
+      }, [
+        // Toggle Button
+        React.createElement('button', {
+          onClick: toggleToolbar,
+          title: settings.isExpanded ? 'Collapse Toolbar' : 'Expand Toolbar',
+          style: {
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '14px',
+            padding: '5px',
+            borderRadius: '4px'
+          }
+        }, settings.isExpanded ? '▲' : '🔧'),
+
+        // Position Toggle
+        React.createElement('button', {
+          onClick: () => updateSetting('position', settings.position === 'top' ? 'bottom' : 'top'),
+          title: 'Toggle Position',
+          style: {
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '12px',
+            padding: '2px',
+            borderRadius: '4px'
+          }
+        }, settings.position === 'top' ? '⬇️' : '⬆️'),
+
+        // Expanded Content
+        settings.isExpanded && React.createElement('div', {
+          style: { marginTop: '10px' }
+        }, [
+          // Tab Navigation
+          React.createElement('div', {
+            key: 'tabs',
+            style: {
+              display: 'flex',
+              gap: '2px',
+              marginBottom: '10px',
+              borderBottom: '1px solid #333',
+              paddingBottom: '5px'
+            }
+          }, [
+            React.createElement('button', {
+              key: 'display-tab',
+              onClick: () => setActiveTab('display'),
+              style: {
+                background: activeTab === 'display' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                flex: 1
+              }
+            }, '📺'),
+            React.createElement('button', {
+              key: 'vector-tab',
+              onClick: () => setActiveTab('vector'),
+              disabled: !vectorForgeTools,
+              style: {
+                background: activeTab === 'vector' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: 'white',
+                cursor: vectorForgeTools ? 'pointer' : 'not-allowed',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                flex: 1,
+                opacity: vectorForgeTools ? 1 : 0.5
+              }
+            }, '🔥'),
+            React.createElement('button', {
+              key: 'tools-tab',
+              onClick: () => setActiveTab('tools'),
+              style: {
+                background: activeTab === 'tools' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                flex: 1
+              }
+            }, '🛠️')
+          ]),
+
+          // Tab Content
+          React.createElement('div', {
+            key: 'content',
+            style: { minHeight: '120px' }
+          }, [
+            // Display Settings Tab
+            activeTab === 'display' && React.createElement('div', {
+              key: 'display-content'
+            }, [
+              // Resolution
+              React.createElement('div', {
+                key: 'resolution',
+                style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '11px' }
+              }, [
+                React.createElement('label', { key: 'res-label', style: { minWidth: '60px', color: '#ccc' } }, 'Resolution'),
+                React.createElement('input', {
+                  key: 'res-input',
+                  type: 'range',
+                  min: '0.25',
+                  max: '2.0',
+                  step: '0.25',
+                  value: settings.resolution,
+                  onChange: (e) => updateSetting('resolution', parseFloat(e.target.value)),
+                  style: { flex: 1, height: '20px', background: '#333', borderRadius: '10px' }
+                }),
+                React.createElement('span', { key: 'res-value', style: { minWidth: '35px', textAlign: 'right', color: '#999', fontSize: '10px' } }, `${settings.resolution}x`)
+              ]),
+
+              // Brightness
+              React.createElement('div', {
+                key: 'brightness',
+                style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '11px' }
+              }, [
+                React.createElement('label', { key: 'bright-label', style: { minWidth: '60px', color: '#ccc' } }, 'Brightness'),
+                React.createElement('input', {
+                  key: 'bright-input',
+                  type: 'range',
+                  min: '0.1',
+                  max: '2.0',
+                  step: '0.1',
+                  value: settings.brightness,
+                  onChange: (e) => updateSetting('brightness', parseFloat(e.target.value)),
+                  style: { flex: 1, height: '20px', background: '#333', borderRadius: '10px' }
+                }),
+                React.createElement('span', { key: 'bright-value', style: { minWidth: '35px', textAlign: 'right', color: '#999', fontSize: '10px' } }, `${Math.round(settings.brightness * 100)}%`)
+              ]),
+
+              // Contrast
+              React.createElement('div', {
+                key: 'contrast',
+                style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '11px' }
+              }, [
+                React.createElement('label', { key: 'contrast-label', style: { minWidth: '60px', color: '#ccc' } }, 'Contrast'),
+                React.createElement('input', {
+                  key: 'contrast-input',
+                  type: 'range',
+                  min: '0.1',
+                  max: '2.0',
+                  step: '0.1',
+                  value: settings.contrast,
+                  onChange: (e) => updateSetting('contrast', parseFloat(e.target.value)),
+                  style: { flex: 1, height: '20px', background: '#333', borderRadius: '10px' }
+                }),
+                React.createElement('span', { key: 'contrast-value', style: { minWidth: '35px', textAlign: 'right', color: '#999', fontSize: '10px' } }, `${Math.round(settings.contrast * 100)}%`)
+              ]),
+
+              // Saturation
+              React.createElement('div', {
+                key: 'saturation',
+                style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '11px' }
+              }, [
+                React.createElement('label', { key: 'sat-label', style: { minWidth: '60px', color: '#ccc' } }, 'Saturation'),
+                React.createElement('input', {
+                  key: 'sat-input',
+                  type: 'range',
+                  min: '0.0',
+                  max: '2.0',
+                  step: '0.1',
+                  value: settings.saturation,
+                  onChange: (e) => updateSetting('saturation', parseFloat(e.target.value)),
+                  style: { flex: 1, height: '20px', background: '#333', borderRadius: '10px' }
+                }),
+                React.createElement('span', { key: 'sat-value', style: { minWidth: '35px', textAlign: 'right', color: '#999', fontSize: '10px' } }, `${Math.round(settings.saturation * 100)}%`)
+              ]),
+
+              // Reset Button
+              React.createElement('button', {
+                key: 'reset',
+                onClick: resetDisplaySettings,
+                style: {
+                  background: '#ff6b6b',
+                  border: 'none',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  width: '100%',
+                  marginTop: '5px'
+                }
+              }, '🔄 Reset')
+            ]),
+
+            // Vector Forge Tab
+            activeTab === 'vector' && vectorForgeTools && React.createElement('div', {
+              key: 'vector-content'
+            }, [
+              React.createElement('div', {
+                key: 'tool-row-1',
+                style: { display: 'flex', gap: '5px', marginBottom: '8px' }
+              }, [
+                React.createElement('button', {
+                  key: 'add-vector',
+                  onClick: vectorForgeTools.addVector,
+                  title: 'Add Vector',
+                  style: {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '35px'
+                  }
+                }, '➕'),
+                React.createElement('button', {
+                  key: 'add-note',
+                  onClick: vectorForgeTools.addNote,
+                  title: 'Add Note',
+                  style: {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '35px'
+                  }
+                }, '📝'),
+                React.createElement('button', {
+                  key: 'clear-scene',
+                  onClick: vectorForgeTools.clearScene,
+                  title: 'Clear Scene',
+                  style: {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '35px'
+                  }
+                }, '🗑️')
+              ]),
+
+              React.createElement('div', {
+                key: 'tool-row-2',
+                style: { display: 'flex', gap: '5px', marginBottom: '8px' }
+              }, [
+                React.createElement('button', {
+                  key: 'spectral',
+                  onClick: () => {
+                    vectorForgeTools.toggleSpectral();
+                    updateSetting('spectralMode', !settings.spectralMode);
+                  },
+                  title: 'Toggle Spectral Mode',
+                  style: {
+                    background: settings.spectralMode ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                    border: settings.spectralMode ? '1px solid #667eea' : '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '35px'
+                  }
+                }, '👁️'),
+                React.createElement('button', {
+                  key: 'heart-pulse',
+                  onClick: () => vectorForgeTools.heartPulse(0.3),
+                  title: 'Heart Pulse',
+                  style: {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '35px'
+                  }
+                }, '💓')
+              ])
+            ]),
+
+            // Tools Tab
+            activeTab === 'tools' && React.createElement('div', {
+              key: 'tools-content'
+            }, [
+              React.createElement('div', {
+                key: 'tool-links',
+                style: { display: 'flex', gap: '5px', marginBottom: '8px' }
+              }, [
+                React.createElement('button', {
+                  key: 'open-vector-forge',
+                  onClick: () => window.open('./vector-forge-unified-engine.html', '_blank'),
+                  title: 'Open Vector Forge',
+                  style: {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1
+                  }
+                }, '🚀'),
+                React.createElement('button', {
+                  key: 'open-3d-sculptor',
+                  onClick: () => window.open('./nexus-3d-sculptor.html', '_blank'),
+                  title: 'Open 3D Sculptor',
+                  style: {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid #333',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    flex: 1
+                  }
+                }, '🎯')
+              ])
+            ])
+          ])
+        ])
+      ]);
+    }
+
+    // Vector Forge Integration Hook
+    function useVectorForgeIntegration() {
+      const addVector = () => {
+        const iframe = document.querySelector('#vector-forge-iframe');
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'ADD_VECTOR' }, '*');
+        } else {
+          console.log('Vector Forge: Add Vector');
+        }
+      };
+
+      const addNote = () => {
+        const iframe = document.querySelector('#vector-forge-iframe');
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'ADD_NOTE' }, '*');
+        } else {
+          console.log('Vector Forge: Add Note');
+        }
+      };
+
+      const clearScene = () => {
+        const iframe = document.querySelector('#vector-forge-iframe');
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'CLEAR_SCENE' }, '*');
+        } else {
+          console.log('Vector Forge: Clear Scene');
+        }
+      };
+
+      const toggleSpectral = () => {
+        document.body.classList.toggle('spectral-mode');
+        console.log('Vector Forge: Toggle Spectral');
+      };
+
+      const heartPulse = (intensity) => {
+        console.log(`Vector Forge: Heart Pulse ${intensity}`);
+        // Visual feedback
+        document.body.style.boxShadow = `inset 0 0 50px rgba(255, ${intensity * 255}, ${intensity * 255}, 0.3)`;
+        setTimeout(() => {
+          document.body.style.boxShadow = '';
+        }, 200);
+      };
+
+      return {
+        addVector,
+        addNote,
+        clearScene,
+        exportScene: () => console.log('Vector Forge: Export Scene'),
+        toggleSpectral,
+        heartPulse
+      };
+    }
+
+    // Animated Cube Component
+    function AnimatedCube({ position }) {
+      const meshRef = useRef();
+
+      useFrame((state, delta) => {
+        if (meshRef.current) {
+          meshRef.current.rotation.x += delta * 0.5;
+          meshRef.current.rotation.y += delta * 0.7;
+          meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime) * 0.5;
+        }
+      });
+
+      return React.createElement(Box, {
+        ref: meshRef,
+        position: position,
+        args: [1, 1, 1]
+      }, React.createElement('meshStandardMaterial', { color: '#667eea' }));
+    }
+
+    // Animated Sphere Component
+    function AnimatedSphere({ position }) {
+      const meshRef = useRef();
+
+      useFrame((state, delta) => {
+        if (meshRef.current) {
+          meshRef.current.rotation.x += delta * 0.3;
+          meshRef.current.rotation.z += delta * 0.5;
+          meshRef.current.position.x = position[0] + Math.cos(state.clock.elapsedTime) * 0.8;
+        }
+      });
+
+      return React.createElement(Sphere, {
+        ref: meshRef,
+        position: position,
+        args: [0.7, 32, 32]
+      }, React.createElement('meshStandardMaterial', { color: '#ff6b6b' }));
+    }
+
+    // Main Scene Component
+    function Scene() {
+      return React.createElement(React.Fragment, null, [
+        React.createElement('ambientLight', { key: 'ambient', intensity: 0.5 }),
+        React.createElement('pointLight', { key: 'point', position: [10, 10, 10] }),
+
+        React.createElement(AnimatedCube, { key: 'cube1', position: [-3, 0, 0] }),
+        React.createElement(AnimatedCube, { key: 'cube2', position: [3, 0, 0] }),
+        React.createElement(AnimatedSphere, { key: 'sphere1', position: [0, -2, 0] }),
+        React.createElement(AnimatedSphere, { key: 'sphere2', position: [0, 2, 0] }),
+
+        React.createElement(Text, {
+          key: 'title',
+          position: [0, 4, 0],
+          fontSize: 0.5,
+          color: '#fff'
+        }, 'R3F Compact Toolbar Demo'),
+
+        React.createElement(OrbitControls, { key: 'controls' })
+      ]);
+    }
+
+    // Main App Component
+    function App() {
+      const vectorForgeTools = useVectorForgeIntegration();
+      const [settings, setSettings] = useState({});
+
+      const handleSettingsChange = (newSettings) => {
+        setSettings(prev => ({ ...prev, ...newSettings }));
+
+        if (newSettings.spectralMode !== undefined) {
+          document.body.classList.toggle('spectral-mode', newSettings.spectralMode);
+        }
+      };
+
+      return React.createElement(React.Fragment, null, [
+        React.createElement(Canvas, {
+          key: 'canvas',
+          camera: { position: [0, 0, 8] }
+        }, React.createElement(Scene)),
+
+        React.createElement(R3FCompactToolbar, {
+          key: 'toolbar',
+          vectorForgeTools: vectorForgeTools,
+          onSettingsChange: handleSettingsChange
+        })
+      ]);
+    }
+
+    // Render the app
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+  </script>
+</body>
+</html>

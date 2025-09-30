@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Math Academy - Progressive Learning System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { height: 100%; }
+    .math-visualization { font-family: 'Courier New', monospace; }
+    .concept-complete { animation: glow 1s ease-in-out; }
+    @keyframes glow {
+      0% { box-shadow: 0 0 5px #10b981; }
+      50% { box-shadow: 0 0 20px #10b981, 0 0 30px #10b981; }
+      100% { box-shadow: 0 0 5px #51c50e; }
+    }
+  </style>
+</head>
+<body class="h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+  <div class="grid grid-cols-5 h-full">
+
+    <!-- Learning Progress Panel -->
+    <div class="col-span-1 bg-slate-800 border-r border-slate-700 p-4 overflow-y-auto">
+      <h2 class="text-xl font-bold mb-4 text-blue-400">🧮 Learning Progress</h2>
+
+      <div class="space-y-3">
+        <div class="bg-slate-700 rounded-lg p-3">
+          <h3 class="font-semibold text-sm">Current Level</h3>
+          <p id="currentLevel" class="text-2xl font-bold text-green-400">1</p>
+          <p id="levelName" class="text-xs text-slate-300">Addition & Subtraction</p>
+        </div>
+
+        <div class="bg-slate-700 rounded-lg p-3">
+          <h3 class="font-semibold text-sm mb-2">Mastered Concepts</h3>
+          <div id="masteredList" class="space-y-1 text-xs"></div>
+        </div>
+
+        <div class="bg-slate-700 rounded-lg p-3">
+          <h3 class="font-semibold text-sm mb-2">Current Focus</h3>
+          <p id="currentConcept" class="text-sm text-yellow-400">Loading...</p>
+          <div class="w-full bg-slate-600 rounded-full h-2 mt-2">
+            <div id="conceptProgress" class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <button id="nextLesson" class="w-full bg-blue-600 hover:bg-blue-700 rounded-lg py-2 px-4 mt-4 transition-colors">
+        Start Next Lesson
+      </button>
+    </div>
+
+    <!-- Main Learning Area -->
+    <div class="col-span-3 flex flex-col">
+      <!-- Header -->
+      <div class="bg-slate-700 border-b border-slate-600 p-4">
+        <h1 class="text-2xl font-bold">Nexus Math Academy</h1>
+        <p id="lessonTitle" class="text-slate-300">Ready to learn mathematics progressively!</p>
+      </div>
+
+      <!-- Learning Content -->
+      <div class="flex-1 p-6 overflow-y-auto">
+        <div id="lessonContent" class="space-y-6">
+          <div class="text-center py-8">
+            <div class="text-6xl mb-4">🚀</div>
+            <h2 class="text-2xl font-bold mb-2">Welcome to Nexus Math Academy!</h2>
+            <p class="text-slate-300 mb-4">Let's start your mathematical journey from the very beginning.</p>
+            <p class="text-sm text-slate-400">Click "Start Next Lesson" to begin with basic addition.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Controls -->
+      <div class="bg-slate-700 border-t border-slate-600 p-4">
+        <div class="flex gap-4 justify-center">
+          <button id="practiceBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors" disabled>
+            Practice Exercise
+          </button>
+          <button id="showExample" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors" disabled>
+            Show Example
+          </button>
+          <button id="checkAnswer" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg transition-colors" disabled>
+            Check Answer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualization Panel -->
+    <div class="col-span-1 bg-slate-800 border-l border-slate-700 p-4 overflow-y-auto">
+      <h2 class="text-lg font-bold mb-4 text-purple-400">📊 Math Visualization</h2>
+
+      <div id="visualizationArea" class="math-visualization text-xs">
+        <div class="text-center text-slate-400 py-8">
+          Visual aids will appear here during lessons
+        </div>
+      </div>
+
+      <!-- Interactive Calculator -->
+      <div class="mt-6 bg-slate-700 rounded-lg p-3">
+        <h3 class="font-semibold text-sm mb-3">🧮 Calculator</h3>
+        <input id="calcInput" type="text" class="w-full bg-slate-600 rounded px-2 py-1 text-white text-sm mb-2" placeholder="Enter expression...">
+        <button id="calculateBtn" class="w-full bg-blue-600 hover:bg-blue-700 rounded py-1 text-sm transition-colors">Calculate</button>
+        <div id="calcResult" class="text-green-400 text-sm mt-2 min-h-[1rem]"></div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="mt-4 space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span>Lessons Completed:</span>
+          <span id="lessonsCompleted" class="text-green-400">0</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Success Rate:</span>
+          <span id="successRate" class="text-blue-400">---%</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Study Time:</span>
+          <span id="studyTime" class="text-purple-400">0m</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Nexus Math Academy - Progressive Learning System
+
+    // Core Learning Engine
+    class NexusMathLearner {
+      constructor() {
+        this.currentLevel = 1;
+        this.masteredConcepts = new Set();
+        this.learningHistory = [];
+        this.confidence = new Map();
+        this.startTime = Date.now();
+        this.lessonsCompleted = 0;
+        this.totalAttempts = 0;
+        this.successfulAttempts = 0;
+
+        this.levelNames = {
+          1: "Addition & Subtraction",
+          2: "Multiplication & Division",
+          3: "Basic Algebra",
+          4: "Geometry",
+          5: "Physics Applications",
+          6: "Calculus Foundations"
+        };
+
+        this.conceptsByLevel = {
+          1: ['counting', 'addition', 'subtraction', 'number_recognition'],
+          2: ['multiplication', 'division', 'grouping', 'scaling'],
+          3: ['variables', 'equations', 'solving', 'substitution'],
+          4: ['shapes', 'area', 'perimeter', 'volume'],
+          5: ['motion', 'forces', 'energy', 'mathematical_modeling'],
+          6: ['limits', 'derivatives', 'integrals', 'continuous_change']
+        };
+      }
+
+      getCurrentConcepts() {
+        return this.conceptsByLevel[this.currentLevel] || [];
+      }
+
+      getNextUnmasteredConcept() {
+        const concepts = this.getCurrentConcepts();
+        return concepts.find(concept => !this.masteredConcepts.has(concept));
+      }
+
+      practiceConcept(concept, success) {
+        this.totalAttempts++;
+        if (success) this.successfulAttempts++;
+
+        const currentConfidence = this.confidence.get(concept) || 0;
+        const adjustment = success ? 0.15 : -0.1;
+        const newConfidence = Math.max(0, Math.min(1, currentConfidence + adjustment));
+
+        this.confidence.set(concept, newConfidence);
+        this.learningHistory.push({
+          timestamp: Date.now(),
+          concept,
+          success,
+          confidence: newConfidence
+        });
+
+        if (newConfidence >= 0.8 && !this.masteredConcepts.has(concept)) {
+          this.masteredConcepts.add(concept);
+          this.showConceptMastery(concept);
+          return true; // Newly mastered
+        }
+        return false;
+      }
+
+      showConceptMastery(concept) {
+        // Visual feedback for mastering a concept
+        const masteredEl = document.getElementById('masteredList');
+        const conceptEl = document.createElement('div');
+        conceptEl.className = 'concept-complete bg-green-600 rounded px-2 py-1 text-white';
+        conceptEl.textContent = `✓ ${concept}`;
+        masteredEl.appendChild(conceptEl);
+
+        // Achievement sound/animation could go here
+        console.log(`🎉 Mastered: ${concept}`);
+      }
+
+      isReadyForNextLevel() {
+        const requiredConcepts = this.getCurrentConcepts();
+        const mastered = requiredConcepts.filter(concept => this.masteredConcepts.has(concept));
+        return mastered.length >= Math.ceil(requiredConcepts.length * 0.75); // 75% mastery required
+      }
+
+      advanceLevel() {
+        if (this.isReadyForNextLevel() && this.currentLevel < 6) {
+          this.currentLevel++;
+          this.lessonsCompleted++;
+          return true;
+        }
+        return false;
+      }
+
+      getSuccessRate() {
+        return this.totalAttempts > 0 ? Math.round((this.successfulAttempts / this.totalAttempts) * 100) : 0;
+      }
+
+      getStudyTime() {
+        const minutes = Math.floor((Date.now() - this.startTime) / (1000 * 60));
+        return minutes;
+      }
+    }
+
+    // Lesson Content Generator
+    class LessonGenerator {
+      static generateAdditionLesson() {
+        return {
+          title: "Understanding Addition - Counting Forward",
+          explanation: `
+            <div class="space-y-4">
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-2">🍎 What is Addition?</h3>
+                <p class="text-slate-300">Addition means <strong>combining groups</strong> to count how many things we have in total!</p>
+                <p class="text-slate-300 mt-2">When you have 3 apples and get 2 more, you count them all together: <strong>3 + 2 = 5 apples!</strong></p>
+              </div>
+
+              <div class="bg-slate-700 p-4 rounded-lg">
+                <h4 class="font-semibold mb-2">Let's try it step by step:</h4>
+                <div class="space-y-2 text-sm">
+                  <div>1️⃣ Start with the first number: <strong>3</strong></div>
+                  <div>2️⃣ Count forward by the second number: <strong>+2</strong></div>
+                  <div>3️⃣ <em>Count: 3... 4, 5</em></div>
+                  <div>4️⃣ The answer is <strong>5</strong>! ✨</div>
+                </div>
+              </div>
+            </div>
+          `,
+          exercises: [
+            { problem: "2 + 3", answer: 5, visual: "●●  +  ●●●  =  ●●●●●" },
+            { problem: "4 + 1", answer: 5, visual: "●●●●  +  ●  =  ●●●●●" },
+            { problem: "3 + 4", answer: 7, visual: "●●●  +  ●●●●  =  ●●●●●●●" }
+          ]
+        };
+      }
+
+      static generateMultiplicationLesson() {
+        return {
+          title: "Understanding Multiplication - Groups of Things",
+          explanation: `
+            <div class="space-y-4">
+              <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-2">📦 What is Multiplication?</h3>
+                <p class="text-slate-300">Multiplication means having <strong>multiple groups</strong> of the same amount!</p>
+                <p class="text-slate-300 mt-2">If you have 3 boxes with 4 cookies each: <strong>3 × 4 = 12 cookies!</strong></p>
+              </div>
+
+              <div class="bg-slate-700 p-4 rounded-lg">
+                <h4 class="font-semibold mb-2">Think of it as repeated addition:</h4>
+                <div class="space-y-2 text-sm">
+                  <div><strong>3 × 4</strong> means "3 groups of 4"</div>
+                  <div>= <strong>4 + 4 + 4</strong></div>
+                  <div>= <strong>12</strong> ✨</div>
+                </div>
+              </div>
+            </div>
+          `,
+          exercises: [
+            { problem: "2 × 3", answer: 6, visual: "●●●\n●●●" },
+            { problem: "4 × 2", answer: 8, visual: "●● ●● ●● ●●" },
+            { problem: "3 × 3", answer: 9, visual: "●●●\n●●●\n●●●" }
+          ]
+        };
+      }
+
+      static generateAlgebraLesson() {
+        return {
+          title: "Basic Algebra - Solving Mystery Numbers",
+          explanation: `
+            <div class="space-y-4">
+              <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-2">🔍 What is Algebra?</h3>
+                <p class="text-slate-300">Algebra is like being a <strong>detective</strong> who solves mysteries with unknown numbers!</p>
+                <p class="text-slate-300 mt-2">We use letters like <strong>x</strong> to represent mystery numbers we need to find.</p>
+              </div>
+
+              <div class="bg-slate-700 p-4 rounded-lg">
+                <h4 class="font-semibold mb-2">Balance Scale Method:</h4>
+                <div class="space-y-2 text-sm">
+                  <div>If <strong>x + 3 = 7</strong></div>
+                  <div>Then <strong>x = 7 - 3</strong></div>
+                  <div>So <strong>x = 4</strong></div>
+                  <div>Check: <strong>4 + 3 = 7</strong> ✓</div>
+                </div>
+              </div>
+            </div>
+          `,
+          exercises: [
+            { problem: "x + 5 = 8", answer: 3, visual: "[x] + 5 = 8\n[x] = 8 - 5\n[x] = 3" },
+            { problem: "x - 2 = 6", answer: 8, visual: "[x] - 2 = 6\n[x] = 6 + 2\n[x] = 8" },
+            { problem: "2x = 10", answer: 5, visual: "2[x] = 10\n[x] = 10 ÷ 2\n[x] = 5" }
+          ]
+        };
+      }
+    }
+
+    // Visual Renderer
+    class MathVisualizer {
+      static renderAdditionVisual(a, b) {
+        const dotsA = '●'.repeat(a);
+        const dotsB = '●'.repeat(b);
+        const total = '●'.repeat(a + b);
+        return `${dotsA}  +  ${dotsB}  =  ${total}\n${a} + ${b} = ${a + b}`;
+      }
+
+      static renderMultiplicationGrid(rows, cols) {
+        let grid = '';
+        for (let r = 0; r < rows; r++) {
+          grid += '●'.repeat(cols) + '\n';
+        }
+        grid += `${rows} × ${cols} = ${rows * cols}`;
+        return grid;
+      }
+
+      static renderEquationSteps(steps) {
+        return steps.join('\n');
+      }
+
+      static updateVisualization(content) {
+        const viz = document.getElementById('visualizationArea');
+        viz.innerHTML = `<pre class="whitespace-pre-wrap text-xs leading-relaxed">${content}</pre>`;
+      }
+    }
+
+    // Main Application Controller
+    class NexusMathAcademy {
+      constructor() {
+        this.learner = new NexusMathLearner();
+        this.currentLesson = null;
+        this.currentExercise = null;
+        this.exerciseIndex = 0;
+
+        this.initializeUI();
+        this.updateDisplay();
+        this.startUpdateLoop();
+      }
+
+      initializeUI() {
+        // Event listeners
+        document.getElementById('nextLesson').addEventListener('click', () => this.startNextLesson());
+        document.getElementById('practiceBtn').addEventListener('click', () => this.generatePracticeExercise());
+        document.getElementById('showExample').addEventListener('click', () => this.showExample());
+        document.getElementById('checkAnswer').addEventListener('click', () => this.checkCurrentAnswer());
+        document.getElementById('calculateBtn').addEventListener('click', () => this.calculate());
+
+        // Enter key for calculator
+        document.getElementById('calcInput').addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') this.calculate();
+        });
+      }
+
+      updateDisplay() {
+        // Update progress panel
+        document.getElementById('currentLevel').textContent = this.learner.currentLevel;
+        document.getElementById('levelName').textContent = this.learner.levelNames[this.learner.currentLevel];
+
+        const nextConcept = this.learner.getNextUnmasteredConcept();
+        document.getElementById('currentConcept').textContent = nextConcept || "All concepts mastered!";
+
+        const concepts = this.learner.getCurrentConcepts();
+        const mastered = concepts.filter(c => this.learner.masteredConcepts.has(c));
+        const progress = concepts.length > 0 ? (mastered.length / concepts.length) * 100 : 0;
+        document.getElementById('conceptProgress').style.width = `${progress}%`;
+
+        // Update stats
+        document.getElementById('lessonsCompleted').textContent = this.learner.lessonsCompleted;
+        document.getElementById('successRate').textContent = `${this.learner.getSuccessRate()}%`;
+        document.getElementById('studyTime').textContent = `${this.learner.getStudyTime()}m`;
+      }
+
+      startNextLesson() {
+        const concept = this.learner.getNextUnmasteredConcept();
+        if (!concept) {
+          if (this.learner.advanceLevel()) {
+            this.updateDisplay();
+            return this.startNextLesson();
+          } else {
+            this.showCompletion();
+            return;
+          }
+        }
+
+        // Generate lesson based on concept
+        let lesson;
+        switch (concept) {
+          case 'addition':
+          case 'counting':
+            lesson = LessonGenerator.generateAdditionLesson();
+            break;
+          case 'multiplication':
+            lesson = LessonGenerator.generateMultiplicationLesson();
+            break;
+          case 'variables':
+          case 'equations':
+            lesson = LessonGenerator.generateAlgebraLesson();
+            break;
+          default:
+            lesson = {
+              title: `Learning: ${concept}`,
+              explanation: `<p>This concept is under development. Practice with the calculator below!</p>`,
+              exercises: []
+            };
+        }
+
+        this.currentLesson = lesson;
+        this.exerciseIndex = 0;
+
+        // Update UI
+        document.getElementById('lessonTitle').textContent = lesson.title;
+        document.getElementById('lessonContent').innerHTML = lesson.explanation;
+
+        // Enable buttons
+        document.getElementById('practiceBtn').disabled = false;
+        document.getElementById('showExample').disabled = false;
+
+        console.log(`Started lesson: ${lesson.title}`);
+      }
+
+      generatePracticeExercise() {
+        if (!this.currentLesson || !this.currentLesson.exercises.length) return;
+
+        const exercise = this.currentLesson.exercises[this.exerciseIndex % this.currentLesson.exercises.length];
+        this.currentExercise = exercise;
+
+        const exerciseHTML = `
+          <div class="bg-slate-700 p-6 rounded-lg">
+            <h3 class="text-xl font-bold mb-4">Practice Problem</h3>
+            <div class="text-center">
+              <div class="text-3xl font-bold mb-4 text-blue-400">${exercise.problem} = ?</div>
+              <input type="number" id="answerInput" class="bg-slate-600 text-white px-4 py-2 rounded-lg text-xl text-center w-32" placeholder="Answer">
+            </div>
+          </div>
+        `;
+
+        document.getElementById('lessonContent').innerHTML = exerciseHTML;
+        document.getElementById('checkAnswer').disabled = false;
+
+        // Show visual aid
+        MathVisualizer.updateVisualization(exercise.visual);
+
+        // Focus on input
+        setTimeout(() => document.getElementById('answerInput')?.focus(), 100);
+
+        this.exerciseIndex++;
+      }
+
+      showExample() {
+        if (!this.currentLesson) return;
+
+        const concept = this.learner.getNextUnmasteredConcept();
+        let example = '';
+
+        switch (concept) {
+          case 'addition':
+            example = `
+              <div class="bg-green-900/20 p-4 rounded-lg">
+                <h3 class="font-bold mb-2">Example: 3 + 4</h3>
+                <div class="space-y-2">
+                  <div>Step 1: Start with 3</div>
+                  <div>Step 2: Count forward 4 times: 4, 5, 6, 7</div>
+                  <div>Answer: <strong>7</strong></div>
+                </div>
+              </div>
+            `;
+            MathVisualizer.updateVisualization(MathVisualizer.renderAdditionVisual(3, 4));
+            break;
+          case 'multiplication':
+            example = `
+              <div class="bg-purple-900/20 p-4 rounded-lg">
+                <h3 class="font-bold mb-2">Example: 3 × 4</h3>
+                <div class="space-y-2">
+                  <div>Think: "3 groups of 4"</div>
+                  <div>= 4 + 4 + 4</div>
+                  <div>= <strong>12</strong></div>
+                </div>
+              </div>
+            `;
+            MathVisualizer.updateVisualization(MathVisualizer.renderMultiplicationGrid(3, 4));
+            break;
+          default:
+            example = `<div class="text-center py-4">Examples for ${concept} coming soon!</div>`;
+        }
+
+        document.getElementById('lessonContent').innerHTML = example;
+      }
+
+      checkCurrentAnswer() {
+        if (!this.currentExercise) return;
+
+        const userAnswer = parseInt(document.getElementById('answerInput')?.value);
+        const correct = userAnswer === this.currentExercise.answer;
+
+        const concept = this.learner.getNextUnmasteredConcept();
+        const wasNewlyMastered = this.learner.practiceConcept(concept, correct);
+
+        // Show feedback
+        const feedback = correct ?
+          `<div class="bg-green-600 p-4 rounded-lg text-center">
+            <div class="text-2xl mb-2">🎉 Correct!</div>
+            <div>${this.currentExercise.problem} = ${this.currentExercise.answer}</div>
+            ${wasNewlyMastered ? '<div class="text-sm mt-2">✨ Concept Mastered!</div>' : ''}
+          </div>` :
+          `<div class="bg-red-600 p-4 rounded-lg text-center">
+            <div class="text-2xl mb-2">❌ Try Again</div>
+            <div>The correct answer is: ${this.currentExercise.answer}</div>
+            <div class="text-sm mt-2">Remember: ${this.currentExercise.visual}</div>
+          </div>`;
+
+        document.getElementById('lessonContent').innerHTML = feedback;
+        document.getElementById('checkAnswer').disabled = true;
+
+        this.updateDisplay();
+
+        // Auto-advance after feedback
+        setTimeout(() => {
+          if (wasNewlyMastered) {
+            this.startNextLesson();
+          } else {
+            this.generatePracticeExercise();
+          }
+        }, 3000);
+      }
+
+      calculate() {
+        const input = document.getElementById('calcInput').value;
+        const result = document.getElementById('calcResult');
+
+        try {
+          // Simple expression evaluation (in production, use a proper math parser)
+          const answer = Function('"use strict"; return (' + input + ')')();
+          result.textContent = `= ${answer}`;
+          result.className = 'text-green-400 text-sm mt-2';
+        } catch (error) {
+          result.textContent = 'Invalid expression';
+          result.className = 'text-red-400 text-sm mt-2';
+        }
+      }
+
+      showCompletion() {
+        document.getElementById('lessonContent').innerHTML = `
+          <div class="text-center py-12">
+            <div class="text-6xl mb-4">🎓</div>
+            <h2 class="text-3xl font-bold mb-4">Congratulations!</h2>
+            <p class="text-xl text-slate-300 mb-4">You've mastered all current mathematical concepts!</p>
+            <p class="text-slate-400">Continue practicing with the calculator or return later for more advanced topics.</p>
+          </div>
+        `;
+        MathVisualizer.updateVisualization("🎉 Learning Complete! 🎉");
+      }
+
+      startUpdateLoop() {
+        setInterval(() => {
+          this.updateDisplay();
+        }, 5000); // Update every 5 seconds
+      }
+    }
+
+    // Initialize the Math Academy
+    window.addEventListener('load', () => {
+      const academy = new NexusMathAcademy();
+      console.log('🧮 Nexus Math Academy initialized!');
+
+      // Expose to global scope for debugging
+      window.nexusMath = academy;
+    });
+  </script>
+</body>
+</html>

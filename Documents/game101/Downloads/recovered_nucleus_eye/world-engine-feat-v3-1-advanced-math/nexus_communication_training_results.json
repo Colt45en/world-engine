@@ -1,0 +1,86 @@
+[
+  {
+    "lesson": "Greetings",
+    "prompt": "Hello! How are you?",
+    "expected": "I'm fine, thank you!",
+    "response": "I'm fine, thank you!",
+    "correct": true
+  },
+  {
+    "lesson": "Greetings",
+    "prompt": "Hi there! What's your name?",
+    "expected": "My name is Nexus!",
+    "response": "My name is Nexus!",
+    "correct": true
+  },
+  {
+    "lesson": "Greetings",
+    "prompt": "Good morning! How's the weather?",
+    "expected": "It's sunny today!",
+    "response": "It's sunny today!",
+    "correct": true
+  },
+  {
+    "lesson": "Questions",
+    "prompt": "What is your favorite color?",
+    "expected": "My favorite color is blue!",
+    "response": "My favorite color is blue!",
+    "correct": true
+  },
+  {
+    "lesson": "Questions",
+    "prompt": "Do you like to play?",
+    "expected": "Yes, I love to play!",
+    "response": "Yes, I love to play!",
+    "correct": true
+  },
+  {
+    "lesson": "Questions",
+    "prompt": "Where do you live?",
+    "expected": "I live in the computer!",
+    "response": "I live in the computer!",
+    "correct": true
+  },
+  {
+    "lesson": "Descriptions",
+    "prompt": "Tell me about a cat.",
+    "expected": "A cat is soft and furry. It says meow!",
+    "response": "A cat is soft and furry. It says meow!",
+    "correct": true
+  },
+  {
+    "lesson": "Descriptions",
+    "prompt": "What is a ball?",
+    "expected": "A ball is round and bounces. It's fun to play with!",
+    "response": "A ball is round and bounces. It's fun to play with!",
+    "correct": true
+  },
+  {
+    "lesson": "Descriptions",
+    "prompt": "Describe your friend.",
+    "expected": "My friend is kind and smart. We play together!",
+    "response": "My friend is kind and smart. We play together!",
+    "correct": true
+  },
+  {
+    "lesson": "Simple Logic",
+    "prompt": "If hello is a greeting, then a greeting is what?",
+    "expected": "hello",
+    "response": "hello",
+    "correct": true
+  },
+  {
+    "lesson": "Simple Logic",
+    "prompt": "If cat is an animal, then an animal is what?",
+    "expected": "cat",
+    "response": "cat",
+    "correct": true
+  },
+  {
+    "lesson": "Simple Logic",
+    "prompt": "If blue is a color, then a color is what?",
+    "expected": "blue",
+    "response": "blue",
+    "correct": true
+  }
+]

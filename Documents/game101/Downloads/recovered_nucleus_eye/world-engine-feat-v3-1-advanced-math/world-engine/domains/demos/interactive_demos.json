@@ -1,0 +1,217 @@
+{
+    "interactive_demos": {
+        "math_pro_showcase": {
+            "name": "Math Pro Glyph System Demo",
+            "description": "Interactive demonstration of glyph collation and morpheme transformations",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "bottom-right",
+                    "toggle_key": "C",
+                    "default_state": "minimized",
+                    "ai_connection": "vectorlab_nexus",
+                    "description": "Persistent AI chatbot connection with nexus bridge"
+                },
+                "demo_controls": {
+                    "glyph_input": true,
+                    "morpheme_visualization": true,
+                    "real_time_processing": true,
+                    "step_through_mode": true
+                }
+            },
+            "demo_content": {
+                "glyph_examples": [
+                    {
+                        "symbol": "⊕",
+                        "morpheme": "xor",
+                        "context": "exclusive or operation"
+                    },
+                    {
+                        "symbol": "∇",
+                        "morpheme": "nabla",
+                        "context": "gradient operator"
+                    },
+                    {
+                        "symbol": "∫",
+                        "morpheme": "integral",
+                        "context": "integration symbol"
+                    },
+                    {
+                        "symbol": "∑",
+                        "morpheme": "summation",
+                        "context": "series summation"
+                    },
+                    {
+                        "symbol": "π",
+                        "morpheme": "pi",
+                        "context": "mathematical constant"
+                    }
+                ],
+                "interactive_features": [
+                    "Click glyphs to see morpheme breakdown",
+                    "Toggle between Unicode and ASCII representations",
+                    "Real-time Math Pro processing",
+                    "AI chatbot assistance for explanations"
+                ]
+            }
+        },
+        "phonics_trainer": {
+            "name": "Interactive Phonics Training Demo",
+            "description": "Phoneme blending and word recognition training system",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "bottom-left",
+                    "toggle_key": "H",
+                    "default_state": "minimized",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "phonics_training"
+                },
+                "demo_controls": {
+                    "phoneme_buttons": true,
+                    "word_assembly": true,
+                    "pronunciation_guide": true,
+                    "progress_tracking": true
+                }
+            },
+            "demo_content": {
+                "phoneme_categories": [
+                    "consonants",
+                    "vowels",
+                    "blends"
+                ],
+                "difficulty_levels": [
+                    "beginner",
+                    "intermediate",
+                    "advanced"
+                ],
+                "word_lists": [
+                    "cvc_words",
+                    "cvce_words",
+                    "multisyllabic"
+                ],
+                "feedback_system": "real_time_correction"
+            }
+        },
+        "graphics_pipeline": {
+            "name": "3D Graphics Pipeline Visualizer",
+            "description": "Step-by-step visualization of 3D rendering pipeline",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "top-right",
+                    "toggle_key": "G",
+                    "default_state": "minimized",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "graphics_pipeline"
+                },
+                "demo_controls": {
+                    "pipeline_steps": true,
+                    "matrix_visualization": true,
+                    "shader_preview": true,
+                    "performance_metrics": true
+                }
+            },
+            "demo_content": {
+                "pipeline_stages": [
+                    "vertex_processing",
+                    "primitive_assembly",
+                    "rasterization",
+                    "fragment_processing",
+                    "output_merging"
+                ],
+                "interactive_features": [
+                    "Adjust transformation matrices",
+                    "Toggle rendering modes",
+                    "Real-time performance analysis",
+                    "AI explanations for complex operations"
+                ]
+            }
+        },
+        "world_engine_explorer": {
+            "name": "World Engine Domain Explorer",
+            "description": "Interactive exploration of all World Engine domains",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "floating",
+                    "toggle_key": "SPACE",
+                    "default_state": "docked",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "domain_exploration",
+                    "smart_suggestions": true
+                },
+                "demo_controls": {
+                    "domain_selector": true,
+                    "data_browser": true,
+                    "search_functionality": true,
+                    "export_tools": true
+                }
+            },
+            "demo_content": {
+                "available_domains": [
+                    "gaming",
+                    "english",
+                    "math",
+                    "graphics",
+                    "tools"
+                ],
+                "visualization_modes": [
+                    "tree_view",
+                    "graph_view",
+                    "table_view"
+                ],
+                "interaction_features": [
+                    "Drag-and-drop domain connections",
+                    "Real-time data filtering",
+                    "Cross-domain relationship mapping",
+                    "AI-powered domain insights"
+                ]
+            }
+        }
+    },
+    "chatbox_integration": {
+        "universal_features": {
+            "persistent_connection": "vectorlab_nexus",
+            "context_awareness": true,
+            "smart_suggestions": true,
+            "real_time_help": true,
+            "demo_specific_knowledge": true
+        },
+        "toggle_mechanisms": {
+            "keyboard_shortcuts": {
+                "primary": "configurable_per_demo",
+                "universal": "Ctrl+Shift+C",
+                "help": "F1"
+            },
+            "ui_elements": {
+                "floating_button": true,
+                "status_indicator": true,
+                "minimize_maximize": true,
+                "drag_repositioning": true
+            }
+        },
+        "chatbox_states": {
+            "minimized": {
+                "shows": "status_indicator_only",
+                "size": "24x24px",
+                "position": "configurable"
+            },
+            "docked": {
+                "shows": "chat_interface",
+                "size": "300x400px",
+                "position": "side_panel"
+            },
+            "floating": {
+                "shows": "full_interface",
+                "size": "400x500px",
+                "position": "draggable_window"
+            },
+            "fullscreen": {
+                "shows": "expanded_interface",
+                "size": "overlay_mode",
+                "position": "center_screen"
+            }
+        }
+    }
+}

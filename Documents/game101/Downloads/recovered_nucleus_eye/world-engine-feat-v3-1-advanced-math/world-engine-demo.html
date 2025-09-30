@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .engine-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 1200px;
+            width: 90%;
+            backdrop-filter: blur(10px);
+        }
+
+        .engine-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .engine-title {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .engine-subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+
+        .domain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .domain-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .domain-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .domain-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+        }
+
+        .domain-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .domain-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .domain-description {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .domain-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .controls-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .output-panel {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .output-panel.active {
+            display: block;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #dc3545;
+            transition: background-color 0.3s ease;
+        }
+
+        .status-indicator.ready {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .feature-list li {
+            padding: 5px 0;
+            color: #555;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="engine-container">
+        <div class="engine-header">
+            <h1 class="engine-title">🌍 World Engine</h1>
+            <p class="engine-subtitle">
+                <span class="status-indicator" id="statusIndicator"></span>
+                Domain-Separated Knowledge Management System
+            </p>
+        </div>
+
+        <div class="domain-grid" id="domainGrid">
+            <!-- Domains will be populated dynamically -->
+        </div>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <label class="control-label">Test Operations</label>
+                <button class="btn" onclick="initializeEngine()">🚀 Initialize Engine</button>
+                <button class="btn" onclick="testMathPro()">🧮 Test Math Pro</button>
+                <button class="btn" onclick="testPhonics()">🗣️ Test Phonics</button>
+                <button class="btn" onclick="testStory()">📖 Test Story</button>
+                <button class="btn" onclick="loadDomainData()">📁 Load All Domains</button>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label" for="testInput">Test Input</label>
+                <input type="text" id="testInput" class="control-input" placeholder="Enter test data...">
+            </div>
+
+            <div class="control-group">
+                <button class="btn" onclick="runCustomTest()">▶️ Run Test</button>
+                <button class="btn" onclick="clearOutput()">🗑️ Clear Output</button>
+                <button class="btn" onclick="exportData()">💾 Export Data</button>
+            </div>
+        </div>
+
+        <div class="output-panel" id="outputPanel">
+            <div id="outputContent"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { WorldEngineRuntime } from './runtime.js';
+
+        let worldEngine = null;
+        let isInitialized = false;
+
+        // Domain configuration
+        const domains = [
+            {
+                name: 'gaming',
+                icon: '🎮',
+                title: 'Gaming',
+                description: 'Entities, items, world mechanics, combat systems, and RPG elements.',
+                stats: { entities: '12+', systems: '8+' }
+            },
+            {
+                name: 'english',
+                icon: '🗣️',
+                title: 'English',
+                description: 'Phonics, grammar, lexicon, story beats, and language processing.',
+                stats: { phonemes: '50+', words: '18+' }
+            },
+            {
+                name: 'math',
+                icon: '🧮',
+                title: 'Mathematics',
+                description: 'Operators, functions, constants, number systems, and advanced mathematics.',
+                stats: { operators: '30+', functions: '20+' }
+            },
+            {
+                name: 'graphics',
+                icon: '🎨',
+                title: 'Graphics',
+                description: 'Primitives, transformations, rendering, color spaces, and algorithms.',
+                stats: { primitives: '15+', algorithms: '10+' }
+            }
+        ];
+
+        // Initialize page
+        window.addEventListener('load', () => {
+            renderDomains();
+            updateStatus(false);
+        });
+
+        function renderDomains() {
+            const grid = document.getElementById('domainGrid');
+            grid.innerHTML = domains.map(domain => `
+                <div class="domain-card" onclick="selectDomain('${domain.name}')" data-domain="${domain.name}">
+                    <span class="domain-icon">${domain.icon}</span>
+                    <h3 class="domain-title">${domain.title}</h3>
+                    <p class="domain-description">${domain.description}</p>
+                    <div class="domain-stats">
+                        ${Object.entries(domain.stats).map(([key, value]) => `<span>${key}: ${value}</span>`).join('')}
+                    </div>
+                    <ul class="feature-list">
+                        <li>Comprehensive data models</li>
+                        <li>Service integration</li>
+                        <li>Real-time processing</li>
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function selectDomain(domainName) {
+            // Remove active class from all cards
+            document.querySelectorAll('.domain-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            // Add active class to selected card
+            const selectedCard = document.querySelector(`[data-domain="${domainName}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('active');
+            }
+
+            log(`📋 Selected domain: ${domainName}`);
+
+            if (worldEngine && isInitialized) {
+                const domainData = worldEngine.getDomain(domainName);
+                if (domainData) {
+                    log(`📊 ${domainName} domain data:`, JSON.stringify(domainData, null, 2));
+                } else {
+                    log(`⚠️ No data found for domain: ${domainName}`);
+                }
+            }
+        }
+
+        async function initializeEngine() {
+            try {
+                log('🚀 Initializing World Engine...');
+                worldEngine = new WorldEngineRuntime({
+                    basePath: './world-engine/'
+                });
+
+                await worldEngine.initialize();
+                isInitialized = true;
+                updateStatus(true);
+                log('✅ World Engine initialized successfully!');
+
+                // Log available domains
+                const domainNames = Object.keys(worldEngine.domains);
+                log(`🗂️ Loaded domains: ${domainNames.join(', ')}`);
+
+                // Log available services
+                const serviceNames = Object.keys(worldEngine.services).filter(name => worldEngine.services[name]);
+                log(`⚡ Active services: ${serviceNames.join(', ')}`);
+
+            } catch (error) {
+                log(`❌ Engine initialization failed: ${error.message}`);
+                updateStatus(false);
+            }
+        }
+
+        async function testMathPro() {
+            if (!checkInitialized()) return;
+
+            log('🧮 Testing Math Pro service...');
+            const mathService = worldEngine.getMathPro();
+
+            if (mathService) {
+                log('✓ Math Pro service active');
+                log(`📊 Available operators: ${Object.keys(mathService.operators).length}`);
+                log(`🔣 Glyph mappings: ${mathService.GlyphCollationMap.size()} symbols`);
+
+                // Test basic operations
+                if (mathService.LLEMath) {
+                    const result1 = mathService.LLEMath.add(15.7, 23.3);
+                    const result2 = mathService.LLEMath.multiply(7, 8);
+                    log(`🔢 15.7 + 23.3 = ${result1}`);
+                    log(`🔢 7 × 8 = ${result2}`);
+                }
+
+                // Test glyph mapping
+                const sampleGlyph = '⊕';
+                const mapping = mathService.GlyphCollationMap.getMorpheme?.(sampleGlyph);
+                if (mapping) {
+                    log(`🔣 Glyph '${sampleGlyph}' maps to: ${mapping}`);
+                }
+
+            } else {
+                log('❌ Math Pro service not available');
+            }
+        }
+
+        async function testPhonics() {
+            if (!checkInitialized()) return;
+
+            log('🗣️ Testing Phonics service...');
+            const phonicsService = worldEngine.getPhonics();
+
+            if (phonicsService) {
+                log('✓ Phonics service active');
+
+                // Test phonetic lookup
+                const testWords = ['cat', 'house', 'beautiful'];
+                testWords.forEach(word => {
+                    const phonetic = phonicsService.getPhonetic(word);
+                    if (phonetic) {
+                        log(`📚 "${word}" → /${phonetic}/`);
+                    } else {
+                        log(`❓ No phonetic found for "${word}"`);
+                    }
+                });
+
+                // Test phoneme blending
+                const phonemes = ['k', 'æ', 't'];
+                const blended = phonicsService.blendPhonemes(phonemes);
+                log(`🔊 Blending [${phonemes.join(', ')}] → "${blended}"`);
+
+            } else {
+                log('❌ Phonics service not available');
+            }
+        }
+
+        async function testStory() {
+            if (!checkInitialized()) return;
+
+            log('📖 Testing Story service...');
+            const storyService = worldEngine.getStory();
+
+            if (storyService) {
+                log('✓ Story service active');
+
+                // Generate a story beat
+                const beat = storyService.generateStoryBeat({ theme: 'adventure' });
+                if (beat) {
+                    log(`🎭 Generated story beat: ${beat.type}`);
+                    log(`📝 Description: ${beat.description}`);
+                    log(`💡 Example: ${beat.example}`);
+                } else {
+                    log('❓ No story beats available');
+                }
+
+                // Show grammar rules
+                const grammar = storyService.getGrammarRules();
+                if (grammar && grammar.parts_of_speech) {
+                    const speechParts = Object.keys(grammar.parts_of_speech);
+                    log(`📚 Grammar parts: ${speechParts.join(', ')}`);
+                }
+
+            } else {
+                log('❌ Story service not available');
+            }
+        }
+
+        async function loadDomainData() {
+            if (!checkInitialized()) return;
+
+            log('📁 Loading all domain data...');
+
+            domains.forEach(domain => {
+                const data = worldEngine.getDomain(domain.name);
+                if (data) {
+                    const keys = Object.keys(data);
+                    log(`📂 ${domain.title}: ${keys.length} data categories`);
+                    log(`   Categories: ${keys.join(', ')}`);
+                } else {
+                    log(`❌ No data for ${domain.title}`);
+                }
+            });
+        }
+
+        async function runCustomTest() {
+            if (!checkInitialized()) return;
+
+            const input = document.getElementById('testInput').value.trim();
+            if (!input) {
+                log('❌ Please enter test input');
+                return;
+            }
+
+            log(`🧪 Running custom test with input: "${input}"`);
+
+            try {
+                // Try different interpretations of the input
+                if (input.includes('+') || input.includes('-') || input.includes('*') || input.includes('/')) {
+                    log('🔢 Detected mathematical expression');
+                    // Could implement expression evaluation here
+                }
+
+                if (input.match(/[a-zA-Z]/)) {
+                    log('📚 Detected text input');
+                    const phonicsService = worldEngine.getPhonics();
+                    if (phonicsService) {
+                        const phonetic = phonicsService.getPhonetic(input.toLowerCase());
+                        if (phonetic) {
+                            log(`🗣️ Phonetic: /${phonetic}/`);
+                        }
+                    }
+                }
+
+                log('✅ Custom test completed');
+
+            } catch (error) {
+                log(`❌ Custom test failed: ${error.message}`);
+            }
+
+            // Clear input
+            document.getElementById('testInput').value = '';
+        }
+
+        function exportData() {
+            if (!checkInitialized()) return;
+
+            log('💾 Exporting World Engine data...');
+
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                domains: worldEngine.domains,
+                services: Object.keys(worldEngine.services).filter(name => worldEngine.services[name]),
+                manifest: worldEngine.loader.getManifest()
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `world-engine-export-${Date.now()}.json`;
+            a.click();
+
+            URL.revokeObjectURL(url);
+            log('💾 Data exported successfully');
+        }
+
+        function checkInitialized() {
+            if (!isInitialized || !worldEngine) {
+                log('⚠️ Please initialize the engine first');
+                return false;
+            }
+            return true;
+        }
+
+        function updateStatus(ready) {
+            const indicator = document.getElementById('statusIndicator');
+            if (ready) {
+                indicator.classList.add('ready');
+            } else {
+                indicator.classList.remove('ready');
+            }
+        }
+
+        function log(message, data = null) {
+            const output = document.getElementById('outputContent');
+            const panel = document.getElementById('outputPanel');
+
+            panel.classList.add('active');
+
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.marginBottom = '8px';
+
+            if (data) {
+                logEntry.innerHTML = `<span style="color: #6c757d;">[${timestamp}]</span> ${message}<pre style="margin-top: 5px; color: #17a2b8;">${data}</pre>`;
+            } else {
+                logEntry.innerHTML = `<span style="color: #6c757d;">[${timestamp}]</span> ${message}`;
+            }
+
+            output.appendChild(logEntry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('outputContent').innerHTML = '';
+            document.getElementById('outputPanel').classList.remove('active');
+        }
+
+        // Expose functions globally
+        window.initializeEngine = initializeEngine;
+        window.testMathPro = testMathPro;
+        window.testPhonics = testPhonics;
+        window.testStory = testStory;
+        window.loadDomainData = loadDomainData;
+        window.runCustomTest = runCustomTest;
+        window.exportData = exportData;
+        window.clearOutput = clearOutput;
+        window.selectDomain = selectDomain;
+
+    </script>
+</body>
+</html>

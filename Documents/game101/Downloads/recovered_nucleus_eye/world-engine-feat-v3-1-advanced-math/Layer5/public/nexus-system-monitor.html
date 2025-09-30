@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 NEXUS System Monitor - Real-Time Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #000005 50%, #000000 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .monitor-grid {
+            display: grid;
+            grid-template-areas:
+                "header header header header"
+                "system-status performance-metrics network-monitor ai-status"
+                "system-logs real-time-data resource-usage alerts"
+                "control-panel integration-status mathematical-engine health-check";
+            grid-template-rows: 80px 1fr 1fr 120px;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .monitor-panel {
+            background: rgba(0, 20, 40, 0.8);
+            border: 1px solid #004466;
+            border-radius: 8px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .monitor-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(0,255,255,0.2), rgba(0,200,255,0.2));
+            border-color: #00ffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 0 20px #00ffff;
+        }
+
+        .system-time {
+            font-size: 18px;
+            color: #ffff00;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #00ffff;
+            border-bottom: 1px solid #004466;
+            padding-bottom: 8px;
+        }
+
+        .system-status {
+            grid-area: system-status;
+            border-color: #00ff00;
+        }
+
+        .performance-metrics {
+            grid-area: performance-metrics;
+            border-color: #ffff00;
+        }
+
+        .network-monitor {
+            grid-area: network-monitor;
+            border-color: #ff00ff;
+        }
+
+        .ai-status {
+            grid-area: ai-status;
+            border-color: #ff6600;
+        }
+
+        .system-logs {
+            grid-area: system-logs;
+            border-color: #6666ff;
+        }
+
+        .real-time-data {
+            grid-area: real-time-data;
+            border-color: #ff0066;
+        }
+
+        .resource-usage {
+            grid-area: resource-usage;
+            border-color: #00ff88;
+        }
+
+        .alerts {
+            grid-area: alerts;
+            border-color: #ff4444;
+        }
+
+        .control-panel {
+            grid-area: control-panel;
+            border-color: #8844ff;
+        }
+
+        .integration-status {
+            grid-area: integration-status;
+            border-color: #44ff88;
+        }
+
+        .mathematical-engine {
+            grid-area: mathematical-engine;
+            border-color: #ffaa00;
+        }
+
+        .health-check {
+            grid-area: health-check;
+            border-color: #ff8844;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .status-warning {
+            background: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        .status-offline {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .metric-bar {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #004466;
+            border-radius: 4px;
+            height: 20px;
+            margin: 8px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff4444);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .metric-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .log-entry {
+            font-size: 12px;
+            margin: 4px 0;
+            padding: 4px 8px;
+            border-left: 3px solid;
+            border-radius: 3px;
+        }
+
+        .log-info {
+            border-left-color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .log-success {
+            border-left-color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .log-warning {
+            border-left-color: #ffff00;
+            background: rgba(255, 255, 0, 0.1);
+        }
+
+        .log-error {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .control-button {
+            background: transparent;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 4px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 15px #00ffff;
+        }
+
+        .control-button.active {
+            background: #00ff00;
+            border-color: #00ff00;
+            color: #000;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .data-cell {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #004466;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .data-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00ffff;
+            margin-bottom: 4px;
+        }
+
+        .data-label {
+            color: #aaaaaa;
+            font-size: 11px;
+        }
+
+        .chart-container {
+            height: 80px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #004466;
+            border-radius: 4px;
+            margin: 8px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ffff, #00ff00, #ffff00);
+            transition: all 0.5s ease;
+        }
+
+        .alert-item {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid #ff4444;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px 0;
+            font-size: 12px;
+        }
+
+        .alert-high {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        .alert-medium {
+            border-color: #ffff00;
+            background: rgba(255, 255, 0, 0.1);
+        }
+
+        .alert-low {
+            border-color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .network-indicator {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .network-signal {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            position: relative;
+        }
+
+        .network-signal::before {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 8px;
+            background: #00ff00;
+            border-radius: 1px;
+            left: 0;
+            bottom: 0;
+            animation: networkPulse 1s ease-in-out infinite;
+        }
+
+        .network-signal::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 16px;
+            background: #00ff00;
+            border-radius: 1px;
+            left: 8px;
+            bottom: 0;
+            animation: networkPulse 1s ease-in-out infinite 0.3s;
+        }
+
+        @keyframes networkPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .scrollable {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #004466;
+            border-radius: 4px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #0066aa;
+        }
+
+        .system-info {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .info-value {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="monitor-grid">
+        <!-- Header -->
+        <div class="monitor-panel header">
+            <div class="logo">🔍 NEXUS System Monitor</div>
+            <div class="system-info">
+                <div class="info-group">
+                    <div class="info-label">Systems Online</div>
+                    <div class="info-value" id="systemsOnline">0/8</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Health Score</div>
+                    <div class="info-value" id="healthScore">100%</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Uptime</div>
+                    <div class="info-value" id="systemUptime">0:00:00</div>
+                </div>
+            </div>
+            <div class="system-time" id="systemTime"></div>
+        </div>
+
+        <!-- System Status -->
+        <div class="monitor-panel system-status">
+            <div class="panel-title">🖥️ System Status</div>
+            <div class="system-service">
+                <span class="status-indicator status-online"></span>
+                <span>Master Control Center</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-online"></span>
+                <span>3D Mathematical Playground</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-warning"></span>
+                <span>Nucleus AI Training</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-online"></span>
+                <span>Educational Bridge</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-online"></span>
+                <span>System Optimizer</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-online"></span>
+                <span>Integration Hub</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-warning"></span>
+                <span>Network Communications</span>
+            </div>
+            <div class="system-service">
+                <span class="status-indicator status-online"></span>
+                <span>Performance Monitor</span>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="monitor-panel performance-metrics">
+            <div class="panel-title">📊 Performance Metrics</div>
+            <div>
+                <div>CPU Usage: <span id="cpuUsage">23%</span></div>
+                <div class="metric-bar">
+                    <div class="metric-fill" id="cpuBar" style="width: 23%;"></div>
+                </div>
+            </div>
+            <div>
+                <div>Memory: <span id="memoryUsage">456MB / 8GB</span></div>
+                <div class="metric-bar">
+                    <div class="metric-fill" id="memoryBar" style="width: 5.7%;"></div>
+                </div>
+            </div>
+            <div>
+                <div>FPS: <span id="fpsDisplay">60</span></div>
+                <div class="metric-bar">
+                    <div class="metric-fill" id="fpsBar" style="width: 100%;"></div>
+                </div>
+            </div>
+            <div>
+                <div>Network: <span id="networkLatency">12ms</span></div>
+                <div class="metric-bar">
+                    <div class="metric-fill" id="networkBar" style="width: 95%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Monitor -->
+        <div class="monitor-panel network-monitor">
+            <div class="panel-title">🌐 Network Monitor</div>
+            <div class="network-indicator">
+                <div class="network-signal"></div>
+                <div>Local Network: Connected</div>
+            </div>
+            <div class="network-indicator">
+                <div class="network-signal"></div>
+                <div>Inter-System Comm: Active</div>
+            </div>
+            <div class="network-indicator">
+                <div class="network-signal"></div>
+                <div>WebSocket: Standby</div>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px;">
+                <div>Packets Sent: <span id="packetsSent">1,247</span></div>
+                <div>Packets Received: <span id="packetsReceived">1,891</span></div>
+                <div>Data Transfer: <span id="dataTransfer">3.2MB</span></div>
+            </div>
+        </div>
+
+        <!-- AI Status -->
+        <div class="monitor-panel ai-status">
+            <div class="panel-title">🤖 AI Status</div>
+            <div class="data-grid">
+                <div class="data-cell">
+                    <div class="data-value" id="aiTrainingSessions">42</div>
+                    <div class="data-label">Training Sessions</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="aiPatterns">156</div>
+                    <div class="data-label">Patterns Learned</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="aiAccuracy">94.7%</div>
+                    <div class="data-label">Accuracy</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="aiMessages">1,247</div>
+                    <div class="data-label">Messages</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Logs -->
+        <div class="monitor-panel system-logs">
+            <div class="panel-title">📝 System Logs</div>
+            <div class="scrollable" id="systemLogs">
+                <div class="log-entry log-info">
+                    [12:34:56] NEXUS System Monitor initialized
+                </div>
+                <div class="log-entry log-success">
+                    [12:34:57] All core systems online
+                </div>
+                <div class="log-entry log-info">
+                    [12:35:12] Mathematical engine calculating distance
+                </div>
+                <div class="log-entry log-warning">
+                    [12:35:34] High CPU usage detected - optimizing
+                </div>
+                <div class="log-entry log-success">
+                    [12:35:45] AI training session completed
+                </div>
+                <div class="log-entry log-info">
+                    [12:36:02] Cross-system data sync successful
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time Data -->
+        <div class="monitor-panel real-time-data">
+            <div class="panel-title">📈 Real-Time Data</div>
+            <div>Mathematical Calculations: <span id="mathCalculations">1,847</span></div>
+            <div class="chart-container">
+                <div class="chart-line" id="mathChart" style="width: 75%;"></div>
+            </div>
+            <div>AI Interactions: <span id="aiInteractions">342</span></div>
+            <div class="chart-container">
+                <div class="chart-line" id="aiChart" style="width: 60%;"></div>
+            </div>
+            <div>System Requests: <span id="systemRequests">892</span></div>
+            <div class="chart-container">
+                <div class="chart-line" id="requestChart" style="width: 85%;"></div>
+            </div>
+        </div>
+
+        <!-- Resource Usage -->
+        <div class="monitor-panel resource-usage">
+            <div class="panel-title">💾 Resource Usage</div>
+            <div class="data-grid">
+                <div class="data-cell">
+                    <div class="data-value" id="webglMemory">128MB</div>
+                    <div class="data-label">WebGL Memory</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="jsHeap">245MB</div>
+                    <div class="data-label">JS Heap</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="localStorage">12MB</div>
+                    <div class="data-label">Local Storage</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="activeThreads">4</div>
+                    <div class="data-label">Active Threads</div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px;">
+                <div>Cache Hit Rate: <span id="cacheHitRate">92.4%</span></div>
+                <div>GC Collections: <span id="gcCollections">47</span></div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="monitor-panel alerts">
+            <div class="panel-title">⚠️ System Alerts</div>
+            <div class="scrollable" id="systemAlerts">
+                <div class="alert-item alert-medium">
+                    WebGL context creation warning - using fallback
+                </div>
+                <div class="alert-item alert-low">
+                    AI training batch completed successfully
+                </div>
+                <div class="alert-item alert-low">
+                    Memory usage within normal parameters
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="monitor-panel control-panel">
+            <div class="panel-title">🎛️ Control Panel</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button class="control-button active" id="autoRefresh">Auto Refresh</button>
+                <button class="control-button" id="exportLogs">Export Logs</button>
+                <button class="control-button" id="clearAlerts">Clear Alerts</button>
+                <button class="control-button" id="resetMetrics">Reset Metrics</button>
+                <button class="control-button" id="optimizeSystem">Optimize</button>
+                <button class="control-button" id="emergencyStop">Emergency Stop</button>
+            </div>
+        </div>
+
+        <!-- Integration Status -->
+        <div class="monitor-panel integration-status">
+            <div class="panel-title">🔗 Integration Status</div>
+            <div style="font-size: 12px;">
+                <div>Message Queue: <span id="messageQueue">8 pending</span></div>
+                <div>Data Sync: <span id="dataSync">Active</span></div>
+                <div>Event Bus: <span id="eventBus">Connected</span></div>
+                <div>Shared Memory: <span id="sharedMemory">1.2MB used</span></div>
+                <div>Cross-System Calls: <span id="crossSystemCalls">1,456</span></div>
+                <div>Error Rate: <span id="errorRate">0.02%</span></div>
+            </div>
+        </div>
+
+        <!-- Mathematical Engine -->
+        <div class="monitor-panel mathematical-engine">
+            <div class="panel-title">🔢 Mathematical Engine</div>
+            <div class="data-grid">
+                <div class="data-cell">
+                    <div class="data-value" id="distanceCalcs">247</div>
+                    <div class="data-label">Distance Calcs</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="vectorOps">189</div>
+                    <div class="data-label">Vector Ops</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="pythagorean">156</div>
+                    <div class="data-label">Pythagorean</div>
+                </div>
+                <div class="data-cell">
+                    <div class="data-value" id="precision">8</div>
+                    <div class="data-label">Precision</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Check -->
+        <div class="monitor-panel health-check">
+            <div class="panel-title">🏥 System Health</div>
+            <div style="font-size: 14px; text-align: center;">
+                <div style="font-size: 32px; color: #00ff00; margin: 8px 0;">98%</div>
+                <div style="color: #00ff00;">SYSTEM HEALTHY</div>
+                <div style="font-size: 12px; color: #aaa; margin-top: 8px;">
+                    Last Check: <span id="lastHealthCheck">12:36:45</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NexusSystemMonitor {
+            constructor() {
+                this.startTime = Date.now();
+                this.isRunning = true;
+                this.metrics = {
+                    cpu: 23,
+                    memory: 456,
+                    fps: 60,
+                    network: 12
+                };
+
+                this.initializeMonitor();
+            }
+
+            initializeMonitor() {
+                console.log('🔍 NEXUS System Monitor initialized');
+
+                // Start real-time updates
+                this.startRealTimeUpdates();
+
+                // Setup control handlers
+                this.setupControlHandlers();
+
+                // Start system monitoring
+                this.startSystemMonitoring();
+
+                // Connect to other NEXUS systems
+                this.connectToNexusSystems();
+            }
+
+            startRealTimeUpdates() {
+                // Update system time every second
+                setInterval(() => {
+                    this.updateSystemTime();
+                }, 1000);
+
+                // Update metrics every 2 seconds
+                setInterval(() => {
+                    if (this.isRunning) {
+                        this.updateMetrics();
+                    }
+                }, 2000);
+
+                // Update charts every 5 seconds
+                setInterval(() => {
+                    if (this.isRunning) {
+                        this.updateCharts();
+                    }
+                }, 5000);
+            }
+
+            updateSystemTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                document.getElementById('systemTime').textContent = timeString;
+
+                // Update uptime
+                const uptime = Math.floor((Date.now() - this.startTime) / 1000);
+                const hours = Math.floor(uptime / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                const seconds = uptime % 60;
+                document.getElementById('systemUptime').textContent =
+                    `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            updateMetrics() {
+                // Simulate realistic metrics
+                this.metrics.cpu = Math.max(5, Math.min(95, this.metrics.cpu + (Math.random() - 0.5) * 10));
+                this.metrics.memory = Math.max(200, Math.min(2000, this.metrics.memory + (Math.random() - 0.5) * 50));
+                this.metrics.fps = Math.max(30, Math.min(60, this.metrics.fps + (Math.random() - 0.5) * 5));
+                this.metrics.network = Math.max(1, Math.min(100, this.metrics.network + (Math.random() - 0.5) * 10));
+
+                // Update displays
+                document.getElementById('cpuUsage').textContent = Math.round(this.metrics.cpu) + '%';
+                document.getElementById('cpuBar').style.width = this.metrics.cpu + '%';
+
+                document.getElementById('memoryUsage').textContent = Math.round(this.metrics.memory) + 'MB / 8GB';
+                document.getElementById('memoryBar').style.width = (this.metrics.memory / 8000) * 100 + '%';
+
+                document.getElementById('fpsDisplay').textContent = Math.round(this.metrics.fps);
+                document.getElementById('fpsBar').style.width = (this.metrics.fps / 60) * 100 + '%';
+
+                document.getElementById('networkLatency').textContent = Math.round(this.metrics.network) + 'ms';
+                document.getElementById('networkBar').style.width = Math.max(10, 100 - this.metrics.network) + '%';
+
+                // Update AI metrics
+                const aiSessions = parseInt(document.getElementById('aiTrainingSessions').textContent) + Math.floor(Math.random() * 3);
+                document.getElementById('aiTrainingSessions').textContent = aiSessions;
+
+                // Update mathematical calculations
+                const mathCalcs = parseInt(document.getElementById('mathCalculations').textContent) + Math.floor(Math.random() * 10);
+                document.getElementById('mathCalculations').textContent = mathCalcs;
+            }
+
+            updateCharts() {
+                // Update chart visualizations
+                const charts = ['mathChart', 'aiChart', 'requestChart'];
+                charts.forEach(chartId => {
+                    const chart = document.getElementById(chartId);
+                    const newWidth = Math.random() * 100;
+                    chart.style.width = newWidth + '%';
+                });
+            }
+
+            setupControlHandlers() {
+                document.getElementById('autoRefresh').addEventListener('click', () => {
+                    const btn = document.getElementById('autoRefresh');
+                    if (btn.classList.contains('active')) {
+                        btn.classList.remove('active');
+                        this.isRunning = false;
+                        this.addLog('Auto refresh disabled', 'warning');
+                    } else {
+                        btn.classList.add('active');
+                        this.isRunning = true;
+                        this.addLog('Auto refresh enabled', 'success');
+                    }
+                });
+
+                document.getElementById('exportLogs').addEventListener('click', () => {
+                    this.exportLogs();
+                });
+
+                document.getElementById('clearAlerts').addEventListener('click', () => {
+                    this.clearAlerts();
+                });
+
+                document.getElementById('resetMetrics').addEventListener('click', () => {
+                    this.resetMetrics();
+                });
+
+                document.getElementById('optimizeSystem').addEventListener('click', () => {
+                    this.optimizeSystem();
+                });
+
+                document.getElementById('emergencyStop').addEventListener('click', () => {
+                    this.emergencyStop();
+                });
+            }
+
+            addLog(message, type = 'info') {
+                const logsContainer = document.getElementById('systemLogs');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${type}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+
+                logsContainer.appendChild(logEntry);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+
+                // Keep only last 50 entries
+                while (logsContainer.children.length > 50) {
+                    logsContainer.removeChild(logsContainer.firstChild);
+                }
+            }
+
+            addAlert(message, severity = 'low') {
+                const alertsContainer = document.getElementById('systemAlerts');
+                const alertItem = document.createElement('div');
+                alertItem.className = `alert-item alert-${severity}`;
+                alertItem.textContent = message;
+
+                alertsContainer.appendChild(alertItem);
+                alertsContainer.scrollTop = alertsContainer.scrollHeight;
+
+                // Keep only last 20 alerts
+                while (alertsContainer.children.length > 20) {
+                    alertsContainer.removeChild(alertsContainer.firstChild);
+                }
+            }
+
+            exportLogs() {
+                const logs = Array.from(document.querySelectorAll('.log-entry'))
+                    .map(entry => entry.textContent);
+
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    systemLogs: logs,
+                    metrics: this.metrics,
+                    uptime: Math.floor((Date.now() - this.startTime) / 1000)
+                };
+
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                    type: 'application/json'
+                });
+
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = `nexus-system-monitor-${Date.now()}.json`;
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                this.addLog('System logs exported successfully', 'success');
+            }
+
+            clearAlerts() {
+                document.getElementById('systemAlerts').innerHTML = '';
+                this.addLog('System alerts cleared', 'info');
+            }
+
+            resetMetrics() {
+                this.metrics = { cpu: 23, memory: 456, fps: 60, network: 12 };
+                this.addLog('System metrics reset to defaults', 'info');
+            }
+
+            optimizeSystem() {
+                this.addLog('Initiating system optimization...', 'info');
+
+                setTimeout(() => {
+                    this.metrics.cpu = Math.max(this.metrics.cpu * 0.7, 10);
+                    this.metrics.memory = Math.max(this.metrics.memory * 0.8, 200);
+                    this.addLog('System optimization completed', 'success');
+                    this.addAlert('Performance optimization applied', 'low');
+                }, 2000);
+            }
+
+            emergencyStop() {
+                if (confirm('Emergency stop will halt all monitoring. Continue?')) {
+                    this.isRunning = false;
+                    this.addLog('EMERGENCY STOP ACTIVATED', 'error');
+                    this.addAlert('Emergency stop activated - monitoring halted', 'high');
+
+                    // Disable all controls except emergency stop
+                    const buttons = document.querySelectorAll('.control-button');
+                    buttons.forEach(btn => {
+                        if (btn.id !== 'emergencyStop') {
+                            btn.disabled = true;
+                            btn.style.opacity = '0.3';
+                        }
+                    });
+                }
+            }
+
+            startSystemMonitoring() {
+                // Monitor system health
+                setInterval(() => {
+                    if (this.isRunning) {
+                        this.checkSystemHealth();
+                    }
+                }, 10000);
+
+                // Add periodic log entries
+                setInterval(() => {
+                    if (this.isRunning) {
+                        const messages = [
+                            'Cross-system data sync completed',
+                            'AI training batch processed',
+                            'Mathematical calculations updated',
+                            'WebGL context refreshed',
+                            'Memory cleanup performed'
+                        ];
+                        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                        this.addLog(randomMessage, 'info');
+                    }
+                }, 15000);
+            }
+
+            checkSystemHealth() {
+                let healthScore = 100;
+
+                // Reduce health based on metrics
+                if (this.metrics.cpu > 80) healthScore -= 20;
+                if (this.metrics.memory > 1500) healthScore -= 15;
+                if (this.metrics.fps < 45) healthScore -= 25;
+                if (this.metrics.network > 50) healthScore -= 10;
+
+                healthScore = Math.max(0, healthScore);
+
+                document.getElementById('healthScore').textContent = healthScore + '%';
+                document.getElementById('lastHealthCheck').textContent = new Date().toLocaleTimeString();
+
+                // Update health status color
+                const healthElement = document.querySelector('.health-check .data-value');
+                if (healthScore > 80) {
+                    healthElement.style.color = '#00ff00';
+                    document.querySelector('.health-check .data-label').textContent = 'SYSTEM HEALTHY';
+                } else if (healthScore > 60) {
+                    healthElement.style.color = '#ffff00';
+                    document.querySelector('.health-check .data-label').textContent = 'SYSTEM WARNING';
+                } else {
+                    healthElement.style.color = '#ff4444';
+                    document.querySelector('.health-check .data-label').textContent = 'SYSTEM CRITICAL';
+                }
+            }
+
+            connectToNexusSystems() {
+                // Listen for messages from other NEXUS systems
+                window.addEventListener('message', (event) => {
+                    if (event.data.type && event.data.type.startsWith('nexus_')) {
+                        this.handleNexusMessage(event.data);
+                    }
+                });
+
+                // Announce monitor ready
+                this.broadcastMessage({
+                    type: 'nexus_monitor_ready',
+                    timestamp: Date.now()
+                });
+
+                this.addLog('Connected to NEXUS system network', 'success');
+            }
+
+            handleNexusMessage(message) {
+                switch (message.type) {
+                    case 'nexus_performance_report':
+                        this.handlePerformanceReport(message.data);
+                        break;
+                    case 'nexus_system_status':
+                        this.handleSystemStatus(message.data);
+                        break;
+                    case 'nexus_error_report':
+                        this.handleErrorReport(message.data);
+                        break;
+                    default:
+                        this.addLog(`Unknown message type: ${message.type}`, 'warning');
+                }
+            }
+
+            handlePerformanceReport(data) {
+                this.addLog(`Performance report from ${data.system}`, 'info');
+
+                if (data.fps) {
+                    document.getElementById('fpsDisplay').textContent = Math.round(data.fps);
+                }
+
+                if (data.memory) {
+                    document.getElementById('memoryUsage').textContent = data.memory + 'MB / 8GB';
+                }
+            }
+
+            handleSystemStatus(data) {
+                this.addLog(`System status update from ${data.system}: ${data.status}`, 'info');
+
+                // Update system status indicators
+                const indicators = document.querySelectorAll('.system-service');
+                indicators.forEach(indicator => {
+                    if (indicator.textContent.trim().includes(data.system)) {
+                        const statusDot = indicator.querySelector('.status-indicator');
+                        statusDot.className = `status-indicator status-${data.status}`;
+                    }
+                });
+            }
+
+            handleErrorReport(data) {
+                this.addLog(`Error from ${data.system}: ${data.error}`, 'error');
+                this.addAlert(`${data.system}: ${data.error}`, 'high');
+            }
+
+            broadcastMessage(message) {
+                // Broadcast to parent window
+                if (window.parent !== window) {
+                    window.parent.postMessage(message, '*');
+                }
+
+                // Broadcast to localStorage for cross-system communication
+                localStorage.setItem(`nexus_monitor_${Date.now()}`, JSON.stringify(message));
+            }
+        }
+
+        // Initialize monitor when page loads
+        window.addEventListener('load', () => {
+            window.nexusMonitor = new NexusSystemMonitor();
+            console.log('🔍 NEXUS System Monitor ready');
+        });
+    </script>
+</body>
+</html>

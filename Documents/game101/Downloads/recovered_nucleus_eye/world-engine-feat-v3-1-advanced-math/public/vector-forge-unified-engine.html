@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vector Forge - Unified Engine</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: white;
+      font-family: monospace;
+      overflow: hidden;
+      transition: background 1s ease, filter 1s ease;
+    }
+
+    canvas {
+      display: block;
+      margin: auto;
+      background-color: rgba(0, 0, 0, 0.9);
+      cursor: crosshair;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      background: rgba(0,0,0,0.8);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+
+    #timeline {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 400px;
+      z-index: 10;
+      background: rgba(0,0,0,0.8);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+
+    #note-sidebar {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 350px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.8);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    #export-controls {
+      position: absolute;
+      top: 10px;
+      right: 380px;
+      z-index: 10;
+      background: rgba(0,0,0,0.8);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+
+    button {
+      margin: 2px;
+      padding: 8px 12px;
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    button:hover { background: #444; }
+    button:active { background: #666; }
+
+    input, select {
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+      padding: 6px;
+      margin: 2px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .heart-monitor {
+      background: rgba(100, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px 0;
+      border-left: 4px solid #ff6b6b;
+    }
+
+    .note-item {
+      background: rgba(255,255,255,0.1);
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 4px;
+      border-left: 3px solid #4CAF50;
+      cursor: pointer;
+    }
+
+    .note-item:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .note-item.info { border-left-color: #2196F3; }
+    .note-item.sound { border-left-color: #FF9800; }
+    .note-item.camera { border-left-color: #9C27B0; }
+    .note-item.vfx { border-left-color: #F44336; }
+
+    .timeline-scrubber {
+      width: 100%;
+      margin: 10px 0;
+    }
+
+    .stats-panel {
+      background: rgba(0, 100, 0, 0.2);
+      padding: 8px;
+      border-radius: 4px;
+      margin: 5px 0;
+      font-size: 12px;
+    }
+
+    .spectral-mode {
+      background: #002200 !important;
+      filter: hue-rotate(90deg) brightness(1.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Canvas -->
+  <canvas id="sceneCanvas" width="1200" height="800"></canvas>
+
+  <!-- Control Panel -->
+  <div id="controls">
+    <h4>🎮 Vector Forge Controls</h4>
+    <div>
+      <button onclick="addVector()">➕ Add Vector</button>
+      <button onclick="addTypedNote()">📝 Add Note</button>
+      <button onclick="clearScene()">🗑️ Clear</button>
+      <button onclick="toggleSpectral()">👁️ Spectral</button>
+    </div>
+    <div>
+      <button onclick="heartEngine.pulse(0.3)">💓 Pulse</button>
+      <button onclick="heartEngine.echo()">🔁 Echo</button>
+      <button onclick="heartEngine.raiseCap(0.2)">🧬 Raise Cap</button>
+    </div>
+
+    <div class="heart-monitor">
+      <strong>💖 Heart Engine</strong><br>
+      Resonance: <span id="heart-resonance">0.0</span> / <span id="heart-cap">1.0</span><br>
+      State: <span id="heart-state">idle</span>
+    </div>
+  </div>
+
+  <!-- Export Controls -->
+  <div id="export-controls">
+    <h4>📤 Export Tools</h4>
+    <button onclick="exportSceneBlueprint()">🧠 .json</button>
+    <button onclick="exportCSVAnnotations()">📄 .csv</button>
+    <button onclick="startRecording()">🎥 Start .webm</button>
+    <button onclick="stopRecording()">🛑 Stop</button>
+  </div>
+
+  <!-- Timeline -->
+  <div id="timeline">
+    <h4>⏱️ Timeline Engine</h4>
+    <div>
+      <button onclick="timeline.stepBack()">⏪</button>
+      <button onclick="timeline.togglePlay()" id="play-btn">⏸️</button>
+      <button onclick="timeline.stepForward()">⏩</button>
+      <span>Frame: <span id="current-frame">0</span></span>
+    </div>
+    <input type="range" class="timeline-scrubber" id="frame-scrubber"
+           min="0" max="1000" value="0" onchange="jumpToFrame(this.value)">
+
+    <div class="stats-panel">
+      Vectors: <span id="vector-count">0</span> |
+      Notes: <span id="note-count">0</span> |
+      Links: <span id="link-count">0</span> |
+      FPS: <span id="fps-counter">0</span>
+    </div>
+  </div>
+
+  <!-- Notes Sidebar -->
+  <div id="note-sidebar">
+    <h4>🧷 Notes & Annotations</h4>
+
+    <!-- Note Type Filters -->
+    <div>
+      <label><input type="checkbox" checked onchange="toggleNoteType('info')"> 📘 Info</label>
+      <label><input type="checkbox" checked onchange="toggleNoteType('sound')"> 🔊 Sound</label><br>
+      <label><input type="checkbox" checked onchange="toggleNoteType('camera')"> 📹 Camera</label>
+      <label><input type="checkbox" checked onchange="toggleNoteType('vfx')"> ✨ VFX</label>
+    </div>
+
+    <div id="noteList"></div>
+
+    <!-- Add Note Form -->
+    <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+      <h5>📝 Quick Add Note</h5>
+      <input type="text" id="note-text" placeholder="Note text..." style="width: 100%; margin-bottom: 5px;">
+      <select id="note-type" style="width: 48%;">
+        <option value="info">📘 Info</option>
+        <option value="sound">🔊 Sound</option>
+        <option value="camera">📹 Camera</option>
+        <option value="vfx">✨ VFX</option>
+      </select>
+      <input type="number" id="note-frame" placeholder="Frame" style="width: 48%;" value="0">
+      <button onclick="quickAddNote()" style="width: 100%; margin-top: 5px;">Add Note</button>
+    </div>
+  </div>
+
+  <!-- Include Nexus Connector -->
+  <script src="nexus-widget-connector.js" data-widget-id="vector-forge" data-auto-connect="true" data-show-ui="false"></script>
+
+  <script>
+    //--------------------------------------
+    // Core Engine Classes
+    //--------------------------------------
+
+    class Vector3 {
+      constructor(x = 0, y = 0, z = 0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+      }
+
+      subtract(v) {
+        return new Vector3(this.x - v.x, this.y - v.y, this.z - v.z);
+      }
+
+      add(v) {
+        return new Vector3(this.x + v.x, this.y + v.y, this.z + v.z);
+      }
+
+      distanceTo(v) {
+        return Math.sqrt((this.x - v.x)**2 + (this.y - v.y)**2 + (this.z - v.z)**2);
+      }
+
+      clone() {
+        return new Vector3(this.x, this.y, this.z);
+      }
+
+      rotateY(angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        return new Vector3(this.x * cos - this.z * sin, this.y, this.x * sin + this.z * cos);
+      }
+    }
+
+    class VectorObject {
+      constructor(from, to, color = new Vector3(0, 1, 0)) {
+        this.from = from.clone();
+        this.to = to.clone();
+        this.color = color.clone();
+        this.velocity = new Vector3(0, 0, 0);
+        this.id = Math.random().toString(36).substr(2, 9);
+      }
+
+      update() {
+        if (this.velocity) {
+          this.from = this.from.add(this.velocity);
+          this.to = this.to.add(this.velocity);
+        }
+      }
+
+      render(ctx, camera) {
+        const fromScreen = worldToScreen(this.from, camera);
+        const toScreen = worldToScreen(this.to, camera);
+
+        ctx.strokeStyle = `rgb(${this.color.x * 255}, ${this.color.y * 255}, ${this.color.z * 255})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(fromScreen.x, fromScreen.y);
+        ctx.lineTo(toScreen.x, toScreen.y);
+        ctx.stroke();
+
+        // Arrow head
+        const angle = Math.atan2(toScreen.y - fromScreen.y, toScreen.x - fromScreen.x);
+        const headLength = 15;
+        ctx.beginPath();
+        ctx.moveTo(toScreen.x, toScreen.y);
+        ctx.lineTo(toScreen.x - headLength * Math.cos(angle - Math.PI/6),
+                   toScreen.y - headLength * Math.sin(angle - Math.PI/6));
+        ctx.moveTo(toScreen.x, toScreen.y);
+        ctx.lineTo(toScreen.x - headLength * Math.cos(angle + Math.PI/6),
+                   toScreen.y - headLength * Math.sin(angle + Math.PI/6));
+        ctx.stroke();
+      }
+    }
+
+    class LabNote {
+      constructor(text, target, offset = new Vector3(0, 0.5, 0), frameTrigger = -1, type = "info") {
+        this.text = text;
+        this.target = target;
+        this.offset = offset.clone();
+        this.frameTrigger = frameTrigger;
+        this.type = type;
+        this.spawnFrame = -1;
+        this.id = Math.random().toString(36).substr(2, 9);
+
+        // Note type colors
+        const noteColors = {
+          info: new Vector3(0.2, 0.6, 1.0),
+          sound: new Vector3(1.0, 0.6, 0.2),
+          camera: new Vector3(0.6, 0.2, 1.0),
+          vfx: new Vector3(1.0, 0.2, 0.4)
+        };
+        this.color = noteColors[type] || noteColors.info;
+      }
+
+      shouldDisplay(currentFrame) {
+        return this.frameTrigger === -1 || currentFrame >= this.frameTrigger;
+      }
+
+      getOpacity(currentFrame, fadeIn = 30, fadeOutStart = 300, fadeOutDur = 60) {
+        if (this.frameTrigger === -1) return 1.0;
+        const deltaTime = currentFrame - this.frameTrigger;
+        if (deltaTime < 0) return 0;
+        const fadeInAlpha = Math.min(1.0, deltaTime / fadeIn);
+        const fadeOutAlpha = Math.max(0.0, 1.0 - (deltaTime - fadeOutStart) / fadeOutDur);
+        return Math.min(fadeInAlpha, fadeOutAlpha);
+      }
+
+      render(ctx, camera, currentFrame) {
+        if (!this.shouldDisplay(currentFrame) || !noteVisibility[this.type]) return;
+
+        const opacity = this.getOpacity(currentFrame);
+        if (opacity <= 0) return;
+
+        let position;
+        if (this.target) {
+          // Position relative to target vector midpoint
+          const midpoint = new Vector3(
+            (this.target.from.x + this.target.to.x) / 2,
+            (this.target.from.y + this.target.to.y) / 2,
+            (this.target.from.z + this.target.to.z) / 2
+          );
+          position = midpoint.add(this.offset);
+        } else {
+          position = this.offset.clone();
+        }
+
+        const screenPos = worldToScreen(position, camera);
+
+        ctx.save();
+        ctx.globalAlpha = opacity;
+
+        // Background
+        ctx.fillStyle = `rgba(${this.color.x * 255}, ${this.color.y * 255}, ${this.color.z * 255}, 0.2)`;
+        ctx.fillRect(screenPos.x - 5, screenPos.y - 15, this.text.length * 8 + 10, 20);
+
+        // Text
+        ctx.fillStyle = `rgb(${this.color.x * 255}, ${this.color.y * 255}, ${this.color.z * 255})`;
+        ctx.font = '12px monospace';
+        ctx.fillText(this.text, screenPos.x, screenPos.y);
+
+        ctx.restore();
+      }
+
+      isHovered(ctx, camera) {
+        if (!this.target) return false;
+        const midpoint = new Vector3(
+          (this.target.from.x + this.target.to.x) / 2,
+          (this.target.from.y + this.target.to.y) / 2,
+          (this.target.from.z + this.target.to.z) / 2
+        );
+        const position = midpoint.add(this.offset);
+        const screenPos = worldToScreen(position, camera);
+
+        return mouse.x >= screenPos.x - 5 && mouse.x <= screenPos.x + this.text.length * 8 + 5 &&
+               mouse.y >= screenPos.y - 15 && mouse.y <= screenPos.y + 5;
+      }
+    }
+
+    class Link {
+      constructor(from, to, type = "default", color = new Vector3(0.7, 0.7, 0.7)) {
+        this.from = from;
+        this.to = to;
+        this.type = type;
+        this.color = color.clone();
+        this.isActive = true;
+        this.triggerFrame = -1;
+        this.id = Math.random().toString(36).substr(2, 9);
+      }
+
+      shouldRender(currentFrame) {
+        return this.isActive && (this.triggerFrame === -1 || currentFrame >= this.triggerFrame);
+      }
+
+      render(ctx, camera, currentFrame) {
+        if (!this.shouldRender(currentFrame)) return;
+
+        const fromMid = new Vector3(
+          (this.from.from.x + this.from.to.x) / 2,
+          (this.from.from.y + this.from.to.y) / 2,
+          (this.from.from.z + this.from.to.z) / 2
+        );
+        const toMid = new Vector3(
+          (this.to.from.x + this.to.to.x) / 2,
+          (this.to.from.y + this.to.to.y) / 2,
+          (this.to.from.z + this.to.to.z) / 2
+        );
+
+        const fromScreen = worldToScreen(fromMid, camera);
+        const toScreen = worldToScreen(toMid, camera);
+
+        ctx.strokeStyle = `rgba(${this.color.x * 255}, ${this.color.y * 255}, ${this.color.z * 255}, 0.6)`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(fromScreen.x, fromScreen.y);
+        ctx.lineTo(toScreen.x, toScreen.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    //--------------------------------------
+    // Heart Engine (Emotive Pulse Core)
+    //--------------------------------------
+    class HeartEngine {
+      constructor() {
+        this.resonance = 0.0;
+        this.resonanceCap = 1.0;
+        this.state = "idle";
+      }
+
+      pulse(intensity) {
+        this.resonance = Math.max(0, Math.min(this.resonanceCap, this.resonance + intensity));
+        this.state = "pulse";
+        console.log(`💓 Pulse: +${intensity} → ${this.resonance}/${this.resonanceCap}`);
+        this.updateUI();
+
+        // Create visual pulse effect
+        const pulseIntensity = intensity * 255;
+        document.body.style.boxShadow = `inset 0 0 50px rgba(255, ${pulseIntensity}, ${pulseIntensity}, 0.3)`;
+        setTimeout(() => {
+          document.body.style.boxShadow = '';
+        }, 200);
+      }
+
+      decay(amount) {
+        this.resonance = Math.max(0, this.resonance - amount);
+        if (this.resonance === 0) this.state = "silent";
+        this.updateUI();
+      }
+
+      echo() {
+        this.state = "echo";
+        console.log(`🔁 Echoing resonance: ${this.resonance}`);
+        this.updateUI();
+
+        // Create echo effect on particles
+        for (let i = 0; i < 20; i++) {
+          particles.push(new Particle(new Vector3(0, 0, 0)));
+        }
+      }
+
+      raiseCap(amount) {
+        this.resonanceCap += amount;
+        console.log(`🧬 Cap Raised: ${this.resonanceCap}`);
+        this.updateUI();
+      }
+
+      updateUI() {
+        document.getElementById('heart-resonance').textContent = this.resonance.toFixed(2);
+        document.getElementById('heart-cap').textContent = this.resonanceCap.toFixed(2);
+        document.getElementById('heart-state').textContent = this.state;
+      }
+    }
+
+    //--------------------------------------
+    // Timeline Engine
+    //--------------------------------------
+    class TimelineEngine {
+      constructor() {
+        this.currentFrame = 0;
+        this.isPlaying = false;
+        this.maxFrame = 1000;
+      }
+
+      stepForward() {
+        this.currentFrame = Math.min(this.maxFrame, this.currentFrame + 1);
+        this.updateUI();
+      }
+
+      stepBack() {
+        this.currentFrame = Math.max(0, this.currentFrame - 1);
+        this.updateUI();
+      }
+
+      togglePlay() {
+        this.isPlaying = !this.isPlaying;
+        document.getElementById('play-btn').textContent = this.isPlaying ? '⏸️' : '▶️';
+      }
+
+      update() {
+        if (this.isPlaying) {
+          this.stepForward();
+        }
+      }
+
+      updateUI() {
+        document.getElementById('current-frame').textContent = this.currentFrame;
+        document.getElementById('frame-scrubber').value = this.currentFrame;
+      }
+    }
+
+    class Particle {
+      constructor(position) {
+        this.position = position.clone();
+        this.velocity = new Vector3(
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2
+        );
+        this.life = 100;
+        this.maxLife = 100;
+      }
+
+      update() {
+        this.position = this.position.add(this.velocity);
+        this.life -= 1;
+      }
+
+      render(ctx, camera) {
+        const screenPos = worldToScreen(this.position, camera);
+        const alpha = this.life / this.maxLife;
+
+        ctx.fillStyle = spectralMode ?
+          `rgba(0, 255, 255, ${alpha * 0.8})` :
+          `rgba(0, 255, 0, ${alpha * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    //--------------------------------------
+    // Global State & Utils
+    //--------------------------------------
+    const canvas = document.getElementById('sceneCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let activeVectors = [];
+    let notes = [];
+    let links = [];
+    let particles = [];
+    let spectralMode = false;
+    let draggedNote = null;
+    let dragStart = null;
+    let recording = false;
+    let mediaRecorder = null;
+
+    const heartEngine = new HeartEngine();
+    const timeline = new TimelineEngine();
+
+    const camera = {
+      position: new Vector3(0, 0, 5),
+      rotation: 0
+    };
+
+    const mouse = { x: 0, y: 0 };
+
+    const noteVisibility = {
+      info: true,
+      sound: true,
+      camera: true,
+      vfx: true
+    };
+
+    const MAX_NOTES = 10000;
+    const MAX_VECTORS = 10000;
+
+    // Performance monitoring
+    let frameCount = 0;
+    let lastTime = performance.now();
+
+    function withinCapacity(noteCount, vectorCount) {
+      return noteCount <= MAX_NOTES && vectorCount <= MAX_VECTORS;
+    }
+
+    function worldToScreen(worldPos, cam) {
+      // Simple 3D to 2D projection
+      const rotated = worldPos.rotateY(cam.rotation);
+      const translated = rotated.subtract(cam.position);
+
+      const perspective = 1 / (1 + translated.z * 0.1);
+      return {
+        x: canvas.width / 2 + translated.x * 50 * perspective,
+        y: canvas.height / 2 - translated.y * 50 * perspective
+      };
+    }
+
+    //--------------------------------------
+    // User Interface Functions
+    //--------------------------------------
+
+    function addVector() {
+      const from = new Vector3(
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 5
+      );
+      const to = from.add(new Vector3(
+        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 2
+      ));
+
+      const color = new Vector3(Math.random(), Math.random(), Math.random());
+      const vector = new VectorObject(from, to, color);
+
+      if (withinCapacity(notes.length, activeVectors.length + 1)) {
+        activeVectors.push(vector);
+        heartEngine.pulse(0.1);
+        updateStats();
+      } else {
+        console.warn('⚠️ Vector capacity exceeded');
+      }
+    }
+
+    function addTypedNote() {
+      const index = parseInt(prompt("Attach to vector index?", "0"));
+      const text = prompt("Note text?", "💥 Impact FX");
+      const frame = parseInt(prompt("Trigger frame?", timeline.currentFrame.toString()));
+      const type = prompt("Note type? (info, sound, camera, vfx)", "vfx");
+
+      const vec = activeVectors[index];
+      if (!vec) {
+        alert('Invalid vector index');
+        return;
+      }
+
+      if (!withinCapacity(notes.length + 1, activeVectors.length)) {
+        alert('Note capacity exceeded');
+        return;
+      }
+
+      const note = new LabNote(text, vec, new Vector3(0, 0.5, 0), frame, type);
+      notes.push(note);
+      updateNoteListUI();
+      updateStats();
+    }
+
+    function quickAddNote() {
+      const text = document.getElementById('note-text').value;
+      const type = document.getElementById('note-type').value;
+      const frame = parseInt(document.getElementById('note-frame').value);
+
+      if (!text.trim()) return;
+
+      if (!withinCapacity(notes.length + 1, activeVectors.length)) {
+        alert('Note capacity exceeded');
+        return;
+      }
+
+      const note = new LabNote(text, null, new Vector3(0, 0, 0), frame, type);
+      notes.push(note);
+
+      document.getElementById('note-text').value = '';
+      updateNoteListUI();
+      updateStats();
+    }
+
+    function clearScene() {
+      activeVectors = [];
+      notes = [];
+      links = [];
+      particles = [];
+      updateNoteListUI();
+      updateStats();
+    }
+
+    function toggleSpectral() {
+      spectralMode = !spectralMode;
+      document.body.classList.toggle('spectral-mode', spectralMode);
+    }
+
+    function toggleNoteType(type) {
+      noteVisibility[type] = !noteVisibility[type];
+    }
+
+    function updateNoteListUI() {
+      const container = document.getElementById('noteList');
+      container.innerHTML = "";
+
+      notes.forEach((note, i) => {
+        const row = document.createElement('div');
+        row.className = `note-item ${note.type}`;
+        row.innerHTML = `
+          <strong>${note.type.toUpperCase()}:</strong> ${note.text}<br>
+          <small>@Frame ${note.frameTrigger >= 0 ? note.frameTrigger : 'start'}</small>
+          <div style="float: right;">
+            <button onclick="editNote(${i})" style="font-size: 10px;">✏️</button>
+            <button onclick="jumpToFrame(${note.frameTrigger >= 0 ? note.frameTrigger : 0})" style="font-size: 10px;">⏩</button>
+            <button onclick="deleteNote(${i})" style="font-size: 10px;">🗑️</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function editNote(index) {
+      const note = notes[index];
+      const newText = prompt("Edit note text:", note.text);
+      if (newText) {
+        note.text = newText;
+        updateNoteListUI();
+      }
+    }
+
+    function deleteNote(index) {
+      if (confirm('Delete this note?')) {
+        notes.splice(index, 1);
+        updateNoteListUI();
+        updateStats();
+      }
+    }
+
+    function jumpToFrame(frame) {
+      timeline.currentFrame = Math.max(0, Math.min(timeline.maxFrame, frame));
+      timeline.updateUI();
+    }
+
+    function updateStats() {
+      document.getElementById('vector-count').textContent = activeVectors.length;
+      document.getElementById('note-count').textContent = notes.length;
+      document.getElementById('link-count').textContent = links.length;
+    }
+
+    //--------------------------------------
+    // Export Functions
+    //--------------------------------------
+
+    function exportSceneBlueprint() {
+      const blueprint = {
+        title: "VectorForge_Scene",
+        timestamp: new Date().toISOString(),
+        tags: ["vector-forge", "lab", "scene"],
+        frameCount: timeline.currentFrame,
+        heartState: {
+          resonance: heartEngine.resonance,
+          resonanceCap: heartEngine.resonanceCap,
+          state: heartEngine.state
+        },
+        vectors: activeVectors.map((v, index) => ({
+          id: v.id,
+          index: index,
+          from: { x: v.from.x, y: v.from.y, z: v.from.z },
+          to: { x: v.to.x, y: v.to.y, z: v.to.z },
+          color: { r: v.color.x, g: v.color.y, b: v.color.z }
+        })),
+        notes: notes.map((n, index) => ({
+          id: n.id,
+          index: index,
+          text: n.text,
+          frame: n.frameTrigger,
+          type: n.type,
+          targetVectorId: n.target ? n.target.id : null,
+          offset: { x: n.offset.x, y: n.offset.y, z: n.offset.z },
+          color: { r: n.color.x, g: n.color.y, b: n.color.z }
+        })),
+        links: links.map((l, index) => ({
+          id: l.id,
+          index: index,
+          fromId: l.from.id,
+          toId: l.to.id,
+          type: l.type,
+          triggerFrame: l.triggerFrame
+        }))
+      };
+
+      console.log("📦 Blueprint:", blueprint);
+      const blob = new Blob([JSON.stringify(blueprint, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vector_forge_scene_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportCSVAnnotations() {
+      const header = "Frame,Type,Text,VectorIndex,OffsetX,OffsetY,OffsetZ\n";
+      const rows = notes.map((note, index) => {
+        const vectorIndex = note.target ? activeVectors.indexOf(note.target) : -1;
+        return `${note.frameTrigger},${note.type},"${note.text}",${vectorIndex},${note.offset.x},${note.offset.y},${note.offset.z}`;
+      }).join('\n');
+
+      const csvContent = header + rows;
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vector_forge_annotations_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function startRecording() {
+      if (recording) return;
+
+      const stream = canvas.captureStream(30);
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vector_forge_recording_${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      mediaRecorder.start();
+      recording = true;
+      console.log('🎥 Recording started');
+    }
+
+    function stopRecording() {
+      if (!recording || !mediaRecorder) return;
+
+      mediaRecorder.stop();
+      recording = false;
+      console.log('🛑 Recording stopped');
+    }
+
+    //--------------------------------------
+    // Event Handlers
+    //--------------------------------------
+
+    canvas.addEventListener('mousedown', e => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+
+      for (let note of notes) {
+        if (note.isHovered(ctx, camera)) {
+          draggedNote = note;
+          dragStart = { x: e.clientX, y: e.clientY };
+          break;
+        }
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      draggedNote = null;
+      dragStart = null;
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+
+      if (draggedNote && dragStart) {
+        const dx = (e.clientX - dragStart.x) / 50;
+        const dy = -(e.clientY - dragStart.y) / 50;
+
+        draggedNote.offset.x += dx;
+        draggedNote.offset.y += dy;
+
+        dragStart = { x: e.clientX, y: e.clientY };
+      }
+    });
+
+    canvas.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      for (let note of notes) {
+        if (note.isHovered(ctx, camera)) {
+          const newIndex = prompt("Relink to which vector index?");
+          const vec = activeVectors[parseInt(newIndex)];
+          if (vec) {
+            note.target = vec;
+            updateNoteListUI();
+          }
+        }
+      }
+    });
+
+    // Keyboard controls
+    document.addEventListener('keydown', e => {
+      switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          timeline.togglePlay();
+          break;
+        case 'ArrowLeft':
+          timeline.stepBack();
+          break;
+        case 'ArrowRight':
+          timeline.stepForward();
+          break;
+        case 'v':
+          addVector();
+          break;
+        case 'n':
+          addTypedNote();
+          break;
+        case 'c':
+          clearScene();
+          break;
+        case 's':
+          toggleSpectral();
+          break;
+      }
+    });
+
+    //--------------------------------------
+    // Main Render Loop
+    //--------------------------------------
+
+    function render() {
+      // Update timeline
+      timeline.update();
+
+      // Heart decay
+      heartEngine.decay(0.01);
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Update and render vectors
+      activeVectors.forEach(vector => {
+        vector.update();
+        vector.render(ctx, camera);
+      });
+
+      // Update and render particles
+      particles.forEach(particle => {
+        particle.update();
+        particle.render(ctx, camera);
+      });
+      particles = particles.filter(p => p.life > 0);
+
+      // Render notes
+      notes.forEach(note => {
+        if (noteVisibility[note.type]) {
+          note.render(ctx, camera, timeline.currentFrame);
+        }
+      });
+
+      // Render links
+      links.forEach(link => {
+        link.render(ctx, camera, timeline.currentFrame);
+      });
+
+      // Update FPS
+      frameCount++;
+      const currentTime = performance.now();
+      if (currentTime - lastTime >= 1000) {
+        document.getElementById('fps-counter').textContent = frameCount;
+        frameCount = 0;
+        lastTime = currentTime;
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    //--------------------------------------
+    // Nexus Integration
+    //--------------------------------------
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.nexusConnector) {
+        setupNexusHandlers();
+      } else {
+        setTimeout(() => {
+          if (window.nexusConnector) {
+            setupNexusHandlers();
+          }
+        }, 1000);
+      }
+    });
+
+    function setupNexusHandlers() {
+      const nexus = window.nexusConnector;
+
+      nexus.on('connected', () => {
+        console.log('🔗 Connected to Nexus Bridge!');
+      });
+
+      nexus.on('queryResponse', (response) => {
+        console.log('🧠 AI Response:', response);
+        // Could use AI to generate vectors or notes based on queries
+      });
+
+      nexus.on('broadcast', (data) => {
+        console.log('📡 Broadcast:', data);
+        // Handle broadcasts from other widgets
+      });
+    }
+
+    //--------------------------------------
+    // R3F Toolbar Integration
+    //--------------------------------------
+
+    // Listen for messages from R3F Toolbar
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+
+      switch (event.data.type) {
+        case 'ADD_VECTOR':
+          addVector();
+          break;
+        case 'ADD_NOTE':
+          addTypedNote();
+          break;
+        case 'CLEAR_SCENE':
+          clearScene();
+          break;
+        case 'EXPORT_SCENE':
+          exportSceneBlueprint();
+          break;
+        case 'TOGGLE_SPECTRAL':
+          toggleSpectral();
+          break;
+        case 'HEART_PULSE':
+          heartEngine.pulse(event.data.intensity || 0.3);
+          break;
+        default:
+          console.log('Unknown message type:', event.data.type);
+      }
+    });
+
+    // Expose functions for external toolbar control
+    window.vectorForgeAPI = {
+      addVector,
+      addNote: addTypedNote,
+      clearScene,
+      exportScene: exportSceneBlueprint,
+      exportCSV: exportCSVAnnotations,
+      toggleSpectral,
+      heartPulse: (intensity) => heartEngine.pulse(intensity),
+      heartEcho: () => heartEngine.echo(),
+      timeline: {
+        play: () => timeline.togglePlay(),
+        stepForward: () => timeline.stepForward(),
+        stepBack: () => timeline.stepBack(),
+        jumpTo: jumpToFrame
+      },
+      getStats: () => ({
+        vectors: activeVectors.length,
+        notes: notes.length,
+        links: links.length,
+        currentFrame: timeline.currentFrame,
+        heartState: {
+          resonance: heartEngine.resonance,
+          cap: heartEngine.resonanceCap,
+          state: heartEngine.state
+        }
+      })
+    };
+
+    //--------------------------------------
+    // Initialize
+    //--------------------------------------
+
+    // Start with some default content
+    setTimeout(() => {
+      addVector();
+      addVector();
+      updateStats();
+      updateNoteListUI();
+      render();
+    }, 100);
+
+  </script>
+</body>
+</html>

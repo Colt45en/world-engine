@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier-4 Meta System - Live Demo</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #e8e8e8;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(42, 42, 84, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #4a4a8a;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #64ffda;
+            margin-bottom: 30px;
+            grid-column: 1 / -1;
+        }
+
+        h2 {
+            color: #ff6b9d;
+            border-bottom: 2px solid #ff6b9d;
+            padding-bottom: 5px;
+        }
+
+        .state-display {
+            background: rgba(0, 20, 40, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #64ffda;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .op-button {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .op-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .op-button:active {
+            transform: translateY(0);
+        }
+
+        .op-button.action { background: linear-gradient(45deg, #11998e, #38ef7d); }
+        .op-button.structure { background: linear-gradient(45deg, #f093fb, #f5576c); }
+        .op-button.constraint { background: linear-gradient(45deg, #ff9a9e, #fecfef); }
+        .op-button.property { background: linear-gradient(45deg, #667eea, #764ba2); }
+        .op-button.filter { background: linear-gradient(45deg, #ffecd2, #fcb69f); }
+        .op-button.agent { background: linear-gradient(45deg, #a8edea, #fed6e3); }
+        .op-button.grounding { background: linear-gradient(45deg, #d299c2, #fef9d7); }
+        .op-button.modifier { background: linear-gradient(45deg, #89f7fe, #66a6ff); }
+
+        .log-area {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #64ffda;
+            padding-left: 10px;
+        }
+
+        .vector-viz {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+        }
+
+        .vector-bar {
+            width: 20px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 10px;
+            position: relative;
+            min-height: 5px;
+        }
+
+        .vector-label {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: #2a2a54;
+            border: 1px solid #4a4a8a;
+            color: #e8e8e8;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: #3a3a64;
+            border-color: #64ffda;
+        }
+
+        .nl-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #4a4a8a;
+            color: #e8e8e8;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .reasoning-box {
+            background: rgba(0, 20, 40, 0.9);
+            border: 1px solid #64ffda;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            white-space: pre-line;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Tier-4 Meta System — Live Reasoning Engine</h1>
+
+        <div class="panel">
+            <h2>🧠 State & Controls</h2>
+
+            <div class="state-display">
+                <div><strong>Current State Vector:</strong> <span id="state-vector">[0.50, 0.50, 0.30, 0.60]</span></div>
+                <div><strong>Level:</strong> <span id="level">0</span> | <strong>Kappa:</strong> <span id="kappa">0.600</span></div>
+                <div><strong>Mu (Complexity):</strong> <span id="mu">2.000</span></div>
+                <div><strong>CID:</strong> <span id="cid">cid_a1b2c3d4</span></div>
+            </div>
+
+            <div class="vector-viz" id="vector-viz">
+                <!-- Vector bars will be generated here -->
+            </div>
+
+            <div class="control-panel">
+                <button class="control-btn" onclick="try { resetSystem(); } catch(e) { console.error(\'Button error:\', e); }">🔄 Reset</button>
+                <button class="control-btn" onclick="try { takeSnapshot(); } catch(e) { console.error(\'Button error:\', e); }">📸 Snapshot</button>
+                <button class="control-btn" onclick="try { runMetaLoop(); } catch(e) { console.error(\'Button error:\', e); }">🧠 Meta Loop</button>
+                <button class="control-btn" onclick="try { exportSession(); } catch(e) { console.error(\'Button error:\', e); }">💾 Export</button>
+            </div>
+
+            <div>
+                <label><strong>Natural Language Input:</strong></label>
+                <input type="text" class="nl-input" id="nl-input"
+                       placeholder="E.g.: rebuild the component structure and update status"
+                       onkeypress="handleNLInput(event)">
+            </div>
+
+            <h3>🎛️ Operators</h3>
+            <div class="button-grid" id="button-grid">
+                <!-- Buttons will be generated here -->
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>📊 Reasoning & Logs</h2>
+
+            <div class="reasoning-box" id="reasoning-display">
+                🔄 Tier-4 Meta Analysis will appear here...
+
+                Click operators or use natural language to see the reasoning engine in action.
+            </div>
+
+            <h3>📝 Event Log</h3>
+            <div class="log-area" id="event-log">
+                <div class="log-entry">🚀 System initialized</div>
+            </div>
+
+            <h3>📊 Recommendations</h3>
+            <div id="recommendations" style="font-size: 13px;">
+                <div style="color: #64ffda;">💡 System ready for input</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tier-4 Meta System Implementation
+        class Tier4MetaSystem {
+            constructor() {
+                this.state = {
+                    x: [0.5, 0.5, 0.3, 0.6],
+                    sigma: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],
+                    kappa: 0.6,
+                    level: 0
+                };
+                this.events = [];
+                this.snapshots = [];
+                this.operators = this.createOperators();
+            }
+
+            createOperators() {
+                return {
+                    RB: { abbr: 'RB', word: 'Rebuild', class: 'action',
+                          apply: (su) => ({...su, x: su.x.map(v => v * 1.1), level: Math.max(0, su.level-1), kappa: Math.min(1, su.kappa+0.05)}) },
+                    UP: { abbr: 'UP', word: 'Update', class: 'action',
+                          apply: (su) => ({...su, x: su.x.map(v => v + 0.01), kappa: Math.min(1, su.kappa+0.02)}) },
+                    ST: { abbr: 'ST', word: 'Status', class: 'property',
+                          apply: (su) => ({...su, level: su.level+1, kappa: Math.min(1, su.kappa+0.08)}) },
+                    CP: { abbr: 'CP', word: 'Component', class: 'structure',
+                          apply: (su) => ({...su, x: su.x.map((v,i) => i===2 ? v*1.15 : v*0.95), level: Math.max(0, su.level-1)}) },
+                    PR: { abbr: 'PR', word: 'Prevent', class: 'constraint',
+                          apply: (su) => ({...su, x: su.x.map((v,i) => i===1 ? Math.min(v, 2.0) : v), kappa: Math.min(1, su.kappa+0.03)}) },
+                    ED: { abbr: 'ED', word: 'Editor', class: 'agent',
+                          apply: (su) => ({...su, x: su.x.map((v,i) => v + (i%2===0 ? 0.02 : -0.01))}) },
+                    RS: { abbr: 'RS', word: 'Restore', class: 'action',
+                          apply: (su) => ({...su, x: su.x.map(v => v * 0.95), kappa: Math.min(1, su.kappa+0.02)}) },
+                    CV: { abbr: 'CV', word: 'Convert', class: 'action',
+                          apply: (su) => ({...su, x: [su.x[1], su.x[0], su.x[3], su.x[2]]}) },
+                    SL: { abbr: 'SL', word: 'Selection', class: 'filter',
+                          apply: (su) => ({...su, x: su.x.map((v,i) => i===1 ? 0 : v), level: Math.max(0, su.level-1)}) },
+                    CH: { abbr: 'CH', word: 'Change', class: 'action',
+                          apply: (su) => ({...su, x: su.x.map((v,i) => v + (i===0 ? 0.03 : i===1 ? -0.02 : 0.01))}) },
+                    MD: { abbr: 'MD', word: 'Module', class: 'structure',
+                          apply: (su) => ({...su, level: su.level+1, x: su.x.map(v => v*1.02)}) },
+                    EX: { abbr: 'EX', word: 'Extra', class: 'modifier',
+                          apply: (su) => ({...su, x: su.x.map(v => v*1.05)}) },
+                    BD: { abbr: 'BD', word: 'Based', class: 'grounding',
+                          apply: (su) => ({...su, level: Math.max(0, su.level-1), x: su.x.map(v => Math.max(-1, Math.min(1, v)))}) },
+                    TL: { abbr: 'TL', word: 'Translucent', class: 'property',
+                          apply: (su) => ({...su, kappa: Math.min(1, su.kappa+0.06)}) },
+                    RC: { abbr: 'RC', word: 'Recompute', class: 'action',
+                          apply: (su) => ({...su, kappa: Math.min(1, su.kappa*1.15)}) }
+                };
+            }
+
+            applyOperator(operatorId, strength = 1.0) {
+                const operator = this.operators[operatorId];
+                if (!operator) return null;
+
+                const oldState = {...this.state};
+                const newState = operator.apply(this.state);
+                this.state = newState;
+
+                const event = {
+                    id: `evt_${Date.now()}`,
+                    operator: operatorId,
+                    oldState,
+                    newState,
+                    timestamp: Date.now()
+                };
+
+                this.events.push(event);
+                return newState;
+            }
+
+            parseNaturalLanguage(input) {
+                const words = input.toLowerCase().split(/\s+/);
+                const operations = [];
+
+                for (const word of words) {
+                    if (word.includes('rebuild')) operations.push('RB');
+                    if (word.includes('update')) operations.push('UP');
+                    if (word.includes('status')) operations.push('ST');
+                    if (word.includes('component')) operations.push('CP');
+                    if (word.includes('prevent')) operations.push('PR');
+                    if (word.includes('edit')) operations.push('ED');
+                    if (word.includes('restore')) operations.push('RS');
+                    if (word.includes('convert')) operations.push('CV');
+                    if (word.includes('select')) operations.push('SL');
+                    if (word.includes('change')) operations.push('CH');
+                    if (word.includes('module')) operations.push('MD');
+                    if (word.includes('extra')) operations.push('EX');
+                    if (word.includes('based') || word.includes('ground')) operations.push('BD');
+                    if (word.includes('transparent')) operations.push('TL');
+                    if (word.includes('recompute')) operations.push('RC');
+                }
+
+                return [...new Set(operations)];
+            }
+
+            computeMu() {
+                return Math.abs(this.state.x[0]) + this.state.x[1] + this.state.x[2] + this.state.x[3];
+            }
+
+            tier4MetaLoop() {
+                const mu = this.computeMu();
+                let reasoning = `🔄 Tier-4 Meta Analysis:\n`;
+                reasoning += `• Current Mu (complexity): ${mu.toFixed(3)}\n`;
+                reasoning += `• State: [${this.state.x.map(v => v.toFixed(2)).join(', ')}]\n`;
+                reasoning += `• Level: ${this.state.level}, Kappa: ${this.state.kappa.toFixed(3)}\n\n`;
+
+                const selectedActions = [];
+
+                if (this.state.kappa < 0.3) {
+                    selectedActions.push('PR', 'RC');
+                    reasoning += "🛡️ Low confidence → Applying constraints and recomputing\n";
+                } else if (this.state.level > 3 && this.state.kappa > 0.8) {
+                    selectedActions.push('BD', 'CP');
+                    reasoning += "⚓ High abstraction + high confidence → Grounding and factoring\n";
+                } else if (mu > 3.0) {
+                    selectedActions.push('SL', 'PR');
+                    reasoning += "🔍 High complexity → Selecting and constraining\n";
+                } else if (mu < 1.5) {
+                    selectedActions.push('UP', 'EX');
+                    reasoning += "📈 Low complexity → Updating and expanding\n";
+                } else {
+                    selectedActions.push('ST', 'UP');
+                    reasoning += "📊 Balanced state → Status check and gentle update\n";
+                }
+
+                // Execute actions
+                const initialMu = mu;
+                for (const action of selectedActions) {
+                    this.applyOperator(action, 0.7);
+                }
+                const finalMu = this.computeMu();
+
+                reasoning += `\n📊 Result: Mu ${initialMu.toFixed(3)} → ${finalMu.toFixed(3)}`;
+                if (finalMu < initialMu) {
+                    reasoning += " (✓ Complexity reduced)";
+                } else if (finalMu > initialMu + 0.3) {
+                    reasoning += " (⚠️ Complexity increased)";
+                } else {
+                    reasoning += " (→ Stable)";
+                }
+
+                return { selectedActions, reasoning };
+            }
+
+            getRecommendations() {
+                const recommendations = [];
+                const mu = this.computeMu();
+
+                if (this.state.kappa < 0.3) {
+                    recommendations.push('🛡️ Low confidence - apply PR (Prevent) to stabilize');
+                }
+                if (mu > 3.5) {
+                    recommendations.push('📸 High complexity - take ST (Status) snapshot');
+                }
+                if (this.state.level > 4) {
+                    recommendations.push('⚓ Very abstract - use BD (Based) to ground');
+                }
+                if (recommendations.length === 0) {
+                    recommendations.push('💡 System operating normally - try natural language input');
+                }
+
+                return recommendations;
+            }
+        }
+
+        // Global system instance
+        let tier4 = new Tier4MetaSystem();
+
+        // UI Functions
+        function updateDisplay() {
+            document.getElementById('state-vector').textContent =
+                `[${tier4.state.x.map(v => v.toFixed(2)).join(', ')}]`;
+            document.getElementById('level').textContent = tier4.state.level;
+            document.getElementById('kappa').textContent = tier4.state.kappa.toFixed(3);
+            document.getElementById('mu').textContent = tier4.computeMu().toFixed(3);
+            document.getElementById('cid').textContent = `cid_${Math.random().toString(16).slice(2,10)}`;
+
+            updateVectorViz();
+            updateRecommendations();
+        }
+
+        function updateVectorViz() {
+            const container = document.getElementById('vector-viz');
+            container.innerHTML = '';
+
+            tier4.state.x.forEach((value, index) => {
+                const barContainer = document.createElement('div');
+                const bar = document.createElement('div');
+                const label = document.createElement('div');
+
+                bar.className = 'vector-bar';
+                bar.style.height = `${Math.max(5, Math.abs(value) * 60)}px`;
+                bar.style.background = value >= 0
+                    ? `linear-gradient(to top, #667eea, #764ba2)`
+                    : `linear-gradient(to top, #ff6b9d, #f093fb)`;
+
+                label.className = 'vector-label';
+                label.textContent = `${['p','i','g','c'][index]}: ${value.toFixed(2)}`;
+
+                barContainer.appendChild(bar);
+                barContainer.appendChild(label);
+                container.appendChild(barContainer);
+            });
+        }
+
+        function updateRecommendations() {
+            const container = document.getElementById('recommendations');
+            const recs = tier4.getRecommendations();
+            container.innerHTML = recs.map(r => `<div style="color: #64ffda;">💡 ${r}</div>`).join('');
+        }
+
+        function logEvent(message) {
+            const logArea = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span style="color: #64ffda;">${new Date().toLocaleTimeString()}</span> ${message}`;
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function applyOperator(operatorId) {
+            const oldMu = tier4.computeMu();
+            const result = tier4.applyOperator(operatorId);
+            const newMu = tier4.computeMu();
+
+            if (result) {
+                logEvent(`🎛️ Applied ${operatorId} (${tier4.operators[operatorId].word}) - Mu: ${oldMu.toFixed(3)} → ${newMu.toFixed(3)}`);
+                updateDisplay();
+            }
+        }
+
+        function resetSystem() {
+            tier4 = new Tier4MetaSystem();
+            updateDisplay();
+            logEvent('🔄 System reset to initial state');
+        }
+
+        function takeSnapshot() {
+            const snapshot = {
+                state: {...tier4.state},
+                timestamp: Date.now()
+            };
+            tier4.snapshots.push(snapshot);
+            logEvent('📸 Snapshot taken');
+        }
+
+        function runMetaLoop() {
+            const result = tier4.tier4MetaLoop();
+            document.getElementById('reasoning-display').textContent = result.reasoning;
+            logEvent(`🧠 Meta loop executed: ${result.selectedActions.join(', ')}`);
+            updateDisplay();
+        }
+
+        function exportSession() {
+            const session = {
+                state: tier4.state,
+                events: tier4.events,
+                snapshots: tier4.snapshots,
+                timestamp: Date.now()
+            };
+
+            const blob = new Blob([JSON.stringify(session, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tier4_session_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            logEvent('💾 Session exported to file');
+        }
+
+        function handleNLInput(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('nl-input').value;
+                const operations = tier4.parseNaturalLanguage(input);
+
+                if (operations.length > 0) {
+                    logEvent(`🗣️ NL Input: "${input}" → ${operations.join(', ')}`);
+                    for (const op of operations) {
+                        applyOperator(op);
+                    }
+                } else {
+                    logEvent(`❓ No operations found in: "${input}"`);
+                }
+
+                document.getElementById('nl-input').value = '';
+            }
+        }
+
+        // Initialize UI
+        function initializeUI() {
+            const buttonGrid = document.getElementById('button-grid');
+
+            Object.entries(tier4.operators).forEach(([id, op]) => {
+                const button = document.createElement('button');
+                button.className = `op-button ${op.class}`;
+                button.innerHTML = `<strong>${id}</strong><br><small>${op.word}</small>`;
+                button.onclick = () => applyOperator(id);
+                button.title = `Apply ${op.word} operation`;
+                buttonGrid.appendChild(button);
+            });
+
+            updateDisplay();
+        }
+
+        // Start the demo
+        window.addEventListener('load', initializeUI);
+    </script>
+</body>
+</html>

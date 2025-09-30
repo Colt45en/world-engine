@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>3D Cube Physics Canvas - Precision Grid System</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg:#0b0f14;
+    --panel:#0f1620;
+    --accent:#10e0e0;
+    --text:#e8f0ff;
+    --muted:#92a0b3;
+    --cube-unit: 48px;
+  }
+
+  html,body {
+    margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    overflow: hidden;
+  }
+
+  .stack { position:fixed; inset:0; }
+  canvas.layer { position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  .controls {
+    position:fixed; top:12px; left:12px; z-index:100;
+    background:color-mix(in oklab, var(--panel) 95%, transparent);
+    backdrop-filter: blur(12px);
+    border:1px solid #1e2a3a; border-radius:12px; padding:12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    max-width: 280px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+
+  .control-section {
+    margin-bottom: 12px;
+    border: 1px solid #1a2530;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .control-section:last-child { margin-bottom: 0; }
+
+  .section-header {
+    background: #1a2530;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    border: none;
+    width: 100%;
+    color: inherit;
+    font: inherit;
+  }
+
+  .section-header:hover {
+    background: #1f2d3d;
+  }
+
+  .section-header:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .section-content {
+    padding: 12px;
+    display: block;
+  }
+
+  .section-content.collapsed {
+    display: none;
+  }
+
+  .expand-icon {
+    transition: transform 0.2s ease;
+    font-size: 12px;
+  }
+
+  .expand-icon.collapsed {
+    transform: rotate(-90deg);
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .control-row {
+    display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+    margin-bottom: 6px;
+  }
+
+  .btn {
+    appearance:none; border:1px solid #204055; background:#0d1b26; color:var(--text);
+    padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:600; font-size:11px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn:hover {
+    border-color:#2b6e7a;
+    background: #1a2b36;
+  }
+
+  .btn.active {
+    outline:2px solid var(--accent);
+    background: color-mix(in oklab, var(--accent) 20%, var(--panel));
+  }
+
+  .btn.execute {
+    background:var(--accent);
+    color:#022;
+    border-color:#0cc;
+    font-weight: 700;
+  }
+
+  .btn.execute:hover {
+    background: #20f0f0;
+    transform: translateY(-1px);
+  }
+
+  .control-group {
+    display:flex; align-items:center; gap:8px;
+    background: rgba(255,255,255,0.03);
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .control-label {
+    font-size:12px;
+    color:var(--muted);
+    min-width: 60px;
+    font-weight: 500;
+  }
+
+  input[type="range"] {
+    accent-color:var(--accent);
+    width: 100px;
+  }
+
+  input[type="number"] {
+    background: #0d1b26;
+    border: 1px solid #204055;
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 8px;
+    width: 60px;
+    font-size: 12px;
+  }
+
+  select {
+    background: #0d1b26;
+    border: 1px solid #204055;
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .preview-panel {
+    position:fixed; right:12px; bottom:12px; z-index:100;
+    background:color-mix(in oklab, var(--panel) 90%, transparent);
+    border:1px solid #1e2a3a; border-radius:16px; padding:16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    backdrop-filter: blur(8px);
+  }
+
+  .preview-title {
+    font-size:12px; color:var(--muted); margin-bottom:8px;
+    text-align: center; font-weight: 600;
+  }
+
+  #preview {
+    display:block; width:280px; height:160px;
+    border-radius:12px; background:#000;
+    border: 1px solid #1e2a3a;
+  }
+
+  .audio-visualizer {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    background: color-mix(in oklab, var(--panel) 90%, transparent);
+    border: 1px solid #1e2a3a; border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    backdrop-filter: blur(8px);
+    width: 200px;
+  }
+
+  #audioCanvas {
+    width: 100%;
+    height: 60px;
+    background: #000;
+    border-radius: 8px;
+    border: 1px solid #1e2a3a;
+  }
+
+  .value-display {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+    min-width: 25px;
+    text-align: right;
+  }
+
+  .camera-controls {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    z-index: 100;
+    background: color-mix(in oklab, var(--panel) 95%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid #1e2a3a;
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .view-mode-indicator {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 100;
+    background: color-mix(in oklab, var(--panel) 95%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid #1e2a3a;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<!-- Compact Control Panel -->
+<div class="controls">
+  <!-- 3D Cube System -->
+  <div class="control-section">
+    <button class="section-header" onclick="toggleSection('cube-system')">
+      <div class="section-title">3D Cube Base</div>
+      <div class="expand-icon" id="cube-system-icon">▼</div>
+    </button>
+    <div class="section-content" id="cube-system-content">
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Units</span>
+          <input id="gridUnits" type="number" value="10" min="2" max="20" style="width:50px">
+        </div>
+        <button id="generateGrids" class="btn execute">Generate</button>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Back α</span>
+          <input id="backAlpha" type="range" min="0" max="100" value="80" style="width:80px">
+          <span id="backAlphaValue" class="value-display">80</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Front α</span>
+          <input id="frontAlpha" type="range" min="0" max="100" value="60" style="width:80px">
+          <span id="frontAlphaValue" class="value-display">60</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Depth α</span>
+          <input id="depthAlpha" type="range" min="0" max="100" value="75" style="width:80px">
+          <span id="depthAlphaValue" class="value-display">75</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Pattern</span>
+          <input id="numberPattern" type="text" value="1,2,3,4,5" placeholder="1,2,3,4,5" style="width:100px; font-size:10px;">
+        </div>
+        <button id="generateRadial" class="btn execute">Radial</button>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Rings</span>
+          <input id="radialRings" type="range" min="2" max="8" value="4" style="width:60px">
+          <span id="radialRingsValue" class="value-display">4</span>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Per Ring</span>
+          <input id="radialPer" type="range" min="4" max="16" value="8" style="width:60px">
+          <span id="radialPerValue" class="value-display">8</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Node Tools -->
+  <div class="control-section">
+    <button class="section-header" onclick="toggleSection('node-tools')">
+      <div class="section-title">Node Tools</div>
+      <div class="expand-icon" id="node-tools-icon">▼</div>
+    </button>
+    <div class="section-content" id="node-tools-content">
+      <div class="control-row">
+        <button id="modeEdit" class="btn">Edit</button>
+        <button id="modeConnect" class="btn">Connect</button>
+        <button id="modeSpawn" class="btn">Spawn</button>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Wall</span>
+          <select id="wallSelect" style="font-size:10px; padding:4px">
+            <option value="back" selected>Back (Base)</option>
+            <option value="front">Front</option>
+          </select>
+        </div>
+        <button id="clearNodes" class="btn">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawing -->
+  <div class="control-section">
+    <button class="section-header" onclick="toggleSection('drawing')">
+      <div class="section-title">Drawing</div>
+      <div class="expand-icon" id="drawing-icon">▼</div>
+    </button>
+    <div class="section-content" id="drawing-content">
+      <div class="control-row">
+        <button id="modeDraw" class="btn active">Draw</button>
+        <button id="modeErase" class="btn">Erase</button>
+        <button id="clearDrawing" class="btn">Clear</button>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Size</span>
+          <input id="brushSize" type="range" min="1" max="20" value="4" style="width:60px">
+          <span id="brushValue" class="value-display">4</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Effects -->
+  <div class="control-section">
+    <button class="section-header" onclick="toggleSection('effects')">
+      <div class="section-title">Effects</div>
+      <div class="expand-icon collapsed" id="effects-icon">▼</div>
+    </button>
+    <div class="section-content collapsed" id="effects-content">
+      <div class="control-row">
+        <select id="animationType" style="font-size:10px; padding:4px; width:80px">
+          <option value="pulse">Pulse</option>
+          <option value="rotate">Rotate</option>
+          <option value="wave">Wave</option>
+        </select>
+        <button id="executeAnimation" class="btn execute">Animate</button>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Speed</span>
+          <input id="animSpeed" type="range" min="1" max="100" value="30" style="width:60px">
+          <span id="animSpeedValue" class="value-display">30</span>
+        </div>
+        <button id="stopAnimation" class="btn">Stop</button>
+      </div>
+      <div class="control-row">
+        <select id="glyphType" style="font-size:10px; padding:4px; width:80px">
+          <option value="aurora">Aurora</option>
+          <option value="plasma">Plasma</option>
+        </select>
+        <button id="executeGlyph" class="btn execute">Glyph</button>
+      </div>
+      <div class="control-row">
+        <div class="control-group">
+          <span class="control-label">Intensity</span>
+          <input id="glyphIntensity" type="range" min="1" max="100" value="65" style="width:60px">
+          <span id="glyphIntensityValue" class="value-display">65</span>
+        </div>
+        <button id="clearGlyphs" class="btn">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div class="control-section">
+    <button class="section-header" onclick="toggleSection('export')">
+      <div class="section-title">Export</div>
+      <div class="expand-icon collapsed" id="export-icon">▼</div>
+    </button>
+    <div class="section-content collapsed" id="export-content">
+      <div class="control-row">
+        <button id="exportPNG" class="btn execute">PNG</button>
+        <button id="exportModel" class="btn">3D</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3D Camera Controls -->
+<div class="camera-controls">
+  <button id="toggle3D" class="btn">3D View</button>
+  <button id="rotateCCW" class="btn">↺</button>
+  <button id="rotateCW" class="btn">↻</button>
+  <button id="resetCamera" class="btn">⌂</button>
+</div>
+
+<!-- View Mode Indicator -->
+<div class="view-mode-indicator" id="viewMode">
+  2D Face View
+</div>
+
+<!-- Audio Visualizer -->
+<div class="audio-visualizer">
+  <div class="preview-title">Audio Input</div>
+  <canvas id="audioCanvas" width="200" height="60"></canvas>
+  <div style="text-align: center; margin-top: 8px; font-size: 11px; color: var(--muted);" id="audioStatus">
+    Inactive
+  </div>
+  <div class="control-row" style="margin-top: 8px; justify-content: center; gap: 4px;">
+    <button id="startAudioInput" class="btn" style="font-size: 9px; padding: 4px 8px;">Start</button>
+    <button id="stopAudioInput" class="btn" style="font-size: 9px; padding: 4px 8px;">Stop</button>
+  </div>
+  <div class="control-group" style="margin-top: 4px;">
+    <span class="control-label" style="font-size: 10px;">Sensitivity</span>
+    <input id="audioSensitivity" type="range" min="1" max="100" value="50" style="width: 80px;">
+    <span id="audioSensitivityValue" class="value-display" style="font-size: 10px;">50</span>
+  </div>
+</div>
+
+<!-- Preview Panel -->
+<div class="preview-panel">
+  <div class="preview-title">Live Preview</div>
+  <canvas id="preview" width="280" height="160"></canvas>
+</div>
+
+<!-- Canvas Layers -->
+<div class="stack">
+  <canvas id="backGrid" class="layer"></canvas>
+  <canvas id="frontGrid" class="layer"></canvas>
+  <canvas id="depthLinks" class="layer"></canvas>
+  <canvas id="drawingLayer" class="layer"></canvas>
+  <canvas id="nodeLayer" class="layer"></canvas>
+  <canvas id="effectsLayer" class="layer"></canvas>
+</div>
+
+<script>
+/* ====================== CORE SYSTEM ====================== */
+
+// High DPI support
+const DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+
+// Canvas references (will be initialized when DOM is ready)
+let canvases = {};
+
+// Rendering contexts
+const contexts = {};
+
+// Global dimensions
+let CANVAS_WIDTH = 0;
+let CANVAS_HEIGHT = 0;
+
+// True 3D Cube Physics - Back grid is primary base
+const CUBE_PHYSICS = {
+  UNIT_SIZE: 48,           // Base unit in pixels
+  DEPTH_OFFSET: 0.5,       // Critical: 0.5 offset for proper 3D cube geometry
+  PERSPECTIVE_SCALE: 0.85, // Depth perspective scaling
+  BACK_IS_BASE: true,      // Back grid is the primary spawning base
+  CAMERA_DISTANCE: 800,    // 3D camera distance for full view
+  Z_SCALE: 100             // Z-coordinate scaling for 3D projection
+};
+
+// Application state
+const appState = {
+  mode: 'draw',               // Current interaction mode
+  activeWall: 'back',         // Back wall is default (primary base)
+  gridUnits: 10,              // Number of units per side
+  isAnimating: false,         // Animation state
+  audioActive: false,         // Audio input state
+
+  // Visual properties
+  transparency: {
+    back: 0.8,    // Back grid more visible (primary base)
+    front: 0.6,   // Front grid less visible
+    depth: 0.75,  // Depth connections
+    limbs: 0.5
+  },  // Animation properties
+  animation: {
+    type: 'pulse',
+    speed: 30,
+    time: 0
+  },
+
+  // Glyph properties
+  glyph: {
+    type: 'aurora',
+    intensity: 0.65,
+    active: false
+  }
+};
+
+// Data structures
+const cubeSystem = {
+  backNodes: [],      // Back wall nodes (z = -0.5)
+  frontNodes: [],     // Front wall nodes (z = +0.5)
+  depthConnections: [], // Links between walls
+  customNodes: [],    // User-created nodes
+  customConnections: [], // User-created connections
+  radialGraph: {      // Radial graph system
+    nodes: [],
+    edges: [],
+    center: null,
+    rings: [],
+    pattern: [1,2,3,4,5],
+    active: false
+  }
+};
+
+const drawingSystem = {
+  strokes: [],        // Drawing strokes
+  isDrawing: false,
+  currentStroke: null,
+  brushSize: 4
+};
+
+const effectsSystem = {
+  particles: [],      // Visual effects particles
+  glyphs: [],        // Active glyph effects
+  audioData: null    // Audio frequency data
+};
+
+// Audio system
+let audioContext = null;
+let audioAnalyser = null;
+let audioDataArray = null;
+let audioSource = null;
+
+// System initialization flag
+let isSystemInitialized = false;
+
+/* ====================== INITIALIZATION ====================== */
+
+function initializeSystem() {
+  // Prevent multiple initialization
+  if (isSystemInitialized) {
+    console.log('⚠️ System already initialized, skipping...');
+    return;
+  }
+
+  CANVAS_WIDTH = window.innerWidth;
+  CANVAS_HEIGHT = window.innerHeight;
+
+  // Setup all canvases
+  Object.keys(canvases).forEach(key => {
+    if (key !== 'audio') {
+      contexts[key] = setupCanvas(canvases[key]);
+    }
+  });
+
+  // Setup audio canvas
+  const audioCtx = canvases.audio.getContext('2d');
+  audioCtx.fillStyle = '#000';
+  audioCtx.fillRect(0, 0, 200, 60);
+  contexts.audio = audioCtx;
+
+  // Generate initial 3D grids with back as primary base
+  generate3DGrids();
+
+  // Set default wall selection to back (primary base)
+  document.getElementById('wallSelect').value = 'back';
+  appState.activeWall = 'back';
+
+  // Setup event listeners
+  setupEventListeners();
+
+  // Initialize transparency system
+  initializeTransparencySystem();
+
+  // Start render loop
+  requestAnimationFrame(renderLoop);
+
+  // Mark system as initialized
+  isSystemInitialized = true;
+
+  console.log('🔧 3D True Cube System - Back Grid is Primary Base');
+}
+
+/* ====================== TRANSPARENCY SYSTEM ====================== */
+
+function initializeTransparencySystem() {
+  // Set initial transparency values from sliders
+  const backSlider = document.getElementById('backAlpha');
+  const frontSlider = document.getElementById('frontAlpha');
+  const depthSlider = document.getElementById('depthAlpha');
+
+  if (backSlider) {
+    appState.transparency.back = parseInt(backSlider.value) / 100;
+    updateValueDisplay('backAlphaValue', backSlider.value);
+  }
+
+  if (frontSlider) {
+    appState.transparency.front = parseInt(frontSlider.value) / 100;
+    updateValueDisplay('frontAlphaValue', frontSlider.value);
+  }
+
+  if (depthSlider) {
+    appState.transparency.depth = parseInt(depthSlider.value) / 100;
+    updateValueDisplay('depthAlphaValue', depthSlider.value);
+  }
+
+  // Initialize radial graph value displays
+  updateValueDisplay('radialRingsValue', '4');
+  updateValueDisplay('radialPerValue', '8');
+
+  console.log('🎨 Transparency System Initialized:', {
+    back: appState.transparency.back,
+    front: appState.transparency.front,
+    depth: appState.transparency.depth
+  });
+}
+
+function updateTransparency(property, value) {
+  appState.transparency[property] = value / 100;
+
+  // Immediate visual update
+  switch(property) {
+    case 'back':
+      renderBackGrid();
+      break;
+    case 'front':
+      renderFrontGrid();
+      break;
+    case 'depth':
+      renderDepthConnections();
+      break;
+  }
+
+  // Update preview
+  updatePreview();
+
+  console.log(`🎨 ${property} transparency: ${value}%`);
+}
+
+/* ====================== 3D CUBE PHYSICS ====================== */
+
+function generate3DGrids() {
+  const units = appState.gridUnits;
+  const centerX = CANVAS_WIDTH / 2;
+  const centerY = CANVAS_HEIGHT / 2;
+  const gridSize = units * CUBE_PHYSICS.UNIT_SIZE;
+
+  // Clear existing grids
+  cubeSystem.backNodes = [];
+  cubeSystem.frontNodes = [];
+  cubeSystem.depthConnections = [];
+
+  // Generate BACK WALL as PRIMARY BASE (z = 0) - This is where you spawn!
+  const backStartX = centerX - (gridSize / 2);
+  const backStartY = centerY - (gridSize / 2);
+
+  for (let row = 0; row < units; row++) {
+    cubeSystem.backNodes[row] = [];
+    for (let col = 0; col < units; col++) {
+      cubeSystem.backNodes[row][col] = {
+        x: backStartX + (col * CUBE_PHYSICS.UNIT_SIZE),
+        y: backStartY + (row * CUBE_PHYSICS.UNIT_SIZE),
+        z: 0, // BACK IS BASE - No offset!
+        id: `back_${row}_${col}`,
+        type: 'grid',
+        isBase: true // Mark as primary base
+      };
+    }
+  }
+
+  // Generate FRONT WALL with +0.5 offset for true 3D depth
+  const frontOffsetX = CUBE_PHYSICS.UNIT_SIZE * CUBE_PHYSICS.DEPTH_OFFSET;
+  const frontOffsetY = CUBE_PHYSICS.UNIT_SIZE * CUBE_PHYSICS.DEPTH_OFFSET;
+  const frontStartX = backStartX + frontOffsetX;
+  const frontStartY = backStartY + frontOffsetY;
+
+  for (let row = 0; row < units; row++) {
+    cubeSystem.frontNodes[row] = [];
+    for (let col = 0; col < units; col++) {
+      cubeSystem.frontNodes[row][col] = {
+        x: frontStartX + (col * CUBE_PHYSICS.UNIT_SIZE * CUBE_PHYSICS.PERSPECTIVE_SCALE),
+        y: frontStartY + (row * CUBE_PHYSICS.UNIT_SIZE * CUBE_PHYSICS.PERSPECTIVE_SCALE),
+        z: CUBE_PHYSICS.DEPTH_OFFSET,
+        id: `front_${row}_${col}`,
+        type: 'grid',
+        isBase: false
+      };
+    }
+  }
+
+  // Generate depth connections (cube edges)
+  generateDepthConnections();
+
+  console.log(`✅ Generated ${units}x${units} TRUE CUBE - Back grid is PRIMARY BASE at z=0`);
+}function generateDepthConnections() {
+  cubeSystem.depthConnections = [];
+  const units = appState.gridUnits;
+
+  // Connect corresponding nodes between walls
+  for (let row = 0; row < units; row++) {
+    for (let col = 0; col < units; col++) {
+      const backNode = cubeSystem.backNodes[row][col];
+      const frontNode = cubeSystem.frontNodes[row][col];
+
+      cubeSystem.depthConnections.push({
+        from: backNode,
+        to: frontNode,
+        type: 'depth'
+      });
+    }
+  }
+}
+
+/* ====================== RADIAL GRAPH SYSTEM ====================== */
+
+function generateRadialGraph() {
+  const patternInput = document.getElementById('numberPattern');
+  const ringsSlider = document.getElementById('radialRings');
+  const perSlider = document.getElementById('radialPer');
+
+  const patternStr = patternInput ? patternInput.value : '1,2,3,4,5';
+  const rings = ringsSlider ? parseInt(ringsSlider.value) : 4;
+  const per = perSlider ? parseInt(perSlider.value) : 8;
+
+  // Parse number pattern
+  const pattern = patternStr.split(',').map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
+  if (pattern.length === 0) {
+    console.warn('⚠️ Invalid number pattern');
+    return;
+  }
+
+  const centerX = CANVAS_WIDTH / 2;
+  const centerY = CANVAS_HEIGHT / 2;
+  const maxRadius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.25;
+
+  // Clear existing radial graph
+  cubeSystem.radialGraph = {
+    nodes: [],
+    edges: [],
+    center: null,
+    rings: [],
+    pattern: pattern,
+    active: true
+  };
+
+  // Create center node
+  const center = {
+    id: 'center',
+    x: centerX,
+    y: centerY,
+    z: CUBE_PHYSICS.DEPTH_OFFSET, // Front wall
+    value: 0,
+    type: 'radial-center'
+  };
+  cubeSystem.radialGraph.center = center;
+  cubeSystem.radialGraph.nodes.push(center);
+
+  // Generate concentric rings based on pattern
+  const radii = [];
+  for (let i = 0; i < rings; i++) {
+    // Scale radius based on pattern values and geometric progression
+    const baseRadius = 60 * Math.pow(1.5, i);
+    const patternMultiplier = pattern[i % pattern.length] / Math.max(...pattern);
+    radii.push(Math.min(baseRadius * patternMultiplier, maxRadius));
+  }
+
+  const ringsArr = [];
+
+  radii.forEach((radius, ringIndex) => {
+    const count = per * (ringIndex + 1); // More nodes in outer rings
+    const step = (2 * Math.PI) / count;
+    const ring = [];
+
+    for (let i = 0; i < count; i++) {
+      const angle = i * step;
+      const patternValue = pattern[i % pattern.length];
+
+      // Create positive and negative nodes for symmetry
+      const positiveNode = {
+        id: `r${ringIndex}_p${i}`,
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle),
+        z: CUBE_PHYSICS.DEPTH_OFFSET + (patternValue * 0.1), // Positive Z offset
+        value: patternValue,
+        type: 'radial-positive',
+        ring: ringIndex,
+        index: i
+      };
+
+      const negativeNode = {
+        id: `r${ringIndex}_n${i}`,
+        x: centerX + radius * Math.cos(angle + Math.PI), // Opposite side
+        y: centerY + radius * Math.sin(angle + Math.PI),
+        z: CUBE_PHYSICS.DEPTH_OFFSET - (patternValue * 0.1), // Negative Z offset
+        value: -patternValue,
+        type: 'radial-negative',
+        ring: ringIndex,
+        index: i
+      };
+
+      ring.push(positiveNode, negativeNode);
+      cubeSystem.radialGraph.nodes.push(positiveNode, negativeNode);
+
+      // Connect to center (spokes)
+      addRadialEdge(center, positiveNode, 'spoke');
+      addRadialEdge(center, negativeNode, 'spoke');
+
+      // Connect positive to negative (symmetry bridge)
+      addRadialEdge(positiveNode, negativeNode, 'symmetry');
+
+      // Connect around ring
+      if (i > 0) {
+        const prevPos = ring[ring.length - 4]; // Previous positive
+        const prevNeg = ring[ring.length - 3]; // Previous negative
+        addRadialEdge(prevPos, positiveNode, 'ring');
+        addRadialEdge(prevNeg, negativeNode, 'ring');
+      }
+    }
+
+    // Close the ring
+    if (ring.length > 2) {
+      const firstPos = ring[0];
+      const firstNeg = ring[1];
+      const lastPos = ring[ring.length - 2];
+      const lastNeg = ring[ring.length - 1];
+      addRadialEdge(lastPos, firstPos, 'ring');
+      addRadialEdge(lastNeg, firstNeg, 'ring');
+    }
+
+    // Connect to previous ring (inter-ring connections)
+    if (ringIndex > 0) {
+      const prevRing = ringsArr[ringIndex - 1];
+      ring.forEach(node => {
+        // Find two nearest nodes in previous ring
+        const distances = prevRing.map(prev => ({
+          node: prev,
+          dist: Math.hypot(node.x - prev.x, node.y - prev.y)
+        }));
+        distances.sort((a, b) => a.dist - b.dist);
+
+        // Connect to two nearest
+        distances.slice(0, 2).forEach(({node: prevNode}) => {
+          addRadialEdge(prevNode, node, 'inter-ring');
+        });
+      });
+    }
+
+    ringsArr.push(ring);
+  });
+
+  cubeSystem.radialGraph.rings = ringsArr;
+
+  console.log(`✨ Generated radial graph: ${rings} rings, pattern [${pattern.join(',')}], ${cubeSystem.radialGraph.nodes.length} nodes, ${cubeSystem.radialGraph.edges.length} edges`);
+}
+
+function addRadialEdge(nodeA, nodeB, type) {
+  if (nodeA === nodeB) return;
+
+  // Check if edge already exists
+  const exists = cubeSystem.radialGraph.edges.some(e =>
+    (e.from === nodeA && e.to === nodeB) || (e.from === nodeB && e.to === nodeA)
+  );
+
+  if (!exists) {
+    cubeSystem.radialGraph.edges.push({
+      from: nodeA,
+      to: nodeB,
+      type: type
+    });
+  }
+}
+
+function renderRadialGraph() {
+  if (!cubeSystem.radialGraph.active) return;
+
+  const ctx = contexts.frontGrid;
+  ctx.save();
+
+  // Render edges first
+  cubeSystem.radialGraph.edges.forEach(edge => {
+    const fromProj = project3D(
+      edge.from.x - CANVAS_WIDTH/2,
+      edge.from.y - CANVAS_HEIGHT/2,
+      edge.from.z * 100
+    );
+    const toProj = project3D(
+      edge.to.x - CANVAS_WIDTH/2,
+      edge.to.y - CANVAS_HEIGHT/2,
+      edge.to.z * 100
+    );
+
+    // Different colors for different edge types
+    switch(edge.type) {
+      case 'spoke':
+        ctx.strokeStyle = '#10e0e0';
+        ctx.lineWidth = 2;
+        break;
+      case 'ring':
+        ctx.strokeStyle = '#ff3aa5';
+        ctx.lineWidth = 1.5;
+        break;
+      case 'inter-ring':
+        ctx.strokeStyle = '#ffaa00';
+        ctx.lineWidth = 1;
+        break;
+      case 'symmetry':
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        break;
+      default:
+        ctx.strokeStyle = '#888888';
+        ctx.lineWidth = 1;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(fromProj.x, fromProj.y);
+    ctx.lineTo(toProj.x, toProj.y);
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
+  });
+
+  // Render nodes
+  cubeSystem.radialGraph.nodes.forEach(node => {
+    const proj = project3D(
+      node.x - CANVAS_WIDTH/2,
+      node.y - CANVAS_HEIGHT/2,
+      node.z * 100
+    );
+
+    ctx.save();
+
+    switch(node.type) {
+      case 'radial-center':
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#10e0e0';
+        ctx.lineWidth = 3;
+        break;
+      case 'radial-positive':
+        ctx.fillStyle = `hsl(${Math.abs(node.value) * 30}, 70%, 60%)`;
+        ctx.strokeStyle = '#10e0e0';
+        ctx.lineWidth = 2;
+        break;
+      case 'radial-negative':
+        ctx.fillStyle = `hsl(${Math.abs(node.value) * 30}, 70%, 40%)`;
+        ctx.strokeStyle = '#ff3aa5';
+        ctx.lineWidth = 2;
+        break;
+    }
+
+    const size = node.type === 'radial-center' ? 8 : 4 + Math.abs(node.value);
+
+    ctx.beginPath();
+    ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw value label for non-zero values
+    if (node.value !== 0 && Math.abs(node.value) > 0.1) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(node.value.toFixed(1), proj.x, proj.y - size - 12);
+    }
+
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+/* ====================== UI SYSTEM ====================== */
+
+// Collapsible section management
+function toggleSection(sectionId) {
+  const content = document.getElementById(sectionId + '-content');
+  const icon = document.getElementById(sectionId + '-icon');
+
+  content.classList.toggle('collapsed');
+  icon.classList.toggle('collapsed');
+}
+
+// 3D Camera system
+let cameraSystem = {
+  is3D: false,
+  angle: 0,
+  distance: 800,
+  height: 0
+};
+
+function toggle3DView() {
+  cameraSystem.is3D = !cameraSystem.is3D;
+  const btn = document.getElementById('toggle3D');
+  const indicator = document.getElementById('viewMode');
+
+  if (cameraSystem.is3D) {
+    btn.textContent = '2D View';
+    btn.classList.add('active');
+    indicator.textContent = '3D Camera View';
+    console.log('🎥 Switched to 3D camera mode');
+  } else {
+    btn.textContent = '3D View';
+    btn.classList.remove('active');
+    indicator.textContent = '2D Face View';
+    cameraSystem.angle = 0;
+    console.log('🎥 Switched to 2D face view');
+  }
+
+  redrawAll3D();
+}
+
+function rotateCameraLeft() {
+  cameraSystem.angle -= Math.PI / 8; // 22.5 degrees
+  redrawAll3D();
+  console.log(`🎥 Camera angle: ${(cameraSystem.angle * 180 / Math.PI).toFixed(1)}°`);
+}
+
+function rotateCameraRight() {
+  cameraSystem.angle += Math.PI / 8; // 22.5 degrees
+  redrawAll3D();
+  console.log(`🎥 Camera angle: ${(cameraSystem.angle * 180 / Math.PI).toFixed(1)}°`);
+}
+
+function resetCamera() {
+  cameraSystem.angle = 0;
+  cameraSystem.distance = 800;
+  cameraSystem.height = 0;
+  redrawAll3D();
+  console.log('🎥 Camera reset to default position');
+}
+
+// Transform 3D point to 2D screen coordinates
+function project3D(x, y, z) {
+  if (!cameraSystem.is3D) {
+    return { x, y }; // No transformation in 2D mode
+  }
+
+  // Apply camera rotation
+  const cos = Math.cos(cameraSystem.angle);
+  const sin = Math.sin(cameraSystem.angle);
+
+  // Rotate around Y axis
+  const rx = x * cos - z * sin;
+  const ry = y;
+  const rz = x * sin + z * cos + cameraSystem.distance;
+
+  // Perspective projection
+  const scale = cameraSystem.distance / rz;
+
+  return {
+    x: CANVAS_WIDTH / 2 + rx * scale,
+    y: CANVAS_HEIGHT / 2 + ry * scale
+  };
+}
+
+function redrawAll3D() {
+  renderBackGrid();
+  renderFrontGrid();
+  renderDepthConnections();
+  renderDrawing();
+  renderCustomNodes();
+  updatePreview();
+}
+
+/* ====================== RENDERING SYSTEM ====================== */
+
+function renderBackGrid() {
+  const ctx = contexts.backGrid;
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  if (appState.transparency.back <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = appState.transparency.back;
+  ctx.strokeStyle = '#10e0e0';
+  ctx.fillStyle = '#0a1520';
+  ctx.lineWidth = cameraSystem.is3D ? 2 : 1;
+
+  const units = appState.gridUnits;
+
+  // Draw grid lines with 3D projection
+  for (let row = 0; row < units; row++) {
+    for (let col = 0; col < units; col++) {
+      const node = cubeSystem.backNodes[row][col];
+      const projected = project3D(node.x - CANVAS_WIDTH/2, node.y - CANVAS_HEIGHT/2, node.z * 100);
+
+      // Horizontal lines
+      if (col < units - 1) {
+        const nextNode = cubeSystem.backNodes[row][col + 1];
+        const nextProjected = project3D(nextNode.x - CANVAS_WIDTH/2, nextNode.y - CANVAS_HEIGHT/2, nextNode.z * 100);
+        ctx.beginPath();
+        ctx.moveTo(projected.x, projected.y);
+        ctx.lineTo(nextProjected.x, nextProjected.y);
+        ctx.stroke();
+      }
+
+      // Vertical lines
+      if (row < units - 1) {
+        const nextNode = cubeSystem.backNodes[row + 1][col];
+        const nextProjected = project3D(nextNode.x - CANVAS_WIDTH/2, nextNode.y - CANVAS_HEIGHT/2, nextNode.z * 100);
+        ctx.beginPath();
+        ctx.moveTo(projected.x, projected.y);
+        ctx.lineTo(nextProjected.x, nextProjected.y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw nodes with 3D projection - BIGGER for base grid
+  for (let row = 0; row < units; row++) {
+    for (let col = 0; col < units; col++) {
+      const node = cubeSystem.backNodes[row][col];
+      const projected = project3D(node.x - CANVAS_WIDTH/2, node.y - CANVAS_HEIGHT/2, node.z * 100);
+
+      ctx.beginPath();
+      ctx.arc(projected.x, projected.y, 5, 0, Math.PI * 2); // Bigger for base
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}function renderFrontGrid() {
+  const ctx = contexts.frontGrid;
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // Render regular grid if transparency > 0
+  if (appState.transparency.front > 0) {
+    ctx.save();
+    ctx.globalAlpha = appState.transparency.front;
+    ctx.strokeStyle = '#ff3aa5';
+    ctx.fillStyle = '#1a0510';
+    ctx.lineWidth = cameraSystem.is3D ? 1.5 : 1;
+
+    const units = appState.gridUnits;
+
+    // Draw grid lines with 3D projection
+    for (let row = 0; row < units; row++) {
+      for (let col = 0; col < units; col++) {
+        const node = cubeSystem.frontNodes[row][col];
+        const projected = project3D(node.x - CANVAS_WIDTH/2, node.y - CANVAS_HEIGHT/2, node.z * 100);
+
+        // Horizontal lines
+        if (col < units - 1) {
+          const nextNode = cubeSystem.frontNodes[row][col + 1];
+          const nextProjected = project3D(nextNode.x - CANVAS_WIDTH/2, nextNode.y - CANVAS_HEIGHT/2, nextNode.z * 100);
+          ctx.beginPath();
+          ctx.moveTo(projected.x, projected.y);
+          ctx.lineTo(nextProjected.x, nextProjected.y);
+          ctx.stroke();
+        }
+
+        // Vertical lines
+        if (row < units - 1) {
+          const nextNode = cubeSystem.frontNodes[row + 1][col];
+          const nextProjected = project3D(nextNode.x - CANVAS_WIDTH/2, nextNode.y - CANVAS_HEIGHT/2, nextNode.z * 100);
+          ctx.beginPath();
+          ctx.moveTo(projected.x, projected.y);
+          ctx.lineTo(nextProjected.x, nextProjected.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw nodes with 3D projection - SMALLER for front grid
+    for (let row = 0; row < units; row++) {
+      for (let col = 0; col < units; col++) {
+        const node = cubeSystem.frontNodes[row][col];
+        const projected = project3D(node.x - CANVAS_WIDTH/2, node.y - CANVAS_HEIGHT/2, node.z * 100);
+
+        ctx.beginPath();
+        ctx.arc(projected.x, projected.y, 3, 0, Math.PI * 2); // Smaller for front
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Render radial graph overlay
+  renderRadialGraph();
+}
+
+function renderDepthConnections() {
+  const ctx = contexts.depthLinks;
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  if (appState.transparency.depth <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = appState.transparency.depth;
+  ctx.lineWidth = cameraSystem.is3D ? 3 : 2;
+
+  cubeSystem.depthConnections.forEach(connection => {
+    const backProjected = project3D(
+      connection.from.x - CANVAS_WIDTH/2,
+      connection.from.y - CANVAS_HEIGHT/2,
+      connection.from.z * 100
+    );
+    const frontProjected = project3D(
+      connection.to.x - CANVAS_WIDTH/2,
+      connection.to.y - CANVAS_HEIGHT/2,
+      connection.to.z * 100
+    );
+
+    const gradient = ctx.createLinearGradient(
+      backProjected.x, backProjected.y,
+      frontProjected.x, frontProjected.y
+    );
+    gradient.addColorStop(0, '#10e0e0'); // Back = cyan
+    gradient.addColorStop(1, '#ff3aa5'); // Front = magenta
+
+    ctx.strokeStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(backProjected.x, backProjected.y);
+    ctx.lineTo(frontProjected.x, frontProjected.y);
+    ctx.stroke();
+  });
+
+  ctx.restore();
+}function renderDrawing() {
+  const ctx = contexts.drawingLayer;
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  drawingSystem.strokes.forEach(stroke => {
+    ctx.save();
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    stroke.points.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function renderEffects() {
+  const ctx = contexts.effectsLayer;
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // Render glyph effects
+  effectsSystem.glyphs.forEach(glyph => {
+    renderGlyphEffect(ctx, glyph);
+  });
+
+  // Render particles
+  effectsSystem.particles.forEach(particle => {
+    renderParticle(ctx, particle);
+  });
+}
+
+function renderGlyphEffect(ctx, glyph) {
+  ctx.save();
+  ctx.globalAlpha = glyph.intensity;
+
+  switch (glyph.type) {
+    case 'aurora':
+      renderAuroraField(ctx, glyph);
+      break;
+    case 'lightning':
+      renderLightningWeb(ctx, glyph);
+      break;
+    case 'crystalline':
+      renderCrystalMatrix(ctx, glyph);
+      break;
+    case 'plasma':
+      renderPlasmaFlow(ctx, glyph);
+      break;
+    case 'quantum':
+      renderQuantumFlux(ctx, glyph);
+      break;
+  }
+
+  ctx.restore();
+}
+
+function renderAuroraField(ctx, glyph) {
+  const time = Date.now() * 0.001;
+  const centerX = CANVAS_WIDTH / 2;
+  const centerY = CANVAS_HEIGHT / 2;
+
+  ctx.fillStyle = `hsl(${(180 + Math.sin(time) * 60)}, 70%, 50%)`;
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = ctx.fillStyle;
+
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2 + time;
+    const radius = 100 + Math.sin(time * 2 + i) * 50;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 3 + Math.sin(time * 3 + i) * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function renderLightningWeb(ctx, glyph) {
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#ffffff';
+
+  const units = appState.gridUnits;
+  for (let row = 0; row < units; row++) {
+    for (let col = 0; col < units; col++) {
+      if (Math.random() > 0.95) {
+        const backNode = cubeSystem.backNodes[row][col];
+        const frontNode = cubeSystem.frontNodes[row][col];
+
+        ctx.beginPath();
+        ctx.moveTo(backNode.x, backNode.y);
+
+        // Add lightning jaggedness
+        const steps = 5;
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          const x = backNode.x + (frontNode.x - backNode.x) * t + (Math.random() - 0.5) * 20;
+          const y = backNode.y + (frontNode.y - backNode.y) * t + (Math.random() - 0.5) * 20;
+          ctx.lineTo(x, y);
+        }
+
+        ctx.lineTo(frontNode.x, frontNode.y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function renderCrystalMatrix(ctx, glyph) {
+  const time = Date.now() * 0.001;
+
+  ctx.strokeStyle = '#00ffff';
+  ctx.fillStyle = '#001a1a';
+  ctx.lineWidth = 1;
+
+  const units = appState.gridUnits;
+  for (let row = 0; row < units; row++) {
+    for (let col = 0; col < units; col++) {
+      const node = cubeSystem.frontNodes[row][col];
+      const size = 8 + Math.sin(time * 2 + row + col) * 4;
+
+      ctx.save();
+      ctx.translate(node.x, node.y);
+      ctx.rotate(time + row * 0.5 + col * 0.3);
+
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const x = Math.cos(angle) * size;
+        const y = Math.sin(angle) * size;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+    }
+  }
+}
+
+function renderPlasmaFlow(ctx, glyph) {
+  const time = Date.now() * 0.003;
+
+  const gradient = ctx.createRadialGradient(
+    CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 0,
+    CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 200
+  );
+  gradient.addColorStop(0, `hsla(${(time * 50) % 360}, 100%, 50%, 0.8)`);
+  gradient.addColorStop(1, `hsla(${(time * 30 + 180) % 360}, 100%, 30%, 0.2)`);
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+}
+
+function renderQuantumFlux(ctx, glyph) {
+  const time = Date.now() * 0.004;
+
+  effectsSystem.particles.forEach(particle => {
+    ctx.fillStyle = `hsl(${particle.hue}, 100%, ${50 + Math.sin(time * 3) * 25}%)`;
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function renderParticle(ctx, particle) {
+  ctx.save();
+  ctx.globalAlpha = particle.alpha;
+  ctx.fillStyle = particle.color;
+  ctx.shadowBlur = particle.glow;
+  ctx.shadowColor = particle.color;
+
+  ctx.beginPath();
+  ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function updatePreview() {
+  const ctx = contexts.preview;
+  const scale = 0.35;
+  const offsetX = 20;
+  const offsetY = 20;
+
+  ctx.clearRect(0, 0, 280, 160);
+
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.translate(offsetX, offsetY);
+
+  // Draw miniature version of all layers
+  if (appState.transparency.back > 0) {
+    ctx.globalAlpha = appState.transparency.back;
+    ctx.drawImage(canvases.backGrid, 0, 0);
+  }
+
+  if (appState.transparency.front > 0) {
+    ctx.globalAlpha = appState.transparency.front;
+    ctx.drawImage(canvases.frontGrid, 0, 0);
+  }
+
+  if (appState.transparency.depth > 0) {
+    ctx.globalAlpha = appState.transparency.depth;
+    ctx.drawImage(canvases.depthLinks, 0, 0);
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.drawImage(canvases.drawingLayer, 0, 0);
+  ctx.drawImage(canvases.effectsLayer, 0, 0);
+
+  ctx.restore();
+}
+
+/* ====================== ANIMATION SYSTEM ====================== */
+
+function updateAnimation(deltaTime) {
+  if (!appState.isAnimating) return;
+
+  appState.animation.time += deltaTime * appState.animation.speed * 0.01;
+
+  // Apply animation to custom nodes only - grids stay fixed
+  cubeSystem.customNodes.forEach((node, index) => {
+    applyAnimationToNode(node, index, appState.animation.time);
+  });
+}
+
+function applyAnimationToNode(node, index, time) {
+  const originalX = node.originalX || node.x;
+  const originalY = node.originalY || node.y;
+
+  // Store original position
+  if (!node.originalX) {
+    node.originalX = node.x;
+    node.originalY = node.y;
+  }
+
+  switch (appState.animation.type) {
+    case 'pulse': {
+      const pulse = Math.sin(time + index * 0.5) * 10;
+      node.y = originalY + pulse;
+      break;
+    }
+
+    case 'rotate': {
+      const angle = time + index * 0.1;
+      const centerX = CANVAS_WIDTH / 2;
+      const centerY = CANVAS_HEIGHT / 2;
+      const distance = Math.hypot(originalX - centerX, originalY - centerY);
+      const baseAngle = Math.atan2(originalY - centerY, originalX - centerX);
+
+      node.x = centerX + Math.cos(baseAngle + angle * 0.02) * distance;
+      node.y = centerY + Math.sin(baseAngle + angle * 0.02) * distance;
+      break;
+    }
+
+    case 'wave': {
+      const wave = Math.sin(time * 0.05 + originalX * 0.01) * 20;
+      node.y = originalY + wave;
+      break;
+    }
+
+    case 'spiral': {
+      const spiralAngle = time * 0.02 + Math.hypot(originalX - CANVAS_WIDTH/2, originalY - CANVAS_HEIGHT/2) * 0.01;
+      const spiralRadius = Math.hypot(originalX - CANVAS_WIDTH/2, originalY - CANVAS_HEIGHT/2);
+      node.x = CANVAS_WIDTH/2 + Math.cos(spiralAngle) * spiralRadius;
+      node.y = CANVAS_HEIGHT/2 + Math.sin(spiralAngle) * spiralRadius;
+      break;
+    }
+
+    case 'morph': {
+      const morphX = Math.sin(time * 0.03 + index * 0.5) * 15;
+      const morphY = Math.cos(time * 0.04 + index * 0.7) * 15;
+      node.x = originalX + morphX;
+      node.y = originalY + morphY;
+      break;
+    }
+
+    case 'bloom': {
+      const bloomScale = 1 + Math.sin(time * 0.05) * 0.3;
+      const centerX2 = CANVAS_WIDTH / 2;
+      const centerY2 = CANVAS_HEIGHT / 2;
+      node.x = centerX2 + (originalX - centerX2) * bloomScale;
+      node.y = centerY2 + (originalY - centerY2) * bloomScale;
+      break;
+    }
+  }
+}
+
+function stopAnimation() {
+  appState.isAnimating = false;
+
+  // Restore original positions
+  cubeSystem.customNodes.forEach(node => {
+    if (node.originalX !== undefined) {
+      node.x = node.originalX;
+      node.y = node.originalY;
+      delete node.originalX;
+      delete node.originalY;
+    }
+  });
+}
+
+/* ====================== AUDIO SYSTEM ====================== */
+
+async function startAudioInput() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioAnalyser = audioContext.createAnalyser();
+    audioSource = audioContext.createMediaStreamSource(stream);
+
+    audioAnalyser.fftSize = 256;
+    audioAnalyser.smoothingTimeConstant = 0.8;
+    audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+
+    audioSource.connect(audioAnalyser);
+
+    appState.audioActive = true;
+    document.getElementById('audioStatus').textContent = 'Active';
+
+    console.log('🎵 Audio input activated');
+  } catch (error) {
+    console.error('Audio access denied:', error);
+    document.getElementById('audioStatus').textContent = 'Access Denied';
+  }
+}
+
+function stopAudioInput() {
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+    audioAnalyser = null;
+    audioDataArray = null;
+    audioSource = null;
+  }
+
+  appState.audioActive = false;
+  document.getElementById('audioStatus').textContent = 'Inactive';
+}
+
+function updateAudioVisualization() {
+  if (!appState.audioActive || !audioAnalyser) return;
+
+  audioAnalyser.getByteFrequencyData(audioDataArray);
+
+  const ctx = contexts.audio;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 200, 60);
+
+  const barWidth = 200 / audioDataArray.length;
+
+  for (let i = 0; i < audioDataArray.length; i++) {
+    const barHeight = (audioDataArray[i] / 255) * 60;
+    const hue = (i / audioDataArray.length) * 360;
+
+    ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+    ctx.fillRect(i * barWidth, 60 - barHeight, barWidth - 1, barHeight);
+  }
+
+  // Apply audio-driven animation
+  if (appState.isAnimating) {
+    applyAudioAnimation();
+  }
+}
+
+function applyAudioAnimation() {
+  if (!audioDataArray) return;
+
+  const sensitivity = document.getElementById('audioSensitivity').value / 100;
+  const avgFrequency = audioDataArray.reduce((sum, val) => sum + val, 0) / audioDataArray.length;
+  const normalizedLevel = (avgFrequency / 255) * sensitivity;
+
+  // Apply to custom nodes
+  cubeSystem.customNodes.forEach((node, index) => {
+    if (!node.audioBaseX) {
+      node.audioBaseX = node.x;
+      node.audioBaseY = node.y;
+    }
+
+    const frequencyIndex = index % audioDataArray.length;
+    const frequencyLevel = (audioDataArray[frequencyIndex] / 255) * sensitivity;
+
+    node.x = node.audioBaseX + Math.sin(Date.now() * 0.01 + index) * frequencyLevel * 30;
+    node.y = node.audioBaseY + Math.cos(Date.now() * 0.01 + index) * frequencyLevel * 30;
+  });
+
+  // Create audio-reactive particles
+  if (normalizedLevel > 0.3 && Math.random() > 0.8) {
+    createAudioParticle(normalizedLevel);
+  }
+}
+
+function createAudioParticle(intensity) {
+  effectsSystem.particles.push({
+    x: CANVAS_WIDTH / 2 + (Math.random() - 0.5) * 200,
+    y: CANVAS_HEIGHT / 2 + (Math.random() - 0.5) * 200,
+    size: 2 + intensity * 8,
+    alpha: 0.8,
+    color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+    glow: 10 + intensity * 20,
+    life: 1.0,
+    decay: 0.02 + Math.random() * 0.02
+  });
+}
+
+/* ====================== EFFECT SYSTEM ====================== */
+
+function executeGlyph() {
+  const typeEl = document.getElementById('glyphType');
+  const intensityEl = document.getElementById('glyphIntensity');
+
+  const type = typeEl ? typeEl.value : 'aurora';
+  const intensity = intensityEl ? parseInt(intensityEl.value) / 100 : 0.65;
+
+  // Clear existing glyphs
+  effectsSystem.glyphs = [];
+
+  const glyph = {
+    type: type,
+    intensity: intensity,
+    startTime: Date.now(),
+    duration: 5000
+  };
+
+  effectsSystem.glyphs.push(glyph);
+
+  // Create initial particles for the effect
+  for (let i = 0; i < 50; i++) {
+    createGlyphParticle(type, intensity);
+  }
+
+  console.log(`✨ Executed ${type} glyph at ${intensity * 100}% intensity`);
+}
+
+function createGlyphParticle(type, intensity) {
+  const colors = {
+    aurora: ['#ff6b9d', '#4ecdc4', '#45b7d1'],
+    lightning: ['#ffffff', '#e0e0e0', '#ffff00'],
+    crystalline: ['#00ffff', '#0080ff', '#0040ff'],
+    plasma: ['#ff0080', '#8000ff', '#ff8000'],
+    quantum: ['#ff6b9d', '#4ecdc4', '#45b7d1', '#96ceb4']
+  };
+
+  const colorPalette = colors[type] || colors.aurora;
+  const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+
+  effectsSystem.particles.push({
+    x: CANVAS_WIDTH / 2 + (Math.random() - 0.5) * 400,
+    y: CANVAS_HEIGHT / 2 + (Math.random() - 0.5) * 300,
+    vx: (Math.random() - 0.5) * 4,
+    vy: (Math.random() - 0.5) * 4,
+    size: 1 + Math.random() * 4,
+    alpha: 0.8 * intensity,
+    color: color,
+    glow: 5 + intensity * 15,
+    life: 1.0,
+    decay: 0.005 + Math.random() * 0.01,
+    type: type
+  });
+}
+
+function updateEffects(deltaTime) {
+  // Update particles
+  effectsSystem.particles = effectsSystem.particles.filter(particle => {
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    particle.life -= particle.decay;
+    particle.alpha = particle.life;
+
+    return particle.life > 0;
+  });
+
+  // Update glyphs
+  effectsSystem.glyphs = effectsSystem.glyphs.filter(glyph => {
+    const elapsed = Date.now() - glyph.startTime;
+    return elapsed < glyph.duration;
+  });
+}
+
+function clearAllEffects() {
+  effectsSystem.glyphs = [];
+  effectsSystem.particles = [];
+  console.log('🧹 All effects cleared');
+}
+
+/* ====================== INTERACTION SYSTEM ====================== */
+
+function getCanvasCoordinates(event, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+function findNearestNode(x, y, nodes) {
+  let nearest = null;
+  let minDistance = Infinity;
+  const maxDistance = 20;
+
+  nodes.forEach(node => {
+    const distance = Math.hypot(x - node.x, y - node.y);
+    if (distance < minDistance && distance < maxDistance) {
+      minDistance = distance;
+      nearest = node;
+    }
+  });
+
+  return nearest;
+}
+
+function handleCanvasClick(event) {
+  const coords = getCanvasCoordinates(event, canvases.nodeLayer);
+
+  switch (appState.mode) {
+    case 'spawn':
+      spawnCustomNode(coords.x, coords.y);
+      break;
+
+    case 'connect':
+      handleNodeConnection(coords.x, coords.y);
+      break;
+
+    case 'edit':
+      startNodeDrag(coords.x, coords.y);
+      break;
+  }
+}
+
+function spawnCustomNode(x, y) {
+  const node = {
+    x: x,
+    y: y,
+    z: appState.activeWall === 'back' ? 0 : CUBE_PHYSICS.DEPTH_OFFSET, // Back is z=0
+    id: `custom_${Date.now()}`,
+    type: 'custom',
+    wall: appState.activeWall
+  };
+
+  cubeSystem.customNodes.push(node);
+  console.log(`➕ Spawned custom node at (${x.toFixed(0)}, ${y.toFixed(0)}) on ${appState.activeWall} wall (z=${node.z})`);
+}let pendingConnection = null;
+
+function handleNodeConnection(x, y) {
+  const allNodes = [...cubeSystem.customNodes];
+
+  // Add grid nodes for connection
+  const units = appState.gridUnits;
+  for (let row = 0; row < units; row++) {
+    for (let col = 0; col < units; col++) {
+      allNodes.push(cubeSystem.backNodes[row][col]);
+      allNodes.push(cubeSystem.frontNodes[row][col]);
+    }
+  }
+
+  const nearestNode = findNearestNode(x, y, allNodes);
+
+  if (!nearestNode) return;
+
+  if (!pendingConnection) {
+    pendingConnection = nearestNode;
+    console.log('📍 Selected first node for connection');
+  } else {
+    if (pendingConnection !== nearestNode) {
+      cubeSystem.customConnections.push({
+        from: pendingConnection,
+        to: nearestNode,
+        type: 'custom'
+      });
+      console.log('🔗 Created connection between nodes');
+    }
+    pendingConnection = null;
+  }
+}
+
+let draggedNode = null;
+
+function startNodeDrag(x, y) {
+  draggedNode = findNearestNode(x, y, cubeSystem.customNodes);
+  if (draggedNode) {
+    console.log('👆 Started dragging node');
+  }
+}
+
+function handleCanvasMouseMove(event) {
+  if (appState.mode === 'edit' && draggedNode) {
+    const coords = getCanvasCoordinates(event, canvases.nodeLayer);
+    draggedNode.x = coords.x;
+    draggedNode.y = coords.y;
+  }
+
+  if (drawingSystem.isDrawing && appState.mode === 'draw') {
+    const coords = getCanvasCoordinates(event, canvases.drawingLayer);
+    drawingSystem.currentStroke.points.push(coords);
+  }
+}
+
+function handleCanvasMouseUp() {
+  if (draggedNode) {
+    console.log('👆 Stopped dragging node');
+    draggedNode = null;
+  }
+
+  if (drawingSystem.isDrawing) {
+    drawingSystem.isDrawing = false;
+    drawingSystem.currentStroke = null;
+  }
+}
+
+function handleDrawingStart(event) {
+  if (appState.mode !== 'draw' && appState.mode !== 'erase') return;
+
+  const coords = getCanvasCoordinates(event, canvases.drawingLayer);
+
+  drawingSystem.isDrawing = true;
+  drawingSystem.currentStroke = {
+    points: [coords],
+    color: appState.mode === 'draw' ? '#ff3aa5' : '#0b0f14',
+    width: appState.mode === 'draw' ? drawingSystem.brushSize : drawingSystem.brushSize * 3
+  };
+
+  drawingSystem.strokes.push(drawingSystem.currentStroke);
+}
+
+/* ====================== EVENT LISTENERS ====================== */
+
+function setupEventListeners() {
+  // Helper function to safely add event listeners
+  function safeAddListener(id, event, handler) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener(event, handler);
+    } else {
+      console.warn(`⚠️ Element not found: ${id}`);
+    }
+  }
+
+  // 3D Camera controls
+  safeAddListener('toggle3D', 'click', toggle3DView);
+  safeAddListener('rotateCCW', 'click', rotateCameraLeft);
+  safeAddListener('rotateCW', 'click', rotateCameraRight);
+  safeAddListener('resetCamera', 'click', resetCamera);
+
+  // Control inputs
+  safeAddListener('gridUnits', 'input', (e) => {
+    appState.gridUnits = parseInt(e.target.value);
+  });
+
+  safeAddListener('generateGrids', 'click', () => {
+    generate3DGrids();
+    redrawAll3D();
+    console.log('🔄 Regenerated 3D cube base');
+  });
+
+  // Radial graph controls
+  safeAddListener('generateRadial', 'click', () => {
+    generateRadialGraph();
+    redrawAll3D();
+    console.log('✨ Generated radial graph pattern');
+  });
+
+  safeAddListener('radialRings', 'input', (e) => {
+    updateValueDisplay('radialRingsValue', e.target.value);
+  });
+
+  safeAddListener('radialPer', 'input', (e) => {
+    updateValueDisplay('radialPerValue', e.target.value);
+  });
+
+  // Transparency controls
+  setupTransparencyControl('backAlpha', 'back');
+  setupTransparencyControl('frontAlpha', 'front');
+  setupTransparencyControl('depthAlpha', 'depth');
+
+  // Wall selection
+  safeAddListener('wallSelect', 'change', (e) => {
+    appState.activeWall = e.target.value;
+    console.log(`🎯 Switched to ${appState.activeWall} wall`);
+  });
+
+  // Mode controls
+  safeAddListener('modeDraw', 'click', () => setMode('draw'));
+  safeAddListener('modeErase', 'click', () => setMode('erase'));
+  safeAddListener('modeEdit', 'click', () => setMode('edit'));
+  safeAddListener('modeConnect', 'click', () => setMode('connect'));
+  safeAddListener('modeSpawn', 'click', () => setMode('spawn'));
+
+  // Clear functions
+  safeAddListener('clearDrawing', 'click', () => {
+    drawingSystem.strokes = [];
+    console.log('🧹 Cleared all drawing');
+  });
+
+  safeAddListener('clearNodes', 'click', () => {
+    cubeSystem.customNodes = [];
+    cubeSystem.customConnections = [];
+    cubeSystem.radialGraph.active = false;
+    cubeSystem.radialGraph.nodes = [];
+    cubeSystem.radialGraph.edges = [];
+    console.log('🧹 Cleared custom nodes and radial graph');
+  });
+
+  // Animation controls
+  safeAddListener('executeAnimation', 'click', () => {
+    appState.isAnimating = true;
+    const animTypeEl = document.getElementById('animationType');
+    const animSpeedEl = document.getElementById('animSpeed');
+    appState.animation.type = animTypeEl ? animTypeEl.value : 'pulse';
+    appState.animation.speed = animSpeedEl ? parseInt(animSpeedEl.value) : 30;
+    appState.animation.time = 0;
+    console.log(`🎬 Started ${appState.animation.type} animation`);
+  });
+
+  safeAddListener('stopAnimation', 'click', () => {
+    stopAnimation();
+    console.log('⏹️ Stopped animation');
+  });
+
+  // Animation speed control
+  safeAddListener('animSpeed', 'input', (e) => {
+    updateValueDisplay('animSpeedValue', e.target.value);
+  });
+
+  // Glyph controls
+  safeAddListener('executeGlyph', 'click', executeGlyph);
+  safeAddListener('clearGlyphs', 'click', clearAllEffects);
+  safeAddListener('glyphIntensity', 'input', (e) => {
+    updateValueDisplay('glyphIntensityValue', e.target.value);
+  });
+
+  // Audio controls
+  safeAddListener('startAudioInput', 'click', startAudioInput);
+  safeAddListener('stopAudioInput', 'click', stopAudioInput);
+  safeAddListener('audioSensitivity', 'input', (e) => {
+    updateValueDisplay('audioSensitivityValue', e.target.value);
+  });
+
+  // Canvas interactions
+  if (canvases.nodeLayer) {
+    canvases.nodeLayer.addEventListener('mousedown', handleCanvasClick);
+    canvases.nodeLayer.addEventListener('mousemove', handleCanvasMouseMove);
+    canvases.nodeLayer.addEventListener('mouseup', handleCanvasMouseUp);
+  }
+
+  if (canvases.drawingLayer) {
+    canvases.drawingLayer.addEventListener('mousedown', handleDrawingStart);
+    canvases.drawingLayer.addEventListener('mousemove', handleCanvasMouseMove);
+    canvases.drawingLayer.addEventListener('mouseup', handleCanvasMouseUp);
+  }
+
+  // Other controls
+  safeAddListener('brushSize', 'input', (e) => {
+    drawingSystem.brushSize = parseInt(e.target.value);
+    updateValueDisplay('brushValue', e.target.value);
+  });
+
+  // Export
+  safeAddListener('exportPNG', 'click', exportComposite);
+  safeAddListener('exportModel', 'click', () => {
+    console.log('3D model export not implemented yet');
+  });
+
+  // Window resize
+  window.addEventListener('resize', () => {
+    // Update canvas dimensions without full re-initialization
+    CANVAS_WIDTH = window.innerWidth;
+    CANVAS_HEIGHT = window.innerHeight;
+
+    // Resize all canvases
+    Object.keys(canvases).forEach(key => {
+      if (key !== 'audio') {
+        contexts[key] = setupCanvas(canvases[key]);
+      }
+    });
+
+    // Regenerate grids with new dimensions
+    generate3DGrids();
+    redrawAll3D();
+
+    console.log('🔄 Canvas resized and grids regenerated');
+  });
+}
+
+function setupTransparencyControl(sliderId, property) {
+  const slider = document.getElementById(sliderId);
+  const valueDisplay = document.getElementById(sliderId + 'Value');
+
+  if (slider && valueDisplay) {
+    slider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      updateTransparency(property, value);
+      updateValueDisplay(valueDisplay.id, e.target.value);
+    });
+  } else {
+    console.warn(`⚠️ Transparency control not found: ${sliderId}`);
+  }
+}
+
+function updateValueDisplay(elementId, value) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+function setMode(mode) {
+  appState.mode = mode;
+
+  // Update button states
+  document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+
+  const modeButtons = {
+    draw: 'modeDraw',
+    erase: 'modeErase',
+    edit: 'modeEdit',
+    connect: 'modeConnect',
+    spawn: 'modeSpawn'
+  };
+
+  if (modeButtons[mode]) {
+    const btn = document.getElementById(modeButtons[mode]);
+    if (btn) btn.classList.add('active');
+  }
+
+  console.log(`🎯 Mode changed to: ${mode}`);
+}
+
+/* ====================== EXPORT SYSTEM ====================== */
+
+async function exportComposite() {
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = CANVAS_WIDTH * DPR;
+  tempCanvas.height = CANVAS_HEIGHT * DPR;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  tempCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  // Composite all visible layers
+  if (appState.transparency.back > 0) {
+    tempCtx.globalAlpha = appState.transparency.back;
+    tempCtx.drawImage(canvases.backGrid, 0, 0);
+  }
+
+  if (appState.transparency.front > 0) {
+    tempCtx.globalAlpha = appState.transparency.front;
+    tempCtx.drawImage(canvases.frontGrid, 0, 0);
+  }
+
+  if (appState.transparency.depth > 0) {
+    tempCtx.globalAlpha = appState.transparency.depth;
+    tempCtx.drawImage(canvases.depthLinks, 0, 0);
+  }
+
+  tempCtx.globalAlpha = 1;
+  tempCtx.drawImage(canvases.drawingLayer, 0, 0);
+  tempCtx.drawImage(canvases.nodeLayer, 0, 0);
+  tempCtx.drawImage(canvases.effectsLayer, 0, 0);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `3d-cube-physics-${Date.now()}.png`;
+  link.href = tempCanvas.toDataURL('image/png');
+  link.click();
+
+  console.log('📥 Exported composite image');
+}
+
+/* ====================== RENDER LOOP ====================== */
+
+let lastFrameTime = 0;
+
+function renderLoop(currentTime) {
+  const deltaTime = currentTime - lastFrameTime;
+  lastFrameTime = currentTime;
+
+  // Update systems
+  updateAnimation(deltaTime);
+  updateEffects(deltaTime);
+  updateAudioVisualization();
+
+  // Render all layers with current transparency
+  renderBackGrid();
+  renderFrontGrid();
+  renderDepthConnections();
+  renderDrawing();
+  renderCustomNodes();
+  renderEffects();
+
+  // Update preview with all transparency settings
+  updatePreview();
+
+  requestAnimationFrame(renderLoop);
+}
+
+function renderCustomNodes() {
+  const ctx = contexts.nodeLayer;
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // Render custom connections
+  ctx.strokeStyle = '#ffaa00';
+  ctx.lineWidth = 2;
+  cubeSystem.customConnections.forEach(connection => {
+    ctx.beginPath();
+    ctx.moveTo(connection.from.x, connection.from.y);
+    ctx.lineTo(connection.to.x, connection.to.y);
+    ctx.stroke();
+  });
+
+  // Render custom nodes
+  cubeSystem.customNodes.forEach(node => {
+    ctx.fillStyle = node.wall === 'back' ? '#10e0e0' : '#ff3aa5';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  // Render pending connection
+  if (pendingConnection) {
+    ctx.fillStyle = '#ffff00';
+    ctx.beginPath();
+    ctx.arc(pendingConnection.x, pendingConnection.y, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* ====================== INITIALIZATION ====================== */
+
+// Enhanced initialization with debugging
+function initializeSystem() {
+  try {
+    console.log('🔧 Starting system initialization...');
+
+    // Prevent multiple initialization
+    if (isSystemInitialized) {
+      console.log('⚠️ System already initialized, skipping...');
+      return;
+    }
+
+    console.log('🖥️ Setting up canvas dimensions...');
+    CANVAS_WIDTH = window.innerWidth;
+    CANVAS_HEIGHT = window.innerHeight;
+    console.log(`📐 Canvas size: ${CANVAS_WIDTH}x${CANVAS_HEIGHT}`);
+
+    console.log('🎨 Setting up canvases...');
+
+    // Initialize canvas references now that DOM is ready
+    canvases = {
+      backGrid: document.getElementById('backGrid'),
+      frontGrid: document.getElementById('frontGrid'),
+      depthLinks: document.getElementById('depthLinks'),
+      drawingLayer: document.getElementById('drawingLayer'),
+      nodeLayer: document.getElementById('nodeLayer'),
+      effectsLayer: document.getElementById('effectsLayer'),
+      preview: document.getElementById('preview'),
+      audio: document.getElementById('audioCanvas')
+    };
+
+    // Setup all canvases
+    Object.keys(canvases).forEach(key => {
+      if (key !== 'audio') {
+        console.log(`Setting up canvas: ${key}`);
+        if (canvases[key]) {
+          contexts[key] = setupCanvas(canvases[key]);
+        } else {
+          console.error(`❌ Canvas not found: ${key}`);
+        }
+      }
+    });
+
+    console.log('🎵 Setting up audio canvas...');
+    // Setup audio canvas
+    if (canvases.audio) {
+      const audioCtx = canvases.audio.getContext('2d');
+      audioCtx.fillStyle = '#000';
+      audioCtx.fillRect(0, 0, 200, 60);
+      contexts.audio = audioCtx;
+    }
+
+    console.log('🎲 Generating 3D grids...');
+    // Generate initial 3D grids with back as primary base
+    generate3DGrids();
+
+    console.log('🎯 Setting default wall selection...');
+    // Set default wall selection to back (primary base)
+    const wallSelect = document.getElementById('wallSelect');
+    if (wallSelect) {
+      wallSelect.value = 'back';
+      appState.activeWall = 'back';
+    }
+
+    console.log('🎧 Setting up event listeners...');
+    // Setup event listeners
+    setupEventListeners();
+
+    console.log('🎨 Initializing transparency system...');
+    // Initialize transparency system
+    initializeTransparencySystem();
+
+    console.log('🔄 Starting render loop...');
+    // Start render loop
+    requestAnimationFrame(renderLoop);
+
+    // Mark system as initialized
+    isSystemInitialized = true;
+
+    console.log('✅ 3D True Cube System - Fully Initialized!');
+    console.log('📊 Back Grid is PRIMARY BASE at z=0');
+
+  } catch (error) {
+    console.error('💥 Initialization failed:', error);
+    console.error('Stack trace:', error.stack);
+  }
+}
+
+// Enhanced error handling for canvas setup
+function setupCanvas(canvas) {
+  try {
+    if (!canvas) {
+      throw new Error('Canvas element is null or undefined');
+    }
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    canvas.width = Math.floor(width * DPR);
+    canvas.height = Math.floor(height * DPR);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not get 2D context from canvas');
+    }
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    return ctx;
+  } catch (error) {
+    console.error('Canvas setup failed:', error);
+    return null;
+  }
+}
+
+// Start the system when page loads with better error handling
+window.addEventListener('load', () => {
+  console.log('📄 Page loaded, starting initialization...');
+  try {
+    initializeSystem();
+  } catch (error) {
+    console.error('💥 Failed to start system:', error);
+  }
+});
+
+// Also try to initialize on DOMContentLoaded in case 'load' fails
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🔄 DOM loaded, attempting initialization...');
+  if (!isSystemInitialized) {
+    setTimeout(() => {
+      if (!isSystemInitialized) {
+        console.log('⏰ Backup initialization triggered');
+        initializeSystem();
+      }
+    }, 100);
+  }
+});
+
+console.log('🚀 3D Cube Physics Canvas System Loading...');
+
+// Immediate test to verify script loading
+console.log('✅ JavaScript is executing');
+console.log('🔍 Testing basic functionality...');
+
+// Test DOM availability
+if (typeof document !== 'undefined') {
+  console.log('✅ Document object available');
+} else {
+  console.error('❌ Document object not available');
+}
+
+// Test canvas support
+try {
+  const testCanvas = document.createElement('canvas');
+  const testCtx = testCanvas.getContext('2d');
+  if (testCtx) {
+    console.log('✅ Canvas 2D context supported');
+  } else {
+    console.error('❌ Canvas 2D context not supported');
+  }
+} catch (error) {
+  console.error('❌ Canvas creation failed:', error);
+}
+
+// Test basic DOM query
+try {
+  const testElement = document.getElementById('backGrid');
+  if (testElement) {
+    console.log('✅ Can find DOM elements');
+  } else {
+    console.log('⚠️ Cannot find backGrid element (DOM may not be ready yet)');
+  }
+} catch (error) {
+  console.error('❌ DOM query failed:', error);
+}
+
+</script>
+</body>
+</html>

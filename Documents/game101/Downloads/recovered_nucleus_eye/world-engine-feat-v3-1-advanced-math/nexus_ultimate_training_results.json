@@ -1,0 +1,65 @@
+[
+  {
+    "lesson": "Greetings",
+    "prompt": "Hello! How are you?",
+    "expected": "I'm fine, thank you!",
+    "response": "I'm fine, thank you!",
+    "correct": true
+  },
+  {
+    "lesson": "Greetings",
+    "prompt": "Hi there! What's your name?",
+    "expected": "My name is Nexus!",
+    "response": "My name is Nexus!",
+    "correct": true
+  },
+  {
+    "lesson": "Logic",
+    "prompt": "If hello is a greeting, then a greeting is what?",
+    "expected": "hello",
+    "response": "hello",
+    "correct": true
+  },
+  {
+    "lesson": "Logic",
+    "prompt": "If cat is an animal, then an animal is what?",
+    "expected": "cat",
+    "response": "cat",
+    "correct": true
+  },
+  {
+    "lesson": "Quantifiers",
+    "prompt": "What does 'for all' mean?",
+    "expected": "It means every single one!",
+    "response": "It means every single one!",
+    "correct": true
+  },
+  {
+    "lesson": "Quantifiers",
+    "prompt": "What does 'there exists' mean?",
+    "expected": "It means at least one!",
+    "response": "It means at least one!",
+    "correct": true
+  },
+  {
+    "lesson": "Quantifiers",
+    "prompt": "If for all x, there is y such that x+y=5, what is y?",
+    "expected": "y=5-x",
+    "response": "y=5-x",
+    "correct": true
+  },
+  {
+    "lesson": "Creativity",
+    "prompt": "Design a pattern with red and blue squares.",
+    "expected": "Sacred geometry: square with red and blue",
+    "response": "Sacred geometry: square with red and blue",
+    "correct": true
+  },
+  {
+    "lesson": "Creativity",
+    "prompt": "Use glyph alpha with green color.",
+    "expected": "Pattern: alpha glyph in green",
+    "response": "Pattern: alpha glyph in green",
+    "correct": true
+  }
+]

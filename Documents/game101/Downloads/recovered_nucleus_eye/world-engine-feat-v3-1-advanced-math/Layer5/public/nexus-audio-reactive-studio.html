@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 NEXUS Audio-Reactive Animation Studio - Pro</title>
+    <style>
+        :root {
+            --bg: #0b0f12;
+            --fg: #d9e1e8;
+            --muted: #7e8a99;
+            --cyan: #00e6ff;
+            --mag: #ff59c7;
+            --ok: #3bd671;
+            --warn: #ffb84d;
+            --bad: #ff5e5e;
+            --panel: #0f141a;
+            --line: #1d2630;
+            --nexus-primary: #00ffaa;
+            --nexus-secondary: #00aaff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: radial-gradient(circle at center, var(--bg) 0%, #050510 50%, #000005 100%);
+            color: var(--fg);
+            font: 14px/1.3 'Courier New', ui-sans-serif, system-ui;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .particles-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--nexus-primary);
+            border-radius: 50%;
+            animation: particleFloat linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+
+        .studio-grid {
+            display: grid;
+            grid-template-areas:
+                "header header header header"
+                "audio-engine animation-canvas visual-reactive timeline-controls"
+                "spectrum-analyzer effects-panel behavior-system playback-controls";
+            grid-template-rows: 70px 1fr 280px;
+            grid-template-columns: 320px 1fr 300px 280px;
+            height: 100vh;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .studio-panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .studio-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            animation: panelGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes panelGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(0, 230, 255, 0.3), rgba(0, 255, 170, 0.2));
+            border: 2px solid var(--cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .studio-title {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--cyan), var(--nexus-primary), var(--nexus-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 230, 255, 0.5);
+        }
+
+        .audio-engine { grid-area: audio-engine; border-color: var(--cyan); }
+        .animation-canvas { grid-area: animation-canvas; border-color: var(--nexus-primary); }
+        .visual-reactive { grid-area: visual-reactive; border-color: var(--mag); }
+        .timeline-controls { grid-area: timeline-controls; border-color: var(--warn); }
+        .spectrum-analyzer { grid-area: spectrum-analyzer; border-color: var(--ok); }
+        .effects-panel { grid-area: effects-panel; border-color: var(--bad); }
+        .behavior-system { grid-area: behavior-system; border-color: var(--nexus-secondary); }
+        .playback-controls { grid-area: playback-controls; border-color: var(--mag); }
+
+        /* Audio Engine Controls */
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        .control-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        label {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 230, 255, 0.5);
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            background: #0b1016;
+            color: var(--fg);
+            border: 1px solid #1b2330;
+            border-radius: 10px;
+            padding: 8px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        select {
+            width: 100%;
+            background: var(--panel);
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 6px;
+            font-family: inherit;
+        }
+
+        .studio-btn {
+            background: linear-gradient(135deg, var(--cyan), #7af7ff);
+            color: #041219;
+            border: 0;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            margin: 2px;
+        }
+
+        .studio-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 230, 255, 0.3);
+        }
+
+        .studio-btn.secondary {
+            background: #17212b;
+            color: var(--fg);
+            border: 1px solid #2a3848;
+        }
+
+        .studio-btn.active {
+            background: linear-gradient(135deg, var(--ok), #4de685);
+        }
+
+        .meter {
+            height: 8px;
+            background: #0c0f13;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #1c2733;
+            margin: 4px 0;
+        }
+
+        .meter > i {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #1affb4, var(--ok));
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            border: 1px solid #2b3a49;
+            color: #b7c3d1;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Canvas Areas */
+        canvas {
+            width: 100%;
+            background: #070a0e;
+            border-radius: 12px;
+            border: 1px solid #1a222d;
+        }
+
+        .main-canvas {
+            height: 280px;
+        }
+
+        .spectrum-canvas {
+            height: 80px;
+        }
+
+        .waveform-canvas {
+            height: 60px;
+        }
+
+        .glow {
+            transition: box-shadow 0.3s;
+            border-radius: 12px;
+        }
+
+        .glow.sync {
+            box-shadow: 0 0 18px #00e6ff66, inset 0 0 40px #00a7cc1a;
+        }
+
+        .glow.reactive {
+            box-shadow: 0 0 24px var(--mag), inset 0 0 20px rgba(255, 89, 199, 0.2);
+        }
+
+        /* Animation Objects */
+        .animation-scene {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #001122 0%, #002244 50%, #003366 100%);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scene-object {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .sprite-object {
+            background: linear-gradient(45deg, var(--nexus-primary), #00ccaa);
+            border: 2px solid #00ffff;
+        }
+
+        .cube-object {
+            background: linear-gradient(45deg, var(--nexus-secondary), #0066aa);
+            border: 2px solid var(--cyan);
+        }
+
+        /* Audio-Reactive Effects */
+        .reactive-pulse {
+            animation: reactivePulse 0.5s ease-in-out;
+        }
+
+        @keyframes reactivePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .reactive-glow {
+            box-shadow: 0 0 20px var(--cyan);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            left: 50%;
+            top: 20px;
+            transform: translateX(-50%);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            color: var(--fg);
+            padding: 8px 16px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* FPS Counter */
+        .fps-counter {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            color: #a7c4ff;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font: 12px/1.1 ui-monospace;
+        }
+
+        /* Timeline */
+        .timeline-track {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--nexus-primary), var(--cyan));
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .timeline-scrubber {
+            position: absolute;
+            top: -2px;
+            left: 0%;
+            width: 4px;
+            height: 44px;
+            background: #ffffff;
+            border-radius: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--nexus-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scrollable {
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: var(--line);
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: var(--cyan);
+        }
+
+        /* Behavior Items */
+        .behavior-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .behavior-item:hover {
+            border-color: var(--nexus-primary);
+            background: rgba(0, 255, 170, 0.1);
+        }
+
+        .behavior-item.active {
+            border-color: var(--nexus-primary);
+            background: rgba(0, 255, 170, 0.2);
+        }
+
+        .behavior-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .behavior-description {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Media Queries */
+        @media (max-width: 1400px) {
+            .studio-grid {
+                grid-template-columns: 280px 1fr 280px 240px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .studio-grid {
+                grid-template-areas:
+                    "header header header"
+                    "audio-engine animation-canvas timeline-controls"
+                    "spectrum-analyzer visual-reactive playback-controls"
+                    "effects-panel behavior-system behavior-system";
+                grid-template-columns: 300px 1fr 280px;
+                grid-template-rows: 70px 1fr 200px 180px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            .studio-grid {
+                grid-template-areas:
+                    "header"
+                    "animation-canvas"
+                    "audio-engine"
+                    "timeline-controls"
+                    "playback-controls";
+                grid-template-columns: 1fr;
+                grid-template-rows: 70px 300px 250px 180px 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Particles Background -->
+    <div class="particles-bg" id="particlesBg"></div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="studio-grid">
+        <!-- Header -->
+        <div class="studio-panel header">
+            <div>
+                <div class="studio-title">🎵 NEXUS Audio-Reactive Animation Studio</div>
+                <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">
+                    Advanced Audio Synthesis + Real-time Animation Engine
+                </div>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: var(--muted);">
+                <div>Version 6.0.0 - Audio Reactive Edition</div>
+                <div>Build 2025.09.27 - Pro Studio</div>
+            </div>
+        </div>
+
+        <!-- Audio Engine -->
+        <div class="studio-panel audio-engine">
+            <div class="section-title">🎛️ Audio Engine</div>
+
+            <div class="control-row" style="justify-content: space-between; margin-bottom: 12px;">
+                <span class="badge" id="latency">latency: —</span>
+                <span class="badge" id="mode">mode: local-synth</span>
+            </div>
+
+            <div class="toolbar">
+                <button class="studio-btn" id="start">Start</button>
+                <button class="studio-btn secondary" id="stop">Stop</button>
+                <button class="studio-btn secondary" id="sync">Resync</button>
+            </div>
+
+            <div class="control-col">
+                <label>Preset</label>
+                <select id="preset">
+                    <option value="default">Default</option>
+                    <option value="lofi">Lo-Fi Pulse</option>
+                    <option value="bright">Bright Glide</option>
+                    <option value="slow">Slow Breath</option>
+                </select>
+            </div>
+
+            <div class="control-col" style="margin-top: 8px;">
+                <label>BPM <b id="bpmVal">120</b></label>
+                <input id="bpm" type="range" min="60" max="180" step="1" value="120">
+            </div>
+
+            <div class="control-row">
+                <div class="control-col">
+                    <label>AM div <b id="dAMVal">4</b></label>
+                    <input id="dAM" type="range" min="2" max="8" step="1" value="4">
+                </div>
+                <div class="control-col">
+                    <label>FM mult <b id="dFMVal">2</b></label>
+                    <input id="dFM" type="range" min="1" max="6" step="1" value="2">
+                </div>
+            </div>
+
+            <div class="control-row">
+                <div class="control-col">
+                    <label>AM depth <b id="amVal">0.15</b></label>
+                    <input id="amDepth" type="range" min="0" max="0.3" step="0.01" value="0.15">
+                </div>
+                <div class="control-col">
+                    <label>FM semi <b id="fmVal">0.30</b></label>
+                    <input id="fmSemi" type="range" min="-0.5" max="0.5" step="0.01" value="0.30">
+                </div>
+            </div>
+
+            <div class="control-col" style="margin-top: 8px;">
+                <label>Loudness (LUFS)</label>
+                <div class="meter"><i id="lvl"></i></div>
+                <label>Spectral Centroid</label>
+                <div class="meter"><i id="cent"></i></div>
+            </div>
+        </div>
+
+        <!-- Animation Canvas -->
+        <div class="studio-panel animation-canvas glow" id="vizCard">
+            <div class="fps-counter" id="fps" aria-live="polite">FPS: —</div>
+
+            <div class="section-title">🎬 Animation Canvas</div>
+
+            <div class="control-row" style="gap: 8px; margin-bottom: 6px;">
+                <span class="badge">Scene: <b id="currentScene">A</b></span>
+                <span class="badge" id="status">Ready</span>
+                <span class="badge">Objects: <b id="objectCount">2</b></span>
+            </div>
+
+            <div class="animation-scene" id="animationScene">
+                <!-- Dynamic scene objects will be created here -->
+                <div class="scene-object sprite-object" id="sprite1" style="left: 25%; top: 45%;">🎭</div>
+                <div class="scene-object cube-object" id="cube1" style="right: 25%; top: 45%;">🎲</div>
+            </div>
+
+            <canvas class="waveform-canvas" id="waveform" aria-label="Audio waveform"></canvas>
+        </div>
+
+        <!-- Visual Reactive -->
+        <div class="studio-panel visual-reactive">
+            <div class="section-title">🌈 Visual Reactive</div>
+
+            <div class="control-col">
+                <label>Audio Reactivity</label>
+                <input id="reactivity" type="range" min="0" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="control-col">
+                <label>Color Mode</label>
+                <select id="colorMode">
+                    <option>Spectrum</option>
+                    <option>Beat Sync</option>
+                    <option>Amplitude</option>
+                    <option>Frequency</option>
+                </select>
+            </div>
+
+            <div class="control-col">
+                <label>Effect Intensity</label>
+                <input id="effectIntensity" type="range" min="0" max="3" step="0.1" value="1.5">
+            </div>
+
+            <div class="toolbar">
+                <button class="studio-btn secondary" onclick="toggleReactiveMode()">🔄 Toggle</button>
+                <button class="studio-btn secondary" onclick="calibrateAudio()">🎯 Calibrate</button>
+            </div>
+
+            <div class="section-title" style="margin-top: 16px;">💫 Live Effects</div>
+            <div class="scrollable">
+                <div class="behavior-item" onclick="toggleEffect('pulse')">
+                    <div>
+                        <div class="behavior-name">💓 Pulse</div>
+                        <div class="behavior-description">Beat-synchronized scaling</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="toggleEffect('color')">
+                    <div>
+                        <div class="behavior-name">🌈 Color Shift</div>
+                        <div class="behavior-description">Frequency-based hue cycling</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="toggleEffect('glow')">
+                    <div>
+                        <div class="behavior-name">✨ Glow</div>
+                        <div class="behavior-description">Amplitude-driven brightness</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="toggleEffect('trail')">
+                    <div>
+                        <div class="behavior-name">🌟 Motion Trail</div>
+                        <div class="behavior-description">Audio-reactive particle trails</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Controls -->
+        <div class="studio-panel timeline-controls">
+            <div class="section-title">⏱️ Timeline</div>
+
+            <div class="timeline-track" id="timelineTrack" onclick="seekToPosition(event)">
+                <div class="timeline-progress" id="timelineProgress"></div>
+                <div class="timeline-scrubber" id="timelineScrubber"></div>
+            </div>
+
+            <div class="control-row">
+                <span style="font-size: 12px;">Frame:</span>
+                <span id="currentFrame">1</span>
+                <span>/</span>
+                <span id="totalFrames">240</span>
+            </div>
+
+            <div class="control-col">
+                <label>Animation Speed</label>
+                <input id="animSpeed" type="range" min="0.1" max="3" step="0.1" value="1">
+            </div>
+
+            <div class="control-col">
+                <label>Audio Sync</label>
+                <select id="audioSync">
+                    <option>Beat Sync</option>
+                    <option>Tempo Lock</option>
+                    <option>Free Run</option>
+                    <option>Manual</option>
+                </select>
+            </div>
+
+            <div class="toolbar">
+                <button class="studio-btn secondary" onclick="addKeyframe()">➕ Key</button>
+                <button class="studio-btn secondary" onclick="deleteKeyframe()">➖ Del</button>
+            </div>
+        </div>
+
+        <!-- Spectrum Analyzer -->
+        <div class="studio-panel spectrum-analyzer glow">
+            <div class="section-title">📊 Spectrum Analyzer</div>
+
+            <div class="control-row" style="gap: 8px; margin-bottom: 6px;">
+                <span class="badge">AM @ <b id="amRate">0.5</b> Hz</span>
+                <span class="badge">FM @ <b id="fmRate">4.0</b> Hz</span>
+            </div>
+
+            <canvas class="spectrum-canvas" id="spectrum" aria-label="Audio spectrum"></canvas>
+
+            <div class="control-row" style="margin-top: 8px;">
+                <div class="control-col">
+                    <label>FFT Size</label>
+                    <select id="fftSize">
+                        <option value="512">512</option>
+                        <option value="1024" selected>1024</option>
+                        <option value="2048">2048</option>
+                    </select>
+                </div>
+                <div class="control-col">
+                    <label>Smoothing</label>
+                    <input id="smoothing" type="range" min="0" max="0.9" step="0.1" value="0.7">
+                </div>
+            </div>
+        </div>
+
+        <!-- Effects Panel -->
+        <div class="studio-panel effects-panel">
+            <div class="section-title">🎨 Effects</div>
+
+            <div class="scrollable">
+                <div class="behavior-item" onclick="applyEffect('bloom')">
+                    <div>
+                        <div class="behavior-name">🌟 Bloom</div>
+                        <div class="behavior-description">Soft light emission</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="applyEffect('distortion')">
+                    <div>
+                        <div class="behavior-name">🌊 Distortion</div>
+                        <div class="behavior-description">Wave-based warping</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="applyEffect('kaleidoscope')">
+                    <div>
+                        <div class="behavior-name">🔳 Kaleidoscope</div>
+                        <div class="behavior-description">Geometric mirroring</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="applyEffect('particles')">
+                    <div>
+                        <div class="behavior-name">✨ Particles</div>
+                        <div class="behavior-description">Audio-driven particles</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="applyEffect('pixelate')">
+                    <div>
+                        <div class="behavior-name">🔲 Pixelate</div>
+                        <div class="behavior-description">Retro pixel effects</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="studio-btn secondary" onclick="clearAllEffects()">🧹 Clear</button>
+                <button class="studio-btn secondary" onclick="randomizeEffects()">🎲 Random</button>
+            </div>
+        </div>
+
+        <!-- Behavior System -->
+        <div class="studio-panel behavior-system">
+            <div class="section-title">🎭 Behaviors</div>
+
+            <div class="scrollable">
+                <div class="behavior-item active" onclick="selectBehavior('AudioOrbit')">
+                    <div>
+                        <div class="behavior-name">🌍 Audio Orbit</div>
+                        <div class="behavior-description">Beat-synced circular motion</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="selectBehavior('FrequencyPulse')">
+                    <div>
+                        <div class="behavior-name">💗 Frequency Pulse</div>
+                        <div class="behavior-description">Frequency-driven scaling</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="selectBehavior('AmplitudeDance')">
+                    <div>
+                        <div class="behavior-name">💃 Amplitude Dance</div>
+                        <div class="behavior-description">Volume-reactive movement</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="selectBehavior('SpectralWave')">
+                    <div>
+                        <div class="behavior-name">🌊 Spectral Wave</div>
+                        <div class="behavior-description">Spectrum-based wave motion</div>
+                    </div>
+                </div>
+                <div class="behavior-item" onclick="selectBehavior('BeatGravity')">
+                    <div>
+                        <div class="behavior-name">⚡ Beat Gravity</div>
+                        <div class="behavior-description">Beat-triggered physics</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="studio-btn secondary" onclick="addBehavior()">➕ Add</button>
+                <button class="studio-btn secondary" onclick="removeBehavior()">➖ Remove</button>
+            </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="studio-panel playback-controls">
+            <div class="section-title">⏯️ Playback</div>
+
+            <div class="toolbar" style="justify-content: center;">
+                <button class="studio-btn secondary" id="stepBack" onclick="stepBack()">⏮️</button>
+                <button class="studio-btn" id="playPause" onclick="togglePlayPause()">▶️</button>
+                <button class="studio-btn secondary" id="stepForward" onclick="stepForward()">⏭️</button>
+                <button class="studio-btn secondary" id="stopBtn" onclick="stopAnimation()">⏹️</button>
+            </div>
+
+            <div class="control-col" style="margin-top: 12px;">
+                <label>Speed <b id="speedDisplay">1.0x</b></label>
+                <input id="speedSlider" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSpeed()">
+            </div>
+
+            <div class="control-col">
+                <label>Loop Mode</label>
+                <select id="loopMode">
+                    <option>Continuous</option>
+                    <option>Bounce</option>
+                    <option>Once</option>
+                    <option>Audio Length</option>
+                </select>
+            </div>
+
+            <div class="toolbar">
+                <button class="studio-btn secondary" onclick="exportAnimation()">💾 Export</button>
+                <button class="studio-btn secondary" onclick="generateAnimation()">🎬 Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== NEXUS Audio-Reactive Animation Studio =====
+        (function() {
+            'use strict';
+
+            // Global state
+            let audioContext, analyserNode, analyserSpec, audioData, spectrumData;
+            let animationFrame, isPlaying = false, currentFrame = 1, totalFrames = 240;
+            let audioReactive = true, effectIntensity = 1.5, speed = 1.0;
+            let lastFrameTime = 0, fpsCounter = 0, lastFpsTime = 0;
+
+            // Audio engine state (from your NEXUS Process Engine)
+            let ac, master, analyser, analyserSpecEngine;
+            let speechBus, musicalBus, lpf, limiter;
+            let lfoAM, lfoFM, amDepthNode, fmDepthNode;
+            let oscCarrier, oscGain;
+            let started = false;
+
+            // Settings object (from your NEXUS Process Engine)
+            const θ = loadSettings() || {
+                bpm: 120, dAM: 4, dFM: 2,
+                AM_depth: 0.15, FM_semitones: 0.30,
+                fc_min: 600, fc_max: 3200, Q: 0.6,
+                mixMusical_dB: -20
+            };
+
+            // Scene data (from Scene Lab Engine)
+            const scenes = {
+                A: {
+                    prefabs: [
+                        { position: [-2, 0, 0], behaviors: ['AudioOrbit'], type: 'sprite' },
+                        { position: [2, 0, 0], behaviors: ['FrequencyPulse'], type: 'cube' }
+                    ],
+                    spotlight: { position: [0, 2, 2], enabled: true }
+                },
+                B: {
+                    prefabs: [
+                        { position: [0, 0, 0], behaviors: ['AmplitudeDance'], type: 'sprite' }
+                    ],
+                    spotlight: { position: [1, 2, 1], enabled: false }
+                }
+            };
+
+            let currentScene = 'A';
+
+            // Audio-reactive behavior system
+            const audioReactiveBehaviors = {
+                AudioOrbit: (element, audioData, time) => {
+                    const bassEnergy = getFrequencyRange(audioData.spectrum, 0, 0.1); // Bass frequencies
+                    const radius = 80 + (bassEnergy * 60);
+                    const speed = θ.bpm / 60 / θ.dAM;
+                    const x = Math.cos(time * speed) * radius;
+                    const y = Math.sin(time * speed) * radius;
+                    element.style.left = (50 + x / 6) + '%';
+                    element.style.top = (50 + y / 6) + '%';
+                },
+
+                FrequencyPulse: (element, audioData, time) => {
+                    const midEnergy = getFrequencyRange(audioData.spectrum, 0.2, 0.6); // Mid frequencies
+                    const scale = 1 + (midEnergy * effectIntensity * 0.5);
+                    element.style.transform = `scale(${scale})`;
+
+                    // Color reactivity
+                    const hue = (midEnergy * 360) % 360;
+                    element.style.filter = `hue-rotate(${hue}deg) brightness(${1 + midEnergy * 0.5})`;
+                },
+
+                AmplitudeDance: (element, audioData, time) => {
+                    const amplitude = audioData.amplitude || 0;
+                    const x = Math.sin(time * 2) * amplitude * 100;
+                    const y = Math.cos(time * 1.5) * amplitude * 80;
+                    const baseLeft = 50; // Center position
+                    const baseTop = 50;
+                    element.style.left = (baseLeft + x / 5) + '%';
+                    element.style.top = (baseTop + y / 5) + '%';
+                },
+
+                SpectralWave: (element, audioData, time) => {
+                    const highEnergy = getFrequencyRange(audioData.spectrum, 0.6, 1.0); // High frequencies
+                    const waveOffset = Math.sin(time * 4 + highEnergy * Math.PI * 2) * 30;
+                    const baseTop = parseFloat(element.dataset.baseTop) || 50;
+                    element.style.top = (baseTop + waveOffset / 3) + '%';
+
+                    // Rotation based on spectral centroid
+                    const rotation = (audioData.spectralCentroid || 0) * 360;
+                    element.style.transform = `rotate(${rotation}deg)`;
+                },
+
+                BeatGravity: (element, audioData, time) => {
+                    const beatIntensity = detectBeat(audioData);
+                    if (beatIntensity > 0.7) {
+                        element.classList.add('reactive-pulse');
+                        setTimeout(() => element.classList.remove('reactive-pulse'), 500);
+                    }
+
+                    // Gravity effect with beat influence
+                    let currentTop = parseFloat(element.dataset.currentTop) || 50;
+                    currentTop += 0.5 + (beatIntensity * 2);
+                    if (currentTop > 85) currentTop = 15;
+                    element.dataset.currentTop = currentTop;
+                    element.style.top = currentTop + '%';
+                }
+            };
+
+            // Utility functions
+            function bindElements(ids) {
+                const elements = {};
+                ids.forEach(id => {
+                    elements[id] = document.getElementById(id);
+                });
+                return elements;
+            }
+
+            function toast(message) {
+                const toastEl = document.getElementById('toast');
+                if (!toastEl) return;
+                toastEl.textContent = message;
+                toastEl.classList.add('show');
+                setTimeout(() => toastEl.classList.remove('show'), 3000);
+            }
+
+            function getFrequencyRange(spectrum, startPct, endPct) {
+                if (!spectrum) return 0;
+                const start = Math.floor(startPct * spectrum.length);
+                const end = Math.floor(endPct * spectrum.length);
+                let sum = 0;
+                for (let i = start; i < end; i++) {
+                    sum += spectrum[i] / 255;
+                }
+                return sum / (end - start);
+            }
+
+            function detectBeat(audioData) {
+                const bassEnergy = getFrequencyRange(audioData.spectrum, 0, 0.1);
+                return bassEnergy > 0.6 ? bassEnergy : 0;
+            }
+
+            function dbToGain(db) {
+                return Math.pow(10, db / 20);
+            }
+
+            function loadSettings() {
+                try {
+                    const stored = localStorage.getItem('NEXUS.audioReactive.settings');
+                    return stored ? JSON.parse(stored) : null;
+                } catch {
+                    return null;
+                }
+            }
+
+            function saveSettings() {
+                localStorage.setItem('NEXUS.audioReactive.settings', JSON.stringify(θ));
+                toast('Settings saved');
+            }
+
+            // Initialize particle background
+            function createParticleBackground() {
+                const particlesBg = document.getElementById('particlesBg');
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDuration = (Math.random() * 10 + 5) + 's';
+                    particle.style.animationDelay = Math.random() * 5 + 's';
+                    particlesBg.appendChild(particle);
+                }
+            }
+
+            // Audio engine functions (from your NEXUS Process Engine)
+            function ensureAudioContext() {
+                if (ac && ac.state !== 'closed') return ac;
+                ac = new (window.AudioContext || window.webkitAudioContext)({
+                    latencyHint: 'interactive'
+                });
+                return ac;
+            }
+
+            function initAudioEngine() {
+                ensureAudioContext();
+
+                // Create audio nodes (from your engine)
+                master = new GainNode(ac, { gain: 0.9 });
+                analyser = new AnalyserNode(ac, { fftSize: 2048, smoothingTimeConstant: 0.85 });
+                analyserSpecEngine = new AnalyserNode(ac, { fftSize: 1024, smoothingTimeConstant: 0.7 });
+                speechBus = new GainNode(ac, { gain: 1.0 });
+                musicalBus = new GainNode(ac, { gain: dbToGain(-20) });
+                lpf = new BiquadFilterNode(ac, { type: 'lowpass', frequency: θ.fc_max, Q: θ.Q });
+                limiter = new DynamicsCompressorNode(ac, {
+                    threshold: -6, knee: 12, ratio: 6, attack: 0.003, release: 0.05
+                });
+
+                // Create oscillators (from your engine)
+                lfoAM = new OscillatorNode(ac, { type: 'sine' });
+                lfoFM = new OscillatorNode(ac, { type: 'sine' });
+                amDepthNode = new GainNode(ac, { gain: 0 });
+                fmDepthNode = new GainNode(ac, { gain: 0 });
+                oscCarrier = new OscillatorNode(ac, { type: 'sine', frequency: 220 });
+                oscGain = new GainNode(ac, { gain: 0.1 });
+
+                // Connect audio graph (from your engine)
+                lfoAM.connect(amDepthNode).connect(oscGain.gain);
+                lfoFM.connect(fmDepthNode).connect(oscCarrier.frequency);
+                oscCarrier.connect(oscGain).connect(lpf).connect(musicalBus);
+                speechBus.connect(master);
+                musicalBus.connect(master);
+                master.connect(limiter).connect(analyser).connect(ac.destination);
+                master.connect(analyserSpecEngine);
+
+                started = true;
+                updateAudioParams();
+
+                // Start oscillators
+                lfoAM.start();
+                lfoFM.start();
+                oscCarrier.start();
+
+                toast('Audio engine started');
+                document.getElementById('mode').textContent = 'mode: audio-reactive';
+            }
+
+            function updateAudioParams() {
+                if (!started) return;
+
+                const fb = θ.bpm / 60;
+                const fAM = fb / θ.dAM;
+                const fFM = fb * θ.dFM;
+
+                // Update displays
+                document.getElementById('bpmVal').textContent = θ.bpm;
+                document.getElementById('dAMVal').textContent = θ.dAM;
+                document.getElementById('dFMVal').textContent = θ.dFM;
+                document.getElementById('amVal').textContent = θ.AM_depth.toFixed(2);
+                document.getElementById('fmVal').textContent = θ.FM_semitones.toFixed(2);
+                document.getElementById('amRate').textContent = fAM.toFixed(2);
+                document.getElementById('fmRate').textContent = fFM.toFixed(2);
+
+                // Update audio parameters
+                const amSafe = Math.max(0, Math.min(0.2, θ.AM_depth));
+                const semi = Math.max(-0.5, Math.min(0.5, θ.FM_semitones));
+                const fmHz = 20 * (Math.pow(2, semi / 12) - 1) * 12;
+
+                fmDepthNode.gain.setTargetAtTime(fmHz, ac.currentTime, 0.05);
+                lfoAM.frequency.setTargetAtTime(fAM, ac.currentTime, 0.05);
+                lfoFM.frequency.setTargetAtTime(fFM, ac.currentTime, 0.05);
+                amDepthNode.gain.setTargetAtTime(amSafe, ac.currentTime, 0.05);
+                lpf.frequency.cancelAndHoldAtTime(ac.currentTime);
+                lpf.Q.setTargetAtTime(Math.min(0.7, Math.max(0.2, θ.Q)), ac.currentTime, 0.05);
+            }
+
+            // Animation loop
+            function startAnimationLoop() {
+                if (animationFrame) return;
+
+                const timeData = new Uint8Array(2048);
+                const spectrumData = new Uint8Array(1024);
+
+                function animate(currentTime) {
+                    animationFrame = requestAnimationFrame(animate);
+
+                    // Calculate FPS
+                    if (currentTime - lastFpsTime > 1000) {
+                        document.getElementById('fps').textContent = `FPS: ${fpsCounter}`;
+                        fpsCounter = 0;
+                        lastFpsTime = currentTime;
+                    }
+                    fpsCounter++;
+
+                    // Get audio data
+                    let audioData = { amplitude: 0, spectrum: [], spectralCentroid: 0 };
+
+                    if (started && analyser && analyserSpecEngine) {
+                        try {
+                            analyser.getByteTimeDomainData(timeData);
+                            analyserSpecEngine.getByteFrequencyData(spectrumData);
+
+                            // Calculate amplitude (RMS)
+                            let sum = 0;
+                            for (let i = 0; i < timeData.length; i++) {
+                                const sample = (timeData[i] - 128) / 128;
+                                sum += sample * sample;
+                            }
+                            audioData.amplitude = Math.sqrt(sum / timeData.length);
+
+                            // Spectrum data
+                            audioData.spectrum = Array.from(spectrumData);
+
+                            // Spectral centroid
+                            let numerator = 0, denominator = 0;
+                            for (let i = 0; i < spectrumData.length; i++) {
+                                const magnitude = spectrumData[i];
+                                numerator += i * magnitude;
+                                denominator += magnitude;
+                            }
+                            audioData.spectralCentroid = denominator > 0 ? numerator / denominator / spectrumData.length : 0;
+
+                            // Update meters
+                            const level = audioData.amplitude * 100;
+                            const centroid = audioData.spectralCentroid * 100;
+                            document.getElementById('lvl').style.width = level.toFixed(1) + '%';
+                            document.getElementById('cent').style.width = centroid.toFixed(1) + '%';
+
+                        } catch (e) {
+                            // Audio not ready yet
+                        }
+                    }
+
+                    // Update animations
+                    if (isPlaying) {
+                        updateSceneObjects(audioData, currentTime * 0.001);
+                        advanceFrame();
+                    }
+
+                    // Draw visualizations
+                    drawWaveform(timeData);
+                    drawSpectrum(spectrumData);
+                    updateTimeline();
+                }
+
+                animate(performance.now());
+            }
+
+            function updateSceneObjects(audioData, time) {
+                const sceneData = scenes[currentScene];
+                if (!sceneData) return;
+
+                const sprite1 = document.getElementById('sprite1');
+                const cube1 = document.getElementById('cube1');
+
+                // Update objects based on their behaviors
+                if (sprite1 && sceneData.prefabs[0]) {
+                    sceneData.prefabs[0].behaviors.forEach(behaviorName => {
+                        if (audioReactiveBehaviors[behaviorName]) {
+                            audioReactiveBehaviors[behaviorName](sprite1, audioData, time);
+                        }
+                    });
+                }
+
+                if (cube1 && sceneData.prefabs[1]) {
+                    sceneData.prefabs[1].behaviors.forEach(behaviorName => {
+                        if (audioReactiveBehaviors[behaviorName]) {
+                            audioReactiveBehaviors[behaviorName](cube1, audioData, time);
+                        }
+                    });
+                }
+            }
+
+            function drawWaveform(timeData) {
+                const canvas = document.getElementById('waveform');
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = canvas.clientWidth * devicePixelRatio;
+                canvas.height = canvas.clientHeight * devicePixelRatio;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = '#00e6ff';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.8;
+
+                ctx.beginPath();
+                for (let i = 0; i < timeData.length; i++) {
+                    const x = (i / timeData.length) * canvas.width;
+                    const y = (timeData[i] / 255) * canvas.height;
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            function drawSpectrum(spectrumData) {
+                const canvas = document.getElementById('spectrum');
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = canvas.clientWidth * devicePixelRatio;
+                canvas.height = canvas.clientHeight * devicePixelRatio;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const barWidth = canvas.width / spectrumData.length;
+
+                for (let i = 0; i < spectrumData.length; i++) {
+                    const barHeight = (spectrumData[i] / 255) * canvas.height;
+
+                    // Create gradient based on frequency
+                    const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+                    gradient.addColorStop(0, `hsl(${i / spectrumData.length * 300}, 70%, 60%)`);
+                    gradient.addColorStop(1, `hsl(${i / spectrumData.length * 300}, 70%, 40%)`);
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
+                }
+            }
+
+            function advanceFrame() {
+                const frameInterval = 1000 / (24 * speed);
+                const now = performance.now();
+
+                if (now - lastFrameTime >= frameInterval) {
+                    currentFrame++;
+                    if (currentFrame > totalFrames) {
+                        const loopMode = document.getElementById('loopMode').value;
+                        if (loopMode === 'Continuous') {
+                            currentFrame = 1;
+                        } else {
+                            stopAnimation();
+                        }
+                    }
+                    lastFrameTime = now;
+                }
+            }
+
+            function updateTimeline() {
+                const progress = ((currentFrame - 1) / (totalFrames - 1)) * 100;
+                document.getElementById('timelineProgress').style.width = progress + '%';
+                document.getElementById('timelineScrubber').style.left = progress + '%';
+                document.getElementById('currentFrame').textContent = currentFrame;
+            }
+
+            // UI Event Handlers
+            function setupEventHandlers() {
+                // Audio controls
+                document.getElementById('start').addEventListener('click', async () => {
+                    try {
+                        initAudioEngine();
+                        if (ac.state === 'suspended') {
+                            await ac.resume();
+                        }
+                        document.getElementById('status').textContent = 'Running';
+
+                        // Start animation if not already running
+                        if (!isPlaying) {
+                            togglePlayPause();
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        toast('Audio start failed');
+                    }
+                });
+
+                document.getElementById('stop').addEventListener('click', () => {
+                    if (started) {
+                        try {
+                            lfoAM.stop();
+                            lfoFM.stop();
+                            oscCarrier.stop();
+                        } catch (e) {}
+
+                        if (ac) ac.close();
+                        started = false;
+                        document.getElementById('status').textContent = 'Stopped';
+                        toast('Audio stopped');
+                    }
+
+                    if (isPlaying) {
+                        stopAnimation();
+                    }
+                });
+
+                document.getElementById('sync').addEventListener('click', () => {
+                    if (!started) return;
+
+                    try {
+                        lfoAM.stop();
+                        lfoFM.stop();
+                    } catch (e) {}
+
+                    lfoAM = new OscillatorNode(ac, { type: 'sine' });
+                    lfoFM = new OscillatorNode(ac, { type: 'sine' });
+                    lfoAM.connect(amDepthNode);
+                    lfoFM.connect(fmDepthNode);
+                    lfoAM.start();
+                    lfoFM.start();
+
+                    document.getElementById('vizCard').classList.add('sync');
+                    setTimeout(() => document.getElementById('vizCard').classList.remove('sync'), 900);
+                    toast('Audio resynced');
+                });
+
+                // Parameter controls
+                ['bpm', 'dAM', 'dFM', 'amDepth', 'fmSemi'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('input', () => {
+                            θ.bpm = +document.getElementById('bpm').value;
+                            θ.dAM = +document.getElementById('dAM').value;
+                            θ.dFM = +document.getElementById('dFM').value;
+                            θ.AM_depth = +document.getElementById('amDepth').value;
+                            θ.FM_semitones = +document.getElementById('fmSemi').value;
+                            updateAudioParams();
+                        });
+                    }
+                });
+
+                // Preset selector
+                document.getElementById('preset').addEventListener('change', (e) => {
+                    applyPreset(e.target.value);
+                });
+
+                // Animation controls
+                document.getElementById('speedSlider').addEventListener('input', (e) => {
+                    speed = parseFloat(e.target.value);
+                    document.getElementById('speedDisplay').textContent = speed.toFixed(1) + 'x';
+                });
+
+                // Keyboard shortcuts
+                window.addEventListener('keydown', (e) => {
+                    const key = e.key.toLowerCase();
+                    if (key === ' ') {
+                        e.preventDefault();
+                        if (!started) {
+                            document.getElementById('start').click();
+                        } else {
+                            togglePlayPause();
+                        }
+                    } else if (key === 'r') {
+                        document.getElementById('sync').click();
+                    }
+                });
+
+                // Initialize UI
+                reflectUI();
+            }
+
+            function reflectUI() {
+                document.getElementById('bpm').value = θ.bpm;
+                document.getElementById('dAM').value = θ.dAM;
+                document.getElementById('dFM').value = θ.dFM;
+                document.getElementById('amDepth').value = θ.AM_depth;
+                document.getElementById('fmSemi').value = θ.FM_semitones;
+                updateAudioParams();
+            }
+
+            function applyPreset(name) {
+                const presets = {
+                    default: { bpm: 120, dAM: 4, dFM: 2, AM_depth: 0.15, FM_semitones: 0.30 },
+                    lofi: { bpm: 92, dAM: 6, dFM: 1, AM_depth: 0.10, FM_semitones: -0.10 },
+                    bright: { bpm: 132, dAM: 3, dFM: 3, AM_depth: 0.18, FM_semitones: 0.40 },
+                    slow: { bpm: 72, dAM: 8, dFM: 2, AM_depth: 0.12, FM_semitones: 0.05 }
+                };
+
+                Object.assign(θ, presets[name] || presets.default);
+                reflectUI();
+                toast(`Preset: ${name}`);
+            }
+
+            // Global functions for UI
+            window.togglePlayPause = function() {
+                isPlaying = !isPlaying;
+                const btn = document.getElementById('playPause');
+
+                if (isPlaying) {
+                    btn.textContent = '⏸️';
+                    btn.classList.add('active');
+                    document.getElementById('status').textContent = 'Playing';
+                } else {
+                    btn.textContent = '▶️';
+                    btn.classList.remove('active');
+                    document.getElementById('status').textContent = 'Paused';
+                }
+            };
+
+            window.stopAnimation = function() {
+                isPlaying = false;
+                currentFrame = 1;
+                const btn = document.getElementById('playPause');
+                btn.textContent = '▶️';
+                btn.classList.remove('active');
+                document.getElementById('status').textContent = 'Stopped';
+            };
+
+            window.stepBack = function() {
+                if (currentFrame > 1) currentFrame--;
+            };
+
+            window.stepForward = function() {
+                if (currentFrame < totalFrames) currentFrame++;
+            };
+
+            window.updateSpeed = function() {
+                const slider = document.getElementById('speedSlider');
+                speed = parseFloat(slider.value);
+                document.getElementById('speedDisplay').textContent = speed.toFixed(1) + 'x';
+            };
+
+            window.toggleReactiveMode = function() {
+                audioReactive = !audioReactive;
+                toast(`Audio reactive: ${audioReactive ? 'ON' : 'OFF'}`);
+            };
+
+            window.calibrateAudio = function() {
+                toast('Audio calibrated');
+            };
+
+            window.toggleEffect = function(effectName) {
+                document.getElementById('vizCard').classList.add('reactive');
+                setTimeout(() => document.getElementById('vizCard').classList.remove('reactive'), 1000);
+                toast(`Effect: ${effectName}`);
+            };
+
+            window.applyEffect = function(effectName) {
+                toast(`Applied: ${effectName}`);
+            };
+
+            window.selectBehavior = function(behaviorName) {
+                toast(`Selected: ${behaviorName}`);
+            };
+
+            window.addBehavior = function() {
+                toast('Behavior added');
+            };
+
+            window.removeBehavior = function() {
+                toast('Behavior removed');
+            };
+
+            window.clearAllEffects = function() {
+                toast('Effects cleared');
+            };
+
+            window.randomizeEffects = function() {
+                toast('Effects randomized');
+            };
+
+            window.seekToPosition = function(event) {
+                const track = document.getElementById('timelineTrack');
+                const rect = track.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const percentage = x / rect.width;
+                currentFrame = Math.round(percentage * totalFrames) + 1;
+            };
+
+            window.addKeyframe = function() {
+                toast('Keyframe added');
+            };
+
+            window.deleteKeyframe = function() {
+                toast('Keyframe deleted');
+            };
+
+            window.exportAnimation = function() {
+                toast('Animation exported');
+            };
+
+            window.generateAnimation = function() {
+                toast('Animation generated');
+            };
+
+            // Initialize everything
+            function init() {
+                createParticleBackground();
+                setupEventHandlers();
+                startAnimationLoop();
+                toast('NEXUS Audio-Reactive Studio ready! Press Space to start.');
+            }
+
+            // Start when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>4D Canvas: Back/Front Walls + Drawing + Links + Limbs</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root { --bg:#0b0f14; --panel:#0f1620; --accent:#10e0e0; --text:#e8f0ff; --muted:#92a0b3; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+  .stack { position:fixed; inset:0; }
+  canvas.layer { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .ui {
+    position:fixed; top:12px; left:12px; z-index:10;
+    background:color-mix(in oklab, var(--panel) 85%, transparent);
+    backdrop-filter: blur(6px);
+    border:1px solid #1e2a3a; border-radius:14px; padding:10px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn {
+    appearance:none; border:1px solid #204055; background:#0d1b26; color:var(--text);
+    padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:14px;
+  }
+  .btn:hover { border-color:#2b6e7a; }
+  .btn.on { outline:2px solid #36e0e0; }
+  .btn.accent { background:var(--accent); color:#022; border-color:#0cc; }
+  .fld { display:flex; align-items:center; gap:6px; }
+  .sep { width:1px; height:28px; background:#22313f; margin:0 4px; }
+  input[type="range"] { accent-color:#10e0e0; }
+  .preview {
+    position:fixed; right:12px; bottom:12px; z-index:10;
+    background:color-mix(in oklab, var(--panel) 85%, transparent);
+    border:1px solid #1e2a3a; border-radius:14px; padding:10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .label { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  #preview { display:block; width:360px; height:210px; border-radius:10px; background:#000; }
+</style>
+</head>
+<body>
+
+<!-- Controls -->
+<div class="ui">
+  <div class="row" style="margin-bottom:6px">
+    <!-- Drawing -->
+    <button id="drawBtn"  class="btn on">Draw</button>
+    <button id="eraseBtn" class="btn">Erase</button>
+    <button id="clearDraw" class="btn">Clear</button>
+    <div class="fld"><label>Brush</label><input id="brush" type="range" min="1" max="24" value="4"></div>
+
+    <div class="sep"></div>
+
+    <!-- Walls -->
+    <div class="fld">
+      <label>Wall</label>
+      <select id="wall" class="btn">
+        <option value="back">Back</option>
+        <option value="front" selected>Front</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Type</label>
+      <select id="graphType" class="btn">
+        <option value="grid" selected>Grid</option>
+        <option value="radial">Radial</option>
+      </select>
+    </div>
+    <span id="gridOpts" class="fld">
+      <label>Rows</label><input id="rows" type="number" class="btn" value="7" min="2" style="width:70px">
+      <label>Cols</label><input id="cols" type="number" class="btn" value="10" min="2" style="width:70px">
+    </span>
+    <span id="radialOpts" class="fld" style="display:none">
+      <label>Rings</label><input id="rings" type="number" class="btn" value="4" min="1" style="width:70px">
+      <label>Per</label><input id="npr" type="number" class="btn" value="8" min="1" style="width:70px">
+    </span>
+    <button id="genGraph" class="btn">Generate</button>
+
+    <div class="sep"></div>
+
+    <!-- Wall edit -->
+    <button id="editWall"   class="btn">Edit Nodes</button>
+    <button id="connectBtn" class="btn">Connect</button>
+    <button id="spawnNode"  class="btn">Spawn Node</button>
+    <button id="spawnBox"   class="btn">Spawn Box</button>
+
+    <div class="sep"></div>
+
+    <!-- Between-wall links -->
+    <button id="linkMode" class="btn">Link Back ↔ Front</button>
+
+    <div class="sep"></div>
+
+    <!-- Limbs -->
+    <button id="spawnLimb" class="btn">Spawn Limb</button>
+
+    <div class="sep"></div>
+
+    <button id="save" class="btn accent">Save PNG</button>
+  </div>
+
+  <div class="row">
+    <div class="fld"><label>Back α</label><input id="backAlpha" type="range" min="0" max="100" value="55"></div>
+    <div class="fld"><label>Link α</label><input id="linkAlpha" type="range" min="0" max="100" value="90"></div>
+    <div class="fld"><label>Front α</label><input id="frontAlpha" type="range" min="0" max="100" value="75"></div>
+    <div class="fld"><label>Limb Speed</label><input id="limbSpeed" type="range" min="1" max="400" value="80"></div>
+    <div class="fld"><label>Limb Max°</label><input id="limbMax"   type="range" min="5" max="180" value="45"></div>
+    <div class="fld"><label>Limb Len</label><input id="limbLen"    type="range" min="10" max="300" value="100"></div>
+  </div>
+</div>
+
+<!-- Preview -->
+<div class="preview">
+  <div class="label">Composite Preview</div>
+  <canvas id="preview" width="360" height="210"></canvas>
+</div>
+
+<!-- Layer stack (base grid → back wall → drawing → links → front wall) -->
+<div class="stack">
+  <canvas id="baseGrid"    class="layer"></canvas>
+  <canvas id="backGraph"   class="layer"></canvas>
+  <canvas id="drawCanvas"  class="layer"></canvas>
+  <canvas id="linkCanvas"  class="layer"></canvas>
+  <canvas id="frontGraph"  class="layer"></canvas>
+</div>
+
+<script>
+/* ====================== LimbVector ====================== */
+class LimbVector {
+  constructor(startPoint, length) {
+    this.start = startPoint;    // {x,y} — reference to node object
+    this.length = length;
+    this.angle = 0;
+  }
+  calculateEndPoint() {
+    return {
+      x: this.start.x + this.length * Math.cos(this.angle),
+      y: this.start.y + this.length * Math.sin(this.angle)
+    };
+  }
+  oscillate(time, speed = 0.1, maxAngle = Math.PI/4) {
+    this.angle = Math.sin(time * speed) * maxAngle;
+    return this.calculateEndPoint();
+  }
+  rotateTo(a){ this.angle = a; return this.calculateEndPoint(); }
+  interpolateTo(target, t){ this.angle = this.angle + (target - this.angle) * t; return this.calculateEndPoint(); }
+}
+
+/* ====================== Core setup ====================== */
+const DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+const baseGrid   = document.getElementById('baseGrid');
+const backGraph  = document.getElementById('backGraph');
+const drawCanvas = document.getElementById('drawCanvas');
+const linkCanvas = document.getElementById('linkCanvas');
+const frontGraph = document.getElementById('frontGraph');
+const preview    = document.getElementById('preview');
+
+let W=0, H=0, gctx, bctx, dctx, lctx, fctx;
+function setupCanvas(canvas){
+  const w = window.innerWidth, h = window.innerHeight;
+  canvas.width  = Math.floor(w*DPR);
+  canvas.height = Math.floor(h*DPR);
+  canvas.style.width = w+'px'; canvas.style.height = h+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  return ctx;
+}
+function resizeAll(){
+  W = window.innerWidth; H = window.innerHeight;
+  gctx = setupCanvas(baseGrid);
+  bctx = setupCanvas(backGraph);
+  dctx = setupCanvas(drawCanvas);
+  lctx = setupCanvas(linkCanvas);
+  fctx = setupCanvas(frontGraph);
+  drawBaseGrid();
+  redrawAll();
+  updatePreview();
+}
+window.addEventListener('resize', resizeAll);
+
+const BASE_SPACING = 48;
+function drawBaseGrid(){
+  gctx.clearRect(0,0,W,H);
+  gctx.lineWidth=1; gctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  for(let x=0.5;x<=W;x+=BASE_SPACING){ gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,H); gctx.stroke(); }
+  for(let y=0.5;y<=H;y+=BASE_SPACING){ gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W,y); gctx.stroke(); }
+}
+
+/* ====================== Graph manager (per wall) ====================== */
+class Graph {
+  constructor(){ this.nodes=[]; this.edges=[]; }
+  dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  addNode(x,y,id){ const n={id:id||('n-'+Math.random().toString(36).slice(2,8)), x,y}; this.nodes.push(n); return n; }
+  createEdge(a,b){
+    if(a===b) return;
+    if (this.edges.some(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a))) return;
+    this.edges.push({a,b,w:this.dist(a,b)});
+  }
+  grid({rows=6,cols=8,width=W,height=H}={}){
+    this.nodes=[]; this.edges=[];
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = cols===1? width/2 : c*(width/(cols-1));
+        const y = rows===1? height/2: r*(height/(rows-1));
+        const n=this.addNode(x,y,`g-${r}-${c}`);
+        if(c>0) this.createEdge(this.nodes[this.nodes.length-2], n);
+        if(r>0){ const up=this.nodes.find(nn=>nn.id===`g-${r-1}-${c}`); if(up) this.createEdge(up, n); }
+      }
+    }
+  }
+  radial({center={x:W/2,y:H/2},rings=4,per=8}={}){
+    this.nodes=[]; this.edges=[];
+    const c=this.addNode(center.x,center.y,'center');
+    const seq=Array.from({length:rings},(_,i)=> 60*Math.pow(1.5,i));
+    seq.forEach((rad,ri)=>{
+      const count=per*(ri+1), step=(2*Math.PI)/count;
+      const ring=[];
+      for(let i=0;i<count;i++){
+        const a=i*step; const n=this.addNode(center.x+rad*Math.cos(a), center.y+rad*Math.sin(a), `r-${ri}-${i}`);
+        ring.push(n); this.createEdge(c,n); if(i>0) this.createEdge(ring[i-1], n);
+      }
+      if(ring.length>1) this.createEdge(ring[0], ring[ring.length-1]);
+      if(ri>0){
+        const prev = this.nodes.filter(nn=>/^r-/.test(nn.id) && Number(nn.id.split('-')[1])===ri-1);
+        ring.forEach(n=>{
+          const nn = prev.slice().sort((A,B)=>this.dist(A,n)-this.dist(B,n)).slice(0,2);
+          nn.forEach(p=>this.createEdge(p,n));
+        });
+      }
+    });
+  }
+}
+const wallBack  = new Graph();
+const wallFront = new Graph();
+
+/* ====================== Drawing layer ====================== */
+let drawMode='draw', brushSize=4, isDrawing=false, strokes=[], stroke=null;
+function toXY(canvas,e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+function redrawDrawing(){
+  dctx.clearRect(0,0,W,H);
+  for(const s of strokes){
+    dctx.lineCap='round'; dctx.lineJoin='round'; dctx.strokeStyle=s.color; dctx.lineWidth=s.width;
+    dctx.beginPath(); s.pts.forEach((p,i)=> i? dctx.lineTo(p.x,p.y): dctx.moveTo(p.x,p.y)); dctx.stroke();
+  }
+}
+drawCanvas.addEventListener('pointerdown', e=>{
+  if (state.mode!=='draw' && state.mode!=='erase') return;
+  isDrawing=true;
+  const p=toXY(drawCanvas,e);
+  const color = (state.mode==='erase')? '#0b0f14' : '#ff3aa5';
+  const width = (state.mode==='erase')? Math.max(brushSize*4,12) : brushSize;
+  stroke={color,width,pts:[p]}; strokes.push(stroke);
+  redrawDrawing(); updatePreview();
+});
+drawCanvas.addEventListener('pointermove', e=>{
+  if(!isDrawing) return; const p=toXY(drawCanvas,e); stroke.pts.push(p); redrawDrawing(); updatePreview();
+});
+drawCanvas.addEventListener('pointerup', ()=>{ isDrawing=false; stroke=null; updatePreview(); });
+drawCanvas.addEventListener('pointerleave', ()=>{ isDrawing=false; stroke=null; });
+
+/* ====================== Links (between walls) ====================== */
+let links=[]; // {iBack, iFront}
+function drawLinks(){
+  lctx.clearRect(0,0,W,H);
+  lctx.save(); lctx.globalAlpha = state.linkAlpha;
+  links.forEach(L=>{
+    const A = wallBack.nodes[L.iBack], B = wallFront.nodes[L.iFront];
+    if(!A||!B) return;
+    const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+    const dx=B.y-A.y, dy=A.x-B.x; const k=0.24; const cx=mx+dx*k, cy=my+dy*k;
+    const grad=lctx.createLinearGradient(A.x,A.y,B.x,B.y);
+    grad.addColorStop(0,'#10e0e0'); grad.addColorStop(1,'#ff3aa5');
+    lctx.strokeStyle=grad; lctx.lineWidth=3;
+    lctx.beginPath(); lctx.moveTo(A.x,A.y); lctx.quadraticCurveTo(cx,cy,B.x,B.y); lctx.stroke();
+    lctx.fillStyle='#10e0e0'; lctx.beginPath(); lctx.arc(A.x,A.y,3,0,Math.PI*2); lctx.fill();
+    lctx.fillStyle='#ff3aa5'; lctx.beginPath(); lctx.arc(B.x,B.y,3,0,Math.PI*2); lctx.fill();
+  });
+  lctx.restore();
+}
+
+/* ====================== Wall rendering & interaction ====================== */
+const NODE_R=8;
+function drawWall(ctx, wall, alpha, highlightIdx=null){
+  ctx.clearRect(0,0,W,H);
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='rgba(16,224,224,0.85)'; ctx.lineWidth=2;
+  wall.edges.forEach(e=>{ ctx.beginPath(); ctx.moveTo(e.a.x,e.a.y); ctx.lineTo(e.b.x,e.b.y); ctx.stroke(); });
+  wall.nodes.forEach((n,idx)=>{
+    ctx.beginPath(); ctx.arc(n.x,n.y,NODE_R+3,0,Math.PI*2);
+    ctx.strokeStyle=(idx===highlightIdx)? 'rgba(255,222,80,0.6)' : 'rgba(16,224,224,0.35)';
+    ctx.lineWidth=1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(n.x,n.y,NODE_R,0,Math.PI*2);
+    ctx.fillStyle='#111'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#10e0e0'; ctx.stroke();
+  });
+  ctx.restore();
+}
+function findNodeAt(wall, x,y){
+  let hit=-1, best=Infinity, r2=(NODE_R+4)*(NODE_R+4);
+  wall.nodes.forEach((n,i)=>{ const dx=x-n.x, dy=y-n.y, d=dx*dx+dy*dy; if(d<=r2 && d<best){best=d; hit=i;} });
+  return hit;
+}
+
+/* ====================== Limbs ====================== */
+const limbsBack  = []; // { limb: LimbVector, color }
+const limbsFront = []; // { limb: LimbVector, color }
+let limbSpawnArmed = false;
+let tClock = 0;
+
+function drawLimb(ctx, limb, color='#ffd34d') {
+  const end = limb.calculateEndPoint();
+  ctx.save();
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle=color; ctx.lineWidth=6; ctx.globalAlpha=0.20;
+  ctx.beginPath(); ctx.moveTo(limb.start.x, limb.start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+  ctx.globalAlpha=1.0; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(limb.start.x, limb.start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(end.x,end.y,4,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function renderLimbs(){
+  // Draw onto respective wall canvases so opacity matches wall alpha
+  bctx.save(); bctx.globalAlpha = state.backAlpha;
+  limbsBack.forEach(L=> drawLimb(bctx, L.limb, '#7ee8fa'));
+  bctx.restore();
+  fctx.save(); fctx.globalAlpha = state.frontAlpha;
+  limbsFront.forEach(L=> drawLimb(fctx, L.limb, '#ff9bd6'));
+  fctx.restore();
+}
+
+/* ====================== App state & modes ====================== */
+const state = {
+  wall: 'front',       // which wall the wall-tools act on
+  mode: 'draw',        // draw|erase|edit|connect|link
+  backAlpha: 0.55,
+  frontAlpha: 0.75,
+  linkAlpha: 0.90,
+  pendingIdx: null,    // for connect mode
+  draggingIdx: -1
+};
+function activeWall(){ return state.wall==='back' ? wallBack : wallFront; }
+function activeCtx(){  return state.wall==='back' ? bctx     : fctx; }
+
+function redrawAll(){
+  drawWall(bctx, wallBack,  state.backAlpha);
+  renderLimbs();                  // limbs on both walls
+  redrawDrawing();
+  drawLinks();
+  drawWall(fctx, wallFront, state.frontAlpha);
+}
+
+/* Wall handlers (shared) */
+function attachWallHandlers(canvas, wallName){
+  canvas.addEventListener('pointerdown', e=>{
+    const {x,y}=toXY(canvas,e);
+
+    // Limb spawn (click a node to attach base)
+    if (limbSpawnArmed && state.wall===wallName) {
+      const w = activeWall();
+      const idx = findNodeAt(w, x, y);
+      if (idx !== -1) {
+        const length = parseInt(document.getElementById('limbLen').value,10) || 100;
+        const limb = new LimbVector(w.nodes[idx], length);
+        const bucket = (wallName==='back') ? limbsBack : limbsFront;
+        bucket.push({ limb });
+        limbSpawnArmed = false; document.getElementById('spawnLimb').classList.remove('on');
+        renderLimbs(); updatePreview();
+      }
+      return;
+    }
+
+    if (state.mode==='link') return; // link handled elsewhere
+    if (state.wall!==wallName) return;
+
+    if (state.mode==='edit'){
+      const idx=findNodeAt(activeWall(),x,y);
+      if (idx!==-1){ state.draggingIdx=idx; }
+    } else if (state.mode==='connect'){
+      const idx=findNodeAt(activeWall(),x,y);
+      if (idx===-1) return;
+      if (state.pendingIdx==null){
+        state.pendingIdx=idx; drawWall(activeCtx(), activeWall(), wallName==='back'?state.backAlpha:state.frontAlpha, idx);
+      } else if (state.pendingIdx!==idx){
+        activeWall().createEdge(activeWall().nodes[state.pendingIdx], activeWall().nodes[idx]);
+        state.pendingIdx=null; drawWall(activeCtx(), activeWall(), wallName==='back'?state.backAlpha:state.frontAlpha);
+      } else {
+        state.pendingIdx=null; drawWall(activeCtx(), activeWall(), wallName==='back'?state.backAlpha:state.frontAlpha);
+      }
+    }
+    updatePreview();
+  });
+
+  canvas.addEventListener('pointermove', e=>{
+    if(state.mode!=='edit' || state.wall!==wallName || state.draggingIdx<0) return;
+    const {x,y}=toXY(canvas,e);
+    const n = activeWall().nodes[state.draggingIdx];
+    n.x=x; n.y=y;
+    drawWall(activeCtx(), activeWall(), wallName==='back'?state.backAlpha:state.frontAlpha, state.pendingIdx);
+    renderLimbs(); // limb bases may have moved
+    drawLinks();
+    updatePreview();
+  });
+
+  canvas.addEventListener('pointerup',   ()=>{ state.draggingIdx=-1; });
+  canvas.addEventListener('pointerleave',()=>{ state.draggingIdx=-1; });
+}
+attachWallHandlers(backGraph,'back');
+attachWallHandlers(frontGraph,'front');
+
+/* Linking between Back ↔ Front */
+let pendingBack=null, pendingFront=null;
+function handleLinkClickOn(canvas, which){
+  canvas.addEventListener('pointerdown', e=>{
+    if (state.mode!=='link') return;
+    const {x,y}=toXY(canvas,e);
+    if (which==='back'){
+      const i=findNodeAt(wallBack,x,y);
+      if (i!==-1){ pendingBack=i; drawWall(bctx, wallBack, state.backAlpha, i); }
+    } else {
+      const j=findNodeAt(wallFront,x,y);
+      if (j!==-1){ pendingFront=j; drawWall(fctx, wallFront, state.frontAlpha, j); }
+    }
+    if (pendingBack!=null && pendingFront!=null){
+      if (!links.some(L=>L.iBack===pendingBack && L.iFront===pendingFront)){
+        links.push({iBack:pendingBack, iFront:pendingFront});
+      }
+      pendingBack=null; pendingFront=null;
+      drawLinks();
+      drawWall(bctx, wallBack, state.backAlpha);
+      drawWall(fctx, wallFront, state.frontAlpha);
+      updatePreview();
+    }
+  });
+}
+handleLinkClickOn(backGraph,'back');
+handleLinkClickOn(frontGraph,'front');
+
+/* ====================== UI wiring ====================== */
+const drawBtn   = document.getElementById('drawBtn');
+const eraseBtn  = document.getElementById('eraseBtn');
+const clearDraw = document.getElementById('clearDraw');
+const brush     = document.getElementById('brush');
+
+const wallSel   = document.getElementById('wall');
+const graphType = document.getElementById('graphType');
+const gridOpts  = document.getElementById('gridOpts');
+const radialOpts= document.getElementById('radialOpts');
+const rowsEl    = document.getElementById('rows');
+const colsEl    = document.getElementById('cols');
+const ringsEl   = document.getElementById('rings');
+const nprEl     = document.getElementById('npr');
+
+const genGraph  = document.getElementById('genGraph');
+const editWall  = document.getElementById('editWall');
+const connectBtn= document.getElementById('connectBtn');
+const spawnNode = document.getElementById('spawnNode');
+const spawnBox  = document.getElementById('spawnBox');
+const linkMode  = document.getElementById('linkMode');
+const saveBtn   = document.getElementById('save');
+
+const backAlpha = document.getElementById('backAlpha');
+const linkAlpha = document.getElementById('linkAlpha');
+const frontAlpha= document.getElementById('frontAlpha');
+
+const spawnLimbBtn = document.getElementById('spawnLimb');
+const limbLenEl    = document.getElementById('limbLen');
+const limbSpeedEl  = document.getElementById('limbSpeed');
+const limbMaxEl    = document.getElementById('limbMax');
+
+function setMode(m){
+  state.mode=m;
+  drawBtn.classList.toggle('on', m==='draw');
+  eraseBtn.classList.toggle('on', m==='erase');
+  editWall.classList.toggle('on', m==='edit');
+  connectBtn.classList.toggle('on', m==='connect');
+  linkMode.classList.toggle('on', m==='link');
+  state.pendingIdx=null; pendingBack=null; pendingFront=null;
+  drawWall(bctx, wallBack, state.backAlpha);
+  drawWall(fctx, wallFront, state.frontAlpha);
+}
+drawBtn.onclick  = ()=> setMode('draw');
+eraseBtn.onclick = ()=> setMode('erase');
+clearDraw.onclick= ()=> { strokes=[]; redrawDrawing(); updatePreview(); };
+brush.oninput    = ()=> { brushSize=parseInt(brush.value,10); };
+
+wallSel.onchange   = ()=> { state.wall = wallSel.value; };
+graphType.onchange = ()=>{
+  const t=graphType.value;
+  gridOpts.style.display   = t==='grid'?'':'none';
+  radialOpts.style.display = t==='radial'?'':'none';
+};
+
+genGraph.onclick = ()=>{
+  const wall  = activeWall();
+  const ctx   = activeCtx();
+  const type  = graphType.value;
+  const opt   = (type==='grid')
+    ? { rows:Math.max(2,parseInt(rowsEl.value||'6',10)),
+        cols:Math.max(2,parseInt(colsEl.value||'8',10)),
+        width:W,height:H }
+    : { center:{x:W/2,y:H/2},
+        rings:Math.max(1,parseInt(ringsEl.value||'4',10)),
+        per:  Math.max(1,parseInt(nprEl.value||'8',10)) };
+  if (type==='grid') wall.grid(opt); else wall.radial(opt);
+  drawWall(ctx, wall, state.wall==='back'?state.backAlpha:state.frontAlpha);
+  renderLimbs(); drawLinks(); updatePreview();
+};
+
+editWall.onclick   = ()=> setMode((state.mode==='edit')?'draw':'edit');
+connectBtn.onclick = ()=> setMode((state.mode==='connect')?'draw':'connect');
+linkMode.onclick   = ()=> setMode((state.mode==='link')?'draw':'link');
+
+/* Spawn node/shape on active wall (click to place) */
+let waitingSpawn = null; // 'node'|'box'
+function armSpawn(kind){
+  waitingSpawn = (waitingSpawn===kind)? null : kind;
+  spawnNode.classList.toggle('on', waitingSpawn==='node');
+  spawnBox.classList.toggle('on',  waitingSpawn==='box');
+}
+spawnNode.onclick = ()=> armSpawn('node');
+spawnBox.onclick  = ()=> armSpawn('box');
+
+function handleSpawnOn(canvas, wallName){
+  canvas.addEventListener('pointerdown', e=>{
+    if (!waitingSpawn) return;
+    if (state.wall!==wallName) return;
+    const {x,y}=toXY(canvas,e);
+    const wall = activeWall();
+    if (waitingSpawn==='node'){
+      wall.addNode(x,y);
+    } else if (waitingSpawn==='box'){
+      const s=48;
+      const n1=wall.addNode(x-s,y-s), n2=wall.addNode(x+s,y-s),
+            n3=wall.addNode(x+s,y+s), n4=wall.addNode(x-s,y+s);
+      wall.createEdge(n1,n2); wall.createEdge(n2,n3); wall.createEdge(n3,n4); wall.createEdge(n4,n1);
+    }
+    waitingSpawn=null; spawnNode.classList.remove('on'); spawnBox.classList.remove('on');
+    drawWall(activeCtx(), wall, state.wall==='back'?state.backAlpha:state.frontAlpha);
+    renderLimbs(); updatePreview();
+  });
+}
+handleSpawnOn(backGraph,'back');
+handleSpawnOn(frontGraph,'front');
+
+/* Limb spawn toggle */
+spawnLimbBtn.onclick = ()=>{
+  limbSpawnArmed = !limbSpawnArmed;
+  spawnLimbBtn.classList.toggle('on', limbSpawnArmed);
+  if (limbSpawnArmed) setMode('draw'); // keep wall canvases free for node clicks
+};
+
+/* Alpha sliders */
+backAlpha.oninput  = ()=>{ state.backAlpha = parseInt(backAlpha.value,10)/100;  drawWall(bctx, wallBack, state.backAlpha); renderLimbs(); updatePreview(); };
+linkAlpha.oninput  = ()=>{ state.linkAlpha = parseInt(linkAlpha.value,10)/100;  drawLinks(); updatePreview(); };
+frontAlpha.oninput = ()=>{ state.frontAlpha= parseInt(frontAlpha.value,10)/100; drawWall(fctx, wallFront, state.frontAlpha); renderLimbs(); updatePreview(); };
+
+/* Save composite */
+saveBtn.onclick = ()=>{
+  const out=document.createElement('canvas');
+  out.width=Math.floor(W*DPR); out.height=Math.floor(H*DPR);
+  const o=out.getContext('2d');
+  o.drawImage(baseGrid,   0,0);
+  o.drawImage(backGraph,  0,0);
+  o.drawImage(drawCanvas, 0,0);
+  o.drawImage(linkCanvas, 0,0);
+  o.drawImage(frontGraph, 0,0);
+  const a=document.createElement('a'); a.download='4d-composite.png'; a.href=out.toDataURL('image/png'); a.click();
+};
+
+/* Preview */
+function updatePreview(){
+  const pw=preview.clientWidth, ph=preview.clientHeight;
+  preview.width=Math.floor(pw*DPR); preview.height=Math.floor(ph*DPR);
+  const p=preview.getContext('2d'); p.setTransform(DPR,0,0,DPR,0,0);
+  p.clearRect(0,0,pw,ph);
+  const s=Math.min(pw/W, ph/H), tw=W*s, th=H*s, ox=(pw-tw)/2, oy=(ph-th)/2;
+  [baseGrid, backGraph, drawCanvas, linkCanvas, frontGraph].forEach(cv=>{
+    p.drawImage(cv, 0,0, cv.width, cv.height, ox,oy, tw,th);
+  });
+  p.strokeStyle='rgba(255,255,255,0.12)'; p.strokeRect(0.5,0.5,pw-1,ph-1);
+}
+
+/* Animation loop for limbs */
+let lastTs = 0;
+function tick(ts){
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs)/1000);
+  lastTs = ts; tClock += dt;
+
+  const spd = (parseInt(limbSpeedEl.value,10) || 80) / 100;
+  const maxAng = ((parseInt(limbMaxEl.value,10) || 45) * Math.PI) / 180;
+
+  let any=false;
+  const step = (arr)=>arr.forEach(L=>{ L.limb.oscillate(tClock, spd, maxAng); any=true; });
+  step(limbsBack); step(limbsFront);
+
+  if (any){
+    drawWall(bctx, wallBack, state.backAlpha);
+    renderLimbs();
+    drawLinks();
+    drawWall(fctx, wallFront, state.frontAlpha);
+    updatePreview();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ====================== Boot ====================== */
+resizeAll();
+/* Seed both walls so you can immediately link */
+wallBack.grid ({rows:6,cols:9,width:W,height:H});
+wallFront.radial({center:{x:W/2,y:H/2},rings:4,per:8});
+redrawAll();
+updatePreview();
+requestAnimationFrame(tick);
+
+// Expose functions for external control (for conversational AI integration)
+window.wallBack = wallBack;
+window.wallFront = wallFront;
+window.links = links;
+window.limbsBack = limbsBack;
+window.limbsFront = limbsFront;
+window.LimbVector = LimbVector;
+window.redrawAll = redrawAll;
+window.drawLinks = drawLinks;
+window.renderLimbs = renderLimbs;
+window.updatePreview = updatePreview;
+window.setMode = setMode;
+window.W = () => W;
+window.H = () => H;
+</script>
+</body>
+</html>

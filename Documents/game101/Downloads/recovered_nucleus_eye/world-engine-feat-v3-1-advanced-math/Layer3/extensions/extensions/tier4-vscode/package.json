@@ -1,0 +1,213 @@
+{
+  "name": "tier4-meta-system",
+  "displayName": "Tier-4 Meta System",
+  "description": "Tier-4 Meta Reasoning System for VS Code - Transform your IDE into a thinking environment",
+  "version": "1.0.0",
+  "publisher": "world-engine",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Debuggers"
+  ],
+  "keywords": [
+    "tier4",
+    "meta-reasoning",
+    "world-engine",
+    "semantic-analysis",
+    "dimensional-thinking"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:tier4.activate",
+    "onCommand:tier4.demo",
+    "onFileSystem:tier4"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tier4.activate",
+        "title": "Activate Tier-4 Meta System",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.demo",
+        "title": "Open Tier-4 Demo",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.applyOperator",
+        "title": "Apply Operator",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.runMacro",
+        "title": "Run Three Ides Macro",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.showHUD",
+        "title": "Toggle Developer HUD",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.saveSession",
+        "title": "Save Tier-4 Session",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.loadSession",
+        "title": "Load Tier-4 Session",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.autoPlanner",
+        "title": "Enable Auto-Planner",
+        "category": "Tier-4"
+      },
+      {
+        "command": "tier4.validate",
+        "title": "Validate Integration",
+        "category": "Tier-4"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "tier4.applyOperator",
+        "key": "ctrl+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "tier4.runMacro",
+        "key": "ctrl+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "tier4.showHUD",
+        "key": "ctrl+shift+h",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "tier4.saveSession",
+        "key": "ctrl+shift+s",
+        "when": "editorTextFocus"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "tier4-state",
+          "name": "Tier-4 State",
+          "when": "tier4.active"
+        },
+        {
+          "id": "tier4-operators",
+          "name": "Available Operators",
+          "when": "tier4.active"
+        },
+        {
+          "id": "tier4-macros",
+          "name": "Three Ides Macros",
+          "when": "tier4.active"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tier4-container",
+          "title": "Tier-4 Meta System",
+          "icon": "$(brain)"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Tier-4 Meta System",
+      "properties": {
+        "tier4.autoActivate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically activate Tier-4 system on startup"
+        },
+        "tier4.showHUD": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show developer HUD overlay"
+        },
+        "tier4.autoPlannerEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable autonomous decision making"
+        },
+        "tier4.audioIntegration": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable real-time audio processing"
+        },
+        "tier4.gitIntegration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Map operations to Git actions"
+        },
+        "tier4.sessionAutoSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-save sessions every 10 operations"
+        },
+        "tier4.dimensionality": {
+          "type": "number",
+          "default": 4,
+          "minimum": 2,
+          "maximum": 8,
+          "description": "Default dimensionality for new sessions"
+        }
+      }
+    },
+    "webviews": [
+      {
+        "viewType": "tier4.demo",
+        "displayName": "Tier-4 Demo Panel"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/vscode": "^1.104.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "@vscode/test-electron": "^2.2.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Colt45en/world-engine.git"
+  },
+  "homepage": "https://github.com/Colt45en/world-engine#readme",
+  "bugs": {
+    "url": "https://github.com/Colt45en/world-engine/issues"
+  },
+  "license": "MIT"
+}

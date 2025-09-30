@@ -1,0 +1,261 @@
+{
+    "training_modules": {
+        "math_fundamentals": {
+            "name": "Mathematical Foundations Training",
+            "description": "Comprehensive training in mathematical concepts with AI assistance",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "right-sidebar",
+                    "toggle_key": "T",
+                    "default_state": "docked",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "math_training",
+                    "smart_hints": true,
+                    "progress_tracking": true
+                },
+                "training_controls": {
+                    "difficulty_selector": true,
+                    "progress_bar": true,
+                    "hint_system": true,
+                    "practice_mode": true,
+                    "assessment_tools": true
+                }
+            },
+            "training_content": {
+                "topics": [
+                    "arithmetic_operations",
+                    "algebraic_expressions",
+                    "geometric_principles",
+                    "trigonometric_functions",
+                    "calculus_basics",
+                    "statistical_analysis"
+                ],
+                "difficulty_progression": {
+                    "beginner": "basic_operations",
+                    "intermediate": "complex_expressions",
+                    "advanced": "applied_mathematics",
+                    "expert": "theoretical_concepts"
+                },
+                "ai_assistance": {
+                    "step_by_step_solutions": true,
+                    "concept_explanations": true,
+                    "alternative_approaches": true,
+                    "error_analysis": true
+                }
+            }
+        },
+        "language_skills": {
+            "name": "English Language Skills Training",
+            "description": "Phonics, grammar, and reading comprehension training with AI support",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "bottom-panel",
+                    "toggle_key": "L",
+                    "default_state": "minimized",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "language_training",
+                    "pronunciation_help": true,
+                    "vocabulary_support": true
+                },
+                "training_controls": {
+                    "reading_level": true,
+                    "audio_playback": true,
+                    "pronunciation_practice": true,
+                    "writing_exercises": true,
+                    "comprehension_tests": true
+                }
+            },
+            "training_content": {
+                "skill_areas": [
+                    "phonemic_awareness",
+                    "decoding_skills",
+                    "vocabulary_building",
+                    "reading_fluency",
+                    "reading_comprehension",
+                    "writing_mechanics"
+                ],
+                "grade_levels": [
+                    "K",
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6+"
+                ],
+                "assessment_types": [
+                    "diagnostic_testing",
+                    "formative_assessment",
+                    "summative_evaluation",
+                    "progress_monitoring"
+                ]
+            }
+        },
+        "programming_concepts": {
+            "name": "Programming and Logic Training",
+            "description": "Interactive programming training with AI code assistance",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "split-right",
+                    "toggle_key": "P",
+                    "default_state": "docked",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "programming_training",
+                    "code_suggestions": true,
+                    "debugging_help": true,
+                    "concept_explanations": true
+                },
+                "training_controls": {
+                    "code_editor": true,
+                    "syntax_highlighting": true,
+                    "error_detection": true,
+                    "test_runner": true,
+                    "project_manager": true
+                }
+            },
+            "training_content": {
+                "programming_languages": [
+                    "JavaScript",
+                    "Python",
+                    "C++",
+                    "TypeScript"
+                ],
+                "concept_areas": [
+                    "variables_data_types",
+                    "control_structures",
+                    "functions_procedures",
+                    "object_oriented_programming",
+                    "data_structures",
+                    "algorithms_complexity"
+                ],
+                "project_types": [
+                    "console_applications",
+                    "web_applications",
+                    "game_development",
+                    "data_analysis",
+                    "system_programming"
+                ]
+            }
+        },
+        "creative_arts": {
+            "name": "Digital Arts and Design Training",
+            "description": "Creative training in digital arts with AI creative assistance",
+            "ui_features": {
+                "toggle_chatbox": {
+                    "enabled": true,
+                    "position": "floating-corner",
+                    "toggle_key": "A",
+                    "default_state": "minimized",
+                    "ai_connection": "vectorlab_nexus",
+                    "context_awareness": "creative_training",
+                    "inspiration_mode": true,
+                    "technique_suggestions": true,
+                    "color_palette_help": true
+                },
+                "training_controls": {
+                    "canvas_tools": true,
+                    "layer_management": true,
+                    "brush_selection": true,
+                    "color_picker": true,
+                    "filter_effects": true
+                }
+            },
+            "training_content": {
+                "art_disciplines": [
+                    "digital_painting",
+                    "graphic_design",
+                    "3d_modeling",
+                    "animation",
+                    "user_interface_design",
+                    "concept_art"
+                ],
+                "skill_levels": [
+                    "fundamentals",
+                    "intermediate_techniques",
+                    "advanced_workflows",
+                    "professional_practices"
+                ],
+                "project_galleries": [
+                    "student_showcase",
+                    "technique_examples",
+                    "style_references",
+                    "process_documentation"
+                ]
+            }
+        }
+    },
+    "adaptive_learning": {
+        "ai_personalization": {
+            "learning_analytics": {
+                "progress_tracking": true,
+                "difficulty_adjustment": true,
+                "personalized_recommendations": true,
+                "learning_style_adaptation": true
+            },
+            "intelligent_tutoring": {
+                "contextual_hints": true,
+                "mistake_pattern_analysis": true,
+                "concept_prerequisite_mapping": true,
+                "mastery_based_progression": true
+            },
+            "chatbot_features": {
+                "student_questions": "natural_language_processing",
+                "explanation_styles": "adaptive_to_learner",
+                "practice_generation": "dynamic_content_creation",
+                "assessment_feedback": "constructive_guidance"
+            }
+        },
+        "collaborative_features": {
+            "peer_interaction": {
+                "study_groups": true,
+                "peer_tutoring": true,
+                "collaborative_projects": true,
+                "discussion_forums": true
+            },
+            "instructor_tools": {
+                "progress_monitoring": true,
+                "curriculum_management": true,
+                "assessment_creation": true,
+                "student_analytics": true
+            }
+        }
+    },
+    "chatbox_training_integration": {
+        "context_specific_features": {
+            "math_training": {
+                "equation_solving": true,
+                "step_by_step_guidance": true,
+                "concept_visualization": true,
+                "practice_problem_generation": true
+            },
+            "language_training": {
+                "pronunciation_feedback": true,
+                "grammar_correction": true,
+                "vocabulary_expansion": true,
+                "reading_comprehension_help": true
+            },
+            "programming_training": {
+                "code_review": true,
+                "debugging_assistance": true,
+                "best_practice_suggestions": true,
+                "algorithm_explanations": true
+            },
+            "creative_training": {
+                "artistic_critiques": true,
+                "technique_tutorials": true,
+                "inspiration_generation": true,
+                "project_planning_help": true
+            }
+        },
+        "universal_training_features": {
+            "progress_encouragement": true,
+            "difficulty_management": true,
+            "resource_recommendations": true,
+            "study_schedule_optimization": true,
+            "performance_analytics": true
+        }
+    }
+}

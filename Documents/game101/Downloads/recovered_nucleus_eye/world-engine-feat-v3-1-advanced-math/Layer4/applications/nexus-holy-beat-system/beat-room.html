@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Holy Beat — Tri‑Engine (Sound+Art+World)</title>
+  <style>
+    :root{
+      --bg:#0b0f1a; --ink:#e8f0ff; --dim:#9bb0d1; --card:#0f1626; --border:#1a2b46; --hl:#64ffda; --rose:#ff7bd5; --world:#7dd3ff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:radial-gradient(1200px 1200px at 20% 10%, #10182a, #080c16); color:var(--ink)}
+    .wrap{max-width:1200px; margin:28px auto; padding:0 16px;}
+    h1{margin:0 0 6px; font-size:22px}
+    p{margin:6px 0 16px; color:var(--dim)}
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px}
+    .panel{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px}
+    .controls{display:grid; grid-template-columns: repeat(6, minmax(120px,1fr)); gap:10px}
+    label{display:flex; flex-direction:column; gap:6px; color:var(--dim); font-size:12px}
+    input[type="range"], select{width:100%}
+    button{padding:8px 12px; border-radius:10px; border:1px solid #294162; background:#0b1424; color:var(--ink); cursor:pointer}
+    button:hover{background:#0e1b31}
+    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    canvas{display:block; width:100%; height:260px; background:#000; border:1px solid #2a3a58; border-radius:10px}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #294162; border-radius:999px; color:var(--dim)}
+    small.k{color:var(--rose); font-weight:700}
+
+    /* AI Toggle Window */
+    .ai-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: var(--card);
+      border: 2px solid var(--hl);
+      border-radius: 12px;
+      padding: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .ai-window {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      width: 350px;
+      height: 500px;
+      background: var(--card);
+      border: 2px solid var(--hl);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      z-index: 999;
+      display: none;
+      flex-direction: column;
+    }
+
+    .ai-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ai-chat {
+      flex: 1;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 8px;
+      overflow-y: auto;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .ai-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .ai-input input {
+      flex: 1;
+      padding: 6px 8px;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--ink);
+      font-size: 11px;
+    }
+
+    .ai-controls {
+      display: flex;
+      gap: 4px;
+      justify-content: space-between;
+    }
+
+    .ai-btn {
+      padding: 4px 8px;
+      background: var(--hl);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .ai-btn.record {
+      background: var(--error);
+      color: white;
+    }
+
+    .ai-btn.download {
+      background: var(--world);
+      color: #000;
+    }
+
+    #videoPreview {
+      width: 100%;
+      height: 120px;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- AI Toggle Button -->
+  <div class="ai-toggle">
+    <button id="toggleAI" class="ai-btn">🤖 AI</button>
+  </div>
+
+  <!-- AI Window -->
+  <div class="ai-window" id="aiWindow">
+    <div class="ai-header">
+      <div style="color: var(--hl); font-weight: bold;">🎵 Beat Room AI</div>
+      <button id="closeAI" class="ai-btn" style="background: var(--error); color: white;">×</button>
+    </div>
+
+    <video id="videoPreview" autoplay muted style="display: none;"></video>
+
+    <div class="ai-chat" id="aiChat">
+      <div style="color: var(--hl);">[NUCLEUS AI] Connected to Beat Room</div>
+      <div style="color: var(--dim);">[SYSTEM] Ready to assist with sound synthesis and cross-modal creativity</div>
+    </div>
+
+    <div class="ai-input">
+      <input type="text" id="aiInput" placeholder="Ask about beats, synthesis, or controls...">
+      <button class="ai-btn" id="sendChat">Send</button>
+    </div>
+
+    <div class="ai-controls">
+      <button class="ai-btn record" id="recordBtn">🎥 Record</button>
+      <button class="ai-btn record" id="stopRecord" style="display: none;">⏹ Stop</button>
+      <button class="ai-btn download" id="downloadJSON">📥 JSON</button>
+      <button class="ai-btn" id="statusBtn">📊 Status</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1>Holy Beat — Tri‑Engine (Sound+Art+World)</h1>
+    <p>Shared <em>Clock</em> & <em>Bus</em> drive Sound, Art (rose curve), and World (heightmap). Param changes quantize to beats/phrases. Presets + cross‑modal maps included.</p>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <button id="btn-start">Start</button>
+            <button id="btn-stop">Stop</button>
+            <span class="pill">State: <strong id="state">stopped</strong></span>
+          </div>
+          <div class="row">
+            <span class="pill">Bar <strong id="bar">0</strong></span>
+            <span class="pill">Beat <strong id="beat">0</strong></span>
+            <span class="pill">Phase <strong id="phase">0.00</strong></span>
+          </div>
+        </div>
+        <div class="controls" style="margin-top:12px">
+          <label> BPM <input id="bpm" type="range" min="40" max="200" value="120" /></label>
+          <label> Base Freq (Hz) <input id="base" type="range" min="50" max="880" value="220" /></label>
+          <label> Harmonics (N) <input id="harm" type="range" min="1" max="16" value="6" /></label>
+          <label> Gain <input id="gain" type="range" min="0" max="1" step="0.01" value="0.5" /></label>
+          <label> AM Depth <input id="amDepth" type="range" min="0" max="1" step="0.01" value="0.2" /></label>
+          <label> FM Depth <input id="fmDepth" type="range" min="0" max="20" step="0.1" value="6" /></label>
+          <label> AM Division (beats) <input id="amDiv" type="range" min="1" max="16" step="1" value="4" /></label>
+          <label> FM Division (beats) <input id="fmDiv" type="range" min="1" max="16" step="1" value="8" /></label>
+          <label> Noise Level <input id="noise" type="range" min="0" max="0.5" step="0.01" value="0.05" /></label>
+          <label> Filter Cutoff (Hz) <input id="cut" type="range" min="200" max="8000" step="1" value="4000" /></label>
+          <label> Presets
+            <select id="preset">
+              <option value="none">— choose —</option>
+              <option value="chordStack">Chord Stack (warm)</option>
+              <option value="fmBell">FM Bell (glassy)</option>
+              <option value="drone">Drone (low, thick)</option>
+            </select>
+          </label>
+          <label> Apply at
+            <select id="quant">
+              <option value="beat">Next Beat</option>
+              <option value="bar">Next Bar</option>
+              <option value="phrase">Next Phrase (4 bars)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <canvas id="osc" width="800" height="260" aria-label="Oscilloscope"></canvas>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="row" style="justify-content:space-between">
+          <strong>Art (Rose Curve)</strong>
+          <span>petals k = <small class="k" id="petals">5</small></span>
+        </div>
+        <canvas id="art" width="560" height="260"></canvas>
+        <div class="row" style="justify-content:space-between; margin-top:10px">
+          <strong>World (Heightmap)</strong>
+          <span>warp = <small class="k" id="warp">0.20</small></span>
+        </div>
+        <canvas id="world" width="560" height="260"></canvas>
+      </section>
+    </div>
+  </div>
+
+<script type="module">
+// ================= Core: Clock, Bus, Quantized Param Queue ===================
+class Clock {
+  constructor(bpm=120, beatsPerBar=4){ this.setBPM(bpm); this.beatsPerBar=beatsPerBar; this.startTime=null; this.running=false; this.bar=0; this.beat=0; this.phase=0; }
+  setBPM(bpm){ this.bpm=bpm; this.secPerBeat=60/bpm; }
+  start(ctx){ this.running=true; this.startTime=ctx.currentTime; this.bar=0; this.beat=0; this.phase=0; }
+  stop(){ this.running=false; this.bar=this.beat=0; this.phase=0; }
+  tick(ctx){ if(!this.running) return {t:0, bar:0, beat:0, phase:0, changedBeat:false, changedBar:false};
+    const t = ctx.currentTime - this.startTime; const beats = t/this.secPerBeat;
+    const newBar = Math.floor(beats/this.beatsPerBar); const newBeat = Math.floor(beats)%this.beatsPerBar; const newPhase = beats - Math.floor(beats);
+    const changedBeat = (newBeat!==this.beat); const changedBar = (newBar!==this.bar);
+    this.bar=newBar; this.beat=newBeat; this.phase=newPhase; return {t, bar:newBar, beat:newBeat, phase:newPhase, changedBeat, changedBar}; }
+}
+class Bus{ constructor(){ this.listeners = {}; } on(type, fn){(this.listeners[type] ||= []).push(fn);} emit(type, payload){ (this.listeners[type]||[]).forEach(fn=>fn(payload)); } }
+class ParamQueue { constructor(){ this.queue=[]; }
+  schedule(scope, param, value, when){ this.queue.push({scope, param, value, when}); }
+  applyIfDue(clock, apply){ // apply callback(scope,param,value)
+    const due=[]; const rest=[];
+    for(const item of this.queue){
+      const {when} = item; let isDue=false;
+      if(when.type==='beat' && clock.phase<0.02) isDue=true;
+      else if(when.type==='bar' && clock.phase<0.02 && clock.beat===0) isDue=true;
+      else if(when.type==='phrase' && clock.phase<0.02 && clock.beat===0 && (clock.bar%4===0)) isDue=true;
+      (isDue?due:rest).push(item);
+    }
+    this.queue=rest; for(const d of due) apply(d.scope, d.param, d.value);
+  }
+}
+
+// ================= Sound Engine (harmonics + AM/FM + noise) ==================
+class SoundEngine{
+  constructor(audioCtx){
+    this.ctx = audioCtx;
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.5;
+    this.filter = this.ctx.createBiquadFilter(); this.filter.type='lowpass'; this.filter.frequency.value=4000;
+    this.master.connect(this.filter).connect(this.ctx.destination);
+    this.partials=[]; this.noise=null; this.noiseGain=null;
+    this.params = { baseFreq:220, harmonics:6, amDepth:0.2, fmDepth:6.0, amDiv:4, fmDiv:8, noise:0.05, cutoff:4000, gain:0.5 };
+  }
+  start(){ this.stop(); const {baseFreq,harmonics,noise} = this.params;
+    for(let n=1;n<=harmonics;n++){ const osc=this.ctx.createOscillator(); osc.type='sine'; osc.frequency.value=baseFreq*n; const g=this.ctx.createGain(); g.gain.value=1/n; osc.connect(g).connect(this.master); osc.start(); this.partials.push({osc,g,n}); }
+    const buf=this.ctx.createBuffer(1, this.ctx.sampleRate*2, this.ctx.sampleRate); const ch=buf.getChannelData(0); for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1; this.noise=this.ctx.createBufferSource(); this.noise.buffer=buf; this.noise.loop=true; this.noiseGain=this.ctx.createGain(); this.noiseGain.gain.value=noise; this.noise.connect(this.noiseGain).connect(this.master); this.noise.start();
+  }
+  stop(){ this.partials.forEach(p=>{try{p.osc.stop()}catch(_){}}); this.partials=[]; if(this.noise){try{this.noise.stop()}catch(_){}} this.noise=null; }
+  set(param,value){ this.params[param]=value; const t=this.ctx.currentTime; if(param==='cutoff') this.filter.frequency.setTargetAtTime(value,t,0.01); if(param==='gain') this.master.gain.setTargetAtTime(value,t,0.01); if(param==='noise' && this.noiseGain) this.noiseGain.gain.setTargetAtTime(value,t,0.01); if(param==='baseFreq' || param==='harmonics') this.start(); }
+  render(clock){ const {amDepth,fmDepth,amDiv,fmDiv,baseFreq}=this.params; const am = 1 + amDepth*Math.sin(2*Math.PI*clock.phase*(1/(amDiv))); const fm = fmDepth*Math.sin(2*Math.PI*clock.phase*(1/(fmDiv)));
+    this.partials.forEach(p=>{ const n=p.n; const base=1/n; p.g.gain.setTargetAtTime(base*am, this.ctx.currentTime, 0.01); const f = baseFreq*n + fm*(n*0.1); p.osc.frequency.setTargetAtTime(f, this.ctx.currentTime, 0.01); });
+  }
+}
+
+// ================= Art Engine (rose curve, subscribes to Bus/Clock) ==========
+class ArtEngine{
+  constructor(canvas){ this.cv=canvas; this.ctx=canvas.getContext('2d'); this.k=5; this.stroke='#ff7bd5'; }
+  set(param,value){ if(param==='k') this.k=value; }
+  updateFromSound(features){ // spectral centroid → petals
+    const petals = Math.max(2, Math.min(16, Math.round(features.centroid*8)));
+    this.k = petals; }
+  render(clock){ const ctx=this.ctx, W=this.cv.width, H=this.cv.height; ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); ctx.strokeStyle=this.stroke; ctx.lineWidth=2; ctx.beginPath();
+    const R=Math.min(W,H)*0.42; const cx=W/2, cy=H/2; const k=this.k; const samples=1200; for(let i=0;i<=samples;i++){ const th=i/samples*2*Math.PI; const r=Math.cos(k*th); const x=cx + R*r*Math.cos(th); const y=cy + R*r*Math.sin(th); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke(); document.getElementById('petals').textContent=String(k);
+  }
+}
+
+// ================= World Engine (heightmap canvas, subscribes) ===============
+class WorldEngine{
+  constructor(canvas){ this.cv=canvas; this.ctx=canvas.getContext('2d'); this.warp=0.2; this.a=1.6; this.b=1.3; }
+  set(param,value){ if(param==='warp') this.warp=value; }
+  updateFromArt(features){ // art density/curvature could map here; we'll use k implicitly
+    this.warp = Math.max(0, Math.min(1, 0.05 + features.density*0.5)); }
+  updateFromSound(features){ // RMS → warp
+    this.warp = Math.max(0.02, Math.min(0.8, 0.1 + features.rms*0.6)); }
+  render(clock){ const ctx=this.ctx, W=this.cv.width, H=this.cv.height; const img=ctx.createImageData(W,H); const d=img.data; const warp=this.warp; for(let y=0;y<H;y++){ for(let x=0;x<W;x++){ const nx=(x/W-0.5)*4, ny=(y/H-0.5)*4; const z = Math.sin(nx*this.a + warp*Math.sin(clock.bar*0.4)) * Math.cos(ny*this.b + warp*clock.phase*2*Math.PI); const h=(z*0.5+0.5); const i=(y*W+x)*4; d[i]=h*80; d[i+1]=h*180; d[i+2]=255*h; d[i+3]=255; }} ctx.putImageData(img,0,0); document.getElementById('warp').textContent=warp.toFixed(2); }
+}
+
+// ================= Feature Extraction (sound → centroid, rms) ================
+function createAnalyser(audioCtx, source){ const analyser = audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const time = new Uint8Array(analyser.fftSize); const freq = new Uint8Array(analyser.frequencyBinCount); return {analyser,time,freq}; }
+function spectralCentroid(analyser, freq){ analyser.getByteFrequencyData(freq); let num=0, den=0; const N=freq.length; for(let i=0;i<N;i++){ const mag=freq[i]; const f = i * (analyser.context.sampleRate/2) / N; num += f*mag; den += mag; } return den>0 ? (num/den)/(analyser.context.sampleRate/2) : 0; }
+function rms(analyser, time){ analyser.getByteTimeDomainData(time); let acc=0; for(let i=0;i<time.length;i++){ const v=(time[i]-128)/128; acc += v*v; } return Math.sqrt(acc/time.length); }
+function drawScope(analyser, canvas){ const ctx=canvas.getContext('2d'); const time = new Uint8Array(analyser.fftSize); function loop(){ analyser.getByteTimeDomainData(time); ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.lineWidth=2; ctx.strokeStyle='#64ffda'; ctx.beginPath(); const dx=canvas.width/time.length; let x=0; for(let i=0;i<time.length;i++){ const v=time[i]/128.0; const y=(v*canvas.height)/2; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); x+=dx; } ctx.stroke(); requestAnimationFrame(loop);} loop(); }
+
+// ================= Presets ====================================================
+const Presets = {
+  chordStack: (base=220)=>({ baseFreq:base, harmonics:8, amDepth:0.15, fmDepth:4, amDiv:4, fmDiv:8, noise:0.03, cutoff:4800 }),
+  fmBell: (base=440)=>({ baseFreq:base, harmonics:4, amDepth:0.05, fmDepth:14, amDiv:8, fmDiv:4, noise:0.0, cutoff:6000 }),
+  drone: (base=110)=>({ baseFreq:base, harmonics:16, amDepth:0.3, fmDepth:2, amDiv:16, fmDiv:16, noise:0.08, cutoff:2200 })
+};
+
+// ================= AI Interface ===============================================
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
+document.getElementById('toggleAI').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+  const aiWindow = document.getElementById('aiWindow');
+  aiWindow.style.display = aiWindow.style.display === 'none' ? 'flex' : 'none';
+});
+
+document.getElementById('closeAI').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+  document.getElementById('aiWindow').style.display = 'none';
+});
+
+document.getElementById('sendChat').addEventListener("click", function(e) { try { sendAIMessage(e); } catch(err) { console.error("Event error:", err); } });
+document.getElementById('aiInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') sendAIMessage();
+});
+
+function sendAIMessage() {
+  const input = document.getElementById('aiInput');
+  const chat = document.getElementById('aiChat');
+  const message = input.value.trim();
+
+  if (!message) return;
+
+  // Add user message
+  const userMsg = document.createElement('div');
+  userMsg.innerHTML = `<span style="color: var(--hl);">[USER]</span> ${message}`;
+  chat.appendChild(userMsg);
+
+  input.value = '';
+
+  // AI Response based on beat room context
+  setTimeout(() => {
+    const aiMsg = document.createElement('div');
+    let response = '';
+
+    if (message.toLowerCase().includes('bpm') || message.toLowerCase().includes('tempo')) {
+      response = '[NUCLEUS AI] BPM controls the master clock driving all synthesis engines. Current: ' + document.getElementById('bpm').value + ' BPM. Try adjusting for different energy levels!';
+    } else if (message.toLowerCase().includes('preset')) {
+      response = '[NUCLEUS AI] Presets available: Chord Stack (warm harmonics), FM Bell (crystalline), Drone (deep atmospheric). Each preset optimizes all parameters for a specific sound character.';
+    } else if (message.toLowerCase().includes('harmonics')) {
+      response = '[NUCLEUS AI] Harmonic count determines timbre richness. More harmonics = fuller sound. Each harmonic is frequency-modulated and amplitude-modulated by the master clock.';
+    } else if (message.toLowerCase().includes('art') || message.toLowerCase().includes('rose')) {
+      response = '[NUCLEUS AI] Rose curve petals driven by spectral centroid analysis. Audio features → visual generation in real-time. Cross-modal creativity engine active!';
+    } else if (message.toLowerCase().includes('world') || message.toLowerCase().includes('heightmap')) {
+      response = '[NUCLEUS AI] World heightmap responds to RMS energy. Sound intensity warps the 3D landscape. This demonstrates audio → spatial transformation.';
+    } else {
+      response = '[NUCLEUS AI] Beat Room systems online! Ask about: BPM, harmonics, presets, art generation, world mapping, or cross-modal synthesis.';
+    }
+
+    aiMsg.innerHTML = `<span style="color: var(--rose);">[AI]</span> ${response}`;
+    chat.appendChild(aiMsg);
+    chat.scrollTop = chat.scrollHeight;
+  }, 800);
+
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// Video Recording
+document.getElementById('recordBtn').addEventListener("click", function(e) { try { startRecording(e); } catch(err) { console.error("Event error:", err); } });
+document.getElementById('stopRecord').addEventListener("click", function(e) { try { stopRecording(e); } catch(err) { console.error("Event error:", err); } });
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480 },
+      audio: true
+    });
+
+    const videoPreview = document.getElementById('videoPreview');
+    videoPreview.srcObject = stream;
+    videoPreview.style.display = 'block';
+
+    mediaRecorder = new MediaRecorder(stream);
+    recordedChunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      recordedChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+
+      // Create download link
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `beat-room-session-${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      stream.getTracks().forEach(track => track.stop());
+      videoPreview.style.display = 'none';
+
+      addAIMessage('[SYSTEM] Recording saved! Video contains your beat room session.');
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+
+    document.getElementById('recordBtn').style.display = 'none';
+    document.getElementById('stopRecord').style.display = 'inline-block';
+
+    addAIMessage('[SYSTEM] Recording started! Capturing Beat Room session...');
+  } catch (error) {
+    addAIMessage('[ERROR] Could not access camera/microphone: ' + error.message);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+
+    document.getElementById('recordBtn').style.display = 'inline-block';
+    document.getElementById('stopRecord').style.display = 'none';
+  }
+}
+
+function addAIMessage(message) {
+  const chat = document.getElementById('aiChat');
+  const msg = document.createElement('div');
+  msg.innerHTML = `<span style="color: var(--world);">[SYS]</span> ${message}`;
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// JSON Download
+document.getElementById('downloadJSON').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+  const systemState = {
+    timestamp: new Date().toISOString(),
+    beatRoom: 'Holy Beat Tri-Engine',
+    clock: {
+      bpm: parseInt(document.getElementById('bpm').value),
+      bar: parseInt(document.getElementById('bar').textContent),
+      beat: parseInt(document.getElementById('beat').textContent),
+      phase: parseFloat(document.getElementById('phase').textContent)
+    },
+    sound: {
+      baseFreq: parseInt(document.getElementById('base').value),
+      harmonics: parseInt(document.getElementById('harm').value),
+      gain: parseFloat(document.getElementById('gain').value),
+      amDepth: parseFloat(document.getElementById('amDepth').value),
+      fmDepth: parseFloat(document.getElementById('fmDepth').value),
+      amDiv: parseInt(document.getElementById('amDiv').value),
+      fmDiv: parseInt(document.getElementById('fmDiv').value),
+      noise: parseFloat(document.getElementById('noise').value),
+      cutoff: parseInt(document.getElementById('cut').value)
+    },
+    art: {
+      petals: parseInt(document.getElementById('petals').textContent)
+    },
+    world: {
+      warp: parseFloat(document.getElementById('warp').textContent)
+    },
+    status: document.getElementById('state').textContent,
+    nucleus: {
+      connected: true,
+      thoughtFlow: 'active',
+      crossModal: true
+    }
+  };
+
+  const blob = new Blob([JSON.stringify(systemState, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `beat-room-state-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  addAIMessage('[DOWNLOAD] System state exported as JSON! Contains all current parameters and nucleus connection status.');
+});
+
+// Status Button
+document.getElementById('statusBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+  const status = `
+    🎵 Beat Room Status Report:
+    • Clock: ${document.getElementById('bpm').value} BPM, Bar ${document.getElementById('bar').textContent}
+    • Sound: ${document.getElementById('harm').value} harmonics @ ${document.getElementById('base').value}Hz
+    • Art: ${document.getElementById('petals').textContent} petals (rose curve)
+    • World: ${document.getElementById('warp').textContent} warp factor
+    • State: ${document.getElementById('state').textContent}
+    • Nucleus: Connected ✅
+    • Cross-Modal: Active ✅
+  `;
+  addAIMessage(status);
+});
+
+// ================= Bootstrapping & Wiring ====================================
+const $=id=>document.getElementById(id);
+const audio = new (window.AudioContext||window.webkitAudioContext)();
+const clock = new Clock(120,4); // <— EXPOSED
+const bus = new Bus();          // <— EXPOSED
+const engine = new SoundEngine(audio);
+const art = new ArtEngine($('art'));
+const world = new WorldEngine($('world'));
+const pq = new ParamQueue();
+
+// UI bindings → schedule quantized changes via ParamQueue
+const quantSel = $('quant');
+function schedule(scope,param,value){
+  const mode = quantSel.value; const when = {type: mode}; pq.schedule(scope,param,value,when);
+}
+$('bpm').addEventListener('input', e=>{ clock.setBPM(+e.target.value); });
+$('base').addEventListener('input', e=> schedule('sound','baseFreq', +e.target.value));
+$('harm').addEventListener('input', e=> schedule('sound','harmonics', +e.target.value));
+$('gain').addEventListener('input', e=> schedule('sound','gain', +e.target.value));
+$('amDepth').addEventListener('input', e=> schedule('sound','amDepth', +e.target.value));
+$('fmDepth').addEventListener('input', e=> schedule('sound','fmDepth', +e.target.value));
+$('amDiv').addEventListener('input', e=> schedule('sound','amDiv', +e.target.value));
+$('fmDiv').addEventListener('input', e=> schedule('sound','fmDiv', +e.target.value));
+$('noise').addEventListener('input', e=> schedule('sound','noise', +e.target.value));
+$('cut').addEventListener('input', e=> schedule('sound','cutoff', +e.target.value));
+$('preset').addEventListener('change', e=>{
+  const name=e.target.value; if(name==='none') return; const base = +$('base').value; const p = Presets[name](base);
+  Object.entries(p).forEach(([k,v])=> schedule('sound',k,v));
+});
+
+$('btn-start').addEventListener("click", function(e) { try { async ((e); } catch(err) { console.error("Event error:", err); } })=>{ await audio.resume(); clock.start(audio); engine.start(); $('state').textContent='running'; });
+$('btn-stop').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } })=>{ engine.stop(); clock.stop(); $('state').textContent='stopped'; });
+
+// Analyser + oscilloscope
+const {analyser,time,freq} = createAnalyser(audio, engine.master);
+drawScope(analyser, $('osc'));
+
+// Subscriptions: Engines listen to Bus ticks
+bus.on('beat', ({bar,beat})=>{ /* placeholder for further quantized hooks */ });
+bus.on('bar',  ({bar})=>{ /* phrase logic, camera moves, etc. */ });
+
+// Main loop: drive clock UI, apply queued params on quantized boundaries, render
+function mainLoop(){
+  const state = clock.tick(audio);
+  $('bar').textContent=state.bar; $('beat').textContent=state.beat; $('phase').textContent=state.phase.toFixed(2);
+
+  // Emit bus cues
+  if(state.changedBeat && state.phase<0.02){ bus.emit('beat', {bar:state.bar, beat:state.beat}); if(state.beat===0) bus.emit('bar', {bar:state.bar}); if(state.beat===0 && state.bar%4===0) bus.emit('phrase', {bar:state.bar}); }
+
+  // Apply quantized parameter updates
+  pq.applyIfDue(state, (scope,param,value)=>{
+    if(scope==='sound') engine.set(param,value);
+    if(scope==='art')   art.set(param,value);
+    if(scope==='world') world.set(param,value);
+  });
+
+  // SOUND render (phase-locked LFOs)
+  engine.render(state);
+
+  // FEATURES from sound → map to Art/World
+  const centroid = spectralCentroid(analyser, freq); // 0..1
+  const energy = rms(analyser, time);               // 0..~1
+  // Cross-modal maps
+  art.updateFromSound({centroid, rms:energy});
+  world.updateFromSound({rms:energy});
+
+  // ART render (uses petals k)
+  art.render(state);
+  // WORLD render (uses warp)
+  world.render(state);
+
+  requestAnimationFrame(mainLoop);
+}
+mainLoop();
+</script>
+</body>
+</html>

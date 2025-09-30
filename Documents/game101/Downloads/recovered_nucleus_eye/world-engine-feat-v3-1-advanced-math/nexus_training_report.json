@@ -1,0 +1,38 @@
+[
+  {
+    "prompt": "if cat is [k][a][t] then [k][a][t] is cat",
+    "expected": "cat",
+    "output": "stub for: if cat is [k][a][t] then [k][a][t] is cat",
+    "correct": false
+  },
+  {
+    "prompt": "if phone is [f][o][n] then [f][o][n] is phone",
+    "expected": "phone",
+    "output": "stub for: if phone is [f][o][n] then [f][o][n] is phone",
+    "correct": false
+  },
+  {
+    "prompt": "if rebuild is re + build then re + build is rebuild",
+    "expected": "rebuild",
+    "output": "stub for: if rebuild is re + build then re + build is rebuild",
+    "correct": false
+  },
+  {
+    "prompt": "if running is run + ing then run + ing is running",
+    "expected": "running",
+    "output": "stub for: if running is run + ing then run + ing is running",
+    "correct": false
+  },
+  {
+    "prompt": "if cat is animal then animal is what?",
+    "expected": "cat",
+    "output": "stub for: if cat is animal then animal is what?",
+    "correct": false
+  },
+  {
+    "prompt": "if run is verb then verb is what?",
+    "expected": "run",
+    "output": "stub for: if run is verb then verb is what?",
+    "correct": false
+  }
+]

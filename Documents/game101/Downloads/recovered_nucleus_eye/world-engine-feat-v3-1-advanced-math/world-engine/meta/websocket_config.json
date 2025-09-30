@@ -1,0 +1,363 @@
+{
+    "websocket_configuration": {
+        "primary_endpoints": {
+            "vectorlab_nexus": {
+                "url": "ws://localhost:9000",
+                "purpose": "VectorLab nexus brain communication",
+                "connection_bridge": "nexus-merge-bridge",
+                "persistent": true,
+                "auto_reconnect": true,
+                "topics": [
+                    "brain_state_updates",
+                    "glyph_events",
+                    "neural_processing",
+                    "cognitive_load_monitoring",
+                    "ai_chat_responses"
+                ]
+            },
+            "live_viewer": {
+                "url": "ws://localhost:7777/sse",
+                "purpose": "Real-time system monitoring",
+                "connection_type": "server_sent_events",
+                "topics": [
+                    "forge_state_updates",
+                    "brain_activity_stream",
+                    "glyph_manifestations",
+                    "system_performance",
+                    "demo_interactions"
+                ]
+            }
+        },
+        "topic_routing": {
+            "ai_chat_requests": {
+                "route_to": [
+                    "vectorlab_nexus"
+                ],
+                "priority": "high",
+                "context_aware": true,
+                "demo_integration": true
+            },
+            "demo_events": {
+                "route_to": [
+                    "live_viewer",
+                    "vectorlab_nexus"
+                ],
+                "priority": "medium",
+                "includes": [
+                    "glyph_selections",
+                    "phoneme_interactions",
+                    "training_progress",
+                    "user_achievements"
+                ]
+            },
+            "system_monitoring": {
+                "route_to": [
+                    "live_viewer"
+                ],
+                "priority": "low",
+                "real_time": true,
+                "includes": [
+                    "memory_usage",
+                    "cpu_performance",
+                    "connection_health",
+                    "error_reporting"
+                ]
+            },
+            "brain_processing": {
+                "route_to": [
+                    "vectorlab_nexus"
+                ],
+                "priority": "critical",
+                "neural_pathways": true,
+                "cognitive_updates": true
+            }
+        },
+        "connection_policies": {
+            "authentication": {
+                "required": false,
+                "demo_mode": true,
+                "development_environment": true
+            },
+            "rate_limiting": {
+                "enabled": true,
+                "max_connections_per_ip": 10,
+                "message_rate_limit": "100/minute",
+                "burst_allowance": 20
+            },
+            "cors_policy": {
+                "allow_origins": [
+                    "localhost",
+                    "127.0.0.1",
+                    "file://"
+                ],
+                "allow_methods": [
+                    "GET",
+                    "POST",
+                    "WS"
+                ],
+                "allow_headers": [
+                    "*"
+                ],
+                "credentials": false
+            },
+            "heartbeat": {
+                "enabled": true,
+                "interval": "30 seconds",
+                "timeout": "10 seconds",
+                "max_missed_beats": 3
+            }
+        }
+    },
+    "iframe_policies": {
+        "demo_embedding": {
+            "allowed_domains": [
+                "localhost",
+                "127.0.0.1",
+                "file://",
+                "*.worldengine.local"
+            ],
+            "sandbox_attributes": [
+                "allow-scripts",
+                "allow-same-origin",
+                "allow-forms",
+                "allow-popups",
+                "allow-modals"
+            ],
+            "content_security_policy": {
+                "default_src": "'self' data: blob:",
+                "script_src": "'self' 'unsafe-inline' 'unsafe-eval'",
+                "style_src": "'self' 'unsafe-inline'",
+                "img_src": "'self' data: blob:",
+                "connect_src": "'self' ws://localhost:* http://localhost:*",
+                "font_src": "'self' data:",
+                "media_src": "'self' blob:"
+            }
+        },
+        "training_modules": {
+            "allowed_features": [
+                "microphone",
+                "camera",
+                "geolocation",
+                "notifications",
+                "fullscreen"
+            ],
+            "feature_policy": {
+                "microphone": "'self'",
+                "camera": "'none'",
+                "geolocation": "'none'",
+                "notifications": "'self'",
+                "fullscreen": "'self'"
+            },
+            "permissions_policy": {
+                "microphone": "self",
+                "camera": "none",
+                "fullscreen": "self",
+                "payment": "none"
+            }
+        },
+        "chatbox_integration": {
+            "cross_frame_communication": true,
+            "postMessage_origin": "*",
+            "allowed_events": [
+                "chatbox_toggle",
+                "ai_response_request",
+                "demo_context_update",
+                "training_progress_sync"
+            ],
+            "security_headers": {
+                "X-Frame-Options": "SAMEORIGIN",
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "same-origin"
+            }
+        }
+    },
+    "schema_validation": {
+        "message_schemas": {
+            "ai_chat_request": {
+                "type": "object",
+                "required": [
+                    "message",
+                    "context",
+                    "demo_type"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "maxLength": 1000
+                    },
+                    "context": {
+                        "type": "string",
+                        "enum": [
+                            "math_demo",
+                            "phonics_training",
+                            "graphics_demo",
+                            "general"
+                        ]
+                    },
+                    "demo_type": {
+                        "type": "string"
+                    },
+                    "user_progress": {
+                        "type": "object"
+                    },
+                    "timestamp": {
+                        "type": "number"
+                    }
+                }
+            },
+            "brain_state_update": {
+                "type": "object",
+                "required": [
+                    "cognitive_load",
+                    "active_pathways",
+                    "current_thought"
+                ],
+                "properties": {
+                    "cognitive_load": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                    },
+                    "active_pathways": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "current_thought": {
+                        "type": "string"
+                    },
+                    "glyph_system_active": {
+                        "type": "boolean"
+                    },
+                    "connected_epochs": {
+                        "type": "number"
+                    },
+                    "queue_size": {
+                        "type": "number"
+                    }
+                }
+            },
+            "demo_interaction": {
+                "type": "object",
+                "required": [
+                    "demo_id",
+                    "interaction_type",
+                    "data"
+                ],
+                "properties": {
+                    "demo_id": {
+                        "type": "string"
+                    },
+                    "interaction_type": {
+                        "type": "string",
+                        "enum": [
+                            "glyph_select",
+                            "phoneme_click",
+                            "word_build",
+                            "control_action"
+                        ]
+                    },
+                    "data": {
+                        "type": "object"
+                    },
+                    "timestamp": {
+                        "type": "number"
+                    },
+                    "user_session": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "response_schemas": {
+            "ai_chat_response": {
+                "type": "object",
+                "required": [
+                    "response",
+                    "context_awareness",
+                    "suggestions"
+                ],
+                "properties": {
+                    "response": {
+                        "type": "string"
+                    },
+                    "context_awareness": {
+                        "type": "boolean"
+                    },
+                    "suggestions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "demo_specific_data": {
+                        "type": "object"
+                    },
+                    "follow_up_questions": {
+                        "type": "array"
+                    }
+                }
+            },
+            "system_status": {
+                "type": "object",
+                "required": [
+                    "status",
+                    "connections",
+                    "performance"
+                ],
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "healthy",
+                            "warning",
+                            "error"
+                        ]
+                    },
+                    "connections": {
+                        "type": "object"
+                    },
+                    "performance": {
+                        "type": "object"
+                    },
+                    "uptime": {
+                        "type": "number"
+                    },
+                    "last_updated": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "validation_rules": {
+            "strict_validation": false,
+            "allow_additional_properties": true,
+            "validate_on_receive": true,
+            "validate_on_send": true,
+            "error_handling": "log_and_continue",
+            "schema_versioning": true
+        }
+    },
+    "security_configuration": {
+        "data_protection": {
+            "encrypt_websocket": false,
+            "sanitize_user_input": true,
+            "validate_message_origin": true,
+            "rate_limit_enforcement": true
+        },
+        "demo_isolation": {
+            "separate_contexts": true,
+            "cross_demo_communication": false,
+            "shared_ai_assistant": true,
+            "session_isolation": true
+        },
+        "development_mode": {
+            "debug_logging": true,
+            "verbose_errors": true,
+            "allow_unsafe_eval": true,
+            "disable_csp": false,
+            "demo_shortcuts": true
+        }
+    }
+}

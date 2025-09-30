@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine Advanced Systems Demo</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(45deg, #16213e, #0f3460);
+            border-radius: 15px;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .header h1 {
+            color: #00d4ff;
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .header p {
+            color: #a0a0a0;
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+        }
+
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .system-card {
+            background: linear-gradient(145deg, #1e1e2e, #2a2a3a);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #333;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .system-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .system-card h3 {
+            color: #00d4ff;
+            margin: 0 0 15px 0;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+        }
+
+        .system-card .icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            color: #b0b0b0;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: "▶";
+            color: #00d4ff;
+            margin-right: 10px;
+        }
+
+        .demo-section {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid #444;
+        }
+
+        .demo-section h2 {
+            color: #00d4ff;
+            margin: 0 0 20px 0;
+            font-size: 1.8em;
+            text-align: center;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            background: #2a2a3a;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #0099cc, #007399);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #666, #555);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #777, #666);
+        }
+
+        .output-area {
+            background: #0a0a0a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 200px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background: #00ff88; }
+        .status-offline { background: #ff4444; }
+        .status-loading { background: #ffaa00; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .result-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .result-card h4 {
+            color: #00d4ff;
+            margin: 0 0 10px 0;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #a0a0a0;
+        }
+
+        .metric-value {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #333;
+        }
+
+        .logo {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #0099cc);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 World Engine Advanced Systems Demo</h1>
+        <p>Surgical upgrades from Untitled-10.js • Advanced Morphology • High-Performance Indexing • UX Pipeline</p>
+    </div>
+
+    <div class="systems-grid">
+        <div class="system-card">
+            <h3><span class="icon">🔬</span>Advanced Morphology Engine v2</h3>
+            <ul class="feature-list">
+                <li>Longest-match multi-affix processing</li>
+                <li>Circumfix detection and analysis</li>
+                <li>128-dimensional semantic vectors</li>
+                <li>Real-time complexity scoring</li>
+                <li>Six-type semantic classification</li>
+                <li>Position-aware morpheme tracking</li>
+            </ul>
+        </div>
+
+        <div class="system-card">
+            <h3><span class="icon">📊</span>World Engine Index Manager</h3>
+            <ul class="feature-list">
+                <li>BM25 ranking algorithm</li>
+                <li>Vector similarity search</li>
+                <li>Graph-based structure indexing</li>
+                <li>Multi-modal search fusion</li>
+                <li>Performance-optimized caching</li>
+                <li>Real-time document indexing</li>
+            </ul>
+        </div>
+
+        <div class="system-card">
+            <h3><span class="icon">🎨</span>UX Pipeline Integration</h3>
+            <ul class="feature-list">
+                <li>Circuit breaker error handling</li>
+                <li>Performance monitoring system</li>
+                <li>HTML template rendering</li>
+                <li>Agent interaction coordination</li>
+                <li>Response caching and optimization</li>
+                <li>Real-time processing pipeline</li>
+            </ul>
+        </div>
+
+        <div class="system-card">
+            <h3><span class="icon">🔗</span>Integration Framework</h3>
+            <ul class="feature-list">
+                <li>Layer 0 oversight integration</li>
+                <li>Kill switch mechanisms</li>
+                <li>Canvas law enforcement</li>
+                <li>System health monitoring</li>
+                <li>Auto-scaling capabilities</li>
+                <li>Cross-system communication</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>🧪 Interactive Advanced Systems Demo</h2>
+
+        <div class="input-area">
+            <div class="input-group">
+                <label for="testInput">Test Input:</label>
+                <input type="text" id="testInput" placeholder="e.g., counterproductivity, bioengineering, etc." value="counterproductivity">
+            </div>
+            <div class="input-group">
+                <label for="demoMode">Demo Mode:</label>
+                <select id="demoMode">
+                    <option value="comprehensive">Comprehensive Analysis</option>
+                    <option value="morphology">Morphology Only</option>
+                    <option value="indexing">Indexing Only</option>
+                    <option value="ux-pipeline">UX Pipeline Only</option>
+                    <option value="integration">System Integration</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="btn" onclick="try { runDemo(); } catch(e) { console.error(\'Button error:\', e); }">🚀 Run Advanced Demo</button>
+            <button class="btn btn-secondary" onclick="try { runBenchmark(); } catch(e) { console.error(\'Button error:\', e); }">📈 Run Performance Benchmark</button>
+            <button class="btn btn-secondary" onclick="try { clearOutput(); } catch(e) { console.error(\'Button error:\', e); }">🗑️ Clear Output</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <div id="systemStatus" style="margin: 20px 0; text-align: center;">
+            <span class="status-indicator status-offline"></span>Advanced Morphology Engine: <em>Not initialized</em><br>
+            <span class="status-indicator status-offline"></span>Index Manager: <em>Not initialized</em><br>
+            <span class="status-indicator status-offline"></span>UX Pipeline: <em>Not initialized</em><br>
+            <span class="status-indicator status-offline"></span>Integration Framework: <em>Not initialized</em>
+        </div>
+
+        <div class="output-area" id="outputArea">
+Welcome to World Engine Advanced Systems Demo!
+
+This demonstration showcases the surgical upgrades implemented from Untitled-10.js:
+
+🔬 Advanced Morphology Engine v2
+   • Longest-match multi-affix processing with position tracking
+   • Circumfix detection and complex morphological analysis
+   • 128-dimensional semantic vector generation
+   • Real-time complexity scoring and semantic classification
+
+📊 High-Performance Index Manager
+   • BM25 ranking algorithm for precision search
+   • Vector similarity search with normalized caching
+   • Graph-based structure indexing with O(degree) queries
+   • Multi-modal search fusion scoring
+
+🎨 UX Pipeline Integration
+   • Circuit breaker pattern for robust error handling
+   • Performance monitoring with real-time metrics
+   • HTML template rendering and response caching
+   • Agent interaction coordination
+
+🔗 Seamless System Integration
+   • Layer 0 oversight with kill switch mechanisms
+   • Canvas law enforcement and safety protocols
+   • Cross-system communication and health monitoring
+
+Enter a word or phrase above and click "Run Advanced Demo" to see all systems working together!
+
+Recommended test inputs:
+• counterproductivity (complex morphology)
+• bioengineering (technical classification)
+• machine learning algorithms (multi-word indexing)
+• artistic visualization methodology (creative analysis)
+
+Click "Run Performance Benchmark" to see system performance metrics.
+        </div>
+
+        <div class="results-grid" id="resultsGrid" style="display: none;">
+            <div class="result-card">
+                <h4>🔤 Morphological Analysis</h4>
+                <div class="metric">
+                    <span class="metric-label">Processing Type:</span>
+                    <span class="metric-value" id="morphologyType">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Complexity Score:</span>
+                    <span class="metric-value" id="complexityScore">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Classification:</span>
+                    <span class="metric-value" id="classification">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Morpheme Count:</span>
+                    <span class="metric-value" id="morphemeCount">-</span>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h4>📊 Indexing Performance</h4>
+                <div class="metric">
+                    <span class="metric-label">BM25 Score:</span>
+                    <span class="metric-value" id="bm25Score">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Vector Similarity:</span>
+                    <span class="metric-value" id="vectorSimilarity">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Index Time:</span>
+                    <span class="metric-value" id="indexTime">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Search Results:</span>
+                    <span class="metric-value" id="searchResults">-</span>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h4>🎨 UX Pipeline Status</h4>
+                <div class="metric">
+                    <span class="metric-label">Processing Time:</span>
+                    <span class="metric-value" id="processingTime">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Agent Interactions:</span>
+                    <span class="metric-value" id="agentInteractions">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Circuit Breaker:</span>
+                    <span class="metric-value" id="circuitBreaker">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cache Hit Rate:</span>
+                    <span class="metric-value" id="cacheHitRate">-</span>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h4>🔗 System Integration</h4>
+                <div class="metric">
+                    <span class="metric-label">Systems Online:</span>
+                    <span class="metric-value" id="systemsOnline">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Framework Status:</span>
+                    <span class="metric-value" id="frameworkStatus">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Memory:</span>
+                    <span class="metric-value" id="totalMemory">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Processing Rate:</span>
+                    <span class="metric-value" id="processingRate">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="logo">🌍 World Engine Advanced Systems</div>
+        <p>Powered by surgical upgrades from Untitled-10.js • Enhanced morphology • High-performance indexing • Scalable UX pipeline</p>
+        <p>Advanced Systems Demo v2.0 • Layer 0 Oversight • Canvas Law Compliant</p>
+    </div>
+
+    <script>
+        // Mock implementations for demo purposes
+        class MockAdvancedMorphologyEngine {
+            analyze(text) {
+                const words = text.toLowerCase().split(/\s+/);
+                const complexity = Math.min(text.length / 5, 10);
+                const morphemes = this.mockMorphemeAnalysis(text);
+
+                return {
+                    text: text,
+                    morphemes: morphemes,
+                    complexity: complexity,
+                    root: morphemes.find(m => m.type === 'root')?.text || text,
+                    classification: {
+                        type: this.classifyWord(text),
+                        confidence: 0.85 + Math.random() * 0.15,
+                        semanticClass: this.getSemanticClass(text)
+                    },
+                    semanticVector: Array.from({length: 128}, () => Math.random() * 2 - 1),
+                    processingType: text.length > 10 ? 'longest-match' : 'standard'
+                };
+            }
+
+            mockMorphemeAnalysis(text) {
+                const morphemes = [];
+                if (text.length > 15) {
+                    morphemes.push({type: 'prefix', text: text.substring(0, 3), position: 0});
+                    morphemes.push({type: 'root', text: text.substring(3, -3), position: 3});
+                    morphemes.push({type: 'suffix', text: text.substring(text.length-3), position: text.length-3});
+                } else {
+                    morphemes.push({type: 'root', text: text, position: 0});
+                }
+                return morphemes;
+            }
+
+            classifyWord(text) {
+                const classifiers = ['technical', 'creative', 'analytical', 'biological', 'abstract', 'concrete'];
+                return classifiers[Math.floor(Math.random() * classifiers.length)];
+            }
+
+            getSemanticClass(text) {
+                const classes = ['noun', 'verb', 'adjective', 'compound', 'technical-term', 'process'];
+                return classes[Math.floor(Math.random() * classes.length)];
+            }
+        }
+
+        class MockIndexManager {
+            constructor() {
+                this.documents = [];
+            }
+
+            async indexDocument(id, content, metadata) {
+                this.documents.push({id, content, metadata, indexed: Date.now()});
+                return {success: true, id: id};
+            }
+
+            async search(query, options = {}) {
+                const results = this.documents.map(doc => ({
+                    document: doc,
+                    score: Math.random() * 0.8 + 0.2,
+                    bm25Score: Math.random() * 10,
+                    vectorSimilarity: Math.random() * 0.9 + 0.1
+                })).sort((a, b) => b.score - a.score);
+
+                return results.slice(0, options.maxResults || 5);
+            }
+        }
+
+        class MockUXPipeline {
+            async processUserInput(input, options = {}) {
+                const startTime = Date.now();
+                await this.sleep(100 + Math.random() * 200);
+
+                return {
+                    success: true,
+                    primaryResponse: `Processed "${input}" through advanced UX pipeline with morphology analysis and agent coordination.`,
+                    morphology: {
+                        morphemeBreakdown: input.length > 10 ? 'complex-multi-affix' : 'simple-root'
+                    },
+                    agentInsights: {
+                        totalAgents: 4,
+                        successfulInteractions: Math.floor(Math.random() * 4) + 1
+                    },
+                    discovery: {
+                        totalMatches: Math.floor(Math.random() * 20) + 5
+                    },
+                    processing: {
+                        totalTime: Date.now() - startTime,
+                        components: [
+                            {name: 'morphology', time: 20},
+                            {name: 'indexing', time: 35},
+                            {name: 'agents', time: 45}
+                        ]
+                    }
+                };
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize mock systems
+        const morphologyEngine = new MockAdvancedMorphologyEngine();
+        const indexManager = new MockIndexManager();
+        const uxPipeline = new MockUXPipeline();
+
+        let systemsInitialized = false;
+
+        function updateProgress(percentage) {
+            document.getElementById('progressBar').style.width = percentage + '%';
+        }
+
+        function updateSystemStatus(systems) {
+            const statusElement = document.getElementById('systemStatus');
+            let statusHtml = '';
+
+            for (const [system, status] of Object.entries(systems)) {
+                const indicator = status ? 'status-online' : 'status-loading';
+                const text = status ? 'Online' : 'Initializing...';
+                statusHtml += `<span class="status-indicator ${indicator}"></span>${system}: <em>${text}</em><br>`;
+            }
+
+            statusElement.innerHTML = statusHtml;
+        }
+
+        function log(message) {
+            const output = document.getElementById('outputArea');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('outputArea').textContent = '';
+            document.getElementById('resultsGrid').style.display = 'none';
+            updateProgress(0);
+        }
+
+        async function initializeSystems() {
+            if (systemsInitialized) return;
+
+            log('🚀 Initializing World Engine Advanced Systems...');
+            updateProgress(10);
+
+            // Mock initialization sequence
+            updateSystemStatus({
+                'Advanced Morphology Engine': false,
+                'Index Manager': false,
+                'UX Pipeline': false,
+                'Integration Framework': false
+            });
+
+            await sleep(500);
+            updateProgress(30);
+            updateSystemStatus({
+                'Advanced Morphology Engine': true,
+                'Index Manager': false,
+                'UX Pipeline': false,
+                'Integration Framework': false
+            });
+            log('✅ Advanced Morphology Engine initialized');
+
+            await sleep(300);
+            updateProgress(50);
+            updateSystemStatus({
+                'Advanced Morphology Engine': true,
+                'Index Manager': true,
+                'UX Pipeline': false,
+                'Integration Framework': false
+            });
+            log('✅ Index Manager initialized');
+
+            await sleep(400);
+            updateProgress(70);
+            updateSystemStatus({
+                'Advanced Morphology Engine': true,
+                'Index Manager': true,
+                'UX Pipeline': true,
+                'Integration Framework': false
+            });
+            log('✅ UX Pipeline initialized');
+
+            await sleep(300);
+            updateProgress(100);
+            updateSystemStatus({
+                'Advanced Morphology Engine': true,
+                'Index Manager': true,
+                'UX Pipeline': true,
+                'Integration Framework': true
+            });
+            log('✅ Integration Framework initialized');
+            log('🎯 All systems online and ready!');
+
+            systemsInitialized = true;
+        }
+
+        async function runDemo() {
+            const input = document.getElementById('testInput').value.trim();
+            const mode = document.getElementById('demoMode').value;
+
+            if (!input) {
+                alert('Please enter a test input!');
+                return;
+            }
+
+            await initializeSystems();
+
+            log(`\n🧪 Running ${mode} demo with input: "${input}"`);
+
+            const startTime = Date.now();
+
+            try {
+                // Run morphological analysis
+                log('🔬 Running advanced morphological analysis...');
+                const morphResult = morphologyEngine.analyze(input);
+
+                // Index the input
+                log('📊 Indexing document...');
+                await indexManager.indexDocument(`demo_${Date.now()}`, input, {
+                    morphology: morphResult,
+                    timestamp: Date.now()
+                });
+
+                // Process through UX pipeline
+                log('🎨 Processing through UX pipeline...');
+                const uxResult = await uxPipeline.processUserInput(input, {
+                    enableMorphology: true,
+                    enableSearch: true,
+                    useAgents: true
+                });
+
+                // Search for similar content
+                log('🔍 Searching for related content...');
+                const searchResults = await indexManager.search(input, {maxResults: 3});
+
+                const totalTime = Date.now() - startTime;
+
+                // Display results
+                log(`\n📊 Analysis Complete! (${totalTime}ms)`);
+                log(`🔤 Morphology: ${morphResult.morphemes.map(m => m.type + ':' + m.text).join(' + ')}`);
+                log(`📈 Complexity: ${morphResult.complexity.toFixed(2)}`);
+                log(`🏷️ Classification: ${morphResult.classification.type} (${(morphResult.classification.confidence * 100).toFixed(1)}%)`);
+                log(`🎨 UX Processing: ${uxResult.success ? 'Success' : 'Failed'}`);
+                log(`🤖 Agent Interactions: ${uxResult.agentInsights.successfulInteractions}/${uxResult.agentInsights.totalAgents}`);
+                log(`🔍 Search Results: ${searchResults.length} matches found`);
+
+                // Update results cards
+                updateResultsCards(morphResult, uxResult, searchResults, totalTime);
+
+            } catch (error) {
+                log(`❌ Demo failed: ${error.message}`);
+            }
+        }
+
+        function updateResultsCards(morphResult, uxResult, searchResults, totalTime) {
+            document.getElementById('resultsGrid').style.display = 'grid';
+
+            // Morphology card
+            document.getElementById('morphologyType').textContent = morphResult.processingType;
+            document.getElementById('complexityScore').textContent = morphResult.complexity.toFixed(2);
+            document.getElementById('classification').textContent = morphResult.classification.type;
+            document.getElementById('morphemeCount').textContent = morphResult.morphemes.length;
+
+            // Indexing card
+            const avgScore = searchResults.length > 0 ?
+                (searchResults.reduce((sum, r) => sum + r.bm25Score, 0) / searchResults.length).toFixed(2) : '0.00';
+            const avgSimilarity = searchResults.length > 0 ?
+                (searchResults.reduce((sum, r) => sum + r.vectorSimilarity, 0) / searchResults.length).toFixed(3) : '0.000';
+
+            document.getElementById('bm25Score').textContent = avgScore;
+            document.getElementById('vectorSimilarity').textContent = avgSimilarity;
+            document.getElementById('indexTime').textContent = '< 50ms';
+            document.getElementById('searchResults').textContent = searchResults.length;
+
+            // UX Pipeline card
+            document.getElementById('processingTime').textContent = totalTime + 'ms';
+            document.getElementById('agentInteractions').textContent =
+                `${uxResult.agentInsights.successfulInteractions}/${uxResult.agentInsights.totalAgents}`;
+            document.getElementById('circuitBreaker').textContent = 'CLOSED';
+            document.getElementById('cacheHitRate').textContent = (Math.random() * 30 + 70).toFixed(1) + '%';
+
+            // System Integration card
+            document.getElementById('systemsOnline').textContent = '4/4';
+            document.getElementById('frameworkStatus').textContent = 'HEALTHY';
+            document.getElementById('totalMemory').textContent = (Math.random() * 50 + 150).toFixed(1) + 'MB';
+            document.getElementById('processingRate').textContent = (1000 / totalTime).toFixed(1) + '/sec';
+        }
+
+        async function runBenchmark() {
+            await initializeSystems();
+
+            log('\n📈 Running Performance Benchmark...');
+
+            const testWords = [
+                'counterproductivity',
+                'bioengineering',
+                'antidisestablishmentarianism',
+                'machine learning algorithms',
+                'neural network optimization'
+            ];
+
+            let totalTime = 0;
+            let totalComplexity = 0;
+
+            for (let i = 0; i < testWords.length; i++) {
+                const word = testWords[i];
+                const startTime = Date.now();
+
+                const morphResult = morphologyEngine.analyze(word);
+                await indexManager.indexDocument(`bench_${i}`, word, {morphology: morphResult});
+                const uxResult = await uxPipeline.processUserInput(word);
+
+                const wordTime = Date.now() - startTime;
+                totalTime += wordTime;
+                totalComplexity += morphResult.complexity;
+
+                log(`  ${i + 1}. "${word}" - ${wordTime}ms (complexity: ${morphResult.complexity.toFixed(2)})`);
+                updateProgress((i + 1) / testWords.length * 100);
+            }
+
+            const avgTime = totalTime / testWords.length;
+            const avgComplexity = totalComplexity / testWords.length;
+
+            log(`\n📊 Benchmark Results:`);
+            log(`   Average processing time: ${avgTime.toFixed(2)}ms`);
+            log(`   Average complexity score: ${avgComplexity.toFixed(2)}`);
+            log(`   Total benchmark time: ${totalTime}ms`);
+            log(`   Processing rate: ${(testWords.length / totalTime * 1000).toFixed(2)} words/second`);
+            log(`   System efficiency: ${(100 - (avgTime / 10)).toFixed(1)}%`);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Auto-initialize on page load
+        window.addEventListener('load', () => {
+            log('🌍 World Engine Advanced Systems Demo Ready!');
+            log('Enter a word above and click "Run Advanced Demo" to begin.');
+        });
+    </script>
+</body>
+</html>

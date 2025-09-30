@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Dashboard - Layer 4 Control Interface</title>
+  <style>
+    :root {
+      --bg: #07140F;
+      --panel: #0B1E17;
+      --panel-2: #0A1A14;
+      --line: #123126;
+      --ink: #C9F7DB;
+      --mut: #8FDAAF;
+      --accent: #28F49B;
+      --accent-2: #7CFCCB;
+      --shadow: 0 6px 20px rgba(0,0,0,.35);
+      --col1: 300px;
+      --col3: 380px;
+      --row1: 58vh;
+      --dockH: 44px;
+      --topH: 48px;
+      --gut: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 70% -20%, #0f2a21 0%, #07140F 55%) fixed;
+      color: var(--ink);
+      font: 14px/1.35 ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Top Bar */
+    .topbar {
+      height: var(--topH);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px 8px 10px;
+      backdrop-filter: saturate(140%) blur(6px);
+      background: rgba(8,18,14,.6);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .burger {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .burger:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--accent);
+    }
+
+    .pill {
+      flex: 1;
+      height: 32px;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+    }
+
+    .pill input {
+      flex: 1;
+      background: transparent;
+      border: 0;
+      outline: none;
+      color: var(--ink);
+    }
+
+    .hint {
+      color: var(--mut);
+      font-size: 12px;
+    }
+
+    /* Grid Frame */
+    .frame {
+      position: absolute;
+      inset: var(--topH) 0 var(--dockH) 0;
+      padding: 10px;
+    }
+
+    .grid {
+      height: 100%;
+      width: 100%;
+      display: grid;
+      gap: var(--gut);
+      grid-template-columns: var(--col1) var(--gut) minmax(320px, 1fr) var(--gut) var(--col3);
+      grid-template-rows: var(--row1) var(--gut) minmax(140px, 1fr);
+      grid-template-areas:
+        "nav v1 canvas v2 insp"
+        "nav v1 h1    v2 insp"
+        "proj v1 logs  v2 controls";
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Grid Areas */
+    .nav { grid-area: nav; }
+    .canvas-area { grid-area: canvas; }
+    .insp { grid-area: insp; }
+    .proj { grid-area: proj; }
+    .logs { grid-area: logs; }
+    .controls { grid-area: controls; }
+
+    /* Gutter Handlers */
+    .v1, .v2, .h1 {
+      background: transparent;
+      position: relative;
+    }
+    .v1 { grid-area: v1; cursor: col-resize; }
+    .v2 { grid-area: v2; cursor: col-resize; }
+    .h1 { grid-area: h1; cursor: row-resize; }
+
+    .handle {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .handle > div {
+      pointer-events: auto;
+      background: color-mix(in srgb, var(--accent) 36%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      opacity: 0.4;
+    }
+
+    .v1 .handle > div, .v2 .handle > div { width: 4px; height: 42%; }
+    .h1 .handle > div { height: 4px; width: 42%; }
+
+    .v1:hover .handle > div,
+    .v2:hover .handle > div,
+    .h1:hover .handle > div {
+      opacity: 0.9;
+      transform: scale(1.04);
+    }
+
+    /* Section Headers */
+    .section-title {
+      font-weight: 700;
+      color: var(--accent-2);
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .pad {
+      padding: 10px 12px;
+      color: var(--mut);
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Canvas Container */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: var(--bg);
+      border-radius: 8px;
+      margin: 10px;
+      overflow: hidden;
+    }
+
+    #main-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: radial-gradient(circle at 50% 50%, rgba(40, 244, 155, 0.05), transparent 70%);
+    }
+
+    /* Bottom Dock */
+    .dock {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--dockH);
+      background: linear-gradient(180deg, rgba(8,18,14,.2), rgba(8,18,14,.5));
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      backdrop-filter: saturate(140%) blur(6px);
+    }
+
+    .tab {
+      height: 32px;
+      padding: 0 12px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .tab.active {
+      background: var(--accent-2);
+      color: var(--bg);
+      font-weight: 600;
+    }
+
+    .spacer { flex: 1; }
+
+    .meter {
+      height: 8px;
+      width: 160px;
+      border-radius: 999px;
+      background: #0d2c22;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .meter > i {
+      display: block;
+      height: 100%;
+      width: var(--meter-value, 40%);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.3s ease;
+    }
+
+    /* Control Elements */
+    .btn {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font: inherit;
+    }
+
+    .btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn.danger:hover {
+      background: #ff4757;
+      border-color: #ff3838;
+    }
+
+    .list {
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .item {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,.02);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.2s ease;
+    }
+
+    .item:hover {
+      background: rgba(255,255,255,.05);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-active { background: var(--accent); }
+    .status-warning { background: #ffa502; }
+    .status-error { background: #ff4757; }
+    .status-inactive { background: var(--mut); }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .ghost { opacity: 0.6; }
+
+    /* Feature Visualizations */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin: 8px 0;
+    }
+
+    .feature-card {
+      padding: 8px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .feature-label {
+      font-size: 11px;
+      color: var(--mut);
+      margin-bottom: 4px;
+    }
+
+    .feature-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-2);
+    }
+
+    /* Shape Controls */
+    .shape-selector {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+
+    .shape-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .shape-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .shape-btn.active {
+      background: var(--accent-2);
+      color: var(--bg);
+      font-weight: bold;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      :root {
+        --col1: 280px;
+        --col3: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="burger" id="menuBtn" title="System Menu">☰</div>
+    <div class="brand">Nexus Dashboard</div>
+    <div class="pill">
+      <span class="ghost">⌘K</span>
+      <input id="commandInput" placeholder="Universal command..." />
+      <span class="hint">type to control</span>
+    </div>
+    <button class="btn" id="saveLayoutBtn" title="Save Layout">💾 Save</button>
+    <button class="btn" id="killSwitchBtn" title="Emergency Kill Switch" style="color: #ff4757;">🛑 KILL</button>
+  </div>
+
+  <!-- Main Grid Frame -->
+  <div class="frame">
+    <div class="grid">
+      <!-- Navigation Panel -->
+      <div class="card nav">
+        <div class="section-title">🧭 System Navigator</div>
+        <div class="list">
+          <div class="item">
+            <span><div class="status-indicator status-active"></div>Layer 0 Overseer</span>
+            <button class="btn" data-action="layer0">Monitor</button>
+          </div>
+          <div class="item">
+            <span><div class="status-indicator status-active"></div>Studio Bridge</span>
+            <button class="btn" data-action="bridge">Control</button>
+          </div>
+          <div class="item">
+            <span><div class="status-indicator status-active"></div>Meta-Base Engine</span>
+            <button class="btn" data-action="metabase">Analyze</button>
+          </div>
+          <div class="item">
+            <span><div class="status-indicator status-warning"></div>Morphology System</span>
+            <button class="btn" data-action="morphology">Process</button>
+          </div>
+          <div class="item">
+            <span><div class="status-indicator status-active"></div>Audio-Visual Engine</span>
+            <button class="btn" data-action="audiovisual">Shape</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vertical Gutter 1 -->
+      <div class="v1">
+        <div class="handle"><div id="gV1"></div></div>
+      </div>
+
+      <!-- Main Canvas Area -->
+      <div class="card canvas-area">
+        <div class="section-title">🎨 Live Canvas</div>
+        <div class="canvas-container">
+          <canvas id="main-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Vertical Gutter 2 -->
+      <div class="v2">
+        <div class="handle"><div id="gV2"></div></div>
+      </div>
+
+      <!-- Inspector Panel -->
+      <div class="card insp">
+        <div class="section-title">🔍 Inspector</div>
+        <div class="pad">
+          <div class="feature-grid" id="audioFeatures">
+            <div class="feature-card">
+              <div class="feature-label">Loudness</div>
+              <div class="feature-value" id="loudnessValue">0.00</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-label">Centroid</div>
+              <div class="feature-value" id="centroidValue">0.00</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-label">Flux</div>
+              <div class="feature-value" id="fluxValue">0.00</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-label">Pitch</div>
+              <div class="feature-value" id="pitchValue">0.0 Hz</div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 16px; padding: 8px 0 4px; border: none;">Shape Control</div>
+          <div class="shape-selector">
+            <div class="shape-btn active" data-shape="heart" title="Heart">❤️</div>
+            <div class="shape-btn" data-shape="rose" title="Rose">🌹</div>
+            <div class="shape-btn" data-shape="spiral" title="Spiral">🌀</div>
+            <div class="shape-btn" data-shape="lissajous" title="Lissajous">∞</div>
+            <div class="shape-btn" data-shape="circle" title="Circle">⭕</div>
+            <div class="shape-btn" data-shape="dragon" title="Dragon">🐉</div>
+            <div class="shape-btn" data-shape="torus3d" title="3D Torus">🍩</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Horizontal Gutter -->
+      <div class="h1">
+        <div class="handle"><div id="gH1"></div></div>
+      </div>
+
+      <!-- Projects Panel -->
+      <div class="card proj">
+        <div class="section-title">📁 Active Projects</div>
+        <div class="list">
+          <div class="item">
+            <span>World Engine Tier 4</span>
+            <button class="btn" data-action="project1">Load</button>
+          </div>
+          <div class="item">
+            <span>Nexus Integration</span>
+            <button class="btn" data-action="project2">Debug</button>
+          </div>
+          <div class="item">
+            <span>Canvas Architecture</span>
+            <button class="btn" data-action="project3">Monitor</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Logs -->
+      <div class="card logs">
+        <div class="section-title">📋 System Logs</div>
+        <div class="pad mono" id="systemLog">
+          • Nexus Dashboard initialized<br>
+          • Layer 0 Overseer sealed and active<br>
+          • Studio Bridge transport established<br>
+          • Audio-Visual Engine ready<br>
+          • Canvas layer enforcement active<br>
+          • Waiting for audio input...
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="card controls">
+        <div class="section-title">🎛️ Controls</div>
+        <div class="pad">
+          <button class="btn" id="startAudioBtn">🎤 Start Audio</button>
+          <button class="btn" id="stopAudioBtn">⏹️ Stop Audio</button>
+          <button class="btn" id="exportDataBtn">💾 Export</button>
+          <button class="btn danger" id="resetSystemBtn">🔄 Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Dock -->
+  <div class="dock">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="console">Console</div>
+    <div class="tab" data-tab="monitor">Monitor</div>
+    <div class="tab" data-tab="settings">Settings</div>
+    <div class="spacer"></div>
+    <div class="meter" title="System Performance">
+      <i id="performanceMeter"></i>
+    </div>
+    <div class="tab" id="expandDock">⬆️</div>
+    <div class="tab" id="minimizeDock">⬇️</div>
+  </div>
+
+  <script src="nexus-dashboard.js"></script>
+</body>
+</html>

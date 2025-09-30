@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Math Academy - Connected Widget</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section h3 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+
+        .math-problem {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .status-panel {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .log {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-entry.info { color: #81C784; }
+        .log-entry.warn { color: #FFB74D; }
+        .log-entry.error { color: #E57373; }
+
+        input[type="text"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-right: 10px;
+            width: 300px;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .nexus-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Nexus Math Academy</h1>
+
+        <div class="status-panel">
+            <h3><span class="nexus-indicator"></span>Nexus Bridge Status</h3>
+            <p id="connection-status">Connecting to Nexus...</p>
+            <p id="bridge-info">Bridge capabilities: Loading...</p>
+        </div>
+
+        <div class="section">
+            <h3>🎯 Interactive Math Problems</h3>
+            <div class="math-problem" id="current-problem">
+                Loading problem from Nexus AI...
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="generateProblem()">New Problem</button>
+                <button class="btn" onclick="solveProblem()">Get Solution</button>
+                <button class="btn" onclick="explainConcept()">Explain Concept</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>💬 Ask Nexus AI</h3>
+            <div class="controls">
+                <input type="text" id="question-input" placeholder="Ask any math question..." maxlength="200">
+                <button class="btn" onclick="askQuestion()">Ask Nexus</button>
+            </div>
+            <div id="ai-response" style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; display: none;">
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🎮 Training Controls</h3>
+            <div class="controls">
+                <button class="btn" onclick="startTraining()">Start Training</button>
+                <button class="btn" onclick="stopTraining()">Stop Training</button>
+                <button class="btn" onclick="getStatus()">Check Status</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📊 Activity Log</h3>
+            <div id="activity-log" class="log">
+                <div class="log-entry info">Widget initialized</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Nexus Connector with auto-connect -->
+    <script src="nexus-widget-connector.js" data-widget-id="math-academy" data-auto-connect="true" data-show-ui="false"></script>
+
+    <script>
+        // Widget-specific functionality
+        let currentProblem = null;
+
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('activity-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateConnectionStatus(status) {
+            document.getElementById('connection-status').textContent = status;
+        }
+
+        function updateBridgeInfo(info) {
+            document.getElementById('bridge-info').textContent = `Bridge capabilities: ${info}`;
+        }
+
+        // Wait for connector to be available
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.nexusConnector) {
+                setupNexusHandlers();
+            } else {
+                // Wait a bit more if connector isn't ready
+                setTimeout(() => {
+                    if (window.nexusConnector) {
+                        setupNexusHandlers();
+                    } else {
+                        addLog('Failed to connect to Nexus', 'error');
+                        updateConnectionStatus('Nexus connection failed');
+                    }
+                }, 1000);
+            }
+        });
+
+        function setupNexusHandlers() {
+            const nexus = window.nexusConnector;
+
+            nexus.on('connected', () => {
+                addLog('Connected to Nexus Bridge!', 'info');
+                updateConnectionStatus('Connected to Nexus Core');
+                generateProblem();
+            });
+
+            nexus.on('bridgeReady', (bridge) => {
+                addLog('Bridge capabilities received', 'info');
+                updateBridgeInfo(JSON.stringify(bridge));
+            });
+
+            nexus.on('queryResponse', (response) => {
+                addLog('Received AI response', 'info');
+                const responseDiv = document.getElementById('ai-response');
+                responseDiv.innerHTML = `<strong>Nexus AI:</strong> ${response.answer || response.message || 'No response'}`;
+                responseDiv.style.display = 'block';
+            });
+
+            nexus.on('trainingResponse', (response) => {
+                addLog(`Training ${response.action}: ${response.status}`, 'info');
+            });
+
+            nexus.on('statusResponse', (status) => {
+                addLog(`Status: ${JSON.stringify(status)}`, 'info');
+            });
+
+            nexus.on('broadcast', (data) => {
+                addLog(`Broadcast: ${data.message}`, 'warn');
+            });
+        }
+
+        // Widget functions
+        function generateProblem() {
+            if (!window.nexusConnector) {
+                addLog('Nexus not connected', 'error');
+                return;
+            }
+
+            const topics = [
+                'Generate a calculus derivative problem',
+                'Create a linear algebra matrix problem',
+                'Give me a trigonometry word problem',
+                'Show me a complex number calculation',
+                'Create a probability statistics problem'
+            ];
+
+            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+
+            window.nexusConnector.query(randomTopic, (response) => {
+                const problem = response.answer || response.message || 'Problem generation failed';
+                document.getElementById('current-problem').textContent = problem;
+                currentProblem = problem;
+                addLog('Generated new problem', 'info');
+            });
+        }
+
+        function solveProblem() {
+            if (!currentProblem || !window.nexusConnector) {
+                addLog('No problem to solve or Nexus not connected', 'error');
+                return;
+            }
+
+            window.nexusConnector.query(`Solve this step by step: ${currentProblem}`, (response) => {
+                const solution = response.answer || response.message || 'Solution failed';
+                document.getElementById('current-problem').innerHTML = `
+                    <strong>Problem:</strong> ${currentProblem}<br><br>
+                    <strong>Solution:</strong> ${solution}
+                `;
+                addLog('Problem solved', 'info');
+            });
+        }
+
+        function explainConcept() {
+            if (!currentProblem || !window.nexusConnector) {
+                addLog('No problem to explain or Nexus not connected', 'error');
+                return;
+            }
+
+            window.nexusConnector.query(`Explain the mathematical concepts in: ${currentProblem}`, (response) => {
+                const explanation = response.answer || response.message || 'Explanation failed';
+                document.getElementById('current-problem').innerHTML = `
+                    <strong>Problem:</strong> ${currentProblem}<br><br>
+                    <strong>Explanation:</strong> ${explanation}
+                `;
+                addLog('Concept explained', 'info');
+            });
+        }
+
+        function askQuestion() {
+            const input = document.getElementById('question-input');
+            const question = input.value.trim();
+
+            if (!question || !window.nexusConnector) {
+                addLog('No question entered or Nexus not connected', 'error');
+                return;
+            }
+
+            addLog(`Asked: ${question}`, 'info');
+            window.nexusConnector.query(question);
+            input.value = '';
+        }
+
+        function startTraining() {
+            if (!window.nexusConnector) {
+                addLog('Nexus not connected', 'error');
+                return;
+            }
+
+            window.nexusConnector.startTraining();
+            addLog('Requested training start', 'info');
+        }
+
+        function stopTraining() {
+            if (!window.nexusConnector) {
+                addLog('Nexus not connected', 'error');
+                return;
+            }
+
+            window.nexusConnector.stopTraining();
+            addLog('Requested training stop', 'info');
+        }
+
+        function getStatus() {
+            if (!window.nexusConnector) {
+                addLog('Nexus not connected', 'error');
+                return;
+            }
+
+            window.nexusConnector.getStatus();
+            addLog('Requested status update', 'info');
+        }
+
+        // Allow Enter key for questions
+        document.getElementById('question-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>

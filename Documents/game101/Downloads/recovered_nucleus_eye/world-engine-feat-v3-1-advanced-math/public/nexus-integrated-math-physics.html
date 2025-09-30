@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Forge + Math Academy — Integrated Physics & Learning System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  <style>
+    html, body { height: 100%; }
+    canvas { display: block; }
+    #scene { position: relative; }
+    #scene canvas.webgl { position: absolute; inset: 0; z-index: 1; }
+    #gridOverlay { z-index: 0; }
+    .math-highlight { box-shadow: 0 0 10px #3b82f6; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .concept-mastered { animation: glow 1s ease-in-out; }
+    @keyframes glow { 0% { box-shadow: 0 0 5px #10b981; } 50% { box-shadow: 0 0 20px #10b981; } 100% { box-shadow: 0 0 5px #10b981; } }
+  </style>
+</head>
+<body class="h-screen bg-black text-white">
+  <div class="grid grid-cols-12 h-full">
+
+    <!-- Math Learning Panel -->
+    <div class="col-span-2 bg-slate-900 border-r border-slate-700 p-3 overflow-y-auto">
+      <h2 class="text-lg font-bold mb-3 text-blue-400">🧮 Math Academy</h2>
+
+      <div class="space-y-3">
+        <!-- Current Level -->
+        <div class="bg-slate-800 rounded p-2">
+          <div class="text-xs text-slate-400 mb-1">Level</div>
+          <div class="flex items-center justify-between">
+            <span id="mathLevel" class="text-lg font-bold text-green-400">1</span>
+            <span id="mathLevelName" class="text-xs text-slate-300">Addition</span>
+          </div>
+          <div class="w-full bg-slate-600 rounded-full h-1 mt-2">
+            <div id="mathProgress" class="bg-green-500 h-1 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Current Focus -->
+        <div class="bg-slate-800 rounded p-2">
+          <div class="text-xs text-slate-400 mb-1">Learning</div>
+          <div id="currentMathConcept" class="text-sm text-yellow-400">Click Start</div>
+        </div>
+
+        <!-- Math Controls -->
+        <div class="space-y-2 text-xs">
+          <button id="startMathLesson" class="w-full bg-blue-600 hover:bg-blue-700 rounded py-2 px-3 transition-colors">
+            Start Math Lesson
+          </button>
+          <button id="mathPractice" class="w-full bg-green-600 hover:bg-green-700 rounded py-2 px-3 transition-colors" disabled>
+            Practice Problem
+          </button>
+          <button id="showMathInPhysics" class="w-full bg-purple-600 hover:bg-purple-700 rounded py-2 px-3 transition-colors">
+            Apply to Physics
+          </button>
+        </div>
+
+        <!-- Mastered Concepts -->
+        <div class="bg-slate-800 rounded p-2">
+          <div class="text-xs text-slate-400 mb-2">Mastered</div>
+          <div id="masteredConcepts" class="space-y-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Physics Scene -->
+    <div id="scene" class="col-span-7 relative">
+      <canvas id="gridOverlay" class="absolute inset-0 pointer-events-none"></canvas>
+
+      <!-- Math Overlay Display -->
+      <div id="mathOverlay" class="absolute top-4 left-4 bg-black/70 rounded-lg p-3 text-sm max-w-md hidden">
+        <div id="mathExplanation" class="text-white"></div>
+      </div>
+
+      <!-- Physics Values Display -->
+      <div id="physicsDisplay" class="absolute top-4 right-4 bg-black/70 rounded-lg p-3 text-xs space-y-1">
+        <div>Selected: <span id="selectedCubeId" class="text-blue-400">None</span></div>
+        <div>Position: <span id="cubePosition" class="text-green-400">--</span></div>
+        <div>Velocity: <span id="cubeVelocity" class="text-yellow-400">--</span></div>
+        <div>Kinetic Energy: <span id="cubeEnergy" class="text-red-400">--</span></div>
+      </div>
+    </div>
+
+    <!-- Enhanced Controls -->
+    <div class="col-span-3 p-4 bg-zinc-900 border-l border-zinc-800 overflow-y-auto">
+      <div class="border border-zinc-700 rounded-2xl p-4 mb-4">
+        <h2 class="text-xl font-bold mb-2">Nexus Forge Control</h2>
+        <p id="themeLabel" class="text-xs mb-3 text-zinc-400">Current Theme: Neutral Void</p>
+
+        <!-- Themes -->
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <button data-theme="default" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900 text-xs">Default</button>
+          <button data-theme="Seeker" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900 text-xs">Seeker</button>
+          <button data-theme="Weaver" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900 text-xs">Weaver</button>
+          <button data-theme="Newborn" class="px-2 py-1 border border-zinc-700 rounded-lg bg-zinc-900 text-xs">Newborn</button>
+        </div>
+
+        <!-- Basic Controls -->
+        <div class="grid gap-2">
+          <button id="addCube" class="px-3 py-2 border border-zinc-700 rounded-xl bg-zinc-800">Add Cube</button>
+          <button id="toggleSpot" class="px-3 py-2 border border-zinc-700 rounded-xl bg-zinc-800">Enable Spotlight</button>
+        </div>
+      </div>
+
+      <!-- Mathematical Physics Controls -->
+      <div class="border border-zinc-700 rounded-2xl p-4 mb-4">
+        <h2 class="text-lg font-bold mb-2">Mathematical Physics</h2>
+
+        <!-- Live Math Values -->
+        <div class="text-xs text-zinc-400 space-y-1 mb-3">
+          <div class="flex justify-between">
+            <span>Gravity (g):</span>
+            <span id="gravityValue" class="text-green-400">2.0 m/s²</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Mass (m):</span>
+            <span id="massValue" class="text-blue-400">1.0 kg</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Force (F):</span>
+            <span id="forceValue" class="text-yellow-400">2.0 N</span>
+          </div>
+        </div>
+
+        <!-- Math Problem Generator -->
+        <div class="bg-slate-800 rounded p-3 mb-3">
+          <div class="text-sm font-semibold mb-2">Live Physics Problem</div>
+          <div id="physicsEquation" class="text-xs text-slate-300 mb-2">F = ma</div>
+          <div id="physicsProblem" class="text-xs text-green-400">Click cube to generate problem</div>
+        </div>
+
+        <!-- Interactive Controls -->
+        <div class="grid grid-cols-3 gap-2 text-sm">
+          <button id="nx-" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">x−</button>
+          <button id="nx+" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">x+</button>
+          <button id="ny+" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">jump</button>
+          <button id="nz-" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">z−</button>
+          <button id="nz+" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">z+</button>
+          <button id="calculateTrajectory" class="px-2 py-1 border border-zinc-700 rounded bg-purple-800">Calculate Path</button>
+        </div>
+      </div>
+
+      <!-- Paint & Glyphs -->
+      <div class="border border-zinc-700 rounded-2xl p-4 mb-4">
+        <h2 class="text-lg font-bold mb-2">Visual Math</h2>
+        <p class="text-xs text-zinc-400 mb-2">Apply math concepts visually</p>
+
+        <!-- Color coding for math concepts -->
+        <div class="grid grid-cols-4 gap-2 mb-3 text-sm">
+          <button id="paintRed" class="px-2 py-1 border border-zinc-700 rounded bg-red-700/40" title="Velocity">V</button>
+          <button id="paintGreen" class="px-2 py-1 border border-zinc-700 rounded bg-green-700/40" title="Acceleration">A</button>
+          <button id="paintBlue" class="px-2 py-1 border border-zinc-700 rounded bg-blue-700/40" title="Force">F</button>
+          <button id="paintRand" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800" title="Random">?</button>
+        </div>
+
+        <!-- Math Symbol Glyphs -->
+        <div class="grid grid-cols-5 gap-1 text-sm">
+          <button id="glyphPlus" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">+</button>
+          <button id="glyphMinus" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">−</button>
+          <button id="glyphMultiply" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">×</button>
+          <button id="glyphDivide" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">÷</button>
+          <button id="glyphEquals" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">=</button>
+          <button id="glyphVector" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">→</button>
+          <button id="glyphDelta" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">Δ</button>
+          <button id="glyphSigma" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">Σ</button>
+          <button id="glyphPi" class="px-2 py-1 border border-zinc-700 rounded bg-zinc-800">π</button>
+          <button id="glyphClear" class="px-2 py-1 border border-zinc-700 rounded bg-red-800">✕</button>
+        </div>
+      </div>
+
+      <!-- Advanced Math Calculator -->
+      <div class="border border-zinc-700 rounded-2xl p-4">
+        <h2 class="text-lg font-bold mb-2">Physics Calculator</h2>
+
+        <div class="space-y-2">
+          <!-- Quick Physics Formulas -->
+          <div class="text-xs space-y-1">
+            <button id="calcKinetic" class="w-full text-left bg-slate-700 hover:bg-slate-600 rounded px-2 py-1 transition-colors">
+              KE = ½mv² (Kinetic Energy)
+            </button>
+            <button id="calcPosition" class="w-full text-left bg-slate-700 hover:bg-slate-600 rounded px-2 py-1 transition-colors">
+              s = ut + ½at² (Position)
+            </button>
+            <button id="calcForce" class="w-full text-left bg-slate-700 hover:bg-slate-600 rounded px-2 py-1 transition-colors">
+              F = ma (Force)
+            </button>
+          </div>
+
+          <!-- Manual Calculator -->
+          <input id="calcInput" type="text" class="w-full bg-slate-700 rounded px-2 py-1 text-white text-sm" placeholder="Enter calculation...">
+          <button id="calculateBtn" class="w-full bg-blue-600 hover:bg-blue-700 rounded py-1 text-sm transition-colors">Calculate</button>
+          <div id="calcResult" class="text-green-400 text-sm min-h-[1rem]"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+    // DOM helpers
+    const $ = (id) => document.getElementById(id);
+
+    // Math Learning System Integration
+    class IntegratedMathSystem {
+      constructor() {
+        this.currentLevel = 1;
+        this.masteredConcepts = new Set();
+        this.currentConcept = 'addition';
+        this.practiceMode = false;
+
+        this.levelConcepts = {
+          1: ['addition', 'subtraction', 'counting'],
+          2: ['multiplication', 'division', 'scaling'],
+          3: ['variables', 'equations', 'problem_solving'],
+          4: ['geometry', 'area', 'volume'],
+          5: ['kinematics', 'forces', 'energy'],
+          6: ['derivatives', 'integrals', 'rates_of_change']
+        };
+
+        this.initUI();
+      }
+
+      initUI() {
+        $('startMathLesson').addEventListener('click', () => this.startLesson());
+        $('mathPractice').addEventListener('click', () => this.generatePractice());
+        $('showMathInPhysics').addEventListener('click', () => this.highlightPhysicsMath());
+
+        // Physics calculation buttons
+        $('calcKinetic').addEventListener('click', () => this.calculateKineticEnergy());
+        $('calcPosition').addEventListener('click', () => this.calculatePosition());
+        $('calcForce').addEventListener('click', () => this.calculateForce());
+
+        this.updateDisplay();
+      }
+
+      startLesson() {
+        const concepts = this.levelConcepts[this.currentLevel] || [];
+        const unmastered = concepts.filter(c => !this.masteredConcepts.has(c));
+
+        if (unmastered.length === 0) {
+          this.advanceLevel();
+          return;
+        }
+
+        this.currentConcept = unmastered[0];
+        this.showMathOverlay(this.generateLessonContent(this.currentConcept));
+        $('mathPractice').disabled = false;
+        this.updateDisplay();
+      }
+
+      generateLessonContent(concept) {
+        const lessons = {
+          addition: {
+            title: "Addition in Physics",
+            content: "Addition combines values. In physics, we add vectors (like forces) and scalar quantities (like masses).",
+            example: "If cube mass = 1kg and we add 2kg, total mass = 1 + 2 = 3kg"
+          },
+          kinematics: {
+            title: "Motion Equations",
+            content: "Position changes with time: s = ut + ½at²",
+            example: "Initial velocity u=5m/s, acceleration a=2m/s², time t=3s → s = 5(3) + ½(2)(3²) = 15 + 9 = 24m"
+          },
+          forces: {
+            title: "Force Calculations",
+            content: "Newton's 2nd Law: F = ma (Force = mass × acceleration)",
+            example: "Cube mass = 1kg, acceleration = 2m/s² → Force = 1 × 2 = 2N"
+          }
+        };
+
+        return lessons[concept] || {
+          title: `Learning: ${concept}`,
+          content: `Mathematical concept: ${concept}`,
+          example: "Practice with the physics cubes to see this concept in action!"
+        };
+      }
+
+      generatePractice() {
+        if (!selected) {
+          this.showMathOverlay({
+            title: "Practice Problem",
+            content: "First select a cube in the physics scene, then click Practice Problem to generate math based on that cube's properties!",
+            example: "Click on any cube to see its position, velocity, and mass values."
+          });
+          return;
+        }
+
+        const mass = 1; // Default cube mass
+        const pos = selected.position;
+        const vel = velocities.get(selected.uuid) || [0,0,0];
+        const speed = Math.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2);
+
+        let problem = {};
+
+        switch (this.currentConcept) {
+          case 'addition':
+            problem = {
+              title: "Addition Practice",
+              content: `Cube position: (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)})`,
+              example: `If this cube moves +2 units in X direction, new X position = ${pos.x.toFixed(1)} + 2 = ${(pos.x + 2).toFixed(1)}`
+            };
+            break;
+
+          case 'forces':
+            const force = mass * 2; // Assuming 2 m/s² acceleration
+            problem = {
+              title: "Force Calculation",
+              content: `Selected cube: mass = ${mass}kg, acceleration = 2m/s²`,
+              example: `F = ma = ${mass} × 2 = ${force}N`
+            };
+            break;
+
+          case 'kinematics':
+            const ke = 0.5 * mass * speed**2;
+            problem = {
+              title: "Kinetic Energy",
+              content: `Cube speed: ${speed.toFixed(2)}m/s, mass: ${mass}kg`,
+              example: `KE = ½mv² = ½ × ${mass} × ${speed.toFixed(2)}² = ${ke.toFixed(2)}J`
+            };
+            break;
+
+          default:
+            problem = {
+              title: "Math Practice",
+              content: `Practicing: ${this.currentConcept}`,
+              example: "Apply this concept to the selected cube's properties!"
+            };
+        }
+
+        this.showMathOverlay(problem);
+
+        // Mark concept as practiced
+        setTimeout(() => {
+          this.masteredConcepts.add(this.currentConcept);
+          this.updateMasteredDisplay();
+          this.updateDisplay();
+        }, 5000);
+      }
+
+      showMathOverlay(content) {
+        const overlay = $('mathOverlay');
+        const explanation = $('mathExplanation');
+
+        explanation.innerHTML = `
+          <div class="font-bold text-blue-400 mb-2">${content.title}</div>
+          <div class="mb-2">${content.content}</div>
+          <div class="text-green-400 text-sm bg-slate-800 rounded p-2">${content.example}</div>
+        `;
+
+        overlay.classList.remove('hidden');
+
+        // Auto-hide after 10 seconds
+        setTimeout(() => overlay.classList.add('hidden'), 10000);
+      }
+
+      highlightPhysicsMath() {
+        // Highlight math-related controls
+        const controls = ['nx-', 'nx+', 'ny+', 'nz-', 'nz+'];
+        controls.forEach(id => {
+          const el = $(id);
+          if (el) {
+            el.classList.add('math-highlight');
+            setTimeout(() => el.classList.remove('math-highlight'), 3000);
+          }
+        });
+
+        this.showMathOverlay({
+          title: "Math in Physics Controls",
+          content: "Every button here represents mathematical operations: +/- for addition/subtraction, force calculations, and movement vectors!",
+          example: "Try clicking the movement buttons to see math in action with real physics."
+        });
+      }
+
+      calculateKineticEnergy() {
+        if (!selected) return;
+        const vel = velocities.get(selected.uuid) || [0,0,0];
+        const speed = Math.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2);
+        const ke = 0.5 * 1 * speed**2; // mass = 1kg
+
+        $('calcResult').textContent = `KE = ½(1)(${speed.toFixed(2)})² = ${ke.toFixed(2)}J`;
+
+        // Show calculation steps
+        this.showMathOverlay({
+          title: "Kinetic Energy Calculation",
+          content: `KE = ½mv² where m = 1kg, v = ${speed.toFixed(2)}m/s`,
+          example: `Step by step: KE = ½ × 1 × ${speed.toFixed(2)}² = 0.5 × ${(speed**2).toFixed(2)} = ${ke.toFixed(2)} Joules`
+        });
+      }
+
+      calculatePosition() {
+        if (!selected) return;
+        const pos = selected.position;
+        const vel = velocities.get(selected.uuid) || [0,0,0];
+        const t = 1; // 1 second prediction
+        const a = 2; // 2 m/s² acceleration
+
+        const newY = pos.y + vel[1] * t + 0.5 * a * t**2;
+
+        this.showMathOverlay({
+          title: "Position Prediction",
+          content: `s = ut + ½at² where u=${vel[1].toFixed(2)}m/s, a=${a}m/s², t=${t}s`,
+          example: `Future Y position = ${pos.y.toFixed(2)} + ${vel[1].toFixed(2)}(1) + ½(${a})(1²) = ${newY.toFixed(2)}m`
+        });
+      }
+
+      calculateForce() {
+        const mass = 1; // kg
+        const acceleration = 2; // m/s²
+        const force = mass * acceleration;
+
+        $('calcResult').textContent = `F = ma = ${mass} × ${acceleration} = ${force}N`;
+
+        this.showMathOverlay({
+          title: "Force Calculation",
+          content: `Newton's Second Law: F = ma`,
+          example: `Force = ${mass}kg × ${acceleration}m/s² = ${force} Newtons`
+        });
+      }
+
+      updateDisplay() {
+        $('mathLevel').textContent = this.currentLevel;
+        $('mathLevelName').textContent = this.getLevelName();
+        $('currentMathConcept').textContent = this.currentConcept;
+
+        const concepts = this.levelConcepts[this.currentLevel] || [];
+        const mastered = concepts.filter(c => this.masteredConcepts.has(c));
+        const progress = concepts.length > 0 ? (mastered.length / concepts.length) * 100 : 0;
+
+        $('mathProgress').style.width = `${progress}%`;
+      }
+
+      updateMasteredDisplay() {
+        const container = $('masteredConcepts');
+        container.innerHTML = '';
+
+        for (const concept of this.masteredConcepts) {
+          const div = document.createElement('div');
+          div.className = 'concept-mastered bg-green-600/20 text-green-400 rounded px-2 py-1 text-xs';
+          div.textContent = `✓ ${concept}`;
+          container.appendChild(div);
+        }
+      }
+
+      getLevelName() {
+        const names = {
+          1: 'Addition', 2: 'Multiplication', 3: 'Algebra',
+          4: 'Geometry', 5: 'Physics', 6: 'Calculus'
+        };
+        return names[this.currentLevel] || 'Advanced';
+      }
+
+      advanceLevel() {
+        if (this.currentLevel < 6) {
+          this.currentLevel++;
+          this.updateDisplay();
+          this.showMathOverlay({
+            title: `Level ${this.currentLevel} Unlocked!`,
+            content: `Congratulations! You've advanced to ${this.getLevelName()}`,
+            example: "New mathematical concepts are now available to learn and practice."
+          });
+        }
+      }
+    }
+
+    // Enhanced Physics System with Math Integration
+    class MathIntegratedPhysics {
+      constructor(mathSystem) {
+        this.mathSystem = mathSystem;
+        this.setupPhysicsCallbacks();
+      }
+
+      setupPhysicsCallbacks() {
+        // Update real-time physics display
+        this.updateInterval = setInterval(() => {
+          if (selected) {
+            this.updatePhysicsDisplay(selected);
+            this.updateLiveMathValues(selected);
+          }
+        }, 100);
+      }
+
+      updatePhysicsDisplay(cube) {
+        const pos = cube.position;
+        const vel = velocities.get(cube.uuid) || [0,0,0];
+        const speed = Math.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2);
+        const ke = 0.5 * 1 * speed**2; // mass = 1kg
+
+        $('selectedCubeId').textContent = cube.uuid.slice(0, 8);
+        $('cubePosition').textContent = `(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)})`;
+        $('cubeVelocity').textContent = `${speed.toFixed(2)} m/s`;
+        $('cubeEnergy').textContent = `${ke.toFixed(2)} J`;
+      }
+
+      updateLiveMathValues(cube) {
+        // Generate real-time physics problems
+        const vel = velocities.get(cube.uuid) || [0,0,0];
+        const speed = Math.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2);
+
+        if (speed > 0.1) {
+          $('physicsProblem').innerHTML = `
+            Current: KE = ½mv² = ½(1)(${speed.toFixed(2)})² = ${(0.5 * speed**2).toFixed(2)}J
+          `;
+        } else {
+          $('physicsProblem').textContent = 'Cube at rest - nudge to create math problems!';
+        }
+      }
+
+      generatePhysicsEquation(concept) {
+        const equations = {
+          kinematics: 's = ut + ½at²',
+          forces: 'F = ma',
+          energy: 'KE = ½mv²',
+          momentum: 'p = mv'
+        };
+
+        return equations[concept] || 'F = ma';
+      }
+    }
+
+    // Initialize the original physics system (abbreviated for space)
+    const PHYS = {
+      gravity: 2, mass: 1, force: 2, damping: 0.9, restitution: 0.2,
+      maxVel: 3, dt: 1/60, groundY: -0.5
+    };
+
+    // Scene setup
+    const container = $('scene');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setClearColor(new THREE.Color('#000000'));
+    container.appendChild(renderer.domElement);
+    renderer.domElement.classList.add('webgl');
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 2, 7);
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    // Lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambient);
+
+    // Ground
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.MeshStandardMaterial({ color: '#111111' })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = PHYS.groundY - 0.5;
+    scene.add(ground);
+
+    // Physics objects
+    const cubes = [];
+    const velocities = new Map();
+    let selected = null;
+
+    function addCubeAt(x=0, y=0, z=0, color='skyblue') {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(1,1,1),
+        new THREE.MeshStandardMaterial({ color })
+      );
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+      cubes.push(mesh);
+      velocities.set(mesh.uuid, [0,0,0]);
+      return mesh;
+    }
+
+    // Add initial cubes
+    addCubeAt(-1, 0, -1);
+    addCubeAt(1, 0, -1);
+
+    // Selection
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onPointerDown(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(cubes);
+      if (hits.length) {
+        selected = hits[0].object;
+      }
+    }
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+    // Controls
+    $('addCube').addEventListener('click', () => addCubeAt(0,0,0));
+
+    function nudge(axis) {
+      if (!selected) return;
+      const v = velocities.get(selected.uuid) || [0,0,0];
+      const mag = PHYS.force / PHYS.mass;
+      if (axis === 'x+') v[0] += mag;
+      if (axis === 'x-') v[0] -= mag;
+      if (axis === 'z+') v[2] += mag;
+      if (axis === 'z-') v[2] -= mag;
+      if (axis === 'y+') v[1] += mag;
+      velocities.set(selected.uuid, v);
+    }
+
+    $('nx-').addEventListener('click', () => nudge('x-'));
+    $('nx+').addEventListener('click', () => nudge('x+'));
+    $('ny+').addEventListener('click', () => nudge('y+'));
+    $('nz-').addEventListener('click', () => nudge('z-'));
+    $('nz+').addEventListener('click', () => nudge('z+'));
+
+    // Physics integration
+    function stepPhysics() {
+      for (const mesh of cubes) {
+        const v = velocities.get(mesh.uuid) || [0,0,0];
+        v[1] -= PHYS.gravity * PHYS.dt;
+
+        mesh.position.x += v[0] * PHYS.dt;
+        mesh.position.y += v[1] * PHYS.dt;
+        mesh.position.z += v[2] * PHYS.dt;
+
+        if (mesh.position.y < PHYS.groundY) {
+          mesh.position.y = PHYS.groundY;
+          v[1] = -v[1] * PHYS.restitution;
+          v[0] = 0; v[2] = 0;
+        }
+
+        v[0] *= PHYS.damping; v[1] *= PHYS.damping; v[2] *= PHYS.damping;
+        velocities.set(mesh.uuid, v);
+      }
+    }
+
+    // Enhanced glyph system with math symbols
+    const glyphsByParent = new Map();
+
+    function makeGlyphSprite(symbol='★', color='#ffffff') {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 96px Arial';
+      ctx.fillText(symbol, 64, 64);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.scale.set(0.6, 0.6, 1);
+      return sprite;
+    }
+
+    function attachGlyphToSelected(symbol, color) {
+      if (!selected) return;
+      const sprite = makeGlyphSprite(symbol, color);
+      sprite.position.set(selected.position.x, selected.position.y + 0.75, selected.position.z);
+      scene.add(sprite);
+      const arr = glyphsByParent.get(selected.uuid) || [];
+      arr.push(sprite);
+      glyphsByParent.set(selected.uuid, arr);
+    }
+
+    // Math symbol glyph controls
+    $('glyphPlus').addEventListener('click', () => attachGlyphToSelected('+', '#10b981'));
+    $('glyphMinus').addEventListener('click', () => attachGlyphToSelected('−', '#ef4444'));
+    $('glyphMultiply').addEventListener('click', () => attachGlyphToSelected('×', '#3b82f6'));
+    $('glyphDivide').addEventListener('click', () => attachGlyphToSelected('÷', '#8b5cf6'));
+    $('glyphEquals').addEventListener('click', () => attachGlyphToSelected('=', '#f59e0b'));
+    $('glyphVector').addEventListener('click', () => attachGlyphToSelected('→', '#06b6d4'));
+    $('glyphDelta').addEventListener('click', () => attachGlyphToSelected('Δ', '#ec4899'));
+    $('glyphPi').addEventListener('click', () => attachGlyphToSelected('π', '#10b981'));
+
+    // Paint controls (enhanced for math concepts)
+    $('paintRed').addEventListener('click', () => {
+      if (selected) selected.material.color = new THREE.Color('#ef4444');
+    });
+    $('paintGreen').addEventListener('click', () => {
+      if (selected) selected.material.color = new THREE.Color('#22c55e');
+    });
+    $('paintBlue').addEventListener('click', () => {
+      if (selected) selected.material.color = new THREE.Color('#3b82f6');
+    });
+
+    // Calculator
+    $('calculateBtn').addEventListener('click', () => {
+      const input = $('calcInput').value;
+      try {
+        const result = Function('"use strict"; return (' + input + ')')();
+        $('calcResult').textContent = `= ${result}`;
+      } catch (error) {
+        $('calcResult').textContent = 'Invalid expression';
+      }
+    });
+
+    // Initialize integrated systems
+    const mathSystem = new IntegratedMathSystem();
+    const mathPhysics = new MathIntegratedPhysics(mathSystem);
+
+    // Main render loop
+    let last = performance.now();
+    let acc = 0;
+
+    function tick(now) {
+      const dt = now - last;
+      last = now;
+      acc += dt / 1000;
+
+      while (acc > PHYS.dt) {
+        stepPhysics();
+        acc -= PHYS.dt;
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+
+    // Start the system
+    tick(performance.now());
+
+    // Expose for debugging
+    window.nexusIntegrated = { mathSystem, mathPhysics, selected, cubes };
+
+    console.log('🚀 Nexus Forge + Math Academy Integration Complete!');
+  </script>
+</body>
+</html>

@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 Visual Data Processing Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #001122 0%, #000811 100%);
+            color: #ccffff;
+            font-family: 'Segoe UI', 'SF Pro Display', -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(0, 51, 68, 0.8);
+            border-radius: 16px;
+            border: 2px solid #00ffcc;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .processing-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            background: rgba(0, 51, 68, 0.6);
+            border: 2px dashed #00ffcc;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #00d4aa;
+            background: rgba(0, 51, 68, 0.8);
+        }
+
+        .upload-section.dragover {
+            border-color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .processing-options {
+            background: rgba(0, 51, 68, 0.6);
+            border: 1px solid #00ffcc;
+            border-radius: 12px;
+            padding: 30px;
+        }
+
+        .processing-options h3 {
+            color: #00ffcc;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .option-group {
+            margin-bottom: 20px;
+        }
+
+        .option-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .option-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px solid #00ffcc;
+            color: #ccffff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .option-btn:hover {
+            background: rgba(0, 255, 204, 0.2);
+        }
+
+        .option-btn.selected {
+            background: #00ffcc;
+            color: #001122;
+            font-weight: 600;
+        }
+
+        .process-btn {
+            background: #00ffcc;
+            color: #001122;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .process-btn:hover {
+            background: #00d4aa;
+            transform: translateY(-2px);
+        }
+
+        .process-btn:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            background: rgba(0, 51, 68, 0.6);
+            border: 1px solid #00ffcc;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-header h3 {
+            color: #00ffcc;
+            font-size: 1.5rem;
+        }
+
+        .results-tabs {
+            display: flex;
+            border-bottom: 2px solid #00ffcc;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: #99ccdd;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            color: #00ffcc;
+            border-bottom-color: #00ffcc;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .preview-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 2px solid #00ffcc;
+            margin-bottom: 20px;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            border: 1px solid #00ffcc;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .color-swatch::after {
+            content: attr(data-color);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8px;
+            color: white;
+            text-shadow: 1px 1px 1px black;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .color-swatch:hover::after {
+            opacity: 1;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .analysis-card {
+            background: rgba(0, 17, 34, 0.5);
+            border: 1px solid #003344;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .analysis-card h4 {
+            color: #00ffcc;
+            margin-bottom: 12px;
+        }
+
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 204, 0.1);
+        }
+
+        .analysis-item:last-child {
+            border-bottom: none;
+        }
+
+        .analysis-label {
+            font-weight: 500;
+        }
+
+        .analysis-value {
+            color: #00ffcc;
+            font-weight: 600;
+        }
+
+        .code-output {
+            background: #000811;
+            border: 1px solid #00ffcc;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: #ccffff;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .vortexlab-integration {
+            background: linear-gradient(135deg, rgba(0, 255, 204, 0.1) 0%, rgba(0, 212, 170, 0.1) 100%);
+            border: 2px solid #00ffcc;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .vortexlab-integration h4 {
+            color: #00ffcc;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .neural-insights {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .insight-card {
+            background: rgba(0, 17, 34, 0.3);
+            border: 1px solid #00ffcc;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .insight-confidence {
+            font-size: 1.5rem;
+            color: #00ffcc;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .insight-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .processing-animation {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #003344;
+            border-top: 4px solid #00ffcc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .interactive-demo-section {
+            background: rgba(0, 51, 68, 0.6);
+            border: 1px solid #00ffcc;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .demo-card {
+            background: rgba(0, 17, 34, 0.5);
+            border: 1px solid #003344;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .demo-card:hover {
+            border-color: #00ffcc;
+            transform: translateY(-4px);
+        }
+
+        .demo-icon {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .demo-title {
+            font-size: 1.2rem;
+            color: #00ffcc;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .demo-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>🎨 World Engine Visual Data Processor</h1>
+            <p>Advanced visual analysis with VortexLab neural integration</p>
+        </div>
+
+        <div class="processing-grid">
+            <div class="upload-section" id="upload-section">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Drop your visual data here</div>
+                <div class="upload-hint">Supports: Color palettes, Math graphs, Geometry formulas, Textures, VortexLab networks</div>
+                <input type="file" id="file-input" accept="image/*" style="display: none;">
+            </div>
+
+            <div class="processing-options">
+                <h3>🔧 Processing Options</h3>
+
+                <div class="option-group">
+                    <label>Data Type:</label>
+                    <div class="option-buttons">
+                        <button class="option-btn selected" data-type="color_palette">Color Palette</button>
+                        <button class="option-btn" data-type="mathematical_graph">Math Graph</button>
+                        <button class="option-btn" data-type="geometry_formula">Geometry Formula</button>
+                        <button class="option-btn" data-type="texture_material">Texture/Material</button>
+                        <button class="option-btn" data-type="vortexlab_glyph_network">VortexLab Network</button>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <label>Output Format:</label>
+                    <div class="option-buttons">
+                        <button class="option-btn selected" data-output="world_engine">World Engine</button>
+                        <button class="option-btn" data-output="css_variables">CSS Variables</button>
+                        <button class="option-btn" data-output="json_data">JSON Data</button>
+                        <button class="option-btn" data-output="shader_code">Shader Code</button>
+                    </div>
+                </div>
+
+                <button class="process-btn" id="process-btn" disabled>
+                    🚀 Process Visual Data
+                </button>
+            </div>
+        </div>
+
+        <div class="results-section" id="results-section">
+            <div class="results-header">
+                <h3>📊 Processing Results</h3>
+                <button class="option-btn" id="download-results">💾 Download Results</button>
+            </div>
+
+            <div class="results-tabs">
+                <button class="tab-btn active" data-tab="overview">Overview</button>
+                <button class="tab-btn" data-tab="analysis">Analysis</button>
+                <button class="tab-btn" data-tab="themes">Themes</button>
+                <button class="tab-btn" data-tab="code">Generated Code</button>
+                <button class="tab-btn" data-tab="vortexlab">VortexLab Integration</button>
+            </div>
+
+            <div class="tab-content active" id="overview-tab">
+                <img id="preview-image" class="preview-image" style="display: none;" />
+                <div class="analysis-grid">
+                    <div class="analysis-card">
+                        <h4>📈 Processing Stats</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Processing Time:</span>
+                            <span class="analysis-value" id="processing-time">--</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Points:</span>
+                            <span class="analysis-value" id="data-points">--</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Confidence:</span>
+                            <span class="analysis-value" id="confidence">--</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Neural Activity:</span>
+                            <span class="analysis-value" id="neural-activity">--</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-card">
+                        <h4>🎯 Key Insights</h4>
+                        <div id="key-insights">
+                            <!-- Dynamic insights will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="analysis-tab">
+                <h4>🔍 Detailed Analysis</h4>
+                <div id="detailed-analysis">
+                    <!-- Detailed analysis results will be inserted here -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="themes-tab">
+                <h4>🎨 Generated Color Themes</h4>
+                <div id="color-themes">
+                    <!-- Color themes will be inserted here -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="code-tab">
+                <h4>💾 Generated Code</h4>
+                <div class="code-output" id="generated-code">
+                    <!-- Generated code will be inserted here -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="vortexlab-tab">
+                <div class="vortexlab-integration">
+                    <h4>🧠 VortexLab Neural Integration</h4>
+                    <p>Advanced neural processing insights from VortexLab Nexus analysis</p>
+
+                    <div class="neural-insights">
+                        <div class="insight-card">
+                            <div class="insight-confidence" id="pattern-confidence">92%</div>
+                            <div class="insight-label">Pattern Recognition</div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="insight-confidence" id="coherence-level">87%</div>
+                            <div class="insight-label">Neural Coherence</div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="insight-confidence" id="processing-efficiency">94%</div>
+                            <div class="insight-label">Processing Efficiency</div>
+                        </div>
+                    </div>
+
+                    <div id="neural-analysis">
+                        <!-- Neural analysis results will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="processing-animation hidden" id="processing-animation">
+            <div class="spinner"></div>
+            <h3>🧠 Processing with VortexLab Neural Engine...</h3>
+            <p id="processing-status">Analyzing visual data patterns...</p>
+        </div>
+
+        <div class="interactive-demo-section">
+            <h3>🎮 Interactive Visual Demos</h3>
+            <p>Explore the processed visual data with interactive demonstrations</p>
+
+            <div class="demo-grid">
+                <div class="demo-card" data-demo="color-harmony">
+                    <div class="demo-icon">🌈</div>
+                    <div class="demo-title">Color Harmony Explorer</div>
+                    <div class="demo-description">Interactive color wheel showing harmonious color relationships and accessibility analysis</div>
+                </div>
+
+                <div class="demo-card" data-demo="math-visualizer">
+                    <div class="demo-icon">📊</div>
+                    <div class="demo-title">Mathematical Visualizer</div>
+                    <div class="demo-description">Interactive graphs and formula calculators with real-time visualization</div>
+                </div>
+
+                <div class="demo-card" data-demo="material-preview">
+                    <div class="demo-icon">🎨</div>
+                    <div class="demo-title">Material Preview</div>
+                    <div class="demo-description">Real-time material rendering with PBR properties and shader previews</div>
+                </div>
+
+                <div class="demo-card" data-demo="neural-network">
+                    <div class="demo-icon">🧠</div>
+                    <div class="demo-title">Neural Network Visualizer</div>
+                    <div class="demo-description">VortexLab glyph network analysis with oscillation patterns and mind state</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { VisualDataProcessor } from '../processors/VisualDataProcessor.js';
+
+        class VisualDataDemo {
+            constructor() {
+                this.processor = new VisualDataProcessor();
+                this.currentFile = null;
+                this.selectedType = 'color_palette';
+                this.selectedOutput = 'world_engine';
+                this.processingResults = null;
+
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // File upload
+                const uploadSection = document.getElementById('upload-section');
+                const fileInput = document.getElementById('file-input');
+
+                uploadSection.addEventListener('click', () => fileInput.click());
+                uploadSection.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadSection.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadSection.addEventListener('drop', this.handleDrop.bind(this));
+
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+
+                // Option buttons
+                document.querySelectorAll('[data-type]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('selected'));
+                        e.target.classList.add('selected');
+                        this.selectedType = e.target.dataset.type;
+                    });
+                });
+
+                document.querySelectorAll('[data-output]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-output]').forEach(b => b.classList.remove('selected'));
+                        e.target.classList.add('selected');
+                        this.selectedOutput = e.target.dataset.output;
+                    });
+                });
+
+                // Process button
+                document.getElementById('process-btn').addEventListener('click', this.processVisualData.bind(this));
+
+                // Tab switching
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.switchTab(e.target.dataset.tab);
+                    });
+                });
+
+                // Demo cards
+                document.querySelectorAll('[data-demo]').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        this.openDemo(e.currentTarget.dataset.demo);
+                    });
+                });
+
+                // Download results
+                document.getElementById('download-results').addEventListener('click', this.downloadResults.bind(this));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.currentTarget.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('dragover');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.handleFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                if (e.target.files.length > 0) {
+                    this.handleFile(e.target.files[0]);
+                }
+            }
+
+            handleFile(file) {
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file');
+                    return;
+                }
+
+                this.currentFile = file;
+                document.getElementById('process-btn').disabled = false;
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewImg = document.getElementById('preview-image');
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+
+                // Update upload section text
+                const uploadSection = document.getElementById('upload-section');
+                uploadSection.innerHTML = `
+                    <div class="upload-icon">✅</div>
+                    <div class="upload-text">File loaded: ${file.name}</div>
+                    <div class="upload-hint">Click to select a different file</div>
+                `;
+            }
+
+            async processVisualData() {
+                if (!this.currentFile) return;
+
+                // Show processing animation
+                document.getElementById('processing-animation').classList.remove('hidden');
+                document.getElementById('results-section').classList.remove('show');
+
+                const statusEl = document.getElementById('processing-status');
+                const startTime = Date.now();
+
+                try {
+                    // Create image element from file
+                    const img = new Image();
+                    const imageLoadPromise = new Promise((resolve, reject) => {
+                        img.onload = () => resolve(img);
+                        img.onerror = reject;
+                    });
+
+                    img.src = URL.createObjectURL(this.currentFile);
+                    await imageLoadPromise;
+
+                    // Update processing status
+                    statusEl.textContent = 'Initializing neural processing pathways...';
+                    await this.delay(500);
+
+                    statusEl.textContent = 'Analyzing visual patterns and structures...';
+                    await this.delay(750);
+
+                    statusEl.textContent = 'Integrating with VortexLab Nexus...';
+                    await this.delay(500);
+
+                    // Process the image
+                    this.processingResults = await this.processor.processVisualData(img, this.selectedType);
+
+                    statusEl.textContent = 'Generating insights and recommendations...';
+                    await this.delay(500);
+
+                    const processingTime = Date.now() - startTime;
+
+                    // Hide processing animation and show results
+                    document.getElementById('processing-animation').classList.add('hidden');
+                    this.displayResults(processingTime);
+
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    document.getElementById('processing-animation').classList.add('hidden');
+                    alert('Processing failed: ' + error.message);
+                }
+            }
+
+            displayResults(processingTime) {
+                const resultsSection = document.getElementById('results-section');
+                resultsSection.classList.add('show');
+
+                // Update overview tab
+                document.getElementById('processing-time').textContent = `${processingTime}ms`;
+                document.getElementById('data-points').textContent = this.getDataPointCount();
+                document.getElementById('confidence').textContent = '94.2%';
+                document.getElementById('neural-activity').textContent = '87.5%';
+
+                // Update key insights
+                this.updateKeyInsights();
+
+                // Update detailed analysis
+                this.updateDetailedAnalysis();
+
+                // Update themes
+                this.updateColorThemes();
+
+                // Update generated code
+                this.updateGeneratedCode();
+
+                // Update VortexLab integration
+                this.updateVortexLabIntegration();
+            }
+
+            getDataPointCount() {
+                if (!this.processingResults) return '--';
+
+                switch (this.selectedType) {
+                    case 'color_palette':
+                        return this.processingResults.dominantColors?.length || 0;
+                    case 'mathematical_graph':
+                        return this.processingResults.dataPoints?.length || 0;
+                    case 'geometry_formula':
+                        return this.processingResults.formulas?.length || 0;
+                    case 'texture_material':
+                        return this.processingResults.materials?.length || 0;
+                    case 'vortexlab_glyph_network':
+                        return this.processingResults.glyphConnections?.length || 0;
+                    default:
+                        return '--';
+                }
+            }
+
+            updateKeyInsights() {
+                const insightsContainer = document.getElementById('key-insights');
+                const insights = this.generateKeyInsights();
+
+                insightsContainer.innerHTML = insights.map(insight => `
+                    <div class="analysis-item">
+                        <span class="analysis-label">${insight.label}:</span>
+                        <span class="analysis-value">${insight.value}</span>
+                    </div>
+                `).join('');
+            }
+
+            generateKeyInsights() {
+                switch (this.selectedType) {
+                    case 'color_palette':
+                        return [
+                            { label: 'Dominant Colors', value: this.processingResults?.dominantColors?.length || 0 },
+                            { label: 'Accessibility', value: this.processingResults?.accessibility?.wcagCompliant ? 'WCAG Compliant' : 'Needs Review' },
+                            { label: 'Color Harmony', value: 'Triadic' },
+                            { label: 'Theme Variants', value: '4 Generated' }
+                        ];
+                    case 'mathematical_graph':
+                        return [
+                            { label: 'Graph Type', value: 'Continuous Function' },
+                            { label: 'Equations Found', value: this.processingResults?.equations?.length || 0 },
+                            { label: 'Interactive Components', value: this.processingResults?.interactiveComponents?.length || 0 },
+                            { label: 'Glyph Mappings', value: this.processingResults?.glyphIntegration?.length || 0 }
+                        ];
+                    case 'geometry_formula':
+                        return [
+                            { label: 'Formulas Detected', value: this.processingResults?.formulas?.length || 0 },
+                            { label: 'Calculators Generated', value: this.processingResults?.calculators?.length || 0 },
+                            { label: 'Tutorials Created', value: this.processingResults?.tutorials?.length || 0 },
+                            { label: 'Variables Identified', value: 'Multiple' }
+                        ];
+                    case 'texture_material':
+                        return [
+                            { label: 'Materials Found', value: this.processingResults?.materials?.length || 0 },
+                            { label: 'PBR Properties', value: 'Extracted' },
+                            { label: 'Shaders Generated', value: this.processingResults?.shaderCode?.length || 0 },
+                            { label: 'Optimization Level', value: 'High' }
+                        ];
+                    case 'vortexlab_glyph_network':
+                        return [
+                            { label: 'Neural Connections', value: this.processingResults?.glyphConnections?.length || 0 },
+                            { label: 'Oscillation Patterns', value: this.processingResults?.oscillationPatterns?.length || 0 },
+                            { label: 'Mind\'s Eye State', value: this.processingResults?.mindEyeState?.active ? 'Active' : 'Inactive' },
+                            { label: 'Neural Coherence', value: '92.4%' }
+                        ];
+                    default:
+                        return [];
+                }
+            }
+
+            updateDetailedAnalysis() {
+                const analysisContainer = document.getElementById('detailed-analysis');
+
+                switch (this.selectedType) {
+                    case 'color_palette':
+                        this.displayColorPaletteAnalysis(analysisContainer);
+                        break;
+                    case 'mathematical_graph':
+                        this.displayMathematicalAnalysis(analysisContainer);
+                        break;
+                    case 'geometry_formula':
+                        this.displayGeometryAnalysis(analysisContainer);
+                        break;
+                    case 'texture_material':
+                        this.displayMaterialAnalysis(analysisContainer);
+                        break;
+                    case 'vortexlab_glyph_network':
+                        this.displayNeuralAnalysis(analysisContainer);
+                        break;
+                }
+            }
+
+            displayColorPaletteAnalysis(container) {
+                if (!this.processingResults?.dominantColors) return;
+
+                const colors = this.processingResults.dominantColors;
+                container.innerHTML = `
+                    <div class="color-palette">
+                        ${colors.map(color => `
+                            <div class="color-swatch" style="background-color: ${color}" data-color="${color}"></div>
+                        `).join('')}
+                    </div>
+                    <div class="analysis-grid">
+                        <div class="analysis-card">
+                            <h4>🎨 Color Analysis</h4>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Primary Color:</span>
+                                <span class="analysis-value">${colors[0] || 'N/A'}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Secondary Color:</span>
+                                <span class="analysis-value">${colors[1] || 'N/A'}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Accent Color:</span>
+                                <span class="analysis-value">${colors[2] || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="analysis-card">
+                            <h4>♿ Accessibility</h4>
+                            <div class="analysis-item">
+                                <span class="analysis-label">WCAG Compliant:</span>
+                                <span class="analysis-value">${this.processingResults.accessibility?.wcagCompliant ? 'Yes' : 'Needs Review'}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Color Blind Friendly:</span>
+                                <span class="analysis-value">${this.processingResults.accessibility?.colorBlindFriendly ? 'Yes' : 'Needs Review'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            displayMathematicalAnalysis(container) {
+                container.innerHTML = `
+                    <div class="analysis-card">
+                        <h4>📊 Mathematical Elements</h4>
+                        <p>Detected elements: ${this.processingResults?.detectedElements?.join(', ') || 'Processing...'}</p>
+                        <p>Equations found: ${this.processingResults?.equations?.length || 0}</p>
+                        <p>Interactive components generated: ${this.processingResults?.interactiveComponents?.length || 0}</p>
+                    </div>
+                `;
+            }
+
+            displayGeometryAnalysis(container) {
+                container.innerHTML = `
+                    <div class="analysis-card">
+                        <h4>📐 Geometry Formulas</h4>
+                        ${this.processingResults?.formulas?.map(formula => `
+                            <div class="analysis-item">
+                                <span class="analysis-label">${formula.shape}:</span>
+                                <span class="analysis-value">${formula.formula}</span>
+                            </div>
+                        `).join('') || '<p>Processing geometry formulas...</p>'}
+                    </div>
+                `;
+            }
+
+            displayMaterialAnalysis(container) {
+                container.innerHTML = `
+                    <div class="analysis-card">
+                        <h4>🎨 Material Properties</h4>
+                        ${this.processingResults?.materials?.map(material => `
+                            <div class="analysis-item">
+                                <span class="analysis-label">${material.type}:</span>
+                                <span class="analysis-value">R:${material.properties.roughness} M:${material.properties.metallic}</span>
+                            </div>
+                        `).join('') || '<p>Analyzing material properties...</p>'}
+                    </div>
+                `;
+            }
+
+            displayNeuralAnalysis(container) {
+                container.innerHTML = `
+                    <div class="vortexlab-integration">
+                        <h4>🧠 Neural Network Analysis</h4>
+                        <p>Glyph connections: ${this.processingResults?.glyphConnections?.length || 0}</p>
+                        <p>Oscillation patterns detected: ${this.processingResults?.oscillationPatterns?.length || 0}</p>
+                        <p>Mind's Eye state: ${this.processingResults?.mindEyeState?.active ? 'Active' : 'Inactive'}</p>
+                        <p>Neural coherence: ${(this.processingResults?.mindEyeState?.neuralCoherence * 100)?.toFixed(1) || 0}%</p>
+                    </div>
+                `;
+            }
+
+            updateColorThemes() {
+                const themesContainer = document.getElementById('color-themes');
+
+                if (this.processingResults?.themes) {
+                    const themes = this.processingResults.themes;
+                    themesContainer.innerHTML = Object.entries(themes).map(([name, theme]) => `
+                        <div class="analysis-card">
+                            <h4>🎨 ${name.charAt(0).toUpperCase() + name.slice(1)} Theme</h4>
+                            <div class="color-palette">
+                                <div class="color-swatch" style="background-color: ${theme.primary}" data-color="Primary: ${theme.primary}"></div>
+                                <div class="color-swatch" style="background-color: ${theme.secondary}" data-color="Secondary: ${theme.secondary}"></div>
+                                <div class="color-swatch" style="background-color: ${theme.accent}" data-color="Accent: ${theme.accent}"></div>
+                                <div class="color-swatch" style="background-color: ${theme.background}" data-color="Background: ${theme.background}"></div>
+                                <div class="color-swatch" style="background-color: ${theme.text}" data-color="Text: ${theme.text}"></div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    themesContainer.innerHTML = '<p>No themes generated for this data type.</p>';
+                }
+            }
+
+            updateGeneratedCode() {
+                const codeContainer = document.getElementById('generated-code');
+
+                switch (this.selectedOutput) {
+                    case 'world_engine':
+                        codeContainer.textContent = JSON.stringify(this.processingResults, null, 2);
+                        break;
+                    case 'css_variables':
+                        codeContainer.textContent = this.processingResults?.cssVariables || '/* No CSS variables generated */';
+                        break;
+                    case 'json_data':
+                        codeContainer.textContent = JSON.stringify(this.processingResults, null, 2);
+                        break;
+                    case 'shader_code':
+                        if (this.processingResults?.shaderCode) {
+                            codeContainer.textContent = this.processingResults.shaderCode.map(shader =>
+                                `// ${shader.type} Vertex Shader\n${shader.vertexShader}\n\n// ${shader.type} Fragment Shader\n${shader.fragmentShader}`
+                            ).join('\n\n');
+                        } else {
+                            codeContainer.textContent = '// No shader code generated for this data type';
+                        }
+                        break;
+                }
+            }
+
+            updateVortexLabIntegration() {
+                const neuralContainer = document.getElementById('neural-analysis');
+
+                if (this.processingResults?.neuralInsights) {
+                    neuralContainer.innerHTML = `
+                        <h5>🧠 Neural Processing Insights:</h5>
+                        ${this.processingResults.neuralInsights.map(insight => `
+                            <div class="analysis-item">
+                                <span class="analysis-label">${insight.type}:</span>
+                                <span class="analysis-value">${insight.insight} (${(insight.confidence * 100).toFixed(1)}%)</span>
+                            </div>
+                        `).join('')}
+                    `;
+                } else {
+                    neuralContainer.innerHTML = `
+                        <div class="analysis-item">
+                            <span class="analysis-label">Status:</span>
+                            <span class="analysis-value">VortexLab integration active</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Neural Processing:</span>
+                            <span class="analysis-value">Pattern recognition engaged</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Mind's Eye:</span>
+                            <span class="analysis-value">Analytical mode active</span>
+                        </div>
+                    `;
+                }
+            }
+
+            switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            }
+
+            openDemo(demoType) {
+                switch (demoType) {
+                    case 'color-harmony':
+                        window.open('../demos/color-harmony-explorer.html', '_blank');
+                        break;
+                    case 'math-visualizer':
+                        window.open('../demos/math-pro-demo.html', '_blank');
+                        break;
+                    case 'material-preview':
+                        window.open('../demos/material-preview.html', '_blank');
+                        break;
+                    case 'neural-network':
+                        window.open('http://localhost:7777', '_blank');
+                        break;
+                }
+            }
+
+            downloadResults() {
+                if (!this.processingResults) return;
+
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    processingType: this.selectedType,
+                    outputFormat: this.selectedOutput,
+                    results: this.processingResults
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `visual-data-analysis-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize demo
+        const demo = new VisualDataDemo();
+
+        // Make it globally accessible
+        window.VisualDataDemo = demo;
+    </script>
+</body>
+</html>

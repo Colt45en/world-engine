@@ -1,0 +1,74 @@
+{
+    "version": "1.0.0",
+    "name": "World Engine",
+    "description": "Comprehensive knowledge system with gaming, language, math, and graphics domains",
+    "lastUpdated": "2025-09-29T00:00:00.000Z",
+    "domains": {
+        "gaming": {
+            "path": "/data/gaming",
+            "packs": [
+                {
+                    "id": "entities",
+                    "file": "entities.json",
+                    "version": "1.0.0",
+                    "description": "Player, NPC, item, and environment definitions"
+                },
+                {
+                    "id": "abilities",
+                    "file": "abilities.json",
+                    "version": "1.0.0",
+                    "description": "Skills, powers, cooldowns, resource costs"
+                }
+            ]
+        },
+        "english": {
+            "path": "/data/english",
+            "packs": [
+                {
+                    "id": "phonics_core",
+                    "file": "phonics_core.json",
+                    "version": "1.0.0",
+                    "description": "Phonemes and blending rules"
+                },
+                {
+                    "id": "lexicon",
+                    "file": "lexicon.jsonl",
+                    "version": "1.0.0",
+                    "description": "Word entries with phonetics and semantics"
+                }
+            ]
+        },
+        "math": {
+            "path": "/data/math",
+            "packs": [
+                {
+                    "id": "operators",
+                    "file": "operators.json",
+                    "version": "1.0.0",
+                    "description": "Mathematical operator definitions"
+                },
+                {
+                    "id": "mappings",
+                    "file": "mappings.json",
+                    "version": "1.0.0",
+                    "description": "Math-to-English translation rules"
+                }
+            ]
+        }
+    },
+    "services": {
+        "vault": {
+            "enabled": true,
+            "integration": "rnes-vectorlab"
+        },
+        "mathpro": {
+            "enabled": true,
+            "integration": "glyph-collation-map"
+        },
+        "vectorlab_nexus": {
+            "enabled": true,
+            "integration": "ai-chatbot-brain-bridge",
+            "description": "VectorLab nexus sandbox with persistent AI chatbot connection"
+        }
+    }
+}

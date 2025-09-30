@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine V3.1 Studio - Advanced Features</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --fg: #e6f0ff;
+            --panel: #121824;
+            --border: #2a3548;
+            --accent: #7cdcff;
+            --success: #18c08f;
+            --warning: #e5c558;
+            --error: #ff4d4f;
+            --v31-primary: #7c3aed;
+            --v31-secondary: #06b6d4;
+            --v31-morpheme: #10b981;
+            --v31-trace: #f59e0b;
+            --lattice-state: #ef4444;
+            --lattice-property: #f97316;
+            --lattice-structure: #eab308;
+            --lattice-concept: #22c55e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            overflow: hidden;
+        }
+
+        .studio-v31-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "main v31-panel sync-status"
+                "controls traces morphemes";
+            grid-template-rows: auto 1fr auto;
+            grid-template-columns: 1fr 350px 250px;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .studio-header {
+            grid-area: header;
+            background: linear-gradient(135deg, var(--panel), var(--v31-primary));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .studio-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--fg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .v31-badge {
+            background: linear-gradient(135deg, var(--v31-primary), var(--v31-secondary));
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .feature-indicators {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .feature-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .feature-indicator.active {
+            border-color: var(--success);
+            background: rgba(24, 192, 143, 0.1);
+        }
+
+        .feature-indicator.inactive {
+            opacity: 0.5;
+        }
+
+        .indicator-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .feature-indicator.active .indicator-dot {
+            background: var(--success);
+        }
+
+        .main-engine-area {
+            grid-area: main;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .engine-controls {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .engine-viewport {
+            flex: 1;
+            padding: 16px;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        .v31-panel {
+            grid-area: v31-panel;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-tabs {
+            display: flex;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-tab {
+            flex: 1;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--fg);
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .panel-tab.active {
+            background: var(--v31-primary);
+            color: white;
+        }
+
+        .panel-tab:hover:not(.active) {
+            background: var(--border);
+        }
+
+        .panel-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .sync-status {
+            grid-area: sync-status;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sync-header {
+            font-weight: 600;
+            color: var(--v31-secondary);
+            font-size: 14px;
+        }
+
+        .peer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .peer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .peer-status {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .peer-status.disconnected {
+            background: var(--error);
+        }
+
+        .controls-area {
+            grid-area: controls;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .traces-panel {
+            grid-area: traces;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .morphemes-panel {
+            grid-area: morphemes;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-body {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        /* Type Lattice Visualizer */
+        .type-lattice-viz {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .lattice-level {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .lattice-node {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 70px;
+            border: 2px solid;
+        }
+
+        .lattice-node.state {
+            background: var(--lattice-state);
+            border-color: var(--lattice-state);
+            color: white;
+        }
+
+        .lattice-node.property {
+            background: var(--lattice-property);
+            border-color: var(--lattice-property);
+            color: white;
+        }
+
+        .lattice-node.structure {
+            background: var(--lattice-structure);
+            border-color: var(--lattice-structure);
+            color: black;
+        }
+
+        .lattice-node.concept {
+            background: var(--lattice-concept);
+            border-color: var(--lattice-concept);
+            color: white;
+        }
+
+        .lattice-connection {
+            width: 2px;
+            height: 20px;
+            background: var(--border);
+            margin: -2px 0;
+        }
+
+        /* Jacobian Trace Viewer */
+        .trace-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .trace-button {
+            font-weight: 600;
+            color: var(--v31-trace);
+        }
+
+        .trace-magnitude {
+            font-size: 10px;
+            color: var(--fg);
+            opacity: 0.7;
+        }
+
+        .trace-explanation {
+            color: var(--fg);
+            line-height: 1.3;
+        }
+
+        .trace-stability {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+
+        .trace-stability.stable {
+            background: var(--success);
+            color: white;
+        }
+
+        .trace-stability.unstable {
+            background: var(--error);
+            color: white;
+        }
+
+        /* Morpheme Discovery Panel */
+        .morpheme-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .morpheme-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .morpheme-label {
+            font-weight: 600;
+            color: var(--v31-morpheme);
+        }
+
+        .morpheme-pattern {
+            font-family: monospace;
+            color: var(--fg);
+            opacity: 0.8;
+        }
+
+        .morpheme-stats {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        .morpheme-effectiveness {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .effectiveness-bar {
+            width: 30px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .effectiveness-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--error), var(--warning), var(--success));
+            transition: width 0.3s;
+        }
+
+        .engine-btn {
+            background: var(--v31-primary);
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .engine-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+
+        .engine-btn.secondary {
+            background: var(--v31-secondary);
+        }
+
+        .engine-btn.success {
+            background: var(--success);
+        }
+
+        .engine-btn.warning {
+            background: var(--warning);
+            color: black;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .math-button {
+            padding: 12px 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--fg);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .math-button:hover {
+            background: var(--v31-primary);
+            border-color: var(--v31-primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .state-display {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 16px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .state-vector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .vector-component {
+            background: var(--panel);
+            padding: 4px 8px;
+            border-radius: 4px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .analytics-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .analytics-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .analytics-label {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 1200px) {
+            .studio-v31-layout {
+                grid-template-areas:
+                    "header header"
+                    "main v31-panel"
+                    "controls controls";
+                grid-template-columns: 1fr 350px;
+                grid-template-rows: auto 1fr auto;
+            }
+
+            .sync-status, .traces-panel, .morphemes-panel {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .studio-v31-layout {
+                grid-template-areas:
+                    "header"
+                    "main"
+                    "v31-panel"
+                    "controls";
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="studio-v31-layout">
+        <!-- Header with V3.1 Features -->
+        <header class="studio-header">
+            <div class="studio-title">
+                🌟 World Engine Studio
+                <span class="v31-badge">V3.1</span>
+            </div>
+
+            <div class="feature-indicators">
+                <div class="feature-indicator active" id="typeLatticeIndicator">
+                    <div class="indicator-dot"></div>
+                    Type Lattice
+                </div>
+                <div class="feature-indicator active" id="jacobianIndicator">
+                    <div class="indicator-dot"></div>
+                    Jacobian Trace
+                </div>
+                <div class="feature-indicator active" id="morphemeIndicator">
+                    <div class="indicator-dot"></div>
+                    Morpheme Discovery
+                </div>
+                <div class="feature-indicator inactive" id="syncIndicator">
+                    <div class="indicator-dot"></div>
+                    Distributed Sync
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Engine Area -->
+        <main class="main-engine-area">
+            <div class="engine-controls">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button class="engine-btn" id="initEngineBtn">Initialize V3.1 Engine</button>
+                    <button class="engine-btn secondary" id="resetEngineBtn">Reset State</button>
+                    <button class="engine-btn success" id="exportStateBtn">Export State</button>
+                    <div style="margin-left: auto; font-size: 12px; opacity: 0.7;" id="dimensionsDisplay">
+                        Dimensions: 3D
+                    </div>
+                </div>
+            </div>
+
+            <div class="engine-viewport">
+                <div class="state-display">
+                    <div class="state-vector">
+                        <strong>State Vector:</strong>
+                        <div class="vector-component" id="x0">0.000</div>
+                        <div class="vector-component" id="x1">0.000</div>
+                        <div class="vector-component" id="x2">0.000</div>
+                    </div>
+                    <div style="display: flex; gap: 16px;">
+                        <div>κ: <span id="kappaValue">1.000</span></div>
+                        <div>Level: <span id="levelValue">0</span></div>
+                        <div>Version: <span id="versionValue">0</span></div>
+                    </div>
+                </div>
+
+                <div class="button-grid" id="buttonGrid">
+                    <!-- Mathematical buttons will be populated here -->
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="interactionCount">0</div>
+                        <div class="analytics-label">Total Interactions</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="morphemeCount">0</div>
+                        <div class="analytics-label">Discovered Morphemes</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="traceCount">0</div>
+                        <div class="analytics-label">Jacobian Traces</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="stabilityScore">100%</div>
+                        <div class="analytics-label">Mathematical Stability</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- V3.1 Advanced Features Panel -->
+        <aside class="v31-panel">
+            <div class="panel-tabs">
+                <button class="panel-tab active" data-tab="lattice">Type Lattice</button>
+                <button class="panel-tab" data-tab="analytics">Analytics</button>
+                <button class="panel-tab" data-tab="config">Config</button>
+            </div>
+
+            <div class="panel-content">
+                <!-- Type Lattice Tab -->
+                <div id="lattice-tab" class="tab-content">
+                    <div class="type-lattice-viz">
+                        <div class="lattice-level">
+                            <div class="lattice-node concept">Concept</div>
+                        </div>
+                        <div class="lattice-connection"></div>
+                        <div class="lattice-level">
+                            <div class="lattice-node structure">Structure</div>
+                        </div>
+                        <div class="lattice-connection"></div>
+                        <div class="lattice-level">
+                            <div class="lattice-node property">Property</div>
+                        </div>
+                        <div class="lattice-connection"></div>
+                        <div class="lattice-level">
+                            <div class="lattice-node state">State</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; font-size: 11px;">
+                        <strong>Current Composition:</strong>
+                        <div id="currentComposition" style="font-family: monospace; margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 4px;">
+                            No active composition
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analytics-tab" class="tab-content" style="display: none;">
+                    <h4>V3.1 System Analytics</h4>
+                    <div id="systemAnalytics">
+                        <!-- Analytics content will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Config Tab -->
+                <div id="config-tab" class="tab-content" style="display: none;">
+                    <h4>V3.1 Configuration</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <label>
+                            <input type="checkbox" id="enableTypeLattice" checked>
+                            Type Lattice Validation
+                        </label>
+                        <label>
+                            <input type="checkbox" id="enableJacobianTracing" checked>
+                            Jacobian Tracing
+                        </label>
+                        <label>
+                            <input type="checkbox" id="enableMorphemeDiscovery" checked>
+                            Morpheme Discovery
+                        </label>
+                        <label>
+                            <input type="checkbox" id="enableDistributedSync">
+                            Distributed Synchronization
+                        </label>
+
+                        <div style="margin-top: 16px;">
+                            <label for="dimensionSelect">Dimensions:</label>
+                            <select id="dimensionSelect" style="margin-left: 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--border);">
+                                <option value="2">2D</option>
+                                <option value="3" selected>3D</option>
+                                <option value="4">4D</option>
+                                <option value="6">6D</option>
+                            </select>
+                        </div>
+
+                        <button class="engine-btn" id="applyConfigBtn">Apply Configuration</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Distributed Sync Status -->
+        <div class="sync-status">
+            <div class="sync-header">🌐 Distributed Sync</div>
+            <div id="syncConnectionStatus" style="font-size: 12px; opacity: 0.7;">
+                Status: Disconnected
+            </div>
+            <div class="peer-list" id="peerList">
+                <div style="text-align: center; opacity: 0.5; font-size: 11px;">
+                    No peers connected
+                </div>
+            </div>
+            <button class="engine-btn secondary" id="connectSyncBtn">Connect</button>
+        </div>
+
+        <!-- Enhanced Controls -->
+        <div class="controls-area">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <button class="engine-btn" id="undoBtn">↶ Undo</button>
+                <button class="engine-btn" id="redoBtn">↷ Redo</button>
+                <button class="engine-btn success" id="discoverMorphemesBtn">🔬 Discover</button>
+            </div>
+
+            <div style="font-size: 11px; opacity: 0.7;">
+                <div>Last Action: <span id="lastAction">None</span></div>
+                <div>Engine Status: <span id="engineStatus">Not Initialized</span></div>
+            </div>
+        </div>
+
+        <!-- Jacobian Traces Panel -->
+        <div class="traces-panel">
+            <div class="panel-header">
+                📊 Jacobian Traces
+                <div style="margin-left: auto;">
+                    <button class="engine-btn" style="font-size: 10px; padding: 4px 8px;" id="clearTracesBtn">Clear</button>
+                </div>
+            </div>
+            <div class="panel-body" id="tracesContainer">
+                <div style="text-align: center; opacity: 0.5; font-size: 11px;">
+                    No traces available
+                </div>
+            </div>
+        </div>
+
+        <!-- Morphemes Discovery Panel -->
+        <div class="morphemes-panel">
+            <div class="panel-header">
+                🧬 Discovered Morphemes
+                <div style="margin-left: auto;">
+                    <button class="engine-btn" style="font-size: 10px; padding: 4px 8px;" id="exportMorphemesBtn">Export</button>
+                </div>
+            </div>
+            <div class="panel-body" id="morphemesContainer">
+                <div style="text-align: center; opacity: 0.5; font-size: 11px;">
+                    No morphemes discovered
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- V3.1 JavaScript Integration -->
+    <script type="module">
+        import { initWorldEngineV31, WorldEngineV31Factory } from './world-engine-v31-complete.js';
+
+        class WorldEngineV31Studio {
+            constructor() {
+                this.engine = null;
+                this.isInitialized = false;
+                this.currentTab = 'lattice';
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Engine initialization
+                document.getElementById('initEngineBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.initializeEngine());
+                document.getElementById('resetEngineBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.resetEngine());
+                document.getElementById('exportStateBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.exportState());
+
+                // Configuration
+                document.getElementById('applyConfigBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.applyConfiguration());
+
+                // Controls
+                document.getElementById('undoBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.undo());
+                document.getElementById('redoBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.redo());
+                document.getElementById('discoverMorphemesBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.triggerMorphemeDiscovery());
+
+                // Sync
+                document.getElementById('connectSyncBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.toggleSync());
+
+                // Traces
+                document.getElementById('clearTracesBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.clearTraces());
+                document.getElementById('exportMorphemesBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.exportMorphemes());
+
+                // Panel tabs
+                document.querySelectorAll('.panel-tab').forEach(tab => {
+                    tab.addEventListener("click", function(e) { try { (e(e); } catch(err) { console.error("Event error:", err); } }) => this.switchTab(e.target.dataset.tab));
+                });
+            }
+
+            async initializeEngine() {
+                try {
+                    const dimensions = parseInt(document.getElementById('dimensionSelect').value);
+                    const options = {
+                        typeLatticeEnabled: document.getElementById('enableTypeLattice').checked,
+                        jacobianTracingEnabled: document.getElementById('enableJacobianTracing').checked,
+                        morphemeDiscoveryEnabled: document.getElementById('enableMorphemeDiscovery').checked,
+                        enableSync: document.getElementById('enableDistributedSync').checked,
+                        useSemanticDiscovery: true
+                    };
+
+                    this.engine = await initWorldEngineV31(dimensions, options);
+                    this.isInitialized = true;
+
+                    this.setupEngineEventHandlers();
+                    this.createButtonGrid();
+                    this.updateUI();
+                    this.updateStatus('V3.1 Engine Initialized', 'success');
+
+                    console.log('🌟 World Engine V3.1 Studio ready!');
+                } catch (error) {
+                    console.error('Failed to initialize engine:', error);
+                    this.updateStatus('Initialization failed: ' + error.message, 'error');
+                }
+            }
+
+            setupEngineEventHandlers() {
+                if (!this.engine) return;
+
+                // V3.1 specific events
+                this.engine.on('v31:morpheme-discovered', (morpheme) => {
+                    this.addMorphemeToUI(morpheme);
+                    this.updateAnalytics();
+                });
+
+                this.engine.on('v31:jacobian-trace', (trace) => {
+                    this.addTraceToUI(trace);
+                    this.updateAnalytics();
+                });
+
+                this.engine.on('v31:button-clicked', ({ buttonKey, result }) => {
+                    this.updateStateDisplay(result);
+                    this.updateLastAction(`Button: ${buttonKey}`);
+                    this.updateAnalytics();
+                });
+
+                this.engine.on('v31:error', (errorInfo) => {
+                    console.error('V3.1 Engine Error:', errorInfo);
+                    this.updateStatus('Engine Error: ' + errorInfo.error, 'error');
+                });
+            }
+
+            createButtonGrid() {
+                if (!this.engine?.lexicalEngine?.buttons) return;
+
+                const grid = document.getElementById('buttonGrid');
+                grid.innerHTML = '';
+
+                for (const [key, button] of this.engine.lexicalEngine.buttons.entries()) {
+                    const btn = document.createElement('button');
+                    btn.className = 'math-button';
+                    btn.textContent = `${button.abbr}\n${button.label}`;
+                    btn.title = `${button.label} - Type: ${button.inputType || 'Unknown'}`;
+                    btn.addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => this.clickButton(key));
+                    grid.appendChild(btn);
+                }
+            }
+
+            async clickButton(buttonKey) {
+                if (!this.isInitialized) {
+                    this.updateStatus('Engine not initialized', 'warning');
+                    return;
+                }
+
+                try {
+                    await this.engine.clickButton(buttonKey);
+                } catch (error) {
+                    console.error('Button click error:', error);
+                    this.updateStatus('Button Error: ' + error.message, 'error');
+                }
+            }
+
+            updateStateDisplay(state) {
+                if (!state) state = this.engine?.lexicalEngine?.su;
+                if (!state) return;
+
+                // Update vector components
+                state.x.forEach((value, i) => {
+                    const element = document.getElementById(`x${i}`);
+                    if (element) {
+                        element.textContent = value.toFixed(3);
+                    }
+                });
+
+                // Update scalar values
+                document.getElementById('kappaValue').textContent = state.kappa.toFixed(3);
+                document.getElementById('levelValue').textContent = state.level;
+                if (state.version !== undefined) {
+                    document.getElementById('versionValue').textContent = state.version;
+                }
+            }
+
+            addTraceToUI(trace) {
+                const container = document.getElementById('tracesContainer');
+
+                // Clear placeholder if present
+                if (container.children.length === 1 && container.children[0].textContent.includes('No traces')) {
+                    container.innerHTML = '';
+                }
+
+                const traceElement = document.createElement('div');
+                traceElement.className = 'trace-item';
+                traceElement.innerHTML = `
+                    <div class="trace-header">
+                        <div class="trace-button">${trace.operation.button.label}</div>
+                        <div class="trace-stability ${trace.operation.stability}">${trace.operation.stability}</div>
+                    </div>
+                    <div class="trace-explanation">${trace.explanation}</div>
+                    <div class="trace-magnitude">Magnitude: ${trace.transformation.effect_magnitude.toFixed(4)}</div>
+                `;
+
+                container.insertBefore(traceElement, container.firstChild);
+
+                // Keep only recent traces
+                while (container.children.length > 10) {
+                    container.removeChild(container.lastChild);
+                }
+            }
+
+            addMorphemeToUI(morpheme) {
+                const container = document.getElementById('morphemesContainer');
+
+                // Clear placeholder if present
+                if (container.children.length === 1 && container.children[0].textContent.includes('No morphemes')) {
+                    container.innerHTML = '';
+                }
+
+                const morphemeElement = document.createElement('div');
+                morphemeElement.className = 'morpheme-item';
+                morphemeElement.innerHTML = `
+                    <div class="morpheme-header">
+                        <div class="morpheme-label">${morpheme.suggested_label}</div>
+                        <button class="engine-btn" style="font-size: 9px; padding: 2px 6px;" onclick="studio.applyMorpheme('${morpheme.id}')">Apply</button>
+                    </div>
+                    <div class="morpheme-pattern">${morpheme.pattern.join(' → ')}</div>
+                    <div class="morpheme-stats">
+                        <div>Freq: ${morpheme.frequency}</div>
+                        <div class="morpheme-effectiveness">
+                            Eff:
+                            <div class="effectiveness-bar">
+                                <div class="effectiveness-fill" style="width: ${morpheme.effectiveness * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.insertBefore(morphemeElement, container.firstChild);
+            }
+
+            async applyMorpheme(morphemeId) {
+                if (!this.isInitialized) return;
+
+                try {
+                    await this.engine.applyMorpheme(morphemeId);
+                    this.updateLastAction(`Morpheme: ${morphemeId}`);
+                } catch (error) {
+                    console.error('Morpheme application error:', error);
+                    this.updateStatus('Morpheme Error: ' + error.message, 'error');
+                }
+            }
+
+            updateAnalytics() {
+                if (!this.engine) return;
+
+                const analytics = this.engine.getInteractionAnalytics();
+
+                document.getElementById('interactionCount').textContent = analytics.session.total_interactions;
+                document.getElementById('morphemeCount').textContent = analytics.v31_features.morphemes_discovered;
+                document.getElementById('traceCount').textContent = analytics.engine_status.components.jacobianTracing?.traceCount || 0;
+                document.getElementById('stabilityScore').textContent =
+                    Math.round(analytics.mathematical_health.recent_stability * 100) + '%';
+
+                // Update feature indicators
+                this.updateFeatureIndicators(analytics.engine_status.features);
+            }
+
+            updateFeatureIndicators(features) {
+                document.getElementById('typeLatticeIndicator').className =
+                    'feature-indicator ' + (features.typeLattice ? 'active' : 'inactive');
+                document.getElementById('jacobianIndicator').className =
+                    'feature-indicator ' + (features.jacobianTracing ? 'active' : 'inactive');
+                document.getElementById('morphemeIndicator').className =
+                    'feature-indicator ' + (features.morphemeDiscovery ? 'active' : 'inactive');
+                document.getElementById('syncIndicator').className =
+                    'feature-indicator ' + (features.distributedSync ? 'active' : 'inactive');
+            }
+
+            switchTab(tabName) {
+                this.currentTab = tabName;
+
+                // Update tab buttons
+                document.querySelectorAll('.panel-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabName);
+                });
+
+                // Show/hide tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.style.display = content.id === `${tabName}-tab` ? 'block' : 'none';
+                });
+            }
+
+            updateStatus(message, type = 'info') {
+                document.getElementById('engineStatus').textContent = message;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+
+            updateLastAction(action) {
+                document.getElementById('lastAction').textContent = action;
+            }
+
+            updateUI() {
+                if (!this.engine) return;
+
+                this.updateStateDisplay();
+                this.updateAnalytics();
+
+                // Update dimension display
+                document.getElementById('dimensionsDisplay').textContent =
+                    `Dimensions: ${this.engine.dimensions}D`;
+            }
+
+            // Additional methods for completeness
+            async resetEngine() {
+                if (this.engine) {
+                    this.engine.dispose();
+                }
+                this.engine = null;
+                this.isInitialized = false;
+                this.updateStatus('Engine Reset', 'info');
+
+                // Clear UI
+                document.getElementById('buttonGrid').innerHTML = '';
+                document.getElementById('tracesContainer').innerHTML = '<div style="text-align: center; opacity: 0.5; font-size: 11px;">No traces available</div>';
+                document.getElementById('morphemesContainer').innerHTML = '<div style="text-align: center; opacity: 0.5; font-size: 11px;">No morphemes discovered</div>';
+            }
+
+            exportState() {
+                if (!this.engine) return;
+
+                const state = this.engine.exportState();
+                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `world-engine-v31-state-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            applyConfiguration() {
+                this.updateStatus('Configuration updated - reinitialize engine to apply', 'warning');
+            }
+
+            undo() {
+                // Implementation would depend on engine undo capabilities
+                this.updateStatus('Undo not yet implemented', 'warning');
+            }
+
+            redo() {
+                // Implementation would depend on engine redo capabilities
+                this.updateStatus('Redo not yet implemented', 'warning');
+            }
+
+            triggerMorphemeDiscovery() {
+                if (!this.engine?.v31Components?.morphemeDiscovery) return;
+
+                // Trigger pattern analysis on recent history
+                this.engine.v31Components.morphemeDiscovery.checkForPromotions();
+                this.updateStatus('Morpheme discovery triggered', 'info');
+            }
+
+            toggleSync() {
+                this.updateStatus('Distributed sync not yet fully implemented', 'warning');
+            }
+
+            clearTraces() {
+                if (this.engine?.v31Components?.traceManager) {
+                    this.engine.v31Components.traceManager.clearTraces();
+                    document.getElementById('tracesContainer').innerHTML = '<div style="text-align: center; opacity: 0.5; font-size: 11px;">No traces available</div>';
+                }
+            }
+
+            exportMorphemes() {
+                if (!this.engine?.v31Components?.morphemeDiscovery) return;
+
+                const morphemes = this.engine.v31Components.morphemeDiscovery.exportMorphemes();
+                const blob = new Blob([JSON.stringify(morphemes, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `discovered-morphemes-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // Initialize the studio
+        const studio = new WorldEngineV31Studio();
+        window.studio = studio; // For debugging access
+
+        console.log('🎨 World Engine V3.1 Studio loaded');
+    </script>
+</body>
+</html>

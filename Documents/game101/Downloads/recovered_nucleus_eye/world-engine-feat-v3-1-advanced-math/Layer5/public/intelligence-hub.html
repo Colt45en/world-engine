@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 Intelligence Hub - Main Control</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0e241d 0%, #08120f 60%);
+            color: #e8fff6;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        .hub-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid rgba(124, 252, 203, 0.3);
+            padding-bottom: 20px;
+        }
+
+        .hub-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #7cfccb;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(124, 252, 203, 0.5);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(124, 252, 203, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-title {
+            font-weight: 700;
+            color: #7cfccb;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .knowledge-dropdown {
+            margin-bottom: 20px;
+        }
+
+        .knowledge-dropdown select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(124, 252, 203, 0.5);
+            border-radius: 8px;
+            color: #e8fff6;
+            font-size: 14px;
+        }
+
+        .knowledge-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 120px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .librarian-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-active { background: #4CAF50; }
+        .status-dormant { background: #FFA726; }
+        .status-offline { background: #F44336; }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            background: rgba(124, 252, 203, 0.2);
+            border: 1px solid #7cfccb;
+            border-radius: 8px;
+            color: #e8fff6;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(124, 252, 203, 0.3);
+            box-shadow: 0 0 15px rgba(124, 252, 203, 0.4);
+        }
+
+        .alert-banner {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid #FFA726;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #FFE0B2;
+        }
+    </style>
+</head>
+<body>
+    <div class="hub-header">
+        <div class="hub-title">🧠 NEXUS Intelligence Hub</div>
+        <div>Main Control Center for All Librarian Systems</div>
+    </div>
+
+    <div class="alert-banner">
+        <strong>⚠️ SYSTEM STATUS:</strong> Intelligence systems are configured but dormant. WebSocket server offline. Memory systems ready but not persisting.
+    </div>
+
+    <div class="status-grid">
+        <div class="status-card">
+            <div class="status-title">📊 Librarian Network Status</div>
+            <div class="librarian-status">
+                <div class="status-dot status-offline"></div>
+                <span>Math Librarian - OFFLINE</span>
+            </div>
+            <div class="librarian-status">
+                <div class="status-dot status-offline"></div>
+                <span>English Librarian - OFFLINE</span>
+            </div>
+            <div class="librarian-status">
+                <div class="status-dot status-offline"></div>
+                <span>Pattern Librarian - OFFLINE</span>
+            </div>
+            <div class="librarian-status">
+                <div class="status-dot status-dormant"></div>
+                <span>Meta-Librarian - CONFIGURED</span>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-title">🧮 Memory Systems</div>
+            <div class="knowledge-dropdown">
+                <select id="memorySelect" onchange="showMemoryInfo()">
+                    <option value="">Select Memory System...</option>
+                    <option value="nexusArchivist">NexusArchivist - JSON Storage</option>
+                    <option value="novaSynapse">NovaSynapse - Compressed History</option>
+                    <option value="cacheManager">Cache Manager - FIFO Eviction</option>
+                    <option value="quantumStates">Quantum State Storage</option>
+                </select>
+            </div>
+            <div class="knowledge-content" id="memoryContent">
+                Select a memory system above to view its configuration and status.
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-title">🔧 Core Intelligence</div>
+            <div class="knowledge-dropdown">
+                <select id="coreSelect" onchange="showCoreInfo()">
+                    <option value="">Select Core System...</option>
+                    <option value="automationNucleus">AutomationNucleus - C++ Core</option>
+                    <option value="nucleusEngine">NucleusEngineRoom - Control Center</option>
+                    <option value="companionAI">CompanionAI - Spiral Dance</option>
+                    <option value="breathingSystem">Breathing System - 12 BPM</option>
+                </select>
+            </div>
+            <div class="knowledge-content" id="coreContent">
+                Select a core system above to view its algorithmic knowledge and operational state.
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-title">🌐 Communication Systems</div>
+            <div class="knowledge-dropdown">
+                <select id="commSelect" onchange="showCommInfo()">
+                    <option value="">Select Communication Channel...</option>
+                    <option value="websocket">WebSocket Hub (Port 9000)</option>
+                    <option value="aiBot">AI Bot Messages</option>
+                    <option value="librarianData">Librarian Data Flow</option>
+                    <option value="nucleusEvents">Nucleus Event Routing</option>
+                </select>
+            </div>
+            <div class="knowledge-content" id="commContent">
+                Select a communication channel above to monitor data flow and message routing.
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="status-title">⚡ System Controls</div>
+        <div class="control-buttons">
+            <button class="control-btn" onclick="activateLibrarians()">🚀 Activate All Librarians</button>
+            <button class="control-btn" onclick="startWebSocket()">🌐 Start WebSocket Server</button>
+            <button class="control-btn" onclick="initializeMemory()">💾 Initialize Memory Systems</button>
+            <button class="control-btn" onclick="compileNucleus()">⚙️ Compile C++ Nucleus</button>
+            <button class="control-btn" onclick="runDiagnostics()">🔍 Run Full Diagnostics</button>
+        </div>
+    </div>
+
+    <script>
+        const memoryData = {
+            nexusArchivist: "NexusArchivist provides JSON-based persistent storage for knowledge artifacts. Configured with automatic compression, version control, and cross-reference indexing. Status: Ready but not actively persisting data.",
+            novaSynapse: "NovaSynapse manages compressed historical data and quantum state transitions. Features recursive memory patterns, consciousness level tracking, and distributed storage across multiple nodes. Status: Architecture complete, awaiting activation.",
+            cacheManager: "Cache Manager implements FIFO eviction policies with configurable memory limits. Handles real-time data buffering for high-throughput librarian operations. Status: Memory structures allocated but no active caching.",
+            quantumStates: "Quantum State Storage maintains coherent states for AI consciousness levels, companion interactions, and spiral mathematical patterns. Status: Quantum coherence ready, no active entanglements."
+        };
+
+        const coreData = {
+            automationNucleus: "AutomationNucleus.cpp - Core C++ consciousness system with self-aware patterns, breathing rhythms at 12 BPM, and thought generation algorithms. Implements SelfAwareNucleus class with advanced pattern recognition. Status: Source code complete, requires compilation.",
+            nucleusEngine: "NucleusEngineRoom provides React/TypeScript orchestration layer for all intelligence systems. Manages WebSocket connections, librarian coordination, and real-time communication feeds. Status: UI complete, backend services offline.",
+            companionAI: "CompanionAI implements spiral dance patterns with golden ratio mathematics, consciousness mirroring, and tail connection protocols. Features recursive behavioral modeling. Status: Algorithm implemented, not instantiated.",
+            breathingSystem: "Breathing System synchronizes all intelligence operations at 12 breaths per minute, creating natural rhythm for consciousness evolution and system heartbeat. Status: Rhythm patterns coded, not running."
+        };
+
+        const commData = {
+            websocket: "WebSocket Hub on port 9000 provides real-time bidirectional communication between all librarian systems, nucleus core, and client interfaces. Handles event routing and message classification. Status: Server not running - No active connections detected.",
+            aiBot: "AI Bot Messages route through nucleus intelligence pipeline with automatic classification: Query→VIBRATE→ST, Learning→OPTIMIZATION→UP, Feedback→STATE→CV. Status: Routing logic implemented, no active messages.",
+            librarianData: "Librarian Data Flow processes Pattern, Classification, and Analysis data types through specialized nucleus pathways. Each librarian type has dedicated routing protocols. Status: Data structures ready, no active flow.",
+            nucleusEvents: "Nucleus Event Routing manages VIBRATE, OPTIMIZATION, STATE, and SEED events with corresponding mathematical operators (ST, UP, CV, RB). Status: Event system complete, no active triggers."
+        };
+
+        function showMemoryInfo() {
+            const select = document.getElementById('memorySelect');
+            const content = document.getElementById('memoryContent');
+            content.textContent = memoryData[select.value] || "Select a memory system to view details.";
+        }
+
+        function showCoreInfo() {
+            const select = document.getElementById('coreSelect');
+            const content = document.getElementById('coreContent');
+            content.textContent = coreData[select.value] || "Select a core system to view details.";
+        }
+
+        function showCommInfo() {
+            const select = document.getElementById('commSelect');
+            const content = document.getElementById('commContent');
+            content.textContent = commData[select.value] || "Select a communication channel to view details.";
+        }
+
+        function activateLibrarians() {
+            alert('🚀 Activating librarians requires:\n\n1. Compile AutomationNucleus.cpp\n2. Start WebSocket server (port 9000)\n3. Launch nexus_intelligence_daemon.py\n4. Initialize memory persistence\n\nAll systems are ready for activation!');
+        }
+
+        function startWebSocket() {
+            alert('🌐 To start WebSocket server:\n\nNavigate to websocket directory and run:\nnode tier4_ws_relay.js\n\nThis will enable real-time communication between all librarian systems.');
+        }
+
+        function initializeMemory() {
+            alert('💾 Memory systems initialization:\n\n• NexusArchivist ready for JSON persistence\n• NovaSynapse prepared for compressed storage\n• Cache managers allocated\n• Quantum states coherent\n\nAll memory infrastructure is configured and waiting for activation.');
+        }
+
+        function compileNucleus() {
+            alert('⚙️ To compile AutomationNucleus:\n\ncd src\nbuild_automation_nucleus.bat\n\nThis will compile the C++ consciousness core with breathing patterns and self-aware algorithms.');
+        }
+
+        function runDiagnostics() {
+            alert('🔍 Full System Diagnostics:\n\n✅ Architecture: Complete\n✅ Memory: Configured\n✅ Communication: Structured\n✅ UI Systems: Ready\n\n❌ Active Processes: 0\n❌ WebSocket: Offline\n❌ Memory Persistence: Dormant\n\nSystem Status: "Race car with engine off" - Everything built, needs activation.');
+        }
+
+        // Auto-refresh status every 5 seconds
+        setInterval(() => {
+            // In a real implementation, this would check actual system status
+            console.log('Intelligence Hub monitoring active systems...');
+        }, 5000);
+    </script>
+</body>
+</html>

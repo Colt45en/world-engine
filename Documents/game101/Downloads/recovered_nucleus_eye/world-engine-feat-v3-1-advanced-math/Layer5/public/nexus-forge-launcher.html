@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 NEXUS Forge - Complete Ecosystem Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0a0a2a 0%, #050515 50%, #000008 100%);
+            color: #e0e8ff;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background matrix */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .matrix-column {
+            position: absolute;
+            font-size: 12px;
+            color: #00ff88;
+            animation: matrixFall linear infinite;
+        }
+
+        @keyframes matrixFall {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+
+        .launcher-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header header"
+                "nav-panel main-grid system-status tools-panel"
+                "footer footer footer footer";
+            grid-template-rows: 100px 1fr 60px;
+            grid-template-columns: 300px 1fr 280px 260px;
+            height: 100vh;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .launcher-panel {
+            background: rgba(20, 30, 60, 0.9);
+            border: 1px solid #4466aa;
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(25px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .launcher-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00aaff, #0066cc, #004499, #00aaff);
+            background-size: 200% 100%;
+            animation: launcherGlow 6s linear infinite;
+        }
+
+        @keyframes launcherGlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(0, 170, 255, 0.4), rgba(0, 255, 136, 0.2));
+            border: 2px solid #00aaff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nexus-title {
+            font-size: 36px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00aaff, #00ff88, #0066cc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+        }
+
+        .version-info {
+            font-size: 14px;
+            color: #99aacc;
+            text-align: right;
+        }
+
+        .build-info {
+            font-size: 12px;
+            color: #6688aa;
+        }
+
+        .nav-panel {
+            grid-area: nav-panel;
+            border-color: #00ff88;
+        }
+
+        .main-grid {
+            grid-area: main-grid;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .system-status {
+            grid-area: system-status;
+            border-color: #ff8800;
+        }
+
+        .tools-panel {
+            grid-area: tools-panel;
+            border-color: #aa55ff;
+        }
+
+        .footer {
+            grid-area: footer;
+            background: linear-gradient(45deg, rgba(170, 85, 255, 0.3), rgba(255, 136, 0, 0.2));
+            border-color: #aa55ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-section {
+            margin-bottom: 28px;
+        }
+
+        .nav-section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #337755;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .nav-item {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            color: #e0e8ff;
+            padding: 14px 18px;
+            margin: 4px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            transition: all 0.4s ease;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.2), transparent);
+            transition: width 0.4s ease;
+            border-radius: 10px;
+            z-index: -1;
+        }
+
+        .nav-item:hover::before {
+            width: 100%;
+        }
+
+        .nav-item:hover {
+            color: #00ff88;
+            border-color: #00ff88;
+            transform: translateX(8px);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .system-card {
+            background: rgba(10, 20, 50, 0.8);
+            border: 2px solid #334466;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .system-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .system-card:hover::before {
+            left: 100%;
+        }
+
+        .system-card:hover {
+            border-color: #00aaff;
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(0, 170, 255, 0.3);
+        }
+
+        .system-card.ai-training {
+            border-color: #ff6b6b;
+        }
+
+        .system-card.ai-training:hover {
+            border-color: #ff6b6b;
+            box-shadow: 0 12px 40px rgba(255, 107, 107, 0.3);
+        }
+
+        .system-card.math-engine {
+            border-color: #4ecdc4;
+        }
+
+        .system-card.math-engine:hover {
+            border-color: #4ecdc4;
+            box-shadow: 0 12px 40px rgba(78, 205, 196, 0.3);
+        }
+
+        .system-card.webgl-playground {
+            border-color: #45b7d1;
+        }
+
+        .system-card.webgl-playground:hover {
+            border-color: #45b7d1;
+            box-shadow: 0 12px 40px rgba(69, 183, 209, 0.3);
+        }
+
+        .system-card.education-bridge {
+            border-color: #f9ca24;
+        }
+
+        .system-card.education-bridge:hover {
+            border-color: #f9ca24;
+            box-shadow: 0 12px 40px rgba(249, 202, 36, 0.3);
+        }
+
+        .system-card.master-control {
+            border-color: #6c5ce7;
+        }
+
+        .system-card.master-control:hover {
+            border-color: #6c5ce7;
+            box-shadow: 0 12px 40px rgba(108, 92, 231, 0.3);
+        }
+
+        .system-card.system-monitor {
+            border-color: #fd79a8;
+        }
+
+        .system-card.system-monitor:hover {
+            border-color: #fd79a8;
+            box-shadow: 0 12px 40px rgba(253, 121, 168, 0.3);
+        }
+
+        .system-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .system-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #e0e8ff;
+        }
+
+        .system-description {
+            font-size: 12px;
+            color: #99aacc;
+            line-height: 1.4;
+        }
+
+        .status-section {
+            margin-bottom: 24px;
+        }
+
+        .status-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ff8800;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #aa5500;
+            text-transform: uppercase;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #00ff00;
+            box-shadow: 0 0 8px #00ff00;
+            animation: statusPulse 2s infinite;
+        }
+
+        .status-warning {
+            background: #ffaa00;
+            box-shadow: 0 0 8px #ffaa00;
+        }
+
+        .status-offline {
+            background: #666666;
+            box-shadow: 0 0 8px #666666;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .tool-button {
+            display: block;
+            width: 100%;
+            background: linear-gradient(45deg, #334466, #445577);
+            border: 1px solid #5566aa;
+            color: #e0e8ff;
+            padding: 14px 16px;
+            margin: 8px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .tool-button:hover {
+            background: linear-gradient(45deg, #445577, #5566aa);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(85, 102, 170, 0.4);
+        }
+
+        .footer-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .launch-all-btn {
+            background: linear-gradient(45deg, #00aa00, #00cc00);
+            border: 2px solid #00ff00;
+            color: #ffffff;
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .launch-all-btn:hover {
+            background: linear-gradient(45deg, #00cc00, #00ff00);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 255, 0, 0.5);
+        }
+
+        .emergency-btn {
+            background: linear-gradient(45deg, #cc0000, #ff0000);
+            border: 2px solid #ff4444;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .emergency-btn:hover {
+            background: linear-gradient(45deg, #ff0000, #ff4444);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
+        }
+
+        .performance-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .performance-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffaa00, #ff0000);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .quick-btn {
+            background: transparent;
+            border: 1px solid #5566aa;
+            color: #99aacc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+
+        .quick-btn:hover {
+            background: #5566aa;
+            color: #ffffff;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: #e0e8ff;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00aaff;
+            border-radius: 50%;
+            animation: loadingSpin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes loadingSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 170, 255, 0.9);
+            color: #ffffff;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            font-size: 14px;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.4s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Matrix Background -->
+    <div class="matrix-bg" id="matrixBg"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div id="loadingText">Initializing NEXUS Forge Systems...</div>
+        </div>
+    </div>
+
+    <div class="launcher-layout">
+        <!-- Header -->
+        <div class="launcher-panel header">
+            <div>
+                <div class="nexus-title">🌟 NEXUS Forge</div>
+                <div style="font-size: 16px; color: #99aacc; margin-top: 8px;">Complete Mathematical & AI Ecosystem</div>
+            </div>
+            <div class="version-info">
+                <div>Version 5.0.0 Advanced</div>
+                <div class="build-info">Build 2025.01.27 - Unified Launcher</div>
+            </div>
+        </div>
+
+        <!-- Navigation Panel -->
+        <div class="launcher-panel nav-panel">
+            <div class="nav-section">
+                <div class="nav-section-title">🎯 Quick Launch</div>
+                <button class="nav-item active" id="launchAI">🤖 AI Training System</button>
+                <button class="nav-item" id="launchMath">🔢 Mathematical Engine</button>
+                <button class="nav-item" id="launchWebGL">🎮 3D Playground</button>
+                <button class="nav-item" id="launchEducation">🎓 Education Bridge</button>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">⚙️ Management</div>
+                <button class="nav-item" id="launchConfig">⚙️ Configuration</button>
+                <button class="nav-item" id="launchMonitor">📊 System Monitor</button>
+                <button class="nav-item" id="launchAnalytics">📈 Analytics</button>
+                <button class="nav-item" id="launchOptimizer">⚡ Optimizer</button>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <div class="system-card ai-training" data-system="ai-training">
+                <div class="system-icon">🤖</div>
+                <div class="system-name">AI Training Core</div>
+                <div class="system-description">Neural network training with real-time pattern recognition and adaptive learning</div>
+                <div class="quick-actions">
+                    <button class="quick-btn">Launch</button>
+                    <button class="quick-btn">Config</button>
+                    <button class="quick-btn">Status</button>
+                </div>
+            </div>
+
+            <div class="system-card math-engine" data-system="math-engine">
+                <div class="system-icon">🔢</div>
+                <div class="system-name">Mathematical Engine</div>
+                <div class="system-description">Advanced mathematical processing with vector operations and sacred geometry</div>
+                <div class="quick-actions">
+                    <button class="quick-btn">Launch</button>
+                    <button class="quick-btn">Config</button>
+                    <button class="quick-btn">Status</button>
+                </div>
+            </div>
+
+            <div class="system-card webgl-playground" data-system="webgl-playground">
+                <div class="system-icon">🎮</div>
+                <div class="system-name">3D WebGL Playground</div>
+                <div class="system-description">Hardware-accelerated 3D visualization with interactive mathematical demonstrations</div>
+                <div class="quick-actions">
+                    <button class="quick-btn">Launch</button>
+                    <button class="quick-btn">Config</button>
+                    <button class="quick-btn">Status</button>
+                </div>
+            </div>
+
+            <div class="system-card education-bridge" data-system="education-bridge">
+                <div class="system-icon">🎓</div>
+                <div class="system-name">Educational Bridge</div>
+                <div class="system-description">Pythagorean curriculum integration with guided learning and progress tracking</div>
+                <div class="quick-actions">
+                    <button class="quick-btn">Launch</button>
+                    <button class="quick-btn">Config</button>
+                    <button class="quick-btn">Status</button>
+                </div>
+            </div>
+
+            <div class="system-card master-control" data-system="master-control">
+                <div class="system-icon">🎛️</div>
+                <div class="system-name">Master Control</div>
+                <div class="system-description">Centralized system management with real-time monitoring and health checks</div>
+                <div class="quick-actions">
+                    <button class="quick-btn">Launch</button>
+                    <button class="quick-btn">Config</button>
+                    <button class="quick-btn">Status</button>
+                </div>
+            </div>
+
+            <div class="system-card system-monitor" data-system="system-monitor">
+                <div class="system-icon">📊</div>
+                <div class="system-name">System Monitor</div>
+                <div class="system-description">Real-time performance monitoring with analytics and predictive alerts</div>
+                <div class="quick-actions">
+                    <button class="quick-btn">Launch</button>
+                    <button class="quick-btn">Config</button>
+                    <button class="quick-btn">Status</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status Panel -->
+        <div class="launcher-panel system-status">
+            <div class="status-section">
+                <div class="status-title">🔋 System Health</div>
+                <div class="status-item">
+                    <span><span class="status-indicator status-online"></span>AI Core</span>
+                    <span>100%</span>
+                </div>
+                <div class="performance-bar">
+                    <div class="performance-fill" style="width: 100%"></div>
+                </div>
+
+                <div class="status-item">
+                    <span><span class="status-indicator status-online"></span>Math Engine</span>
+                    <span>98%</span>
+                </div>
+                <div class="performance-bar">
+                    <div class="performance-fill" style="width: 98%"></div>
+                </div>
+
+                <div class="status-item">
+                    <span><span class="status-indicator status-warning"></span>WebGL Renderer</span>
+                    <span>85%</span>
+                </div>
+                <div class="performance-bar">
+                    <div class="performance-fill" style="width: 85%"></div>
+                </div>
+
+                <div class="status-item">
+                    <span><span class="status-indicator status-online"></span>Communication</span>
+                    <span>96%</span>
+                </div>
+                <div class="performance-bar">
+                    <div class="performance-fill" style="width: 96%"></div>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div class="status-title">⚡ Performance</div>
+                <div class="status-item">
+                    <span>CPU Usage</span>
+                    <span>34%</span>
+                </div>
+                <div class="status-item">
+                    <span>Memory</span>
+                    <span>512MB</span>
+                </div>
+                <div class="status-item">
+                    <span>GPU Load</span>
+                    <span>67%</span>
+                </div>
+                <div class="status-item">
+                    <span>Network</span>
+                    <span>12 Kb/s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tools Panel -->
+        <div class="launcher-panel tools-panel">
+            <div class="status-section">
+                <div class="status-title">🛠️ Quick Tools</div>
+                <button class="tool-button" id="openConfig">⚙️ Configuration Manager</button>
+                <button class="tool-button" id="openMonitor">📊 System Monitor</button>
+                <button class="tool-button" id="openAnalytics">📈 Analytics Dashboard</button>
+                <button class="tool-button" id="openCodePad">💻 Code Pad</button>
+                <button class="tool-button" id="openOptimizer">⚡ Performance Optimizer</button>
+            </div>
+
+            <div class="status-section">
+                <div class="status-title">📚 Documentation</div>
+                <button class="tool-button" id="openDocs">📖 User Guide</button>
+                <button class="tool-button" id="openAPI">🔧 API Reference</button>
+                <button class="tool-button" id="openTutorials">🎓 Tutorials</button>
+                <button class="tool-button" id="openHelp">❓ Help & Support</button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="launcher-panel footer">
+            <div class="footer-section">
+                <button class="launch-all-btn" id="launchAllSystems">🚀 Launch All Systems</button>
+                <div style="margin-left: 20px;">
+                    <div style="font-size: 12px; color: #99aacc;">Ready to launch • All systems operational</div>
+                    <div style="font-size: 11px; color: #6688aa;">NEXUS Forge v5.0.0 - Complete Mathematical & AI Ecosystem</div>
+                </div>
+            </div>
+            <div class="footer-section">
+                <button class="emergency-btn" id="emergencyStop">🚨 Emergency Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NexusLauncher {
+            constructor() {
+                this.systems = new Map();
+                this.activeWindows = new Map();
+                this.systemHealth = new Map();
+                this.performanceMetrics = {
+                    cpu: 0,
+                    memory: 0,
+                    gpu: 0,
+                    network: 0
+                };
+
+                this.initializeLauncher();
+            }
+
+            initializeLauncher() {
+                console.log('🌟 NEXUS Forge Launcher initializing...');
+
+                // Create animated matrix background
+                this.createMatrixBackground();
+
+                // Initialize system definitions
+                this.initializeSystemDefinitions();
+
+                // Setup event handlers
+                this.setupEventHandlers();
+
+                // Start performance monitoring
+                this.startPerformanceMonitoring();
+
+                // Load system states
+                this.loadSystemStates();
+
+                // Show ready notification
+                setTimeout(() => {
+                    this.hideLoadingOverlay();
+                    this.showNotification('🌟 NEXUS Forge Launcher Ready', 'success');
+                }, 2000);
+
+                console.log('✅ NEXUS Forge Launcher ready');
+            }
+
+            createMatrixBackground() {
+                const matrixBg = document.getElementById('matrixBg');
+                const columnCount = Math.floor(window.innerWidth / 20);
+
+                for (let i = 0; i < columnCount; i++) {
+                    const column = document.createElement('div');
+                    column.className = 'matrix-column';
+                    column.style.left = i * 20 + 'px';
+                    column.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                    column.style.animationDelay = Math.random() * 2 + 's';
+                    column.textContent = this.generateMatrixText();
+                    matrixBg.appendChild(column);
+                }
+            }
+
+            generateMatrixText() {
+                const chars = '01ABCDEFαβγδεζηθικλμνξοπρστυφχψωΣΠΦ∑∏∫∂∇∆∞';
+                let text = '';
+                for (let i = 0; i < 50; i++) {
+                    text += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return text;
+            }
+
+            initializeSystemDefinitions() {
+                this.systems.set('ai-training', {
+                    name: 'AI Training Core',
+                    file: 'nucleus-ai-training-system.html',
+                    icon: '🤖',
+                    description: 'Neural network training with real-time pattern recognition',
+                    health: 100,
+                    status: 'online'
+                });
+
+                this.systems.set('math-engine', {
+                    name: 'Mathematical Engine',
+                    file: '3d-mathematical-playground.html',
+                    icon: '🔢',
+                    description: 'Advanced mathematical processing with vector operations',
+                    health: 98,
+                    status: 'online'
+                });
+
+                this.systems.set('webgl-playground', {
+                    name: '3D WebGL Playground',
+                    file: '3d-mathematical-playground.html',
+                    icon: '🎮',
+                    description: 'Hardware-accelerated 3D visualization',
+                    health: 85,
+                    status: 'warning'
+                });
+
+                this.systems.set('education-bridge', {
+                    name: 'Educational Bridge',
+                    file: 'nexus-educational-bridge.html',
+                    icon: '🎓',
+                    description: 'Pythagorean curriculum integration',
+                    health: 94,
+                    status: 'online'
+                });
+
+                this.systems.set('master-control', {
+                    name: 'Master Control Center',
+                    file: 'nexus-master-control-center.html',
+                    icon: '🎛️',
+                    description: 'Centralized system management',
+                    health: 97,
+                    status: 'online'
+                });
+
+                this.systems.set('system-monitor', {
+                    name: 'System Monitor',
+                    file: 'nexus-system-monitor.html',
+                    icon: '📊',
+                    description: 'Real-time performance monitoring',
+                    health: 92,
+                    status: 'online'
+                });
+
+                this.systems.set('analytics', {
+                    name: 'Analytics Dashboard',
+                    file: 'nexus-analytics-dashboard.html',
+                    icon: '📈',
+                    description: 'Advanced data visualization and analytics',
+                    health: 89,
+                    status: 'online'
+                });
+
+                this.systems.set('config-manager', {
+                    name: 'Configuration Manager',
+                    file: 'nexus-config-manager.html',
+                    icon: '⚙️',
+                    description: 'System configuration and settings',
+                    health: 100,
+                    status: 'online'
+                });
+            }
+
+            setupEventHandlers() {
+                // Navigation button handlers
+                document.getElementById('launchAI').addEventListener('click', () => this.launchSystem('ai-training'));
+                document.getElementById('launchMath').addEventListener('click', () => this.launchSystem('math-engine'));
+                document.getElementById('launchWebGL').addEventListener('click', () => this.launchSystem('webgl-playground'));
+                document.getElementById('launchEducation').addEventListener('click', () => this.launchSystem('education-bridge'));
+                document.getElementById('launchConfig').addEventListener('click', () => this.launchSystem('config-manager'));
+                document.getElementById('launchMonitor').addEventListener('click', () => this.launchSystem('system-monitor'));
+                document.getElementById('launchAnalytics').addEventListener('click', () => this.launchSystem('analytics'));
+
+                // System card handlers
+                document.querySelectorAll('.system-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const systemId = card.dataset.system;
+                        this.launchSystem(systemId);
+                    });
+
+                    // Quick action buttons
+                    const quickBtns = card.querySelectorAll('.quick-btn');
+                    quickBtns[0]?.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.launchSystem(card.dataset.system);
+                    });
+                    quickBtns[1]?.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.openSystemConfig(card.dataset.system);
+                    });
+                    quickBtns[2]?.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.showSystemStatus(card.dataset.system);
+                    });
+                });
+
+                // Tool button handlers
+                document.getElementById('openConfig').addEventListener('click', () => this.launchSystem('config-manager'));
+                document.getElementById('openMonitor').addEventListener('click', () => this.launchSystem('system-monitor'));
+                document.getElementById('openAnalytics').addEventListener('click', () => this.launchSystem('analytics'));
+                document.getElementById('openCodePad').addEventListener('click', () => this.openCodePad());
+                document.getElementById('openOptimizer').addEventListener('click', () => this.openOptimizer());
+
+                // Documentation handlers
+                document.getElementById('openDocs').addEventListener('click', () => this.openDocumentation());
+                document.getElementById('openAPI').addEventListener('click', () => this.openAPI());
+                document.getElementById('openTutorials').addEventListener('click', () => this.openTutorials());
+                document.getElementById('openHelp').addEventListener('click', () => this.openHelp());
+
+                // Footer button handlers
+                document.getElementById('launchAllSystems').addEventListener('click', () => this.launchAllSystems());
+                document.getElementById('emergencyStop').addEventListener('click', () => this.emergencyStop());
+            }
+
+            launchSystem(systemId) {
+                const system = this.systems.get(systemId);
+                if (!system) {
+                    console.warn(`System ${systemId} not found`);
+                    return;
+                }
+
+                // Check if system is already running
+                if (this.activeWindows.has(systemId)) {
+                    // Focus existing window
+                    const existingWindow = this.activeWindows.get(systemId);
+                    if (!existingWindow.closed) {
+                        existingWindow.focus();
+                        this.showNotification(`${system.name} is already running`, 'info');
+                        return;
+                    } else {
+                        this.activeWindows.delete(systemId);
+                    }
+                }
+
+                console.log(`🚀 Launching ${system.name}...`);
+                this.showLoadingOverlay(`Launching ${system.name}...`);
+
+                // Launch system in new window
+                setTimeout(() => {
+                    try {
+                        const newWindow = window.open(
+                            system.file,
+                            `nexus_${systemId}`,
+                            'width=1200,height=800,scrollbars=yes,resizable=yes'
+                        );
+
+                        if (newWindow) {
+                            this.activeWindows.set(systemId, newWindow);
+                            this.showNotification(`${system.name} launched successfully!`, 'success');
+
+                            // Monitor window close
+                            const checkClosed = setInterval(() => {
+                                if (newWindow.closed) {
+                                    clearInterval(checkClosed);
+                                    this.activeWindows.delete(systemId);
+                                    console.log(`${system.name} closed`);
+                                }
+                            }, 1000);
+                        } else {
+                            throw new Error('Window blocked by popup blocker');
+                        }
+                    } catch (error) {
+                        console.error(`Failed to launch ${system.name}:`, error);
+                        this.showNotification(`Failed to launch ${system.name}: ${error.message}`, 'error');
+                    }
+
+                    this.hideLoadingOverlay();
+                }, 1000);
+            }
+
+            launchAllSystems() {
+                if (confirm('Launch all NEXUS Forge systems? This will open multiple windows.')) {
+                    console.log('🚀 Launching all NEXUS systems...');
+                    this.showLoadingOverlay('Launching all systems...');
+
+                    const systemsToLaunch = [
+                        'ai-training',
+                        'math-engine',
+                        'education-bridge',
+                        'master-control',
+                        'system-monitor',
+                        'config-manager'
+                    ];
+
+                    let launchIndex = 0;
+                    const launchNext = () => {
+                        if (launchIndex < systemsToLaunch.length) {
+                            this.launchSystem(systemsToLaunch[launchIndex]);
+                            launchIndex++;
+                            setTimeout(launchNext, 1500); // Stagger launches
+                        } else {
+                            this.hideLoadingOverlay();
+                            this.showNotification('All NEXUS systems launched!', 'success');
+                        }
+                    };
+
+                    launchNext();
+                }
+            }
+
+            emergencyStop() {
+                if (confirm('EMERGENCY STOP: Close all NEXUS systems and reset? This cannot be undone.')) {
+                    console.warn('🚨 Emergency stop initiated');
+
+                    // Close all windows
+                    this.activeWindows.forEach((window, systemId) => {
+                        if (!window.closed) {
+                            window.close();
+                        }
+                    });
+                    this.activeWindows.clear();
+
+                    // Reset system states
+                    this.resetSystemStates();
+
+                    // Clear stored data
+                    localStorage.clear();
+
+                    this.showNotification('🚨 Emergency stop completed - All systems shut down', 'warning');
+                }
+            }
+
+            openSystemConfig(systemId) {
+                console.log(`⚙️ Opening configuration for ${systemId}`);
+                this.launchSystem('config-manager');
+            }
+
+            showSystemStatus(systemId) {
+                const system = this.systems.get(systemId);
+                if (system) {
+                    alert(`System Status: ${system.name}\n\nHealth: ${system.health}%\nStatus: ${system.status}\nDescription: ${system.description}`);
+                }
+            }
+
+            openCodePad() {
+                const codeWindow = window.open('upgraded code pad.css', 'nexus_codepad', 'width=1000,height=700,scrollbars=yes,resizable=yes');
+                if (codeWindow) {
+                    this.showNotification('Code Pad opened', 'info');
+                } else {
+                    this.showNotification('Failed to open Code Pad - check popup blocker', 'error');
+                }
+            }
+
+            openOptimizer() {
+                console.log('⚡ Opening Performance Optimizer...');
+                this.showNotification('Performance Optimizer coming soon!', 'info');
+            }
+
+            openDocumentation() {
+                console.log('📖 Opening Documentation...');
+                this.showNotification('Documentation system coming soon!', 'info');
+            }
+
+            openAPI() {
+                console.log('🔧 Opening API Reference...');
+                this.showNotification('API Reference coming soon!', 'info');
+            }
+
+            openTutorials() {
+                console.log('🎓 Opening Tutorials...');
+                this.showNotification('Tutorial system coming soon!', 'info');
+            }
+
+            openHelp() {
+                console.log('❓ Opening Help & Support...');
+                this.showNotification('Help system coming soon!', 'info');
+            }
+
+            startPerformanceMonitoring() {
+                setInterval(() => {
+                    // Simulate performance metrics
+                    this.performanceMetrics.cpu = Math.random() * 60 + 20;
+                    this.performanceMetrics.memory = Math.random() * 400 + 200;
+                    this.performanceMetrics.gpu = Math.random() * 80 + 10;
+                    this.performanceMetrics.network = Math.random() * 50 + 5;
+
+                    // Update performance display would go here
+                    // For now, just log occasionally
+                    if (Math.random() < 0.01) {
+                        console.log('📊 Performance:', this.performanceMetrics);
+                    }
+                }, 2000);
+            }
+
+            loadSystemStates() {
+                try {
+                    const saved = localStorage.getItem('nexus_launcher_state');
+                    if (saved) {
+                        const state = JSON.parse(saved);
+                        console.log('📥 Launcher state loaded');
+                    }
+                } catch (error) {
+                    console.warn('Failed to load launcher state:', error);
+                }
+            }
+
+            resetSystemStates() {
+                this.systems.forEach((system, id) => {
+                    system.health = Math.random() * 20 + 80; // Random health 80-100%
+                    system.status = system.health > 90 ? 'online' : 'warning';
+                });
+            }
+
+            showLoadingOverlay(text = 'Loading...') {
+                const overlay = document.getElementById('loadingOverlay');
+                const loadingText = document.getElementById('loadingText');
+                loadingText.textContent = text;
+                overlay.style.display = 'flex';
+            }
+
+            hideLoadingOverlay() {
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.style.display = 'none';
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+
+                const colors = {
+                    success: 'rgba(0, 170, 0, 0.9)',
+                    error: 'rgba(170, 0, 0, 0.9)',
+                    warning: 'rgba(170, 85, 0, 0.9)',
+                    info: 'rgba(0, 170, 255, 0.9)'
+                };
+
+                notification.style.background = colors[type] || colors.info;
+                notification.textContent = message;
+
+                document.body.appendChild(notification);
+
+                // Animate in
+                setTimeout(() => notification.classList.add('show'), 100);
+
+                // Remove after 4 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 400);
+                }, 4000);
+            }
+        }
+
+        // Initialize launcher when page loads
+        window.addEventListener('load', () => {
+            window.nexusLauncher = new NexusLauncher();
+            console.log('🌟 NEXUS Forge Launcher ready');
+        });
+    </script>
+</body>
+</html>

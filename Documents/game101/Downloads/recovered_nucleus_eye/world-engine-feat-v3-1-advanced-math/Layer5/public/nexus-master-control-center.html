@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Forge - Master Control Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #000011 0%, #001122 25%, #112233 50%, #001122 75%, #000011 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .control-center {
+            display: grid;
+            grid-template-rows: 100px 1fr 80px;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .header {
+            background: linear-gradient(90deg, rgba(0,255,255,0.2), rgba(255,0,255,0.2), rgba(0,255,255,0.2));
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.5), transparent);
+            animation: scanLine 4s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .main-logo {
+            font-size: 36px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00, #00ff00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px #00ffff;
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px #00ffff); }
+            50% { filter: drop-shadow(0 0 30px #ff00ff); }
+        }
+
+        .version-info {
+            font-size: 14px;
+            color: #888;
+            text-align: center;
+        }
+
+        .system-status {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid;
+            position: relative;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        .status-light.active {
+            background: #00ff00;
+            border-color: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+        }
+
+        .status-light.inactive {
+            background: #ff4444;
+            border-color: #ff4444;
+            box-shadow: 0 0 15px #ff4444;
+        }
+
+        .status-light.loading {
+            background: #ffff00;
+            border-color: #ffff00;
+            box-shadow: 0 0 15px #ffff00;
+            animation: statusBlink 1s ease-in-out infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .status-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .system-card {
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .system-card:hover {
+            background: rgba(0, 255, 255, 0.15);
+            border-color: #ff00ff;
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 255, 255, 0.3);
+        }
+
+        .system-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+
+        .system-card:hover::before {
+            opacity: 1;
+            animation: cardGlow 2s linear infinite;
+        }
+
+        @keyframes cardGlow {
+            0% { transform: rotate(45deg) translate(-100%, -100%); }
+            100% { transform: rotate(45deg) translate(100%, 100%); }
+        }
+
+        .card-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .card-description {
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            color: #aaa;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-bottom: 25px;
+            font-size: 12px;
+        }
+
+        .card-features li {
+            margin-bottom: 8px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .card-features li::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            color: #00ffff;
+        }
+
+        .launch-button {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            border-radius: 25px;
+            color: #000;
+            padding: 15px 30px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .launch-button:hover {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 0, 255, 0.4);
+        }
+
+        .launch-button:active {
+            transform: translateY(0);
+        }
+
+        .nucleus-card {
+            border-color: #ff00ff;
+        }
+
+        .nucleus-card .card-title {
+            color: #ff00ff;
+        }
+
+        .playground-card {
+            border-color: #ffff00;
+        }
+
+        .playground-card .card-title {
+            color: #ffff00;
+        }
+
+        .education-card {
+            border-color: #00ff00;
+        }
+
+        .education-card .card-title {
+            color: #00ff00;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .system-info {
+            display: flex;
+            gap: 40px;
+            font-size: 14px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .global-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: transparent;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            color: #00ffff;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+        }
+
+        .control-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 255, 255, 0.3);
+            border-top: 4px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: #00ffff;
+        }
+
+        .system-metrics {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            min-width: 200px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            color: #888;
+        }
+
+        .metric-value {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .warning-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            animation: warningPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        .success-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #00ff00;
+            color: #000;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <canvas class="matrix-bg" id="matrixCanvas"></canvas>
+
+    <div class="control-center">
+        <header class="header">
+            <div class="logo-section">
+                <div class="main-logo">🧠 NEXUS FORGE</div>
+                <div class="version-info">
+                    <div>Master Control Center</div>
+                    <div>v5.0.0 - Complete Integration</div>
+                </div>
+            </div>
+
+            <div class="system-status">
+                <div class="status-indicator">
+                    <div class="status-light loading" id="nucleusStatus"></div>
+                    <div class="status-label">Nucleus AI</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-light loading" id="playgroundStatus"></div>
+                    <div class="status-label">3D Engine</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-light loading" id="educationStatus"></div>
+                    <div class="status-label">Education</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-light loading" id="integrationStatus"></div>
+                    <div class="status-label">Integration</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-grid">
+            <!-- Nucleus AI Training System -->
+            <div class="system-card nucleus-card" onclick="launchSystem('nucleus')">
+                <div class="card-icon">🧠</div>
+                <div class="card-title">Nucleus AI Training</div>
+                <div class="card-description">
+                    Advanced AI communication and training interface for direct messaging and mathematical pattern learning.
+                </div>
+                <ul class="card-features">
+                    <li>Direct messaging to Nucleus core</li>
+                    <li>Real-time training data transmission</li>
+                    <li>Pattern analysis and insights</li>
+                    <li>Learning progress tracking</li>
+                    <li>Auto-training capabilities</li>
+                </ul>
+                <button class="launch-button">Launch Nucleus Interface</button>
+                <div class="success-badge" id="nucleusBadge" style="display: none;">✓</div>
+            </div>
+
+            <!-- 3D Mathematical Playground -->
+            <div class="system-card playground-card" onclick="launchSystem('playground')">
+                <div class="card-icon">🎮</div>
+                <div class="card-title">3D Math Playground</div>
+                <div class="card-description">
+                    Interactive 3D mathematical visualization with real-time calculations and WebGL rendering.
+                </div>
+                <ul class="card-features">
+                    <li>Hardware-accelerated 3D graphics</li>
+                    <li>Real-time Pythagorean calculations</li>
+                    <li>Vector operations and visualization</li>
+                    <li>Collision detection demos</li>
+                    <li>Lighting and attenuation</li>
+                </ul>
+                <button class="launch-button">Launch 3D Playground</button>
+                <div class="success-badge" id="playgroundBadge" style="display: none;">✓</div>
+            </div>
+
+            <!-- Educational Bridge System -->
+            <div class="system-card education-card" onclick="launchSystem('education')">
+                <div class="card-icon">🎓</div>
+                <div class="card-title">Educational Bridge</div>
+                <div class="card-description">
+                    Guided learning system connecting Tier 5-8 curriculum to interactive 3D mathematics.
+                </div>
+                <ul class="card-features">
+                    <li>Tier 5-8 Pythagorean curriculum</li>
+                    <li>Guided learning sequences</li>
+                    <li>Mastery tracking and assessment</li>
+                    <li>AI-powered recommendations</li>
+                    <li>Interactive demonstrations</li>
+                </ul>
+                <button class="launch-button">Launch Educational System</button>
+                <div class="success-badge" id="educationBadge" style="display: none;">✓</div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="system-info">
+                <div class="info-group">
+                    <div class="info-label">Systems Online</div>
+                    <div class="info-value" id="systemsOnline">0/4</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">AI Training Sessions</div>
+                    <div class="info-value" id="trainingSessions">0</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Calculations Performed</div>
+                    <div class="info-value" id="calculationsPerformed">0</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Learning Progress</div>
+                    <div class="info-value" id="learningProgress">0%</div>
+                </div>
+            </div>
+
+            <div class="global-controls">
+                <button class="control-btn" onclick="initializeAllSystems()">Initialize All</button>
+                <button class="control-btn" onclick="runSystemDiagnostics()">Diagnostics</button>
+                <button class="control-btn" onclick="exportSystemData()">Export Data</button>
+                <button class="control-btn" onclick="showDocumentation()">Documentation</button>
+            </div>
+        </footer>
+    </div>
+
+    <div class="system-metrics">
+        <div class="metric-row">
+            <span class="metric-label">CPU Usage:</span>
+            <span class="metric-value" id="cpuUsage">0%</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">Memory:</span>
+            <span class="metric-value" id="memoryUsage">0 MB</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">FPS:</span>
+            <span class="metric-value" id="fpsDisplay">0</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">Network:</span>
+            <span class="metric-value" id="networkStatus">Offline</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">Uptime:</span>
+            <span class="metric-value" id="systemUptime">0s</span>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">Initializing NEXUS Systems...</div>
+        </div>
+    </div>
+
+    <script>
+        // Master control center functionality
+        let systemState = {
+            nucleus: { online: false, url: 'nucleus-training-interface.html' },
+            playground: { online: false, url: 'nexus-3d-mathematical-playground.html' },
+            education: { online: false, url: 'nexus-3d-mathematical-playground.html' },
+            integration: { online: false }
+        };
+
+        let metrics = {
+            trainingSessions: 0,
+            calculations: 0,
+            learningProgress: 0,
+            systemsOnline: 0
+        };
+
+        let startTime = Date.now();
+
+        // Initialize matrix background
+        function initMatrixBackground() {
+            const canvas = document.getElementById('matrixCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const characters = '01NEXUSFORGE๖ۣۜ∞×ß';
+            const columns = Math.floor(canvas.width / 20);
+            const drops = Array(columns).fill(1);
+
+            function drawMatrix() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#00ffff';
+                ctx.font = '15px Courier New';
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = characters[Math.floor(Math.random() * characters.length)];
+                    ctx.fillText(text, i * 20, drops[i] * 20);
+
+                    if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+
+            setInterval(drawMatrix, 100);
+        }
+
+        // System launcher
+        async function launchSystem(systemType) {
+            showLoading(`Launching ${systemType} system...`);
+
+            try {
+                const config = systemState[systemType];
+
+                if (config.url) {
+                    // Open in new window with specific dimensions
+                    const windowFeatures = getWindowFeatures(systemType);
+                    const newWindow = window.open(config.url, `nexus_${systemType}`, windowFeatures);
+
+                    if (newWindow) {
+                        config.online = true;
+                        updateSystemStatus(systemType, 'active');
+                        showSystemBadge(systemType);
+
+                        // Monitor window
+                        monitorWindow(newWindow, systemType);
+
+                        // Update metrics
+                        updateMetrics();
+
+                        console.log(`✅ ${systemType} system launched successfully`);
+                    } else {
+                        throw new Error('Failed to open window - popup blocked?');
+                    }
+                } else {
+                    // Internal system activation
+                    config.online = true;
+                    updateSystemStatus(systemType, 'active');
+                    showSystemBadge(systemType);
+                    updateMetrics();
+                }
+
+            } catch (error) {
+                console.error(`❌ Failed to launch ${systemType}:`, error);
+                updateSystemStatus(systemType, 'inactive');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function getWindowFeatures(systemType) {
+            const features = {
+                nucleus: 'width=1400,height=900,scrollbars=yes,resizable=yes',
+                playground: 'width=1600,height=1000,scrollbars=no,resizable=yes',
+                education: 'width=1600,height=1000,scrollbars=no,resizable=yes'
+            };
+
+            return features[systemType] || 'width=1200,height=800,scrollbars=yes,resizable=yes';
+        }
+
+        function monitorWindow(windowRef, systemType) {
+            const checkInterval = setInterval(() => {
+                if (windowRef.closed) {
+                    systemState[systemType].online = false;
+                    updateSystemStatus(systemType, 'inactive');
+                    hideSystemBadge(systemType);
+                    updateMetrics();
+                    clearInterval(checkInterval);
+                    console.log(`📝 ${systemType} system closed`);
+                }
+            }, 1000);
+        }
+
+        // System status management
+        function updateSystemStatus(systemType, status) {
+            const statusElement = document.getElementById(`${systemType}Status`);
+            if (statusElement) {
+                statusElement.className = `status-light ${status}`;
+            }
+        }
+
+        function showSystemBadge(systemType) {
+            const badge = document.getElementById(`${systemType}Badge`);
+            if (badge) {
+                badge.style.display = 'flex';
+            }
+        }
+
+        function hideSystemBadge(systemType) {
+            const badge = document.getElementById(`${systemType}Badge`);
+            if (badge) {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Loading overlay
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Metrics and monitoring
+        function updateMetrics() {
+            const onlineCount = Object.values(systemState).filter(s => s.online).length;
+
+            document.getElementById('systemsOnline').textContent = `${onlineCount}/4`;
+            document.getElementById('trainingSessions').textContent = metrics.trainingSessions;
+            document.getElementById('calculationsPerformed').textContent = metrics.calculations;
+            document.getElementById('learningProgress').textContent = metrics.learningProgress + '%';
+
+            metrics.systemsOnline = onlineCount;
+        }
+
+        function updateSystemMetrics() {
+            // Mock system metrics (in real implementation, these would be actual measurements)
+            const cpuUsage = Math.floor(Math.random() * 30) + 10; // 10-40%
+            const memoryUsage = Math.floor(Math.random() * 200) + 100; // 100-300 MB
+            const fps = Math.floor(Math.random() * 10) + 55; // 55-65 FPS
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+
+            document.getElementById('cpuUsage').textContent = cpuUsage + '%';
+            document.getElementById('memoryUsage').textContent = memoryUsage + ' MB';
+            document.getElementById('fpsDisplay').textContent = fps;
+            document.getElementById('systemUptime').textContent = formatUptime(uptime);
+
+            // Update network status based on system connectivity
+            const networkStatus = metrics.systemsOnline > 0 ? 'Online' : 'Offline';
+            document.getElementById('networkStatus').textContent = networkStatus;
+        }
+
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+
+        // Global control functions
+        async function initializeAllSystems() {
+            showLoading('Initializing all NEXUS systems...');
+
+            const systems = ['nucleus', 'playground', 'education'];
+
+            for (let i = 0; i < systems.length; i++) {
+                const system = systems[i];
+                document.getElementById('loadingText').textContent = `Initializing ${system} system...`;
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                try {
+                    await launchSystem(system);
+                } catch (error) {
+                    console.error(`Failed to initialize ${system}:`, error);
+                }
+            }
+
+            // Activate integration system
+            systemState.integration.online = true;
+            updateSystemStatus('integration', 'active');
+
+            hideLoading();
+            console.log('🚀 All systems initialization complete');
+        }
+
+        async function runSystemDiagnostics() {
+            showLoading('Running comprehensive system diagnostics...');
+
+            const diagnostics = {
+                nucleus: await checkSystemHealth('nucleus'),
+                playground: await checkSystemHealth('playground'),
+                education: await checkSystemHealth('education'),
+                integration: await checkSystemHealth('integration')
+            };
+
+            hideLoading();
+
+            // Show diagnostics results
+            let report = 'NEXUS System Diagnostics Report:\n\n';
+            for (const [system, result] of Object.entries(diagnostics)) {
+                report += `${system.toUpperCase()}: ${result.status}\n`;
+                report += `  - Response Time: ${result.responseTime}ms\n`;
+                report += `  - Health Score: ${result.healthScore}%\n\n`;
+            }
+
+            alert(report);
+        }
+
+        async function checkSystemHealth(systemType) {
+            const startTime = Date.now();
+
+            // Simulate health check
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
+
+            const responseTime = Date.now() - startTime;
+            const isOnline = systemState[systemType].online;
+            const healthScore = isOnline ? Math.floor(Math.random() * 20) + 80 : 0;
+
+            return {
+                status: isOnline ? 'OPERATIONAL' : 'OFFLINE',
+                responseTime,
+                healthScore
+            };
+        }
+
+        function exportSystemData() {
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                systemState: systemState,
+                metrics: metrics,
+                uptime: Math.floor((Date.now() - startTime) / 1000),
+                diagnostics: 'System export generated successfully'
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                type: 'application/json'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `nexus-system-export-${Date.now()}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            console.log('📊 System data exported successfully');
+        }
+
+        function showDocumentation() {
+            // Open documentation
+            window.open('NEXUS_COMPLETE_SYSTEM_OVERVIEW.md', '_blank');
+        }
+
+        // Periodic updates
+        function startPeriodicUpdates() {
+            setInterval(updateSystemMetrics, 2000);
+            setInterval(updateMetrics, 5000);
+
+            // Simulate increasing metrics over time
+            setInterval(() => {
+                if (metrics.systemsOnline > 0) {
+                    metrics.trainingSessions += Math.floor(Math.random() * 3);
+                    metrics.calculations += Math.floor(Math.random() * 10) + 5;
+                    metrics.learningProgress = Math.min(100, metrics.learningProgress + Math.random() * 0.5);
+                }
+            }, 10000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        launchSystem('nucleus');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        launchSystem('playground');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        launchSystem('education');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        initializeAllSystems();
+                        break;
+                    case 'd':
+                        e.preventDefault();
+                        runSystemDiagnostics();
+                        break;
+                }
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('🚀 NEXUS Forge Master Control Center v5.0.0 - Initializing...');
+
+            initMatrixBackground();
+            startPeriodicUpdates();
+
+            // Initial system status check
+            setTimeout(() => {
+                updateSystemStatus('nucleus', 'inactive');
+                updateSystemStatus('playground', 'inactive');
+                updateSystemStatus('education', 'inactive');
+                updateSystemStatus('integration', 'inactive');
+                updateMetrics();
+            }, 1000);
+
+            console.log('✅ Master Control Center ready');
+            console.log('💡 Keyboard shortcuts: Ctrl+1 (Nucleus), Ctrl+2 (Playground), Ctrl+3 (Education), Ctrl+I (Initialize All)');
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('matrixCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

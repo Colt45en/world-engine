@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>World Engine Studio — Unified Advanced Integration</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#0f1523; --ink:#e6f0ff; --mut:#9ab0d6; --line:#1e2b46; --acc:#54f0b8; --chip:#182741;
+    --warn:#ffd166; --bad:#ff6b6b; --success:#00ff88; --beat:#ff4488; --holy:#ffaa00;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden}
+
+  /* Unified Layout */
+  .unified{display:grid;grid-template-columns:320px 1fr 320px;grid-template-rows:auto 1fr auto;gap:8px;height:100%;padding:8px}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(90deg,#0d1322,#1a0f22,#0d1322)}
+  .brand{font-weight:800;color:var(--acc)} .sp{flex:1}
+  .col{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0f1523,#0b1020);overflow:hidden;min-height:0;display:grid;gap:8px;padding:8px}
+  .left{grid-template-rows:auto 1fr auto}
+  .center{grid-template-rows:auto 1fr}
+  .right{grid-template-rows:auto 1fr auto}
+
+  /* Components */
+  .title{font-weight:700;color:#bfeaff;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:6px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .mini{font-size:12px;color:var(--mut)}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;transition:all 0.2s ease}
+  .btn:hover{background:var(--chip);border-color:var(--acc)}
+  .btn.primary{background:var(--acc);color:#000;font-weight:600}
+  .btn.beat{background:var(--beat);color:#fff;font-weight:600}
+  .btn.holy{background:var(--holy);color:#000;font-weight:600}
+  .chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12px}
+  .chip.success{background:var(--success);color:#000}
+  .chip.warn{background:var(--warn);color:#000}
+  .chip.error{background:var(--bad);color:#fff}
+  .chip.beat{background:var(--beat);color:#fff}
+  .chip.holy{background:var(--holy);color:#000}
+
+  /* Chat Interface */
+  .chat{display:grid;grid-template-rows:1fr auto;gap:8px;min-height:0}
+  .msgs{border:1px solid var(--line);border-radius:10px;background:#0a0f1c;padding:8px;overflow:auto;min-height:0}
+  .msg{margin:6px 0;padding:8px;border-radius:10px;white-space:pre-wrap;font-size:13px}
+  .me{background:#11203a} .ai{background:#0f1a2f} .sys{background:#122222;color:#9eead3}
+  .success{background:#0a2f1a;color:#9effd3;border-left:4px solid var(--success)}
+  .warn{background:#2f2a0a;color:#ffe99e;border-left:4px solid var(--warn)}
+  .error{background:#2f0a0a;color:#ff9e9e;border-left:4px solid var(--bad)}
+  .beat{background:#2f0a1a;color:#ff9ecc;border-left:4px solid var(--beat)}
+  .holy{background:#2f1f0a;color:#ffcc9e;border-left:4px solid var(--holy)}
+
+  /* V2 Enhancements - Morpheme highlighting */
+  .morpheme-highlight{padding:2px 4px;margin:1px;border-radius:4px;cursor:pointer;transition:background 0.2s;display:inline-block}
+  .morpheme-highlight:hover{background:rgba(84,240,184,0.3)}
+  .morpheme-highlight:focus{outline:2px solid var(--acc);outline-offset:1px}
+  .morpheme-root{background:rgba(84,240,184,0.2);border-left:3px solid var(--acc)}
+  .morpheme-prefix{background:rgba(255,170,0,0.2);border-left:3px solid var(--holy)}
+  .morpheme-suffix{background:rgba(255,68,136,0.2);border-left:3px solid var(--beat)}
+  .morpheme-infix{background:rgba(255,209,102,0.2);border-left:3px solid var(--warn)}
+
+  /* Toast container styles */
+  .toast-container{position:fixed;top:20px;right:20px;z-index:10000;max-width:300px;pointer-events:none}
+  .toast{background:var(--acc);color:#000;padding:12px 16px;border-radius:8px;margin-bottom:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:all 0.3s ease;pointer-events:auto;cursor:pointer}
+  .toast-success{background:var(--success)} .toast-warning{background:var(--warn)} .toast-error{background:var(--bad)}
+  .toast-beat{background:var(--beat);color:#fff} .toast-holy{background:var(--holy)}
+
+  /* Performance monitoring */
+  .perf-badge{position:fixed;bottom:20px;right:20px;background:rgba(15,21,35,0.9);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;color:var(--mut);z-index:9999}
+
+  input[type=text]{width:100%;background:#0b1120;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ink);transition:border-color 0.2s ease}
+  input[type=text]:focus{outline:none;border-color:var(--acc)}
+
+  /* Status Grid */
+  .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+  .status-item{background:var(--chip);padding:8px;border-radius:8px;text-align:center}
+  .status-online{background:var(--success);color:#000}
+  .status-offline{background:var(--bad);color:#fff}
+  .status-loading{background:var(--warn);color:#000}
+
+  /* Visualization Areas */
+  .viz-area{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#06101c;min-height:0;position:relative}
+  .viz-area iframe{display:block;width:100%;height:100%;border:0}
+  .label{position:absolute;top:6px;left:10px;font-size:12px;background:#0008;padding:3px 8px;border-radius:999px;border:1px solid #ffffff20;z-index:10}
+
+  /* Metrics Display */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:6px;margin:8px 0}
+  .metric{background:var(--chip);padding:6px;border-radius:6px;text-align:center}
+  .metric .value{font-size:16px;font-weight:700;color:var(--acc)}
+  .metric .label{font-size:10px;color:var(--mut);text-transform:uppercase}
+
+  /* Beat Visualizer */
+  .beat-viz{height:80px;background:#0a0f1c;border:1px solid var(--line);border-radius:8px;position:relative;overflow:hidden}
+  .beat-bar{position:absolute;bottom:0;width:4px;background:var(--beat);border-radius:2px;transition:height 0.1s ease}
+
+  .footer{padding:6px;text-align:center;color:#6eaeb0;grid-column:1/-1}
+  .kbd{font:11px/1.1 ui-monospace;background:#0a1322;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+</style>
+</head>
+<body>
+  <div class="unified">
+    <!-- Header -->
+    <div class="top">
+      <div class="brand">🌍 World Engine Studio</div>
+      <div class="mini">Unified Advanced Integration — World Engine + NEXUS Holy Beat System</div>
+      <div class="sp"></div>
+      <span class="chip">/analyze</span>
+      <span class="chip">/search</span>
+      <span class="chip">/comprehensive</span>
+      <span class="chip beat">/beat</span>
+      <span class="chip holy">🎵 Sacred Geometry</span>
+    </div>
+
+    <!-- Left Panel: Chat & Control -->
+    <section class="col left">
+      <div class="title">🤖 AI Command Interface</div>
+      <div class="chat">
+        <div id="msgs" class="msgs" aria-live="polite"></div>
+        <div class="row">
+          <input id="chatInput" type="text" placeholder="/analyze productivity  •  /search machine learning  •  /beat start sacred"/>
+          <button id="sendBtn" class="btn primary">Send</button>
+        </div>
+      </div>
+      <div class="mini">
+        Commands: <span class="kbd">/analyze</span> • <span class="kbd">/search</span> • <span class="kbd">/comprehensive</span> • <span class="kbd">/beat start|stop</span> • <span class="kbd">/status</span>
+      </div>
+    </section>
+
+    <!-- Center Panel: Visualizations -->
+    <section class="col center">
+      <div class="title">🎨 Unified Visualization Space</div>
+      <div style="display:grid;grid-template-rows:1fr 1fr;gap:8px;min-height:0">
+        <div class="viz-area">
+          <div class="label">World Engine Advanced Systems</div>
+          <iframe id="worldEngineFrame" src="world-engine-studio.html" title="World Engine Advanced Systems"></iframe>
+        </div>
+        <div class="viz-area">
+          <div class="label">🎵 NEXUS Holy Beat System</div>
+          <iframe id="beatSystemFrame" src="nexus-holy-beat-system/beat-room.html" title="NEXUS Holy Beat System"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Status & Metrics -->
+    <section class="col right">
+      <div class="title">📊 System Status</div>
+      <div class="status-grid">
+        <div id="morphologyStatus" class="status-item status-loading" data-system="morphology">Morphology<br><small>Loading...</small></div>
+        <div id="indexStatus" class="status-item status-loading" data-system="indexing">Indexing<br><small>Loading...</small></div>
+        <div id="uxStatus" class="status-item status-loading" data-system="ux">UX Pipeline<br><small>Loading...</small></div>
+        <div id="beatStatus" class="status-item status-loading" data-system="beat">Beat System<br><small>Loading...</small></div>
+      </div>
+
+      <div class="title">🎵 Beat Visualizer</div>
+      <div id="beatViz" class="beat-viz"></div>
+
+      <div class="title">📈 Performance Metrics</div>
+      <div id="metricsDisplay" class="metrics">
+        <div class="metric">
+          <div class="value" id="processedCount">0</div>
+          <div class="label">Processed</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="successRate">0%</div>
+          <div class="label">Success Rate</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="avgTime">0ms</div>
+          <div class="label">Avg Time</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="uptime">0s</div>
+          <div class="label">Uptime</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer mini">
+      🌍 World Engine Studio v2.0 — Unified Advanced Integration Platform<br>
+      Morphological Analysis • Semantic Indexing • Sacred Geometry • Beat Synchronization
+    </div>
+  </div>
+
+  <!-- Studio Bridge -->
+  <script src="studio-bridge.js"></script>
+
+  <!-- Socket.IO for real-time communication -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Main Integration Logic -->
+  <script type="module">
+  (function(){
+    'use strict';
+
+    let socket = null;
+    let systemStatus = {
+      morphology: 'loading',
+      indexing: 'loading',
+      ux: 'loading',
+      beat: 'loading'
+    };
+
+    const Bridge = window.StudioBridge;
+    const $ = (id) => document.getElementById(id);
+    const msgs = $('msgs');
+    const chatInput = $('chatInput');
+    const sendBtn = $('sendBtn');
+
+    // V2 Enhancement: Initialize HTML Pipeline and Enhanced systems
+    let htmlPipeline = null;
+    let morphologyEngine = null;
+    let enhancedUpflow = null;
+    let performanceMonitor = null;
+
+    // Performance monitoring badge
+    function createPerformanceMonitor() {
+      const badge = document.createElement('div');
+      badge.className = 'perf-badge';
+      badge.innerHTML = 'Performance: <span id="perfMetric">--</span>';
+      document.body.appendChild(badge);
+
+      performanceMonitor = {
+        element: badge,
+        metric: badge.querySelector('#perfMetric'),
+
+        update: (value, unit = 'ms') => {
+          badge.querySelector('#perfMetric').textContent = value + unit;
+        },
+
+        measure: (name, fn) => {
+          const start = performance.now();
+          const result = fn();
+          const end = performance.now();
+          performanceMonitor.update((end - start).toFixed(2));
+          return result;
+        }
+      };
+
+      return performanceMonitor;
+    }
+
+    // Initialize Socket.IO connection
+    function initializeSocket() {
+      socket = io();
+
+      socket.on('connect', () => {
+        console.log('🔌 Connected to unified scaffold bus');
+        say('Connected to unified scaffold bus', 'sys success');
+        requestSystemStatus();
+      });
+
+      socket.on('disconnect', () => {
+        console.log('🔌 Disconnected from bus');
+        say('Disconnected from bus', 'sys warn');
+      });
+
+      socket.on('studio-bus', (message) => {
+        handleBusMessage(message);
+      });
+
+      socket.on('error', (error) => {
+        console.error('Socket error:', error);
+        say('Connection error: ' + error.message, 'sys error');
+      });
+    }
+
+    // Handle incoming bus messages
+    function handleBusMessage(message) {
+      console.log('📨 Received:', message.type, message);
+
+      switch (message.type) {
+        case 'we.result':
+          displayResult(message.result, message.requestType);
+          break;
+        case 'we.status':
+          updateSystemStatus(message.result);
+          break;
+        case 'beat.started':
+          say('🎵 Beat system started with config: ' + JSON.stringify(message.config), 'beat');
+          updateBeatStatus('online');
+          break;
+        case 'beat.stopped':
+          say('🎵 Beat system stopped', 'beat');
+          updateBeatStatus('offline');
+          break;
+        case 'error':
+          say('❌ Error: ' + message.error, 'error');
+          break;
+        default:
+          console.log('Unknown message type:', message.type);
+      }
+    }
+
+    // Send message via bus
+    function sendBusMessage(type, data = {}) {
+      const message = {
+        type: type,
+        requestId: Bridge.Utils.id(),
+        timestamp: Date.now(),
+        ...data
+      };
+
+      console.log('📤 Sending:', type, message);
+      socket.emit('studio-bus', message);
+
+      return message.requestId;
+    }
+
+    // Display chat message
+    function say(text, className = 'ai') {
+      const div = document.createElement('div');
+      div.className = 'msg ' + className;
+      div.textContent = text;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    // Display analysis results with V2 enhancements
+    function displayResult(result, type) {
+      if (htmlPipeline) {
+        htmlPipeline.measurePerformance(`${type} Analysis`, () => {
+          // Create enhanced result display
+          const resultDiv = document.createElement('div');
+          resultDiv.className = 'msg success';
+
+          let content = `✅ ${type} result:\n`;
+
+          // Enhanced morphological analysis display
+          if (type === 'morphological' && result.original && result.morphemes) {
+            content += `📝 Original: "${result.original}"\n`;
+            content += `🔍 Root: ${result.root || 'N/A'}\n`;
+            content += `📊 Complexity: ${result.complexity || 'N/A'}\n`;
+            content += `🎯 Confidence: ${result.confidence || 'N/A'}\n`;
+            content += `🏷️ Semantic Class: ${result.semanticClass || 'N/A'}\n`;
+
+            if (result.morphemes && result.morphemes.length > 0) {
+              content += `\n🧩 Morphemes (${result.morphemes.length}):\n`;
+              result.morphemes.forEach((morpheme, i) => {
+                const position = result.positions && result.positions[i] ?
+                  `[${result.positions[i].start}-${result.positions[i].end}]` : '';
+                content += `  ${i+1}. ${morpheme.text} (${morpheme.type}) ${position}\n`;
+              });
+            }
+          } else {
+            // Standard JSON display for other results
+            content += JSON.stringify(result, null, 2);
+          }
+
+          resultDiv.textContent = content;
+          msgs.appendChild(resultDiv);
+
+          // Add morpheme highlighting if available
+          if (type === 'morphological' && result.positions && htmlPipeline.highlightMorphemes) {
+            // Create a separate highlighted version
+            const highlightDiv = document.createElement('div');
+            highlightDiv.className = 'msg success';
+            highlightDiv.innerHTML = `<strong>📝 Interactive Analysis:</strong><br>`;
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = result.original;
+            htmlPipeline.highlightMorphemes(textSpan, result);
+            highlightDiv.appendChild(textSpan);
+
+            msgs.appendChild(highlightDiv);
+          }
+
+          msgs.scrollTop = msgs.scrollHeight;
+        });
+
+      } else {
+        // Fallback to basic display
+        const resultText = JSON.stringify(result, null, 2);
+        say(`✅ ${type} result:\n${resultText}`, 'success');
+      }
+    }
+
+    // Update system status display
+    function updateSystemStatus(status) {
+      if (status.systems) {
+        Object.keys(status.systems).forEach(system => {
+          const element = document.querySelector(`[data-system="${system}"]`);
+          if (element) {
+            const isOnline = status.systems[system] === 'online';
+            element.className = `status-item status-${isOnline ? 'online' : 'offline'}`;
+            element.innerHTML = `${system}<br><small>${status.systems[system]}</small>`;
+            systemStatus[system] = status.systems[system];
+          }
+        });
+      }
+
+      if (status.metrics) {
+        $('processedCount').textContent = status.metrics.processedCount || 0;
+        $('successRate').textContent = (status.metrics.successRate || 0).toFixed(1) + '%';
+        $('avgTime').textContent = Math.round(status.metrics.avgTime || 0) + 'ms';
+        $('uptime').textContent = Math.round((status.metrics.uptime || 0) / 1000) + 's';
+      }
+    }
+
+    // Update beat system status
+    function updateBeatStatus(status) {
+      const element = $('beatStatus');
+      element.className = `status-item status-${status}`;
+      element.innerHTML = `Beat System<br><small>${status}</small>`;
+      systemStatus.beat = status;
+    }
+
+    // Request system status
+    function requestSystemStatus() {
+      sendBusMessage('we.status');
+    }
+
+    // Handle command input
+    function handleCommand(line) {
+      const cmd = Bridge.Utils.parseCommand(line);
+      say(line, 'me');
+
+      switch (cmd.type) {
+        case 'analyze':
+          sendBusMessage('we.analyze', { text: cmd.args, options: {} });
+          say('🔍 Analyzing: ' + cmd.args, 'sys');
+          break;
+
+        case 'search':
+          sendBusMessage('we.search', { query: cmd.args, options: { maxResults: 5 } });
+          say('🔎 Searching: ' + cmd.args, 'sys');
+          break;
+
+        case 'comprehensive':
+          sendBusMessage('we.comprehensive', { input: cmd.args, options: {} });
+          say('🧠 Comprehensive processing: ' + cmd.args, 'sys');
+          break;
+
+        case 'beat':
+          if (cmd.args === 'start') {
+            sendBusMessage('beat.start', { config: { mode: 'sacred', tempo: 120 } });
+          } else if (cmd.args === 'stop') {
+            sendBusMessage('beat.stop');
+          } else {
+            say('Beat commands: start, stop', 'sys warn');
+          }
+          break;
+
+        case 'status':
+          requestSystemStatus();
+          break;
+
+        case 'help':
+          say(`Available commands:
+/analyze <text> - Morphological analysis (v2)
+/search <query> - Semantic search
+/comprehensive <input> - Full processing
+/beat start|stop - Beat system control
+/status - System status
+/upflow actions|states|entities - Query semantic classes
+/performance - Show performance metrics`, 'sys');
+          break;
+
+        case 'upflow':
+          if (enhancedUpflow) {
+            const semanticClass = cmd.args;
+            if (['actions', 'states', 'entities', 'properties', 'structures'].includes(semanticClass)) {
+              enhancedUpflow.semantic[semanticClass]().then(results => {
+                say(`🔍 Upflow ${semanticClass}: Found ${results.length} entries`, 'success');
+                if (results.length > 0) {
+                  const sample = results.slice(0, 3).map(r => r.word || r.original).join(', ');
+                  say(`Sample: ${sample}${results.length > 3 ? '...' : ''}`, 'sys');
+                }
+              }).catch(err => {
+                say(`⚠️ Upflow query failed: ${err.message}`, 'warn');
+              });
+            } else {
+              say('Usage: /upflow actions|states|entities|properties|structures', 'sys warn');
+            }
+          } else {
+            say('⚠️ Enhanced Upflow v2 not available', 'warn');
+          }
+          break;
+
+        case 'performance':
+          if (performanceMonitor) {
+            const uptime = Date.now() - systemMetrics.startTime;
+            say(`⚡ Performance Metrics:
+- Uptime: ${Math.floor(uptime / 1000)}s
+- Morphology Engine: ${morphologyEngine ? 'v2' : 'offline'}
+- Enhanced Upflow: ${enhancedUpflow ? 'v2' : 'offline'}
+- HTML Pipeline: ${htmlPipeline ? 'v2' : 'offline'}`, 'success');
+          } else {
+            say('⚠️ Performance monitoring not available', 'warn');
+          }
+          break;
+
+        default:
+          // Enhanced default with v2 morphology analysis
+          if (morphologyEngine) {
+            const result = morphologyEngine.analyzeV2(cmd.args);
+            displayResult(result, 'morphological');
+
+            // Also send to bus for server processing
+            sendBusMessage('we.analyze', { text: cmd.args, options: { version: '2.0' } });
+          } else {
+            // Fallback to standard analysis
+            sendBusMessage('we.analyze', { text: cmd.args, options: {} });
+            say('🔍 Analyzing: ' + cmd.args, 'sys');
+          }
+          break;
+      }
+    }
+
+    // Event handlers
+    function sendCommand() {
+      const line = chatInput.value.trim();
+      if (!line) return;
+
+      chatInput.value = '';
+      handleCommand(line);
+    }
+
+    sendBtn.addEventListener("click", function(e) { try { sendCommand(e); } catch(err) { console.error("Event error:", err); } });
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendCommand();
+      }
+    });
+
+    // Beat visualizer
+    function initializeBeatVisualizer() {
+      const beatViz = $('beatViz');
+      const bars = [];
+
+      // Create beat bars
+      for (let i = 0; i < 32; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'beat-bar';
+        bar.style.left = (i * 8 + 2) + 'px';
+        bar.style.height = '2px';
+        beatViz.appendChild(bar);
+        bars.push(bar);
+      }
+
+      // Animate beat bars
+      setInterval(() => {
+        if (systemStatus.beat === 'online') {
+          bars.forEach((bar, i) => {
+            const height = 2 + Math.random() * 76;
+            bar.style.height = height + 'px';
+            bar.style.opacity = 0.3 + (height / 78) * 0.7;
+          });
+        } else {
+          bars.forEach(bar => {
+            bar.style.height = '2px';
+            bar.style.opacity = '0.3';
+          });
+        }
+      }, 100);
+    }
+
+    // Initialize everything
+    async function initialize() {
+      console.log('🚀 Initializing Unified World Engine Studio v2');
+      say('🌍 Welcome to World Engine Studio v2.0', 'sys holy');
+      say('Unified Advanced Integration Platform', 'sys');
+
+      // Initialize V2 systems
+      try {
+        // Load v2 modules dynamically
+        const [
+          { createHTMLPipelineV2 },
+          { AdvancedMorphologyEngine },
+          { createEnhancedUpflowV2 }
+        ] = await Promise.all([
+          import('./models/enhanced-html-pipeline-v2.js'),
+          import('./models/advanced-morphology-engine.js'),
+          import('./models/enhanced-upflow-v2-fixed.js')
+        ]);
+
+        // Initialize HTML Pipeline v2
+        htmlPipeline = createHTMLPipelineV2({
+          container: document.body,
+          reactMode: false
+        });
+        htmlPipeline.showToast('HTML Pipeline v2 initialized', 'success');
+
+        // Initialize Enhanced Morphology Engine v2
+        morphologyEngine = new AdvancedMorphologyEngine({
+          debug: true,
+          enableV2Features: true
+        });
+        console.log('✅ Morphology Engine v2 loaded:', morphologyEngine.systemId);
+        htmlPipeline.showToast('Morphology Engine v2 loaded', 'success');
+
+        // Initialize Enhanced Upflow v2 with factory pattern
+        enhancedUpflow = await createEnhancedUpflowV2();
+        console.log('✅ Enhanced Upflow v2 ready:', enhancedUpflow.version);
+        htmlPipeline.showToast('Enhanced Upflow v2 ready', 'success');
+
+        // Create performance monitor
+        createPerformanceMonitor();
+
+        say('✅ All v2 systems initialized successfully', 'success');
+
+      } catch (error) {
+        console.error('V2 initialization error:', error);
+        say('⚠️ Some v2 systems failed to initialize: ' + error.message, 'warn');
+
+        // Fallback: create basic toast system
+        if (!htmlPipeline) {
+          htmlPipeline = { showToast: (msg, type) => console.log(`[${type}] ${msg}`) };
+        }
+      }
+
+      say('Type /help for available commands', 'sys');
+
+      initializeSocket();
+      initializeBeatVisualizer();
+
+      // Request initial status
+      setTimeout(() => {
+        if (socket && socket.connected) {
+          requestSystemStatus();
+        }
+      }, 1000);
+
+      // Periodic status updates
+      setInterval(() => {
+        if (socket && socket.connected) {
+          requestSystemStatus();
+        }
+      }, 10000);
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+      initialize();
+    }
+  })();
+  </script>
+</body>
+</html>

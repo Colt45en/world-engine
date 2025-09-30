@@ -1,0 +1,206 @@
+# Production docker-compose with advanced features
+version: '3.8'
+
+services:
+  # Load Balancer / Reverse Proxy
+  traefik:
+    image: traefik:v3.0
+    container_name: nexus-traefik
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.myresolver.acme.tlschallenge=true
+      - --certificatesresolvers.myresolver.acme.email=your-email@example.com
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  # Nexus Bridge with horizontal scaling
+  nexus-bridge:
+    build:
+      context: ./src/bridge
+      dockerfile: ../../docker/bridge/Dockerfile
+    environment:
+      - PYTHONPATH=/app
+      - NEXUS_ENV=production
+      - MAX_MEMORY_MB=1024
+      - MAX_TRAINING_POINTS=5000
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://nexus:nexus_secure_password@postgres:5432/nexus
+    volumes:
+      - bridge_logs:/app/logs
+      - bridge_data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - nexus-network
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nexus-api.rule=Host(`your-domain.com`) && PathPrefix(`/api`)
+      - traefik.http.routers.nexus-api.entrypoints=websecure
+      - traefik.http.routers.nexus-api.tls.certresolver=myresolver
+      - traefik.http.services.nexus-api.loadbalancer.server.port=8888
+
+  # Nexus Frontend
+  nexus-frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    environment:
+      - REACT_APP_API_URL=https://your-domain.com/api
+      - REACT_APP_WS_URL=wss://your-domain.com/api
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - nexus-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nexus-frontend.rule=Host(`your-domain.com`)
+      - traefik.http.routers.nexus-frontend.entrypoints=websecure
+      - traefik.http.routers.nexus-frontend.tls.certresolver=myresolver
+
+  # Redis Cluster for high availability
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - nexus-network
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  # PostgreSQL with backup
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexus-postgres
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexus_secure_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - nexus-network
+
+  # Backup service
+  postgres-backup:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexus_secure_password_change_me}
+    volumes:
+      - postgres_backups:/backups
+    command: |
+      sh -c "
+      while true; do
+        pg_dump -h postgres -U nexus -d nexus > /backups/backup-$$(date +%Y%m%d_%H%M%S).sql
+        find /backups -name '*.sql' -mtime +7 -delete
+        sleep 86400
+      done
+      "
+    depends_on:
+      - postgres
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  # Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nexus-prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - nexus-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nexus-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+    networks:
+      - nexus-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`monitoring.your-domain.com`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls.certresolver=myresolver
+
+  # Log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: nexus-loki
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - nexus-network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: nexus-promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./docker/promtail/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  traefik_letsencrypt:
+  bridge_logs:
+  bridge_data:
+  redis_data:
+  postgres_data:
+  postgres_backups:
+  prometheus_data:
+  grafana_data:
+  loki_data:

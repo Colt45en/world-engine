@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Sentiment Training Engine - SASE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #0f0f23 100%);
+            color: #e8f0ff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .training-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(15, 22, 38, 0.95);
+            border: 2px solid #64ffda;
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #64ffda, #ff00ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .equation-display {
+            background: rgba(100, 255, 218, 0.1);
+            border: 1px solid #64ffda;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+        }
+
+        .state-display {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .state-card {
+            background: rgba(255, 0, 255, 0.1);
+            border: 1px solid #ff00ff;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .state-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .state-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #64ffda;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .transform-button {
+            background: linear-gradient(45deg, #1e3c72 0%, #2a5298 100%);
+            border: 2px solid #64ffda;
+            color: #e8f0ff;
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .transform-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(100, 255, 218, 0.3);
+            border-color: #ff00ff;
+        }
+
+        .transform-button.active {
+            background: linear-gradient(45deg, #ff00ff, #ff7bd5);
+            border-color: #ff00ff;
+            animation: pulse 1.5s infinite;
+        }
+
+        .button-abbrev {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 10px;
+            opacity: 0.7;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .scaling-display {
+            background: rgba(255, 123, 213, 0.1);
+            border: 1px solid #ff7bd5;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .pipeline-display {
+            background: rgba(125, 211, 255, 0.1);
+            border: 1px solid #7dd3ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .history-display {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #11998e 0%, #38ef7d 100%);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .chart {
+            width: 100%;
+            height: 60px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(to top, #64ffda, #ff00ff);
+            border-radius: 2px;
+            transition: all 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .sequence-display {
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid #ffaa00;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="training-container">
+        <div class="header">
+            <h1 class="title">🧠 Nexus SASE Training Engine</h1>
+            <p>Sentiment Analysis State Engine - Mathematical Button System</p>
+        </div>
+
+        <div class="equation-display" id="equationDisplay">
+            S' = G(R(P(I(A(S))))) | Current State Vector Processing
+        </div>
+
+        <div class="state-display">
+            <div class="state-card">
+                <div class="state-label">Polarity</div>
+                <div class="state-value" id="polarity">0.000</div>
+            </div>
+            <div class="state-card">
+                <div class="state-label">Intensity</div>
+                <div class="state-value" id="intensity">0.500</div>
+            </div>
+            <div class="state-card">
+                <div class="state-label">Granularity</div>
+                <div class="state-value" id="granularity">0.300</div>
+            </div>
+            <div class="state-card">
+                <div class="state-label">Confidence</div>
+                <div class="state-value" id="confidence">0.600</div>
+            </div>
+            <div class="state-card">
+                <div class="state-label">Language ID</div>
+                <div class="state-value" id="languageId">1.000</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="resetState()">🔄 Reset State</button>
+            <button class="control-btn" onclick="runFullPipeline()">⚡ Run Pipeline</button>
+            <button class="control-btn" onclick="exportTraining()">📊 Export Data</button>
+            <button class="control-btn" onclick="randomizeInput()">🎲 Random Input</button>
+        </div>
+
+        <div class="button-grid">
+            <button class="transform-button" onclick="pressButton('ALIGN')" data-scale="1.8">
+                <span class="button-abbrev">A</span>
+                ALIGN<br>
+                <small>Word Alignment Operator</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('PROJ')" data-scale="1.5">
+                <span class="button-abbrev">P</span>
+                PROJECTION<br>
+                <small>Label Projection Function</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('REFINE')" data-scale="1.3">
+                <span class="button-abbrev">R</span>
+                REFINE<br>
+                <small>Statistical Refinement</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('POLY')" data-scale="1.1">
+                <span class="button-abbrev">Y</span>
+                POLYSEMY<br>
+                <small>Multiple Meaning Resolver</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('IRONY')" data-scale="2.0">
+                <span class="button-abbrev">I</span>
+                SARCASM/IRONY<br>
+                <small>Context Inversion Detector</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('INTENSITY')" data-scale="1.4">
+                <span class="button-abbrev">IM</span>
+                INTENSITY MOD<br>
+                <small>Sentiment Amplifier</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('GRAPH')" data-scale="1.6">
+                <span class="button-abbrev">G</span>
+                SYNONYM GRAPH<br>
+                <small>Lexical Network</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('DIRECTION')" data-scale="1.2">
+                <span class="button-abbrev">D</span>
+                DIRECTION<br>
+                <small>Increase/Decrease/Variance</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('NOISE')" data-scale="0.9">
+                <span class="button-abbrev">N</span>
+                NOISY DATA<br>
+                <small>Data Quality Degrader</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('MANUAL')" data-scale="1.7">
+                <span class="button-abbrev">M</span>
+                MANUAL LABEL<br>
+                <small>Human Annotation</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('MULTILANG')" data-scale="2.2">
+                <span class="button-abbrev">ML</span>
+                MULTILINGUAL<br>
+                <small>Cross-Language Scale</small>
+            </button>
+            <button class="transform-button" onclick="pressButton('CORPUS')" data-scale="1.9">
+                <span class="button-abbrev">CT</span>
+                CORPUS TRANS<br>
+                <small>Data-Driven Translation</small>
+            </button>
+        </div>
+
+        <div class="meta-info">
+            <div class="pipeline-display">
+                <h3>🔄 Active Pipeline</h3>
+                <div id="pipelineSequence">S → ...</div>
+                <div class="chart" id="pipelineChart"></div>
+            </div>
+
+            <div class="scaling-display">
+                <h3>📈 Scaling Factor</h3>
+                <div id="scalingValue">1.0x</div>
+                <div id="scalingEffect">No transformation applied</div>
+                <div class="chart" id="scalingChart"></div>
+            </div>
+
+            <div class="sequence-display">
+                <h3>🧮 Mathematical Sequence</h3>
+                <div id="mathSequence">f₀(S) = S</div>
+                <div style="margin-top: 10px;">
+                    <small>Meta: <span id="metaVersion">Initial State</span></small><br>
+                    <small>Meaning: <span id="meaningfulWord">Baseline</span></small>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-display">
+            <h3>📋 Transformation History</h3>
+            <div id="transformHistory">System initialized. Ready for training.</div>
+        </div>
+    </div>
+
+    <script>
+        // Sentiment Analysis State Engine (SASE)
+        class NexusSASE {
+            constructor() {
+                this.state = [0.0, 0.5, 0.3, 0.6, 1.0]; // [polarity, intensity, granularity, confidence, language_id]
+                this.history = [];
+                this.pipeline = [];
+                this.totalScaling = 1.0;
+                this.transformCount = 0;
+            }
+
+            // Core transformation functions
+            ALIGN(S, corpusWeight = 0.8) {
+                const result = [
+                    S[0] + 0.2 * S[2] + 0.3 * S[3] - 0.1 * S[4],
+                    S[1] * 0.9,
+                    S[2] + 0.2 * S[0],
+                    S[3] * 0.7 + 0.5 * S[4],
+                    S[4] * 0.9 + 0.5 * S[3]
+                ];
+                return result.map(val => Math.max(-1, Math.min(1, val * corpusWeight)));
+            }
+
+            PROJ(S, sourceConfidence = 0.85) {
+                return [
+                    S[0],
+                    Math.min(1, S[1] + 0.1),
+                    Math.max(0, S[2] - 0.1),
+                    Math.min(1, Math.max(0, sourceConfidence)),
+                    S[4]
+                ];
+            }
+
+            REFINE(S, noiseThreshold = 0.7) {
+                if (S[3] < noiseThreshold) {
+                    const noiseReduction = 1 - (S[3] / noiseThreshold);
+                    return [
+                        S[0],
+                        S[1] * (1 - noiseReduction),
+                        S[2] * (1 + noiseReduction),
+                        S[3] * 1.2,
+                        S[4]
+                    ];
+                }
+                return S;
+            }
+
+            POLY(S, ambiguityLevel = 0.5) {
+                const granularityBoost = ambiguityLevel * 0.3;
+                const confidencePenalty = ambiguityLevel * 0.2;
+                return [
+                    S[0],
+                    S[1],
+                    Math.min(1, S[2] + granularityBoost),
+                    Math.max(0, S[3] - confidencePenalty),
+                    S[4]
+                ];
+            }
+
+            IRONY(S, contextWeight = 0.6) {
+                const polarityFlip = contextWeight > 0.5 ? -1 : 1;
+                return [
+                    S[0] * polarityFlip,
+                    Math.min(1, S[1] * 1.3),
+                    Math.min(1, S[2] * 1.1),
+                    S[3] * 0.9,
+                    S[4]
+                ];
+            }
+
+            INTENSITY(S, amplifier = 1.5) {
+                return [
+                    Math.max(-1, Math.min(1, S[0] * amplifier)),
+                    Math.min(1, S[1] * 1.2),
+                    S[2],
+                    S[3],
+                    S[4]
+                ];
+            }
+
+            GRAPH(S) {
+                return [
+                    S[0],
+                    Math.min(1, S[1] * 1.2),
+                    Math.min(1, S[2] * 1.3),
+                    Math.min(1, S[3] * 1.1),
+                    S[4] * 0.95
+                ];
+            }
+
+            DIRECTION(S) {
+                return [
+                    Math.tanh(S[0]),
+                    S[1],
+                    Math.min(1, S[2] * 1.15),
+                    S[3],
+                    S[4]
+                ];
+            }
+
+            NOISE(S, noiseLevel = 0.2) {
+                return S.map(val => val + (Math.random() - 0.5) * noiseLevel);
+            }
+
+            MANUAL(S, humanConfidence = 0.95) {
+                return [
+                    S[0],
+                    S[1],
+                    S[2],
+                    Math.min(1, humanConfidence),
+                    S[4]
+                ];
+            }
+
+            MULTILANG(S, langComplexity = 1.5) {
+                return [
+                    S[0],
+                    S[1],
+                    Math.min(1, S[2] * langComplexity),
+                    S[3] * 0.9,
+                    Math.min(5, S[4] + 0.3)
+                ];
+            }
+
+            CORPUS(S, corpusSize = 1.2) {
+                return S.map((val, i) => i === 3 ? Math.min(1, val * corpusSize) : val);
+            }
+
+            applyTransformation(buttonName) {
+                this.history.push([...this.state]);
+
+                const transformations = {
+                    'ALIGN': () => this.ALIGN(this.state),
+                    'PROJ': () => this.PROJ(this.state),
+                    'REFINE': () => this.REFINE(this.state),
+                    'POLY': () => this.POLY(this.state),
+                    'IRONY': () => this.IRONY(this.state),
+                    'INTENSITY': () => this.INTENSITY(this.state),
+                    'GRAPH': () => this.GRAPH(this.state),
+                    'DIRECTION': () => this.DIRECTION(this.state),
+                    'NOISE': () => this.NOISE(this.state),
+                    'MANUAL': () => this.MANUAL(this.state),
+                    'MULTILANG': () => this.MULTILANG(this.state),
+                    'CORPUS': () => this.CORPUS(this.state)
+                };
+
+                if (transformations[buttonName]) {
+                    this.state = transformations[buttonName]();
+                    this.pipeline.push(buttonName);
+                    this.transformCount++;
+                    return true;
+                }
+                return false;
+            }
+
+            getScalingFactor(buttonName) {
+                const factors = {
+                    'ALIGN': 1.8, 'PROJ': 1.5, 'REFINE': 1.3, 'POLY': 1.1,
+                    'IRONY': 2.0, 'INTENSITY': 1.4, 'GRAPH': 1.6, 'DIRECTION': 1.2,
+                    'NOISE': 0.9, 'MANUAL': 1.7, 'MULTILANG': 2.2, 'CORPUS': 1.9
+                };
+                return factors[buttonName] || 1.0;
+            }
+
+            getMetaInfo(buttonName) {
+                const metaData = {
+                    'ALIGN': { meta: 'Foundation', meaning: 'Word Correspondence' },
+                    'PROJ': { meta: 'Transfer', meaning: 'Label Mapping' },
+                    'REFINE': { meta: 'Optimization', meaning: 'Noise Reduction' },
+                    'POLY': { meta: 'Ambiguity Handler', meaning: 'Multi-sense Resolver' },
+                    'IRONY': { meta: 'Context Inverter', meaning: 'Sarcasm Detector' },
+                    'INTENSITY': { meta: 'Amplifier', meaning: 'Strength Modifier' },
+                    'GRAPH': { meta: 'Network', meaning: 'Lexical Relations' },
+                    'DIRECTION': { meta: 'Vector', meaning: 'Trend Indicator' },
+                    'NOISE': { meta: 'Degrader', meaning: 'Quality Reducer' },
+                    'MANUAL': { meta: 'Human Input', meaning: 'Expert Knowledge' },
+                    'MULTILANG': { meta: 'Cross-Lingual', meaning: 'Language Bridge' },
+                    'CORPUS': { meta: 'Data Source', meaning: 'Training Base' }
+                };
+                return metaData[buttonName] || { meta: 'Unknown', meaning: 'Undefined' };
+            }
+        }
+
+        // Initialize the engine
+        const sase = new NexusSASE();
+
+        function updateDisplay() {
+            // Update state values
+            document.getElementById('polarity').textContent = sase.state[0].toFixed(3);
+            document.getElementById('intensity').textContent = sase.state[1].toFixed(3);
+            document.getElementById('granularity').textContent = sase.state[2].toFixed(3);
+            document.getElementById('confidence').textContent = sase.state[3].toFixed(3);
+            document.getElementById('languageId').textContent = sase.state[4].toFixed(3);
+
+            // Update pipeline display
+            const pipelineText = sase.pipeline.length > 0 ?
+                `S → ${sase.pipeline.join(' → ')} → S'` : 'S → ...';
+            document.getElementById('pipelineSequence').textContent = pipelineText;
+
+            // Update equation
+            if (sase.pipeline.length > 0) {
+                const abbrevs = sase.pipeline.map(p => p.charAt(0)).reverse();
+                const equation = `S' = ${abbrevs.join('(')}(S)${''.repeat(abbrevs.length)}`;
+                document.getElementById('equationDisplay').textContent = equation;
+            }
+
+            // Update math sequence
+            const mathSeq = `f₍${sase.transformCount}₎(S) = ${sase.pipeline[sase.pipeline.length - 1] || 'S'}`;
+            document.getElementById('mathSequence').textContent = mathSeq;
+        }
+
+        function pressButton(buttonName) {
+            // Visual feedback
+            const buttons = document.querySelectorAll('.transform-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            const activeButton = [...buttons].find(btn => btn.textContent.includes(buttonName));
+            if (activeButton) {
+                activeButton.classList.add('active');
+                setTimeout(() => activeButton.classList.remove('active'), 1500);
+            }
+
+            // Apply transformation
+            if (sase.applyTransformation(buttonName)) {
+                const scalingFactor = sase.getScalingFactor(buttonName);
+                sase.totalScaling *= scalingFactor;
+
+                // Update scaling display
+                document.getElementById('scalingValue').textContent = `${scalingFactor.toFixed(1)}x`;
+                document.getElementById('scalingEffect').textContent =
+                    scalingFactor > 1.5 ? 'High Impact Transform' :
+                    scalingFactor > 1.2 ? 'Medium Impact' :
+                    scalingFactor > 0.95 ? 'Low Impact' : 'Degrading Transform';
+
+                // Update meta information
+                const metaInfo = sase.getMetaInfo(buttonName);
+                document.getElementById('metaVersion').textContent = metaInfo.meta;
+                document.getElementById('meaningfulWord').textContent = metaInfo.meaning;
+
+                // Add to history
+                const historyDiv = document.getElementById('transformHistory');
+                const timestamp = new Date().toLocaleTimeString();
+                historyDiv.innerHTML += `<br>[${timestamp}] ${buttonName}: ${metaInfo.meaning} (Scale: ${scalingFactor.toFixed(1)}x)`;
+                historyDiv.scrollTop = historyDiv.scrollHeight;
+
+                updateDisplay();
+                updateCharts();
+            }
+        }
+
+        function updateCharts() {
+            // Update pipeline chart
+            const pipelineChart = document.getElementById('pipelineChart');
+            pipelineChart.innerHTML = '';
+            sase.state.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.width = '18%';
+                bar.style.height = `${Math.abs(value) * 80}px`;
+                bar.style.left = `${index * 20}%`;
+                bar.style.backgroundColor = value >= 0 ? '#64ffda' : '#ff4444';
+                pipelineChart.appendChild(bar);
+            });
+
+            // Update scaling chart
+            const scalingChart = document.getElementById('scalingChart');
+            scalingChart.innerHTML = '';
+            const scalingBar = document.createElement('div');
+            scalingBar.className = 'chart-bar';
+            scalingBar.style.width = '90%';
+            scalingBar.style.height = `${Math.min(sase.totalScaling * 20, 60)}px`;
+            scalingBar.style.left = '5%';
+            scalingChart.appendChild(scalingBar);
+        }
+
+        function resetState() {
+            sase.state = [0.0, 0.5, 0.3, 0.6, 1.0];
+            sase.history = [];
+            sase.pipeline = [];
+            sase.totalScaling = 1.0;
+            sase.transformCount = 0;
+            document.getElementById('transformHistory').innerHTML = 'System reset. Ready for training.';
+            document.getElementById('equationDisplay').textContent = "S' = G(R(P(I(A(S))))) | Current State Vector Processing";
+            updateDisplay();
+            updateCharts();
+        }
+
+        function runFullPipeline() {
+            const pipeline = ['ALIGN', 'IRONY', 'PROJ', 'REFINE', 'GRAPH'];
+            pipeline.forEach((step, index) => {
+                setTimeout(() => pressButton(step), index * 800);
+            });
+        }
+
+        function exportTraining() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                finalState: sase.state,
+                pipeline: sase.pipeline,
+                totalTransforms: sase.transformCount,
+                scalingFactor: sase.totalScaling,
+                history: sase.history
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nexus-sase-training-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function randomizeInput() {
+            sase.state = [
+                (Math.random() - 0.5) * 2,
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random() * 3 + 1
+            ];
+            updateDisplay();
+            updateCharts();
+        }
+
+        // Initialize display
+        updateDisplay();
+        updateCharts();
+    </script>
+</body>
+</html>

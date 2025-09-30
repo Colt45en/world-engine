@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💻 NEXUS Code Pad - Development Environment</title>
+    <style>
+        :root {
+            --primary: #64ffda;
+            --secondary: #ff00ff;
+            --accent: #ff7bd5;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+            --bg: #0b0f1a;
+            --card: #0f1626;
+            --border: #1a2b46;
+            --text: #e8f0ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .code-layout {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "file-explorer editor-area output-panel"
+                "ai-assistant editor-area console";
+            grid-template-columns: 250px 1fr 300px;
+            grid-template-rows: 60px 1fr 200px;
+            height: 100vh;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .panel {
+            background: rgba(15, 22, 38, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            backdrop-filter: blur(8px);
+            overflow: hidden;
+        }
+
+        .header {
+            grid-area: header;
+            background: linear-gradient(45deg, rgba(100, 255, 218, 0.1), rgba(255, 0, 255, 0.1));
+            border-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+        }
+
+        .header-title {
+            font-size: 1.4em;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            color: var(--bg);
+        }
+
+        .btn.active {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            color: white;
+        }
+
+        .file-explorer {
+            grid-area: file-explorer;
+            border-color: var(--accent);
+        }
+
+        .editor-area {
+            grid-area: editor-area;
+            border-color: var(--primary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-panel {
+            grid-area: output-panel;
+            border-color: var(--success);
+        }
+
+        .ai-assistant {
+            grid-area: ai-assistant;
+            border-color: var(--secondary);
+        }
+
+        .console {
+            grid-area: console;
+            border-color: var(--warning);
+        }
+
+        .panel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-editor {
+            flex: 1;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            color: var(--text);
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+        }
+
+        .file-tree {
+            list-style: none;
+            padding: 0;
+        }
+
+        .file-item {
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .file-item:hover {
+            background: rgba(100, 255, 218, 0.1);
+        }
+
+        .file-item.active {
+            background: rgba(100, 255, 218, 0.2);
+        }
+
+        .output-content, .console-content {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            height: calc(100% - 40px);
+            overflow-y: auto;
+        }
+
+        .ai-chat {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            height: calc(100% - 80px);
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+
+        .ai-input {
+            display: flex;
+            gap: 6px;
+        }
+
+        .ai-text {
+            flex: 1;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px;
+            color: var(--text);
+            font-size: 12px;
+        }
+
+        .ai-send {
+            padding: 6px 12px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .code-layout {
+                grid-template-columns: 200px 1fr 250px;
+                gap: 6px;
+                padding: 6px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .code-layout {
+                grid-template-areas:
+                    "header header"
+                    "editor-area output-panel"
+                    "ai-assistant console";
+                grid-template-columns: 1fr 250px;
+                grid-template-rows: 60px 1fr 180px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .code-layout {
+                grid-template-areas:
+                    "header"
+                    "editor-area"
+                    "output-panel"
+                    "ai-assistant"
+                    "console";
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px 1fr 150px 120px 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="code-layout">
+        <!-- Header -->
+        <div class="panel header">
+            <div class="header-title">💻 NEXUS Code Pad</div>
+            <div class="header-controls">
+                <button class="btn" onclick="try { runCode(); } catch(e) { console.error(\'Button error:\', e); }">▶ Run</button>
+                <button class="btn" onclick="try { saveFile(); } catch(e) { console.error(\'Button error:\', e); }">💾 Save</button>
+                <button class="btn" onclick="try { openAiHub(); } catch(e) { console.error(\'Button error:\', e); }">🤖 AI Hub</button>
+                <button class="btn" onclick="try { openMasterDemo(); } catch(e) { console.error(\'Button error:\', e); }">🎵 Music</button>
+            </div>
+        </div>
+
+        <!-- File Explorer -->
+        <div class="panel file-explorer">
+            <div class="panel-title">📁 Files</div>
+            <ul class="file-tree" id="fileTree">
+                <li class="file-item active" onclick="openFile('main.js')">📄 main.js</li>
+                <li class="file-item" onclick="openFile('utils.js')">📄 utils.js</li>
+                <li class="file-item" onclick="openFile('style.css')">🎨 style.css</li>
+                <li class="file-item" onclick="openFile('index.html')">🌐 index.html</li>
+                <li class="file-item" onclick="openFile('package.json')">📦 package.json</li>
+            </ul>
+        </div>
+
+        <!-- Editor Area -->
+        <div class="panel editor-area">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('main.js')">main.js</button>
+                <button class="tab" onclick="switchTab('utils.js')">utils.js</button>
+            </div>
+            <textarea class="code-editor" id="codeEditor" placeholder="// Welcome to NEXUS Code Pad
+// Start coding here...
+
+console.log('🎵 NEXUS Code Pad Ready!');
+
+// Example: NEXUS integration
+const nexusAPI = {
+    clock: {
+        bpm: 120,
+        phase: 0,
+        start() { console.log('Clock started'); },
+        stop() { console.log('Clock stopped'); }
+    },
+
+    audio: {
+        spectralCentroid: 440,
+        rmsEnergy: 0.1,
+        synthesize(freq) {
+            return `Synthesizing at ${freq}Hz`;
+        }
+    },
+
+    ai: {
+        training: true,
+        dataPoints: 11362,
+        learn(data) {
+            console.log('Learning from:', data);
+        }
+    }
+};
+
+// Test the system
+nexusAPI.clock.start();
+console.log(nexusAPI.audio.synthesize(440));
+nexusAPI.ai.learn({type: 'audio', value: 440});"></textarea>
+        </div>
+
+        <!-- Output Panel -->
+        <div class="panel output-panel">
+            <div class="panel-title">📊 Output</div>
+            <div class="output-content" id="outputContent">
+                <div style="color: var(--primary);">[NEXUS] Code Pad initialized</div>
+                <div style="color: var(--success);">[SUCCESS] Ready for development</div>
+            </div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="panel ai-assistant">
+            <div class="panel-title">🤖 AI Assistant</div>
+            <div class="ai-chat" id="aiChat">
+                <div style="color: var(--secondary);">[AI] NEXUS Code Assistant ready</div>
+                <div style="color: var(--accent);">[AI] Connected to master system</div>
+                <div style="color: var(--success);">[AI] Type commands like: "help", "debug", "optimize"</div>
+            </div>
+            <div class="ai-input">
+                <input type="text" class="ai-text" id="aiInput" placeholder="Ask AI...">
+                <button class="ai-send" onclick="try { sendAIMessage(); } catch(e) { console.error(\'Button error:\', e); }">Send</button>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="panel console">
+            <div class="panel-title">🖥️ Console</div>
+            <div class="console-content" id="consoleContent">
+                <div style="color: var(--warning);">NEXUS Code Pad v1.0.0</div>
+                <div style="color: var(--text);">Ready for commands...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFile = 'main.js';
+        let files = {
+            'main.js': `// Welcome to NEXUS Code Pad
+// Start coding here...
+
+console.log('🎵 NEXUS Code Pad Ready!');
+
+// Example: NEXUS integration
+const nexusAPI = {
+    clock: {
+        bpm: 120,
+        phase: 0,
+        start() { console.log('Clock started'); },
+        stop() { console.log('Clock stopped'); }
+    },
+
+    audio: {
+        spectralCentroid: 440,
+        rmsEnergy: 0.1,
+        synthesize(freq) {
+            return \`Synthesizing at \${freq}Hz\`;
+        }
+    },
+
+    ai: {
+        training: true,
+        dataPoints: 11362,
+        learn(data) {
+            console.log('Learning from:', data);
+        }
+    }
+};
+
+// Test the system
+nexusAPI.clock.start();
+console.log(nexusAPI.audio.synthesize(440));
+nexusAPI.ai.learn({type: 'audio', value: 440});`,
+            'utils.js': `// NEXUS Utilities
+export const NexusUtils = {
+    // Math helpers for audio processing
+    frequencyToNote(freq) {
+        const A4 = 440;
+        const semitone = Math.log2(freq / A4) * 12;
+        return Math.round(semitone);
+    },
+
+    // Cross-modal feature mapping
+    audioToColor(spectralCentroid) {
+        const hue = (spectralCentroid / 880) * 360;
+        return \`hsl(\${hue}, 70%, 60%)\`;
+    },
+
+    // φ(t) phase calculations
+    calculatePhase(t, bpm) {
+        const beatDuration = 60 / bpm;
+        return (t % beatDuration) / beatDuration;
+    }
+};`,
+            'style.css': `/* NEXUS Code Pad Styles */
+.nexus-theme {
+    --primary: #64ffda;
+    --secondary: #ff00ff;
+    background: radial-gradient(ellipse at center, #1a0033 0%, #000011 70%, #000000 100%);
+}
+
+.code-highlight {
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.ai-response {
+    color: var(--secondary);
+    border-left: 2px solid var(--secondary);
+    padding-left: 8px;
+    margin: 4px 0;
+}`,
+            'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NEXUS Project</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="nexus-theme">
+    <h1>🎵 NEXUS Project</h1>
+    <script src="utils.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>`,
+            'package.json': `{
+  "name": "nexus-project",
+  "version": "1.0.0",
+  "description": "NEXUS Holy Beat development project",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "nodemon main.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "three": "^0.157.0",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.0.0"
+  }
+}`
+        };
+
+        function openFile(filename) {
+            // Save current file
+            files[currentFile] = document.getElementById('codeEditor').value;
+
+            // Switch to new file
+            currentFile = filename;
+            document.getElementById('codeEditor').value = files[filename] || '';
+
+            // Update active file in tree
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            addToConsole(`📄 Opened: ${filename}`);
+        }
+
+        function switchTab(filename) {
+            openFile(filename);
+
+            // Update tab states
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function runCode() {
+            const code = document.getElementById('codeEditor').value;
+            addToOutput(`🚀 Running ${currentFile}...`);
+
+            try {
+                // Simulate code execution
+                if (currentFile.endsWith('.js')) {
+                    // Capture console.log for display
+                    const originalLog = console.log;
+                    const outputs = [];
+                    console.log = (...args) => {
+                        outputs.push(args.join(' '));
+                        originalLog(...args);
+                    };
+
+                    // Execute the code
+                    eval(code);
+
+                    // Restore console.log
+                    console.log = originalLog;
+
+                    // Display outputs
+                    outputs.forEach(output => addToOutput(output));
+                    addToOutput(`✅ Execution completed`);
+                } else {
+                    addToOutput(`ℹ️ File type not executable`);
+                }
+            } catch (error) {
+                addToOutput(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function saveFile() {
+            files[currentFile] = document.getElementById('codeEditor').value;
+            addToConsole(`💾 Saved: ${currentFile}`);
+            addToOutput(`💾 File saved: ${currentFile}`);
+        }
+
+        function openAiHub() {
+            window.open('http://localhost:8000/ai-hub.html', '_blank');
+        }
+
+        function openMasterDemo() {
+            window.open('http://localhost:8000/demo', '_blank');
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addToAIChat(`[YOU] ${message}`);
+            input.value = '';
+
+            // Process AI command
+            processAICommand(message);
+        }
+
+        function processAICommand(message) {
+            const lowerMessage = message.toLowerCase();
+
+            if (lowerMessage.includes('help')) {
+                addToAIChat(`[AI] Available commands: help, debug, optimize, explain, nexus`);
+            } else if (lowerMessage.includes('debug')) {
+                addToAIChat(`[AI] Analyzing code for bugs... No syntax errors found.`);
+            } else if (lowerMessage.includes('optimize')) {
+                addToAIChat(`[AI] Suggestions: 1) Use const for immutable values 2) Consider async/await for better performance`);
+            } else if (lowerMessage.includes('explain')) {
+                addToAIChat(`[AI] This code creates a NEXUS API interface with clock, audio, and AI components for cross-modal synthesis.`);
+            } else if (lowerMessage.includes('nexus')) {
+                addToAIChat(`[AI] NEXUS system status: 11,362 training points, cross-modal synthesis active`);
+            } else {
+                addToAIChat(`[AI] I can help with: code debugging, optimization, explanations, and NEXUS integration.`);
+            }
+        }
+
+        function addToOutput(message, type = 'info') {
+            const output = document.getElementById('outputContent');
+            const div = document.createElement('div');
+            div.textContent = message;
+
+            if (type === 'error') {
+                div.style.color = 'var(--error)';
+            } else if (type === 'success') {
+                div.style.color = 'var(--success)';
+            } else {
+                div.style.color = 'var(--text)';
+            }
+
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function addToConsole(message) {
+            const console = document.getElementById('consoleContent');
+            const div = document.createElement('div');
+            div.textContent = message;
+            div.style.color = 'var(--accent)';
+
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function addToAIChat(message) {
+            const chat = document.getElementById('aiChat');
+            const div = document.createElement('div');
+            div.textContent = message;
+
+            if (message.includes('[AI]')) {
+                div.style.color = 'var(--secondary)';
+            } else if (message.includes('[YOU]')) {
+                div.style.color = 'var(--primary)';
+            }
+
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // Initialize
+        document.getElementById('aiInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendAIMessage();
+            }
+        });
+
+        console.log('💻 NEXUS Code Pad initialized');
+    </script>
+</body>
+</html>

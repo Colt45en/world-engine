@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RNES VectorLab - Math Pro Development Vault</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #vaultBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10000;
+            opacity: 0.001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        #vaultBtn:hover {
+            transform: scale(1.1);
+            opacity: 0.8 !important;
+        }
+
+        #vaultBtn::after {
+            content: "🔮";
+            font-size: 24px;
+        }
+
+        #vaultPanel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #vaultPanel.show {
+            transform: translateY(0);
+        }
+
+        .vault-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .vault-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .vault-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            flex: 1;
+            overflow: auto;
+        }
+
+        .vault-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .vault-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .vault-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .vault-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .vault-btn:active {
+            transform: translateY(0);
+        }
+
+        .vault-status {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #64ffda;
+        }
+
+        .vault-textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .vault-textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #fff;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .math-pro-section {
+            grid-column: 1 / -1;
+        }
+
+        .glyph-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .glyph-item {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .glyph-item:hover {
+            background: rgba(102, 126, 234, 0.4);
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .vault-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main canvas for Three.js/R3F -->
+    <canvas id="mainCanvas"></canvas>
+
+    <!-- Stealth Dev Button -->
+    <div id="vaultBtn" aria-label="Development Vault" role="button" tabindex="0"></div>
+
+    <!-- Vault Panel -->
+    <div id="vaultPanel" aria-hidden="true" role="dialog" aria-labelledby="vaultTitle">
+        <div class="vault-header">
+            <h1 id="vaultTitle" class="vault-title">RNES VectorLab • Math Pro Vault</h1>
+            <button class="close-btn" onclick="togglePanel(false)">✕ Close</button>
+        </div>
+
+        <div class="vault-content">
+            <!-- Vault Operations -->
+            <div class="vault-section">
+                <h2 class="section-title">🔐 Vault Operations</h2>
+                <div class="vault-controls">
+                    <button id="btnImportPak" class="vault-btn">📦 Import Signed Pak</button>
+                    <button id="btnApplyScript" class="vault-btn">▶️ Run Hidden Script</button>
+                    <button id="btnExportVault" class="vault-btn">💾 Export Math Pro Vault</button>
+                    <div id="vaultStatus" class="vault-status">ready</div>
+                </div>
+            </div>
+
+            <!-- Math Pro Integration -->
+            <div class="vault-section">
+                <h2 class="section-title">🧮 Math Pro Integration</h2>
+                <div class="vault-controls">
+                    <button id="btnSaveGlyphs" class="vault-btn">✨ Save Glyph Mappings</button>
+                    <button id="btnLoadGlyphs" class="vault-btn">📖 Load Glyph Mappings</button>
+                    <button id="btnTestMorphemes" class="vault-btn">🔬 Test Morpheme System</button>
+                </div>
+                <div class="glyph-preview" id="glyphPreview">
+                    <!-- Glyph preview will be populated here -->
+                </div>
+            </div>
+
+            <!-- Development Notes -->
+            <div class="vault-section math-pro-section">
+                <h2 class="section-title">📝 Development Notes</h2>
+                <textarea
+                    id="notes"
+                    class="vault-textarea"
+                    placeholder="Development notes, mathematical expressions, glyph mappings...&#10;&#10;Example:&#10;∑ → multi morpheme (summation, accumulation)&#10;∇ → move morpheme (gradient, directional change)&#10;α → scale morpheme (alpha scaling factor)"
+                ></textarea>
+                <div style="margin-top: 10px;">
+                    <button id="btnSaveNotes" class="vault-btn" style="display: inline-block; margin-right: 10px;">💾 Save Notes</button>
+                    <button id="btnHideButton" class="close-btn" style="display: inline-block;">👁️ Hide Vault Button</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Math Pro Library -->
+    <script type="module" src="./src/types/Math Pro.js"></script>
+
+    <!-- Vault System -->
+    <script type="module">
+        import {
+            DB,
+            importPak,
+            runHiddenScript,
+            initStealthUI,
+            pickFile,
+            MathProVault
+        } from './src/dev-vault/vault-core.js';
+
+        // Initialize the vault system
+        let togglePanel;
+
+        async function initVault() {
+            await DB.open();
+
+            // Initialize stealth UI
+            const ui = initStealthUI();
+            togglePanel = ui.togglePanel;
+            window.togglePanel = togglePanel; // Make available globally
+
+            // Initialize button visibility
+            initDevButtonVisibility();
+
+            // Wire up controls
+            wireVaultControls();
+
+            // Initialize Math Pro integration
+            await initMathProIntegration();
+        }
+
+        function initDevButtonVisibility() {
+            const btnArea = document.getElementById('vaultBtn');
+            const visible = localStorage.getItem('DEV_BTN_VISIBLE');
+            if (visible === null && new URL(location.href).searchParams.get('dev') === '1') {
+                localStorage.setItem('DEV_BTN_VISIBLE','1');
+            }
+            btnArea.style.opacity = localStorage.getItem('DEV_BTN_VISIBLE') === '1' ? '.25' : '0.001';
+        }
+
+        function wireVaultControls() {
+            // Hide button
+            document.getElementById('btnHideButton').onclick = () => {
+                localStorage.setItem('DEV_BTN_VISIBLE','0');
+                document.getElementById('vaultBtn').style.opacity = '0.001';
+            };
+
+            // Apply script
+            document.getElementById('btnApplyScript').onclick = runHiddenScript;
+
+            // Import pak
+            document.getElementById('btnImportPak').onclick = async () => {
+                try {
+                    const file = await pickFile();
+                    if (!file) return;
+                    await importPak(await file.text());
+
+                    // Refresh notes display
+                    const notesBuf = await DB.get("notes.md");
+                    if (notesBuf) {
+                        document.getElementById('notes').value = new TextDecoder().decode(notesBuf);
+                    }
+
+                    // Refresh glyph preview
+                    await updateGlyphPreview();
+                } catch (err) {
+                    alert(err.message || String(err));
+                }
+            };
+
+            // Export vault
+            document.getElementById('btnExportVault').onclick = async () => {
+                try {
+                    const vaultData = await MathProVault.exportMathProPak();
+                    const blob = new Blob([JSON.stringify(vaultData, null, 2)], {
+                        type: 'application/json'
+                    });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `math-pro-vault-${Date.now()}.json`;
+                    a.click();
+
+                    URL.revokeObjectURL(url);
+                    document.getElementById('vaultStatus').textContent = 'vault exported';
+                } catch (err) {
+                    alert(err.message || String(err));
+                }
+            };
+
+            // Save notes with debouncing
+            let saveTimeout;
+            document.getElementById('notes').addEventListener('input', (e) => {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(async () => {
+                    const content = e.target.value;
+                    const buf = new TextEncoder().encode(content);
+                    await DB.put('notes.md', buf);
+                }, 1000);
+            });
+
+            // Manual save notes
+            document.getElementById('btnSaveNotes').onclick = async () => {
+                const content = document.getElementById('notes').value;
+                const buf = new TextEncoder().encode(content);
+                await DB.put('notes.md', buf);
+                document.getElementById('vaultStatus').textContent = 'notes saved';
+            };
+        }
+
+        async function initMathProIntegration() {
+            // Wire Math Pro specific controls
+            document.getElementById('btnSaveGlyphs').onclick = async () => {
+                try {
+                    if (window.GlyphCollationMap) {
+                        const glyphMap = new window.GlyphCollationMap();
+                        await MathProVault.saveGlyphMapping(glyphMap);
+                        document.getElementById('vaultStatus').textContent = 'glyphs saved';
+                        await updateGlyphPreview();
+                    }
+                } catch (err) {
+                    alert(err.message || String(err));
+                }
+            };
+
+            document.getElementById('btnLoadGlyphs').onclick = async () => {
+                try {
+                    const mappings = await MathProVault.loadGlyphMapping();
+                    if (mappings) {
+                        document.getElementById('vaultStatus').textContent = 'glyphs loaded';
+                        await updateGlyphPreview();
+                    } else {
+                        document.getElementById('vaultStatus').textContent = 'no glyphs found';
+                    }
+                } catch (err) {
+                    alert(err.message || String(err));
+                }
+            };
+
+            document.getElementById('btnTestMorphemes').onclick = async () => {
+                try {
+                    if (window.LLEMath && window.GlyphCollationMap) {
+                        const glyphMap = new window.GlyphCollationMap();
+                        const testGlyph = '∑';
+                        const button = glyphMap.createButtonFromGlyph(testGlyph, 'Test Sum');
+                        document.getElementById('vaultStatus').textContent = `test: ${testGlyph} → ${button.abbr}`;
+                    }
+                } catch (err) {
+                    alert(err.message || String(err));
+                }
+            };
+
+            // Initial glyph preview
+            await updateGlyphPreview();
+        }
+
+        async function updateGlyphPreview() {
+            const preview = document.getElementById('glyphPreview');
+            if (!window.GlyphCollationMap) {
+                preview.innerHTML = '<div style="color: #666;">Math Pro not loaded</div>';
+                return;
+            }
+
+            try {
+                const glyphMap = new window.GlyphCollationMap();
+                const glyphs = glyphMap.listAllGlyphs().slice(0, 20); // Show first 20
+
+                preview.innerHTML = glyphs.map(glyph => {
+                    const morpheme = glyphMap.getMorphemeFromGlyph(glyph);
+                    return `<div class="glyph-item" title="${glyph} → ${morpheme}">${glyph}</div>`;
+                }).join('');
+
+                // Add click handlers
+                preview.querySelectorAll('.glyph-item').forEach((item, index) => {
+                    item.onclick = () => {
+                        const glyph = glyphs[index];
+                        const morpheme = glyphMap.getMorphemeFromGlyph(glyph);
+                        document.getElementById('vaultStatus').textContent = `${glyph} → ${morpheme}`;
+                    };
+                });
+            } catch (err) {
+                preview.innerHTML = '<div style="color: #f66;">Error loading glyphs</div>';
+            }
+        }
+
+        // Initialize everything
+        await initVault();
+
+        /*
+         * Deployment Security Notes:
+         * - Add CSP: script-src 'self' 'wasm-unsafe-eval' blob:; worker-src blob:;
+         * - Consider Trusted Types policy for blob URLs
+         * - Rotate signing keys regularly
+         * - Monitor vault access patterns
+         */
+    </script>
+</body>
+</html>

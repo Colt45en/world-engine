@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Collection - World Engine Systems</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0b0e14, #1e3c72);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #54f0b8, #ff69b4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-card {
+            background: rgba(15, 21, 35, 0.8);
+            border: 1px solid rgba(84, 240, 184, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            border-color: #54f0b8;
+            box-shadow: 0 10px 30px rgba(84, 240, 184, 0.2);
+        }
+
+        .dashboard-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #54f0b8;
+        }
+
+        .dashboard-desc {
+            margin-bottom: 15px;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .dashboard-link {
+            display: inline-block;
+            background: linear-gradient(45deg, #54f0b8, #46d158);
+            color: #0b0e14;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .dashboard-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(84, 240, 184, 0.4);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .status.active { background: #28a745; }
+        .status.experimental { background: #ffc107; color: #000; }
+        .status.archived { background: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 Dashboard Collection</h1>
+            <p>World Engine Systems & Tools</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="dashboard-title">🧠 World Engine Tier 5</div>
+                <div class="dashboard-desc">
+                    Advanced consciousness-driven 3D development environment with neural flow visualization, quantum entanglement, and visual studio interface.
+                </div>
+                <a href="world_engine_tier4.html" class="dashboard-link">Launch Studio</a>
+                <span class="status active">Active</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">⚡ VectorLab Glyph Forge</div>
+                <div class="dashboard-desc">
+                    3D glyph creation system with heartbeat animation. Create living glyphs from code that animate in real-time 3D space.
+                </div>
+                <a href="glyph_forge.html" class="dashboard-link">Open Forge</a>
+                <span class="status active">Active</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">🔤 Lexical Logic Engine</div>
+                <div class="dashboard-desc">
+                    Mathematical language processing dashboard with meaning vectors, structure matrices, and scaling operations for linguistic analysis.
+                </div>
+                <a href="lexical-logic-engine.html" class="dashboard-link">Launch Engine</a>
+                <span class="status active">Active</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">🌊 Quantum Graphics Demo</div>
+                <div class="dashboard-desc">
+                    Quantum-powered graphics rendering system with advanced wave function visualization and particle dynamics.
+                </div>
+                <a href="quantum_graphics_demo.html" class="dashboard-link">View Demo</a>
+                <span class="status experimental">Experimental</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">🔥 Nexus Forge Primordial</div>
+                <div class="dashboard-desc">
+                    Primordial creation system for building foundational world elements and procedural content generation.
+                </div>
+                <a href="nexus_forge_primordial_deck.html" class="dashboard-link">Enter Nexus</a>
+                <span class="status experimental">Experimental</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">📚 Meta-Librarian Canvas</div>
+                <div class="dashboard-desc">
+                    Knowledge management and organization system with interactive canvas for data visualization and pattern recognition.
+                </div>
+                <a href="meta-librarian-canvas.html" class="dashboard-link">Open Library</a>
+                <span class="status experimental">Experimental</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">🔬 VectorLab Demo</div>
+                <div class="dashboard-desc">
+                    Vector mathematics laboratory for advanced computational experiments and visualization testing.
+                </div>
+                <a href="vectorlab_demo.html" class="dashboard-link">Lab Access</a>
+                <span class="status experimental">Experimental</span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dashboard-title">🌍 World Engine (Classic)</div>
+                <div class="dashboard-desc">
+                    Original world engine interface for foundational world building and system integration testing.
+                </div>
+                <a href="./public/worldengine.html" class="dashboard-link">Classic Mode</a>
+                <span class="status archived">Archived</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

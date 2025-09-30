@@ -1,0 +1,233 @@
+{
+    "version": "1.0.0",
+    "name": "World Engine",
+    "description": "Comprehensive knowledge system with gaming, language, math, and graphics domains",
+    "lastUpdated": "2025-09-29T00:00:00.000Z",
+    "domains": {
+        "gaming": {
+            "path": "/data/gaming",
+            "packs": [
+                {
+                    "id": "entities",
+                    "file": "entities.json",
+                    "version": "1.0.0",
+                    "description": "Player, NPC, item, and environment definitions"
+                },
+                {
+                    "id": "abilities",
+                    "file": "abilities.json",
+                    "version": "1.0.0",
+                    "description": "Skills, powers, cooldowns, resource costs"
+                },
+                {
+                    "id": "rulesets",
+                    "path": "rulesets/",
+                    "version": "1.0.0",
+                    "description": "Game rules, turn order, win/loss conditions"
+                },
+                {
+                    "id": "scripting",
+                    "path": "scripting/",
+                    "version": "1.0.0",
+                    "description": "Bytecode opcodes and event hooks"
+                }
+            ]
+        },
+        "english": {
+            "path": "/data/english",
+            "packs": [
+                {
+                    "id": "phonics_core",
+                    "file": "phonics_core.json",
+                    "version": "1.0.0",
+                    "description": "Phonemes and blending rules"
+                },
+                {
+                    "id": "affixes",
+                    "file": "affixes.json",
+                    "version": "1.0.0",
+                    "description": "Prefixes and suffixes with meanings"
+                },
+                {
+                    "id": "lexicon",
+                    "file": "lexicon.jsonl",
+                    "version": "1.0.0",
+                    "description": "Word entries with phonetics and semantics"
+                },
+                {
+                    "id": "grammar",
+                    "file": "grammar.json",
+                    "version": "1.0.0",
+                    "description": "Narrative grammar beats and transitions"
+                }
+            ]
+        },
+        "math": {
+            "path": "/data/math",
+            "packs": [
+                {
+                    "id": "operators",
+                    "file": "operators.json",
+                    "version": "1.0.0",
+                    "description": "Mathematical operator definitions"
+                },
+                {
+                    "id": "algorithms",
+                    "file": "algorithms.json",
+                    "version": "1.0.0",
+                    "description": "Common algorithms and procedures"
+                },
+                {
+                    "id": "mappings",
+                    "file": "mappings.json",
+                    "version": "1.0.0",
+                    "description": "Math-to-English translation rules"
+                }
+            ]
+        },
+        "graphics": {
+            "path": "/data/graphics",
+            "packs": [
+                {
+                    "id": "materials",
+                    "file": "materials.json",
+                    "version": "1.0.0",
+                    "description": "PBR material parameters"
+                },
+                {
+                    "id": "shaders",
+                    "path": "shaders/",
+                    "version": "1.0.0",
+                    "description": "Shader snippets and programs"
+                },
+                {
+                    "id": "postfx",
+                    "file": "postfx.json",
+                    "version": "1.0.0",
+                    "description": "Post-processing effects chain"
+                },
+                {
+                    "id": "icons",
+                    "path": "icons/",
+                    "version": "1.0.0",
+                    "description": "UI icons and overlays"
+                }
+            ]
+        },
+        "tools": {
+            "path": "/data/tools",
+            "packs": [
+                {
+                    "id": "tool_registry",
+                    "file": "tool_registry.json",
+                    "version": "1.0.0",
+                    "description": "Available tools registry"
+                },
+                {
+                    "id": "configs",
+                    "path": "configs/",
+                    "version": "1.0.0",
+                    "description": "Tool configurations"
+                },
+                {
+                    "id": "shortcuts",
+                    "file": "shortcuts.json",
+                    "version": "1.0.0",
+                    "description": "Keyboard mappings"
+                }
+            ]
+        },
+        "demos": {
+            "path": "/data/demos",
+            "packs": [
+                {
+                    "id": "demo_scenes",
+                    "path": "demo_scenes/",
+                    "version": "1.0.0",
+                    "description": "Example scenes and worlds"
+                },
+                {
+                    "id": "demo_scripts",
+                    "path": "demo_scripts/",
+                    "version": "1.0.0",
+                    "description": "Example game and story scripts"
+                },
+                {
+                    "id": "walkthroughs",
+                    "path": "walkthroughs/",
+                    "version": "1.0.0",
+                    "description": "Step-by-step training demos"
+                }
+            ]
+        },
+        "training": {
+            "path": "/data/training",
+            "packs": [
+                {
+                    "id": "tutorials",
+                    "path": "tutorials/",
+                    "version": "1.0.0",
+                    "description": "How-to guides and documentation"
+                },
+                {
+                    "id": "datasets",
+                    "path": "datasets/",
+                    "version": "1.0.0",
+                    "description": "Training corpora for various domains"
+                },
+                {
+                    "id": "exercises",
+                    "path": "exercises/",
+                    "version": "1.0.0",
+                    "description": "Challenge packs with solutions"
+                }
+            ]
+        }
+    },
+    "services": {
+        "phonics": {
+            "enabled": true,
+            "dependencies": [
+                "english.phonics_core",
+                "english.lexicon"
+            ]
+        },
+        "story": {
+            "enabled": true,
+            "dependencies": [
+                "english.grammar",
+                "english.lexicon"
+            ]
+        },
+        "scripting": {
+            "enabled": true,
+            "dependencies": [
+                "gaming.scripting",
+                "math.operators"
+            ]
+        },
+        "websocket": {
+            "enabled": true,
+            "config": "/meta/ws_topics.json"
+        },
+        "vault": {
+            "enabled": true,
+            "integration": "rnes-vectorlab"
+        },
+        "mathpro": {
+            "enabled": true,
+            "integration": "glyph-collation-map"
+        }
+    },
+    "ui": {
+        "chatbot": "/ui/chatbot/",
+        "inspector": "/ui/inspector/",
+        "trainers": "/ui/trainers/",
+        "status": "/ui/status/"
+    },
+    "meta": {
+        "schemas": "/meta/schemas/",
+        "policies": "/meta/",
+        "integration": "/meta/chatbot/"
+    }
+}

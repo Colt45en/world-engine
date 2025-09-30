@@ -1,0 +1,184 @@
+[
+  {
+    "letter": "A",
+    "prompt": "What sounds does 'A' make? Examples: cat, father, want, apple, car, ball",
+    "expected": "Sounds: \u0103, \u0251, \u0254. Symbols: \u0103, \u0251, \u0254. New spelling: c\u0103t, f\u0251ther, w\u0254nt, \u0103pple, c\u0251r, b\u0254ll. Notes: Multiple sounds",
+    "response": "Sounds: \u0103, \u0251, \u0254. Symbols: \u0103, \u0251, \u0254. New spelling: c\u0103t, f\u0251ther, w\u0254nt, \u0103pple, c\u0251r, b\u0254ll. Notes: Multiple sounds",
+    "correct": true
+  },
+  {
+    "letter": "B",
+    "prompt": "What sounds does 'B' make? Examples: bat, bomb",
+    "expected": "Sounds: b. Symbols: b, b\u014f. New spelling: bat, b\u014fmb. Notes: Bomb exception",
+    "response": "Sounds: b. Symbols: b, b\u014f. New spelling: bat, b\u014fmb. Notes: Bomb exception",
+    "correct": true
+  },
+  {
+    "letter": "C",
+    "prompt": "What sounds does 'C' make? Examples: cat, city",
+    "expected": "Sounds: k, s. Symbols: k, \u010b. New spelling: cat, \u010bity. Notes: City 's' sound",
+    "response": "Sounds: k, s. Symbols: k, \u010b. New spelling: cat, \u010bity. Notes: City 's' sound",
+    "correct": true
+  },
+  {
+    "letter": "D",
+    "prompt": "What sounds does 'D' make? Examples: dog",
+    "expected": "Sounds: d. Symbols: d. New spelling: dog. Notes: Generally consistent",
+    "response": "Sounds: d. Symbols: d. New spelling: dog. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "E",
+    "prompt": "What sounds does 'E' make? Examples: bed, he, there",
+    "expected": "Sounds: \u0115, \u0113, air. Symbols: \u0115, \u0113, \u00ea. New spelling: bed, h\u0113, th\u00ear. Notes: 'There' sound",
+    "response": "Sounds: \u0115, \u0113, air. Symbols: \u0115, \u0113, \u00ea. New spelling: bed, h\u0113, th\u00ear. Notes: 'There' sound",
+    "correct": true
+  },
+  {
+    "letter": "F",
+    "prompt": "What sounds does 'F' make? Examples: fan",
+    "expected": "Sounds: f. Symbols: f. New spelling: fan. Notes: Generally consistent",
+    "response": "Sounds: f. Symbols: f. New spelling: fan. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "G",
+    "prompt": "What sounds does 'G' make? Examples: go, gem",
+    "expected": "Sounds: g, j. Symbols: g, \u01e7. New spelling: go, \u01e7em. Notes: 'Gem' sound",
+    "response": "Sounds: g, j. Symbols: g, \u01e7. New spelling: go, \u01e7em. Notes: 'Gem' sound",
+    "correct": true
+  },
+  {
+    "letter": "H",
+    "prompt": "What sounds does 'H' make? Examples: hat, hour",
+    "expected": "Sounds: h, (silent). Symbols: h, (omit). New spelling: hat, our. Notes: Silent 'h'",
+    "response": "Sounds: h, (silent). Symbols: h, (omit). New spelling: hat, our. Notes: Silent 'h'",
+    "correct": true
+  },
+  {
+    "letter": "I",
+    "prompt": "What sounds does 'I' make? Examples: bit, time",
+    "expected": "Sounds: \u012d, \u012b. Symbols: \u012d, \u012b. New spelling: bit, t\u012bme. Notes: Long 'i'",
+    "response": "Sounds: \u012d, \u012b. Symbols: \u012d, \u012b. New spelling: bit, t\u012bme. Notes: Long 'i'",
+    "correct": true
+  },
+  {
+    "letter": "J",
+    "prompt": "What sounds does 'J' make? Examples: job",
+    "expected": "Sounds: j. Symbols: j. New spelling: job. Notes: Generally consistent",
+    "response": "Sounds: j. Symbols: j. New spelling: job. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "K",
+    "prompt": "What sounds does 'K' make? Examples: key",
+    "expected": "Sounds: k. Symbols: k. New spelling: key. Notes: Generally consistent",
+    "response": "Sounds: k. Symbols: k. New spelling: key. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "L",
+    "prompt": "What sounds does 'L' make? Examples: lot, colonel",
+    "expected": "Sounds: l. Symbols: l, (kernel). New spelling: lot, k\u0115rnel. Notes: Colonel tricky",
+    "response": "Sounds: l. Symbols: l, (kernel). New spelling: lot, k\u0115rnel. Notes: Colonel tricky",
+    "correct": true
+  },
+  {
+    "letter": "M",
+    "prompt": "What sounds does 'M' make? Examples: man",
+    "expected": "Sounds: m. Symbols: m. New spelling: man. Notes: Generally consistent",
+    "response": "Sounds: m. Symbols: m. New spelling: man. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "N",
+    "prompt": "What sounds does 'N' make? Examples: nap",
+    "expected": "Sounds: n. Symbols: n. New spelling: nap. Notes: Generally consistent",
+    "response": "Sounds: n. Symbols: n. New spelling: nap. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "O",
+    "prompt": "What sounds does 'O' make? Examples: hot, go, word",
+    "expected": "Sounds: \u014f, \u014d, ur. Symbols: \u014f, \u014d, \u00f4. New spelling: hot, go, w\u00f4rd. Notes: 'Word' sound",
+    "response": "Sounds: \u014f, \u014d, ur. Symbols: \u014f, \u014d, \u00f4. New spelling: hot, go, w\u00f4rd. Notes: 'Word' sound",
+    "correct": true
+  },
+  {
+    "letter": "P",
+    "prompt": "What sounds does 'P' make? Examples: pet",
+    "expected": "Sounds: p. Symbols: p. New spelling: pet. Notes: Generally consistent",
+    "response": "Sounds: p. Symbols: p. New spelling: pet. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "Q",
+    "prompt": "What sounds does 'Q' make? Examples: queen",
+    "expected": "Sounds: kw. Symbols: kw. New spelling: queen. Notes: Generally consistent",
+    "response": "Sounds: kw. Symbols: kw. New spelling: queen. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "R",
+    "prompt": "What sounds does 'R' make? Examples: rat, car",
+    "expected": "Sounds: r, \u0251r. Symbols: r, (\u0251r). New spelling: rat, c\u0251r. Notes: 'R' influence",
+    "response": "Sounds: r, \u0251r. Symbols: r, (\u0251r). New spelling: rat, c\u0251r. Notes: 'R' influence",
+    "correct": true
+  },
+  {
+    "letter": "S",
+    "prompt": "What sounds does 'S' make? Examples: sit, sure",
+    "expected": "Sounds: s, sh. Symbols: s, \u0161. New spelling: sit, \u0161ur. Notes: 'Sure' sound",
+    "response": "Sounds: s, sh. Symbols: s, \u0161. New spelling: sit, \u0161ur. Notes: 'Sure' sound",
+    "correct": true
+  },
+  {
+    "letter": "T",
+    "prompt": "What sounds does 'T' make? Examples: top, nation",
+    "expected": "Sounds: t, sh. Symbols: t, \u0161. New spelling: top, n\u0101\u0161on. Notes: 'Nation' sound",
+    "response": "Sounds: t, sh. Symbols: t, \u0161. New spelling: top, n\u0101\u0161on. Notes: 'Nation' sound",
+    "correct": true
+  },
+  {
+    "letter": "U",
+    "prompt": "What sounds does 'U' make? Examples: cut, use",
+    "expected": "Sounds: \u016d, y\u016b. Symbols: \u016d, \u016b. New spelling: cut, \u016bse. Notes: 'Use' sound",
+    "response": "Sounds: \u016d, y\u016b. Symbols: \u016d, \u016b. New spelling: cut, \u016bse. Notes: 'Use' sound",
+    "correct": true
+  },
+  {
+    "letter": "V",
+    "prompt": "What sounds does 'V' make? Examples: van",
+    "expected": "Sounds: v. Symbols: v. New spelling: van. Notes: Generally consistent",
+    "response": "Sounds: v. Symbols: v. New spelling: van. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "W",
+    "prompt": "What sounds does 'W' make? Examples: wet",
+    "expected": "Sounds: w. Symbols: w. New spelling: wet. Notes: Generally consistent",
+    "response": "Sounds: w. Symbols: w. New spelling: wet. Notes: Generally consistent",
+    "correct": true
+  },
+  {
+    "letter": "X",
+    "prompt": "What sounds does 'X' make? Examples: box, xylophone",
+    "expected": "Sounds: ks, z. Symbols: ks, \u1e8b. New spelling: box, \u1e8bylophone. Notes: 'Xylophone' sound",
+    "response": "Sounds: ks, z. Symbols: ks, \u1e8b. New spelling: box, \u1e8bylophone. Notes: 'Xylophone' sound",
+    "correct": true
+  },
+  {
+    "letter": "Y",
+    "prompt": "What sounds does 'Y' make? Examples: yes, by",
+    "expected": "Sounds: y, \u012b. Symbols: y, \u012b. New spelling: yes, b\u012b. Notes: Long 'i'",
+    "response": "Sounds: y, \u012b. Symbols: y, \u012b. New spelling: yes, b\u012b. Notes: Long 'i'",
+    "correct": true
+  },
+  {
+    "letter": "Z",
+    "prompt": "What sounds does 'Z' make? Examples: zip",
+    "expected": "Sounds: z. Symbols: z. New spelling: zip. Notes: Generally consistent",
+    "response": "Sounds: z. Symbols: z. New spelling: zip. Notes: Generally consistent",
+    "correct": true
+  }
+]

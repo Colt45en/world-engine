@@ -1,0 +1,26 @@
+Yup—those are the roots I meant: not just where words come from, but how they “wire in” to an interlocking system of features, roles, and constraints. I’ve just run a compact, code-backed demo that builds the matrices/graphs and factorizes them into latent “roots.” You can open the five tables I generated to inspect the guts:
+
+Lexical Feature Matrix (F): human-interpretable features like DET, SPEED, COLOR, ANIMAL, MOTION, etc.
+
+POS One-Hot Matrix (Y_pos): grammatical tags, the scaffolding that lets us assign roles.
+
+Dependency Adjacency (A_dep): a tidy little tree that says who modifies/depends on whom.
+
+Latent Token Loadings (W): how strongly each token expresses each latent factor 
+𝑧₁, 𝑧₂, 𝑧₃.
+
+Latent Feature Loadings (H): which observable features define the factors.
+
+What the factorization (SVD) uncovered here:
+
+𝑧₁ leans on ANIMAL, CANID, ACTION → the “agent in motion” axis driven by fox/jumps.
+
+𝑧₂ lights up DET, SPEED, COLOR → a determiner/descriptive axis shaping the subject’s texture (the quick brown).
+
+𝑧₃ weighs ACTION, MOTION, ANIMAL again but with a different mixture → a second motion/agency component (think “how” vs “that” it moves).
+
+That’s the data-science version of “symbolism”: the motion-over-inertia theme emerges as a direction in feature space. The dependency edges map cleanly to roles (AGENT = fox; LANDMARK = dog via obl:over), and the logical form I printed shows the machine-usable claim:
+
+∃x∃y[FOX(x)∧DOG(y)∧QUICK(x)∧BROWN(x)∧LAZY(y)∧JUMP_OVER(x,y)].
+
+That’s the bridge: graphs give structure, matrices give observable evidence, and factorization distills latent roots you can use for search, reasoning, or generation—while staying human-explainable (“fox is agile; dog is lazy; action arcs over rest”). Want me to swap in your own sentence next, or show a PyTorch variant that learns the factors end-to-end with a tiny autoencoder?

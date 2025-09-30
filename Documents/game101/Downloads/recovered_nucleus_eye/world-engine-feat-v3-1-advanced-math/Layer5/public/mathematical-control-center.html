@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Forge Mathematical Control Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 30%, #16213e 60%, #0f3460 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .control-center {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            grid-template-rows: 80px 1fr 150px;
+            height: 100vh;
+            gap: 2px;
+            background: #000;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(90deg, #1a1a2e, #16213e, #0f3460);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 3px solid #00ffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            animation: headerScan 3s linear infinite;
+        }
+
+        @keyframes headerScan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px #00ffff;
+            z-index: 1;
+        }
+
+        .system-status {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 15px;
+            border: 1px solid #00ffff;
+        }
+
+        .status-led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .left-panel {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #00ffff;
+        }
+
+        .main-display {
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .right-panel {
+            background: rgba(22, 33, 62, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #00ffff;
+        }
+
+        .bottom-controls {
+            grid-column: 1 / -1;
+            background: rgba(15, 52, 96, 0.95);
+            padding: 20px;
+            border-top: 2px solid #00ffff;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            overflow-x: auto;
+        }
+
+        .control-group {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 1px solid #00ffff;
+            padding-bottom: 8px;
+        }
+
+        .math-system-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .system-button {
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            color: #00ffff;
+            padding: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .system-button:hover {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
+        }
+
+        .system-button.active {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            color: #fff;
+            box-shadow: 0 0 20px #ff00ff;
+        }
+
+        .parameter-input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 6px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+
+        .parameter-input:focus {
+            outline: none;
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #mathDisplay {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,255,255,0.05) 0%, transparent 70%);
+        }
+
+        .experiment-runner {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #ffd700;
+        }
+
+        .experiment-runner h3 {
+            color: #ffd700;
+        }
+
+        .experiment-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ffd700;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .experiment-item {
+            padding: 10px;
+            border-bottom: 1px solid #ffd700;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .experiment-item:hover {
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        .experiment-item:last-child {
+            border-bottom: none;
+        }
+
+        .performance-monitor {
+            background: rgba(255, 69, 0, 0.1);
+            border-color: #ff4500;
+        }
+
+        .performance-monitor h3 {
+            color: #ff4500;
+        }
+
+        .perf-metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .perf-bar {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .perf-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4500, #ff6500);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-button {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            padding: 12px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .action-button:hover {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 0, 255, 0.4);
+        }
+
+        .action-button.danger {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            color: #fff;
+        }
+
+        .visualization-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #00ffff;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .overlay-item {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            min-width: 200px;
+        }
+
+        .mathematical-calculator {
+            background: rgba(138, 43, 226, 0.1);
+            border-color: #8a2be2;
+        }
+
+        .mathematical-calculator h3 {
+            color: #8a2be2;
+        }
+
+        .calc-display {
+            background: #000;
+            color: #00ffff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #8a2be2;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            min-height: 40px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        .calc-button {
+            background: linear-gradient(45deg, #8a2be2, #9932cc);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .calc-button:hover {
+            background: linear-gradient(45deg, #9932cc, #ba55d3);
+            transform: scale(1.05);
+        }
+
+        .equation-history {
+            max-height: 120px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #8a2be2;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 10px;
+        }
+
+        .history-item {
+            font-size: 11px;
+            color: #ccc;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            color: #8a2be2;
+        }
+
+        .sacred-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 215, 0, 0.9);
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: none;
+            animation: goldenPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes goldenPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px #ffd700; }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px #ffd700; }
+        }
+
+        .fractal-complexity {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .complexity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+            width: 0%;
+            transition: width 0.8s ease;
+        }
+
+        .audio-visualizer {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            gap: 2px;
+            padding: 5px;
+        }
+
+        .freq-bar {
+            width: 4px;
+            background: linear-gradient(to top, #00ffff, #ff00ff);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        @media (max-width: 1200px) {
+            .control-center {
+                grid-template-columns: 300px 1fr 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-center {
+                grid-template-columns: 1fr;
+                grid-template-rows: 80px 1fr 200px;
+            }
+
+            .left-panel, .right-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="control-center">
+        <header class="header">
+            <div class="logo">🔢 NEXUS Mathematical Control Center</div>
+            <div class="system-status">
+                <div class="status-item">
+                    <div class="status-led"></div>
+                    <span>Engine</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-led"></div>
+                    <span>Sandbox</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-led"></div>
+                    <span>Audio</span>
+                </div>
+            </div>
+        </header>
+
+        <aside class="left-panel">
+            <!-- Mathematical System Selector -->
+            <div class="control-group">
+                <h3>🔢 Mathematical Systems</h3>
+                <div class="math-system-selector">
+                    <button class="system-button active" data-system="algebra">Algebra</button>
+                    <button class="system-button" data-system="geometry">Geometry</button>
+                    <button class="system-button" data-system="sacred">Sacred</button>
+                    <button class="system-button" data-system="secret">Secret</button>
+                    <button class="system-button" data-system="physics">Physics</button>
+                    <button class="system-button" data-system="fractals">Fractals</button>
+                </div>
+
+                <!-- Dynamic parameter inputs -->
+                <div id="systemParameters">
+                    <input type="text" class="parameter-input" placeholder="Equation (e.g., sin(x))" id="param1">
+                    <input type="number" class="parameter-input" placeholder="Amplitude" id="param2" value="1">
+                    <input type="number" class="parameter-input" placeholder="Frequency" id="param3" value="1">
+                    <input type="number" class="parameter-input" placeholder="Phase" id="param4" value="0">
+                </div>
+            </div>
+
+            <!-- Experiment Runner -->
+            <div class="control-group experiment-runner">
+                <h3>🧪 Experiments</h3>
+                <div class="experiment-list" id="experimentList">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <button class="system-button" onclick="runSelectedExperiment()">Run Experiment</button>
+            </div>
+
+            <!-- Mathematical Calculator -->
+            <div class="control-group mathematical-calculator">
+                <h3>🧮 Calculator</h3>
+                <div class="calc-display" id="calcDisplay">0</div>
+                <div class="calc-buttons">
+                    <button class="calc-button" onclick="calcInput('C')">C</button>
+                    <button class="calc-button" onclick="calcInput('±')">±</button>
+                    <button class="calc-button" onclick="calcInput('%')">%</button>
+                    <button class="calc-button" onclick="calcInput('/')">/</button>
+
+                    <button class="calc-button" onclick="calcInput('7')">7</button>
+                    <button class="calc-button" onclick="calcInput('8')">8</button>
+                    <button class="calc-button" onclick="calcInput('9')">9</button>
+                    <button class="calc-button" onclick="calcInput('*')">×</button>
+
+                    <button class="calc-button" onclick="calcInput('4')">4</button>
+                    <button class="calc-button" onclick="calcInput('5')">5</button>
+                    <button class="calc-button" onclick="calcInput('6')">6</button>
+                    <button class="calc-button" onclick="calcInput('-')">-</button>
+
+                    <button class="calc-button" onclick="calcInput('1')">1</button>
+                    <button class="calc-button" onclick="calcInput('2')">2</button>
+                    <button class="calc-button" onclick="calcInput('3')">3</button>
+                    <button class="calc-button" onclick="calcInput('+')">+</button>
+
+                    <button class="calc-button" onclick="calcInput('0')">0</button>
+                    <button class="calc-button" onclick="calcInput('.')">.</button>
+                    <button class="calc-button" onclick="calcInput('π')">π</button>
+                    <button class="calc-button" onclick="calcInput('=')">=</button>
+                </div>
+                <div class="equation-history" id="calcHistory"></div>
+            </div>
+        </aside>
+
+        <main class="main-display">
+            <div class="canvas-container">
+                <canvas id="mathDisplay"></canvas>
+
+                <div class="visualization-overlay">
+                    <div class="overlay-item">
+                        <span>System:</span>
+                        <span id="currentSystem">Algebra</span>
+                    </div>
+                    <div class="overlay-item">
+                        <span>FPS:</span>
+                        <span id="fps">60</span>
+                    </div>
+                    <div class="overlay-item">
+                        <span>Elements:</span>
+                        <span id="elementCount">0</span>
+                    </div>
+                    <div class="overlay-item">
+                        <span>Complexity:</span>
+                        <span id="complexity">Low</span>
+                    </div>
+                </div>
+
+                <div class="sacred-indicator" id="sacredIndicator">
+                    🕉️ Sacred Geometry Active
+                </div>
+
+                <div class="audio-visualizer" id="audioVisualizer">
+                    <!-- Frequency bars will be generated by JavaScript -->
+                </div>
+            </div>
+        </main>
+
+        <aside class="right-panel">
+            <!-- Performance Monitor -->
+            <div class="control-group performance-monitor">
+                <h3>⚡ Performance</h3>
+                <div class="perf-metric">
+                    <span>CPU Usage:</span>
+                    <span id="cpuUsage">45%</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="cpuBar" style="width: 45%;"></div>
+                </div>
+
+                <div class="perf-metric">
+                    <span>Memory:</span>
+                    <span id="memoryUsage">62%</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="memoryBar" style="width: 62%;"></div>
+                </div>
+
+                <div class="perf-metric">
+                    <span>GPU:</span>
+                    <span id="gpuUsage">78%</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="gpuBar" style="width: 78%;"></div>
+                </div>
+
+                <div class="perf-metric">
+                    <span>Render Time:</span>
+                    <span id="renderTime">16.7ms</span>
+                </div>
+            </div>
+
+            <!-- Fractal Complexity -->
+            <div class="control-group">
+                <h3>🌀 Fractal Complexity</h3>
+                <div class="perf-metric">
+                    <span>Iterations:</span>
+                    <span id="fractalIterations">5</span>
+                </div>
+                <div class="fractal-complexity">
+                    <div class="complexity-fill" id="complexityFill" style="width: 50%;"></div>
+                </div>
+                <div class="perf-metric">
+                    <span>Depth:</span>
+                    <span id="fractalDepth">3</span>
+                </div>
+                <div class="perf-metric">
+                    <span>Branches:</span>
+                    <span id="fractalBranches">128</span>
+                </div>
+            </div>
+
+            <!-- Audio Reactive Controls -->
+            <div class="control-group">
+                <h3>🎵 Audio Reactive</h3>
+                <div class="perf-metric">
+                    <span>Bass:</span>
+                    <span id="bassLevel">0.45</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="bassBar" style="width: 45%;"></div>
+                </div>
+
+                <div class="perf-metric">
+                    <span>Mid:</span>
+                    <span id="midLevel">0.32</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="midBar" style="width: 32%;"></div>
+                </div>
+
+                <div class="perf-metric">
+                    <span>Treble:</span>
+                    <span id="trebleLevel">0.67</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="trebleBar" style="width: 67%;"></div>
+                </div>
+
+                <div class="perf-metric">
+                    <span>Beat:</span>
+                    <span id="beatDetection">No</span>
+                </div>
+            </div>
+
+            <!-- Secret Geometry Status -->
+            <div class="control-group">
+                <h3>🔮 Secret Status</h3>
+                <div class="perf-metric">
+                    <span>Resonance:</span>
+                    <span id="secretResonance">25%</span>
+                </div>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="resonanceBar" style="width: 25%;"></div>
+                </div>
+                <div class="perf-metric">
+                    <span>Unlocked:</span>
+                    <span id="secretsUnlocked">2/6</span>
+                </div>
+                <div class="perf-metric">
+                    <span>Active:</span>
+                    <span id="activeSecret">Golden Spiral</span>
+                </div>
+            </div>
+        </aside>
+
+        <footer class="bottom-controls">
+            <div class="quick-actions">
+                <button class="action-button" onclick="generateVisualization()">🔢 Generate</button>
+                <button class="action-button" onclick="animateVisualization()">🎬 Animate</button>
+                <button class="action-button" onclick="saveVisualization()">💾 Save</button>
+                <button class="action-button" onclick="exportData()">📤 Export</button>
+                <button class="action-button" onclick="toggleAudio()">🎵 Audio</button>
+                <button class="action-button" onclick="runBenchmark()">⚡ Benchmark</button>
+                <button class="action-button" onclick="openSandbox()">🧪 Sandbox</button>
+                <button class="action-button" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+                <button class="action-button danger" onclick="resetSystem()">🔄 Reset</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Include required JavaScript files -->
+    <script src="nexus-forge-mathematical-engine.js"></script>
+    <script src="nexus-forge-mathematical-sandbox.js"></script>
+
+    <script>
+        // Initialize the Mathematical Control Center
+        let mathEngine = null;
+        let sandbox = null;
+        let canvas = null;
+        let ctx = null;
+        let currentSystem = 'algebra';
+        let isAnimating = false;
+        let animationId = null;
+        let audioEnabled = true;
+
+        // Performance monitoring
+        let performanceStats = {
+            fps: 0,
+            frameCount: 0,
+            lastTime: 0,
+            cpuUsage: 0,
+            memoryUsage: 0
+        };
+
+        // Calculator state
+        let calcDisplay = '0';
+        let calcHistory = [];
+        let calcPrevious = null;
+        let calcOperation = null;
+        let calcWaitingForNumber = false;
+
+        // Current visualization data
+        let currentVisualization = null;
+        let visualizationParameters = {};
+
+        // Initialize when page loads
+        window.addEventListener('load', async () => {
+            await initializeSystem();
+            setupEventListeners();
+            startRenderLoop();
+            startPerformanceMonitoring();
+            generateInitialVisualization();
+        });
+
+        async function initializeSystem() {
+            try {
+                // Initialize canvas
+                canvas = document.getElementById('mathDisplay');
+                ctx = canvas.getContext('2d');
+                resizeCanvas();
+
+                // Initialize mathematical engine
+                if (typeof NexusForgemathematicalEngine !== 'undefined') {
+                    mathEngine = new NexusForgemathematicalEngine();
+                    console.log('✅ Mathematical Engine initialized');
+                }
+
+                // Initialize sandbox
+                if (typeof NexusForgeMathematicalSandbox !== 'undefined') {
+                    sandbox = new NexusForgeMathematicalSandbox();
+                    populateExperimentList();
+                    console.log('✅ Mathematical Sandbox initialized');
+                }
+
+                // Initialize audio visualizer
+                createAudioVisualizer();
+
+            } catch (error) {
+                console.error('❌ System initialization failed:', error);
+            }
+        }
+
+        function setupEventListeners() {
+            // System selector buttons
+            document.querySelectorAll('.system-button[data-system]').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    switchMathematicalSystem(e.target.dataset.system);
+                });
+            });
+
+            // Parameter inputs
+            document.getElementById('param1').addEventListener('change', updateVisualizationParameters);
+            document.getElementById('param2').addEventListener('change', updateVisualizationParameters);
+            document.getElementById('param3').addEventListener('change', updateVisualizationParameters);
+            document.getElementById('param4').addEventListener('change', updateVisualizationParameters);
+
+            // Canvas interactions
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousemove', handleCanvasMove);
+
+            // Window resize
+            window.addEventListener('resize', resizeCanvas);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboard);
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        function switchMathematicalSystem(system) {
+            // Update active button
+            document.querySelectorAll('.system-button[data-system]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-system="${system}"]`).classList.add('active');
+
+            currentSystem = system;
+            document.getElementById('currentSystem').textContent = system.charAt(0).toUpperCase() + system.slice(1);
+
+            // Update parameter inputs based on system
+            updateParameterInputs(system);
+
+            // Show/hide sacred geometry indicator
+            const sacredIndicator = document.getElementById('sacredIndicator');
+            if (system === 'sacred' || system === 'secret') {
+                sacredIndicator.style.display = 'block';
+            } else {
+                sacredIndicator.style.display = 'none';
+            }
+
+            // Generate new visualization
+            generateVisualization();
+        }
+
+        function updateParameterInputs(system) {
+            const param1 = document.getElementById('param1');
+            const param2 = document.getElementById('param2');
+            const param3 = document.getElementById('param3');
+            const param4 = document.getElementById('param4');
+
+            switch (system) {
+                case 'algebra':
+                    param1.placeholder = 'Equation (e.g., sin(x))';
+                    param2.placeholder = 'Amplitude';
+                    param3.placeholder = 'Frequency';
+                    param4.placeholder = 'Phase';
+                    break;
+                case 'geometry':
+                    param1.placeholder = 'Shape (circle, square, etc.)';
+                    param2.placeholder = 'Size/Radius';
+                    param3.placeholder = 'Segments/Resolution';
+                    param4.placeholder = 'Rotation Angle';
+                    break;
+                case 'sacred':
+                    param1.placeholder = 'Pattern (flower_of_life, etc.)';
+                    param2.placeholder = 'Scale';
+                    param3.placeholder = 'Layers/Iterations';
+                    param4.placeholder = 'Golden Ratio Factor';
+                    break;
+                case 'secret':
+                    param1.placeholder = 'Secret (golden_spiral, etc.)';
+                    param2.placeholder = 'Resonance Level';
+                    param3.placeholder = 'Iterations';
+                    param4.placeholder = 'Complexity';
+                    break;
+                case 'physics':
+                    param1.placeholder = 'Body Count';
+                    param2.placeholder = 'Gravity';
+                    param3.placeholder = 'Area Size';
+                    param4.placeholder = 'Time Step';
+                    break;
+                case 'fractals':
+                    param1.placeholder = 'Fractal Type';
+                    param2.placeholder = 'Iterations/Depth';
+                    param3.placeholder = 'Scale/Size';
+                    param4.placeholder = 'Angle/Parameter';
+                    break;
+            }
+        }
+
+        function updateVisualizationParameters() {
+            visualizationParameters = {
+                param1: document.getElementById('param1').value,
+                param2: parseFloat(document.getElementById('param2').value) || 1,
+                param3: parseFloat(document.getElementById('param3').value) || 1,
+                param4: parseFloat(document.getElementById('param4').value) || 0
+            };
+        }
+
+        function generateVisualization() {
+            if (!mathEngine) return;
+
+            updateVisualizationParameters();
+
+            try {
+                switch (currentSystem) {
+                    case 'algebra':
+                        currentVisualization = generateAlgebraVisualization();
+                        break;
+                    case 'geometry':
+                        currentVisualization = generateGeometryVisualization();
+                        break;
+                    case 'sacred':
+                        currentVisualization = generateSacredGeometry();
+                        break;
+                    case 'secret':
+                        currentVisualization = generateSecretGeometry();
+                        break;
+                    case 'physics':
+                        currentVisualization = generatePhysicsSimulation();
+                        break;
+                    case 'fractals':
+                        currentVisualization = generateFractalVisualization();
+                        break;
+                }
+
+                updateVisualizationInfo();
+
+            } catch (error) {
+                console.error('❌ Visualization generation failed:', error);
+            }
+        }
+
+        function generateAlgebraVisualization() {
+            const equation = visualizationParameters.param1 || 'sine_wave';
+            const amplitude = visualizationParameters.param2;
+            const frequency = visualizationParameters.param3;
+            const phase = visualizationParameters.param4;
+
+            return mathEngine.algebra.generateEquationVisualization({
+                equation,
+                range: [-10, 10],
+                resolution: 200,
+                args: [amplitude, frequency, phase]
+            });
+        }
+
+        function generateGeometryVisualization() {
+            const shape = visualizationParameters.param1 || 'circle';
+            const size = visualizationParameters.param2 * 50;
+            const segments = Math.floor(visualizationParameters.param3 * 32);
+
+            return mathEngine.geometry.generateShape({
+                shape,
+                size,
+                segments
+            });
+        }
+
+        function generateSacredGeometry() {
+            const pattern = visualizationParameters.param1 || 'flower_of_life';
+            const scale = visualizationParameters.param2 * 30;
+            const layers = Math.floor(visualizationParameters.param3 * 3);
+
+            return mathEngine.sacredGeometry.generatePattern({
+                pattern,
+                scale,
+                layers
+            });
+        }
+
+        function generateSecretGeometry() {
+            const secret = visualizationParameters.param1 || 'golden_spiral';
+            const resonance = visualizationParameters.param2;
+            const iterations = Math.floor(visualizationParameters.param3 * 8);
+
+            mathEngine.secretGeometry.updateAudioResonance(resonance, 0);
+
+            return mathEngine.secretGeometry.revealPattern({
+                secret,
+                iterations
+            });
+        }
+
+        function generatePhysicsSimulation() {
+            const bodyCount = Math.floor(visualizationParameters.param2 * 10);
+            const area = visualizationParameters.param3 * 100;
+
+            return mathEngine.physics.simulateSystem({
+                bodyCount,
+                area
+            });
+        }
+
+        function generateFractalVisualization() {
+            const fractal = visualizationParameters.param1 || 'tree';
+            const depth = Math.floor(visualizationParameters.param2 * 6);
+            const scale = visualizationParameters.param3 * 50;
+
+            return mathEngine.fractals.generate({
+                fractal,
+                depth,
+                scale
+            });
+        }
+
+        function startRenderLoop() {
+            function render(currentTime) {
+                // Calculate FPS
+                performanceStats.frameCount++;
+                if (currentTime - performanceStats.lastTime >= 1000) {
+                    performanceStats.fps = performanceStats.frameCount;
+                    performanceStats.frameCount = 0;
+                    performanceStats.lastTime = currentTime;
+                    document.getElementById('fps').textContent = performanceStats.fps;
+                }
+
+                // Clear canvas
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Render current visualization
+                if (currentVisualization) {
+                    renderCurrentVisualization(currentTime);
+                }
+
+                // Update audio reactive elements
+                if (audioEnabled) {
+                    updateAudioReactiveElements(currentTime);
+                }
+
+                animationId = requestAnimationFrame(render);
+            }
+
+            render(0);
+        }
+
+        function renderCurrentVisualization(time) {
+            if (!ctx || !currentVisualization) return;
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+
+            const timeOffset = time * 0.001;
+            const hue = (timeOffset * 50) % 360;
+
+            ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+            ctx.fillStyle = `hsla(${hue}, 60%, 40%, 0.3)`;
+            ctx.lineWidth = 2;
+
+            try {
+                switch (currentSystem) {
+                    case 'algebra':
+                        renderAlgebraVisualization(currentVisualization, timeOffset);
+                        break;
+                    case 'geometry':
+                        renderGeometryVisualization(currentVisualization, timeOffset);
+                        break;
+                    case 'sacred':
+                        renderSacredVisualization(currentVisualization, timeOffset);
+                        break;
+                    case 'secret':
+                        renderSecretVisualization(currentVisualization, timeOffset);
+                        break;
+                    case 'fractals':
+                        renderFractalVisualization(currentVisualization, timeOffset);
+                        break;
+                }
+            } catch (error) {
+                console.error('❌ Render error:', error);
+            }
+
+            ctx.restore();
+        }
+
+        function renderAlgebraVisualization(viz, timeOffset) {
+            if (!viz.points) return;
+
+            ctx.beginPath();
+            viz.points.forEach((point, index) => {
+                const x = point.x * 20;
+                const y = -point.y * 20;
+
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+        }
+
+        function renderGeometryVisualization(viz, timeOffset) {
+            if (!viz.points) return;
+
+            ctx.save();
+            ctx.rotate(timeOffset);
+
+            ctx.beginPath();
+            viz.points.forEach((point, index) => {
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function renderSacredVisualization(viz, timeOffset) {
+            if (!viz.data) return;
+
+            ctx.strokeStyle = '#ffd700';
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+
+            if (Array.isArray(viz.data)) {
+                viz.data.forEach(circle => {
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+            }
+        }
+
+        function renderSecretVisualization(viz, timeOffset) {
+            if (!viz.revealed || !viz.data) return;
+
+            ctx.strokeStyle = '#8a2be2';
+            ctx.fillStyle = 'rgba(138, 43, 226, 0.3)';
+
+            if (Array.isArray(viz.data)) {
+                viz.data.forEach((point, index) => {
+                    const alpha = Math.min(1, viz.resonanceLevel * 2);
+                    const hue = (270 + index * 10 + timeOffset * 20) % 360;
+                    ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+
+                    ctx.beginPath();
+                    ctx.arc(point.x || 0, point.y || 0, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+        }
+
+        function renderFractalVisualization(viz, timeOffset) {
+            if (!viz.data) return;
+
+            const hue = (120 + timeOffset * 30) % 360;
+            ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+
+            if (Array.isArray(viz.data) && viz.data[0] && viz.data[0].x1 !== undefined) {
+                viz.data.forEach(line => {
+                    ctx.beginPath();
+                    ctx.moveTo(line.x1, line.y1);
+                    ctx.lineTo(line.x2, line.y2);
+                    ctx.stroke();
+                });
+            }
+        }
+
+        function updateAudioReactiveElements(time) {
+            // Simulate audio data
+            const bassLevel = 0.3 + 0.2 * Math.sin(time * 0.002);
+            const midLevel = 0.2 + 0.3 * Math.sin(time * 0.003);
+            const trebleLevel = 0.4 + 0.3 * Math.sin(time * 0.004);
+
+            // Update UI
+            document.getElementById('bassLevel').textContent = bassLevel.toFixed(2);
+            document.getElementById('midLevel').textContent = midLevel.toFixed(2);
+            document.getElementById('trebleLevel').textContent = trebleLevel.toFixed(2);
+
+            document.getElementById('bassBar').style.width = (bassLevel * 100) + '%';
+            document.getElementById('midBar').style.width = (midLevel * 100) + '%';
+            document.getElementById('trebleBar').style.width = (trebleLevel * 100) + '%';
+
+            // Update audio visualizer bars
+            const bars = document.querySelectorAll('.freq-bar');
+            bars.forEach((bar, index) => {
+                const freq = index / bars.length;
+                const amplitude = bassLevel * (1 - freq) + trebleLevel * freq + Math.random() * 0.1;
+                bar.style.height = (amplitude * 100) + '%';
+            });
+
+            // Beat detection simulation
+            const beatDetected = Math.sin(time * 0.006) > 0.8;
+            document.getElementById('beatDetection').textContent = beatDetected ? 'Yes' : 'No';
+        }
+
+        function createAudioVisualizer() {
+            const visualizer = document.getElementById('audioVisualizer');
+            for (let i = 0; i < 64; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'freq-bar';
+                bar.style.height = '10%';
+                visualizer.appendChild(bar);
+            }
+        }
+
+        function startPerformanceMonitoring() {
+            setInterval(() => {
+                // Simulate performance metrics
+                performanceStats.cpuUsage = Math.min(100, 30 + Math.random() * 40);
+                performanceStats.memoryUsage = Math.min(100, 50 + Math.random() * 30);
+                const gpuUsage = Math.min(100, 60 + Math.random() * 30);
+
+                document.getElementById('cpuUsage').textContent = Math.round(performanceStats.cpuUsage) + '%';
+                document.getElementById('memoryUsage').textContent = Math.round(performanceStats.memoryUsage) + '%';
+                document.getElementById('gpuUsage').textContent = Math.round(gpuUsage) + '%';
+
+                document.getElementById('cpuBar').style.width = performanceStats.cpuUsage + '%';
+                document.getElementById('memoryBar').style.width = performanceStats.memoryUsage + '%';
+                document.getElementById('gpuBar').style.width = gpuUsage + '%';
+
+                document.getElementById('renderTime').textContent = (16.7 + Math.random() * 5).toFixed(1) + 'ms';
+            }, 1000);
+        }
+
+        function populateExperimentList() {
+            if (!sandbox) return;
+
+            const experimentList = document.getElementById('experimentList');
+            const experiments = sandbox.getExperimentList();
+
+            experiments.forEach(experiment => {
+                const item = document.createElement('div');
+                item.className = 'experiment-item';
+                item.innerHTML = `
+                    <div style="font-weight: bold;">${experiment.name}</div>
+                    <div style="font-size: 10px; color: #ccc;">${experiment.description}</div>
+                `;
+                item.onclick = () => selectExperiment(experiment.id);
+                experimentList.appendChild(item);
+            });
+        }
+
+        function selectExperiment(experimentId) {
+            document.querySelectorAll('.experiment-item').forEach(item => {
+                item.style.background = '';
+            });
+            event.target.closest('.experiment-item').style.background = 'rgba(255, 215, 0, 0.2)';
+            window.selectedExperiment = experimentId;
+        }
+
+        function runSelectedExperiment() {
+            if (!sandbox || !window.selectedExperiment) return;
+
+            sandbox.runExperiment(window.selectedExperiment)
+                .then(result => {
+                    console.log('🧪 Experiment completed:', result);
+                    alert(`Experiment "${result.name}" completed in ${result.executionTime.toFixed(2)}ms`);
+                })
+                .catch(error => {
+                    console.error('❌ Experiment failed:', error);
+                    alert('Experiment failed: ' + error.message);
+                });
+        }
+
+        // Calculator functions
+        function calcInput(value) {
+            const display = document.getElementById('calcDisplay');
+
+            if (value === 'C') {
+                calcDisplay = '0';
+                calcPrevious = null;
+                calcOperation = null;
+                calcWaitingForNumber = false;
+            } else if (value === '=') {
+                if (calcPrevious !== null && calcOperation !== null) {
+                    const current = parseFloat(calcDisplay);
+                    const result = performCalculation(calcPrevious, current, calcOperation);
+                    calcDisplay = result.toString();
+                    addToCalculatorHistory(`${calcPrevious} ${calcOperation} ${current} = ${result}`);
+                    calcPrevious = null;
+                    calcOperation = null;
+                }
+            } else if (['+', '-', '*', '/'].includes(value)) {
+                if (calcPrevious !== null && calcOperation !== null && !calcWaitingForNumber) {
+                    const current = parseFloat(calcDisplay);
+                    const result = performCalculation(calcPrevious, current, calcOperation);
+                    calcDisplay = result.toString();
+                }
+                calcPrevious = parseFloat(calcDisplay);
+                calcOperation = value;
+                calcWaitingForNumber = true;
+            } else if (value === 'π') {
+                calcDisplay = Math.PI.toString();
+            } else {
+                if (calcDisplay === '0' || calcWaitingForNumber) {
+                    calcDisplay = value;
+                    calcWaitingForNumber = false;
+                } else {
+                    calcDisplay += value;
+                }
+            }
+
+            display.textContent = calcDisplay;
+        }
+
+        function performCalculation(a, b, operation) {
+            switch (operation) {
+                case '+': return a + b;
+                case '-': return a - b;
+                case '*': return a * b;
+                case '/': return b !== 0 ? a / b : 0;
+                default: return b;
+            }
+        }
+
+        function addToCalculatorHistory(calculation) {
+            calcHistory.unshift(calculation);
+            if (calcHistory.length > 10) calcHistory.pop();
+
+            const historyDiv = document.getElementById('calcHistory');
+            historyDiv.innerHTML = calcHistory.map(calc =>
+                `<div class="history-item">${calc}</div>`
+            ).join('');
+        }
+
+        // Control functions
+        function generateInitialVisualization() {
+            setTimeout(() => {
+                generateVisualization();
+            }, 1000);
+        }
+
+        function animateVisualization() {
+            isAnimating = !isAnimating;
+            const button = event.target;
+            button.textContent = isAnimating ? '⏸️ Pause' : '🎬 Animate';
+        }
+
+        function saveVisualization() {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `nexus-math-${currentSystem}-${Date.now()}.png`;
+            link.href = dataURL;
+            link.click();
+        }
+
+        function exportData() {
+            if (!sandbox) return;
+
+            const data = sandbox.exportResults();
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `nexus-math-data-${Date.now()}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const button = event.target;
+            button.textContent = audioEnabled ? '🔇 Mute' : '🎵 Audio';
+        }
+
+        function runBenchmark() {
+            if (!sandbox) return;
+
+            const results = sandbox.performanceTester.benchmark('visualization_render', () => {
+                generateVisualization();
+            }, 100);
+
+            alert(`Benchmark: ${results.averageTime.toFixed(2)}ms average render time`);
+        }
+
+        function openSandbox() {
+            window.open('nexus-forge-mathematical-sandbox.html', '_blank');
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function resetSystem() {
+            if (confirm('Reset all mathematical systems?')) {
+                location.reload();
+            }
+        }
+
+        function updateVisualizationInfo() {
+            let elementCount = 0;
+            let complexity = 'Low';
+
+            if (currentVisualization) {
+                if (currentVisualization.points) {
+                    elementCount = currentVisualization.points.length;
+                } else if (currentVisualization.data && Array.isArray(currentVisualization.data)) {
+                    elementCount = currentVisualization.data.length;
+                }
+
+                if (elementCount > 1000) complexity = 'Very High';
+                else if (elementCount > 500) complexity = 'High';
+                else if (elementCount > 100) complexity = 'Medium';
+            }
+
+            document.getElementById('elementCount').textContent = elementCount;
+            document.getElementById('complexity').textContent = complexity;
+        }
+
+        function handleCanvasClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left - canvas.width / 2;
+            const y = event.clientY - rect.top - canvas.height / 2;
+
+            // Add interactive elements based on current system
+            console.log(`Canvas click at (${x.toFixed(2)}, ${y.toFixed(2)})`);
+        }
+
+        function handleCanvasMove(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (event.clientX - rect.left) / canvas.width;
+            const y = (event.clientY - rect.top) / canvas.height;
+
+            // Update parameters based on mouse position if needed
+        }
+
+        function handleKeyboard(event) {
+            switch (event.key) {
+                case ' ':
+                    event.preventDefault();
+                    generateVisualization();
+                    break;
+                case 'a':
+                    animateVisualization();
+                    break;
+                case 's':
+                    saveVisualization();
+                    break;
+                case 'r':
+                    resetSystem();
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>

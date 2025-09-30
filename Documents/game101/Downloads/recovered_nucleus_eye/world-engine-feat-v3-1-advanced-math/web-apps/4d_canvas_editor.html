@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>4D Canvas: Back/Front Walls + Drawing + Links + Limbs</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root { --bg:#0b0f14; --panel:#0f1620; --accent:#10e0e0; --text:#e8f0ff; --muted:#92a0b3; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+  .stack { position:fixed; inset:0; }
+  canvas.layer { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .ui {
+    position:fixed; top:12px; left:12px; z-index:10;
+    background:color-mix(in oklab, var(--panel) 85%, transparent);
+    backdrop-filter: blur(6px);
+    border:1px solid #1e2a3a; border-radius:14px; padding:10px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn {
+    appearance:none; border:1px solid #204055; background:#0d1b26; color:var(--text);
+    padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:14px;
+  }
+  .btn:hover { border-color:#2b6e7a; }
+  .btn.on { outline:2px solid #36e0e0; }
+  .btn.accent { background:var(--accent); color:#022; border-color:#0cc; }
+  .fld { display:flex; align-items:center; gap:6px; }
+  .sep { width:1px; height:28px; background:#22313f; margin:0 4px; }
+  input[type="range"] { accent-color:#10e0e0; }
+  .preview {
+    position:fixed; right:12px; bottom:12px; z-index:10;
+    background:color-mix(in oklab, var(--panel) 85%, transparent);
+    border:1px solid #1e2a3a; border-radius:14px; padding:10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .label { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  #preview { display:block; width:360px; height:210px; border-radius:10px; background:#000; }
+</style>
+</head>
+<body>
+
+<!-- Controls -->
+<div class="ui">
+  <div class="row" style="margin-bottom:6px">
+    <!-- Drawing -->
+    <button id="drawBtn"  class="btn on">Draw</button>
+    <button id="eraseBtn" class="btn">Erase</button>
+    <button id="clearDraw" class="btn">Clear</button>
+    <div class="fld"><label>Brush</label><input id="brush" type="range" min="1" max="24" value="4"></div>
+
+    <div class="sep"></div>
+
+    <!-- Image Upload -->
+    <button id="uploadBtn" class="btn">Upload Image</button>
+    <input id="imageInput" type="file" accept="image/*" style="display:none">
+    <button id="clearImage" class="btn">Clear Image</button>
+
+    <div class="sep"></div>
+
+    <!-- Walls -->
+    <div class="fld">
+      <label>Wall</label>
+      <select id="wall" class="btn">
+        <option value="back">Back</option>
+        <option value="front" selected>Front</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Type</label>
+      <select id="graphType" class="btn">
+        <option value="grid" selected>Grid</option>
+        <option value="radial">Radial</option>
+      </select>
+    </div>
+    <span id="gridOpts" class="fld">
+      <label>Rows</label><input id="rows" type="number" class="btn" value="7" min="2" style="width:70px">
+      <label>Cols</label><input id="cols" type="number" class="btn" value="10" min="2" style="width:70px">
+    </span>
+    <span id="radialOpts" class="fld" style="display:none">
+      <label>Rings</label><input id="rings" type="number" class="btn" value="4" min="1" style="width:70px">
+      <label>Per</label><input id="npr" type="number" class="btn" value="8" min="1" style="width:70px">
+    </span>
+    <button id="genGraph" class="btn">Generate</button>
+
+    <div class="sep"></div>
+
+    <!-- Wall edit -->
+    <button id="editWall"   class="btn">Edit Nodes</button>
+    <button id="connectBtn" class="btn">Connect</button>
+    <button id="spawnNode"  class="btn">Spawn Node</button>
+    <button id="spawnBox"   class="btn">Spawn Box</button>
+
+    <div class="sep"></div>
+
+    <!-- Between-wall links -->
+    <button id="linkMode" class="btn">Link Back ↔ Front</button>
+
+    <div class="sep"></div>
+
+    <!-- Limbs -->
+    <button id="spawnLimb" class="btn">Spawn Limb</button>
+
+    <div class="sep"></div>
+
+    <!-- Glyphs & Animation -->
+    <button id="glyphBtn" class="btn">Apply Glyph</button>
+    <button id="animateBtn" class="btn">Animate Scene</button>
+    <button id="nodeGlyphBtn" class="btn">Light Nodes</button>
+
+    <div class="sep"></div>
+
+    <!-- Enhanced Export -->
+    <button id="save" class="btn accent">Export PNG</button>
+    <button id="exportPDF" class="btn">Export PDF</button>
+    <button id="exportGLB" class="btn">Export 3D</button>
+  </div>
+
+  <div class="row">
+    <div class="fld"><label>Back Grid α</label><input id="backGridAlpha" type="range" min="0" max="100" value="35"></div>
+    <div class="fld"><label>Back α</label><input id="backAlpha" type="range" min="0" max="100" value="55"></div>
+    <div class="fld"><label>Link α</label><input id="linkAlpha" type="range" min="0" max="100" value="90"></div>
+    <div class="fld"><label>Front α</label><input id="frontAlpha" type="range" min="0" max="100" value="75"></div>
+    <div class="fld"><label>Front Grid α</label><input id="frontGridAlpha" type="range" min="0" max="100" value="35"></div>
+    <div class="fld"><label>Limb Speed</label><input id="limbSpeed" type="range" min="1" max="400" value="80"></div>
+    <div class="fld"><label>Limb Max°</label><input id="limbMax"   type="range" min="5" max="180" value="45"></div>
+    <div class="fld"><label>Limb Len</label><input id="limbLen"    type="range" min="10" max="300" value="100"></div>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div class="fld">
+      <label>Glyph</label>
+      <select id="glyphSelect" class="btn">
+        <option value="aurora_lattice">Aurora Lattice</option>
+        <option value="keystone_memory">Keystone Memory</option>
+        <option value="echo_weaver">Echo Weaver</option>
+        <option value="fathom_drift">Fathom Drift</option>
+        <option value="solaris_anchor">Solaris Anchor</option>
+        <option value="umbra_veil">Umbra Veil</option>
+        <option value="kintsugi_field">Kintsugi Field</option>
+        <option value="hearthbind">Hearthbind</option>
+      </select>
+    </div>
+    <div class="fld"><label>Glyph Intensity</label><input id="glyphIntensity" type="range" min="0" max="100" value="65"></div>
+
+    <div class="sep"></div>
+
+    <div class="fld">
+      <label>Animation</label>
+      <select id="animationType" class="btn">
+        <option value="pulse">Pulse</option>
+        <option value="rotate">Rotate</option>
+        <option value="morph">Morph</option>
+        <option value="wave">Wave</option>
+        <option value="spiral">Spiral</option>
+        <option value="bloom">Bloom</option>
+      </select>
+    </div>
+    <div class="fld"><label>Anim Speed</label><input id="animSpeed" type="range" min="1" max="100" value="25"></div>
+  </div>
+</div>
+
+<!-- Preview -->
+<div class="preview">
+  <div class="label">Composite Preview</div>
+  <canvas id="preview" width="360" height="210"></canvas>
+</div>
+
+<!-- Layer stack (image → grid → back → drawing → links → front) -->
+<div class="stack">
+  <canvas id="imageLayer"  class="layer"></canvas>
+  <canvas id="baseGrid"    class="layer"></canvas>
+  <canvas id="backGraph"   class="layer"></canvas>
+  <canvas id="drawCanvas"  class="layer"></canvas>
+  <canvas id="linkCanvas"  class="layer"></canvas>
+  <canvas id="frontGraph"  class="layer"></canvas>
+</div>
+
+<script>
+/* ====================== Core setup ====================== */
+const DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+const imageLayer = document.getElementById('imageLayer');
+const baseGrid   = document.getElementById('baseGrid');
+const backGraph  = document.getElementById('backGraph');
+const drawCanvas = document.getElementById('drawCanvas');
+const linkCanvas = document.getElementById('linkCanvas');
+const frontGraph = document.getElementById('frontGraph');
+const preview    = document.getElementById('preview');
+
+let W=0, H=0, ictx, gctx, bctx, dctx, lctx, fctx;
+let uploadedImage = null;
+function setupCanvas(canvas){
+  const w = window.innerWidth, h = window.innerHeight;
+  canvas.width  = Math.floor(w*DPR);
+  canvas.height = Math.floor(h*DPR);
+  canvas.style.width = w+'px'; canvas.style.height = h+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  return ctx;
+}
+function resizeAll(){
+  W = window.innerWidth; H = window.innerHeight;
+  ictx = setupCanvas(imageLayer);
+  gctx = setupCanvas(baseGrid);
+  bctx = setupCanvas(backGraph);
+  dctx = setupCanvas(drawCanvas);
+  lctx = setupCanvas(linkCanvas);
+  fctx = setupCanvas(frontGraph);
+  drawBaseGrid();
+  drawBackgroundImage();
+  redrawAll();
+  updatePreview();
+}
+window.addEventListener('resize', resizeAll);
+
+const BASE_SPACING = 48;
+function drawBaseGrid(){
+  gctx.clearRect(0,0,W,H);
+  gctx.lineWidth=1; gctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  for(let x=0.5;x<=W;x+=BASE_SPACING){ gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,H); gctx.stroke(); }
+  for(let y=0.5;y<=H;y+=BASE_SPACING){ gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W,y); gctx.stroke(); }
+}
+
+function drawBackgroundImage(){
+  ictx.clearRect(0,0,W,H);
+  if (uploadedImage) {
+    // Calculate aspect-preserving fit
+    const imgAspect = uploadedImage.width / uploadedImage.height;
+    const canvasAspect = W / H;
+    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+    if (imgAspect > canvasAspect) {
+      // Image wider than canvas - fit width
+      drawWidth = W;
+      drawHeight = W / imgAspect;
+      offsetY = (H - drawHeight) / 2;
+    } else {
+      // Image taller than canvas - fit height
+      drawHeight = H;
+      drawWidth = H * imgAspect;
+      offsetX = (W - drawWidth) / 2;
+    }
+
+    ictx.save();
+    ictx.globalAlpha = 0.4; // Semi-transparent background
+    ictx.drawImage(uploadedImage, offsetX, offsetY, drawWidth, drawHeight);
+    ictx.restore();
+  }
+}
+
+/* ====================== Graph manager ====================== */
+class Graph {
+  constructor(){ this.nodes=[]; this.edges=[]; }
+  dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  addNode(x,y,id){ const n={id:id||('n-'+Math.random().toString(36).slice(2,8)), x,y}; this.nodes.push(n); return n; }
+  createEdge(a,b){
+    if(a===b) return;
+    if (this.edges.some(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a))) return;
+    this.edges.push({a,b,w:this.dist(a,b)});
+  }
+  grid({rows=6,cols=8,width,height}={}) {
+    if (typeof width !== 'number' || typeof height !== 'number') {
+      throw new Error('grid() requires explicit width and height parameters.');
+    }
+    this.nodes=[]; this.edges=[];
+    // Use a 2D array for fast node lookup
+    const nodeGrid = [];
+    for(let r=0;r<rows;r++){
+      nodeGrid[r] = [];
+      for(let c=0;c<cols;c++){
+        const x = cols===1? width/2 : c*(width/(cols-1));
+        const y = rows===1? height/2: r*(height/(rows-1));
+        const n=this.addNode(x,y,`g-${r}-${c}`);
+        nodeGrid[r][c] = n;
+        if(c>0) this.createEdge(nodeGrid[r][c-1], n);
+        if(r>0) this.createEdge(nodeGrid[r-1][c], n);
+      }
+    }
+  }
+  radial({center={x:W/2,y:H/2},rings=4,per=8}={}){
+    this.nodes=[]; this.edges=[];
+    const c=this.addNode(center.x,center.y,'center');
+    const seq=Array.from({length:rings},(_,i)=> 60*Math.pow(1.5,i));
+    seq.forEach((rad,ri)=>{
+      const count=per*(ri+1), step=(2*Math.PI)/count;
+      const ring=[];
+      for(let i=0;i<count;i++){
+        const a=i*step; const n=this.addNode(center.x+rad*Math.cos(a), center.y+rad*Math.sin(a), `r-${ri}-${i}`);
+        ring.push(n); this.createEdge(c,n); if(i>0) this.createEdge(ring[i-1], n);
+      }
+      if(ring.length>1) this.createEdge(ring[0], ring[ring.length-1]);
+      if(ri>0){
+        const prev = this.nodes.filter(nn=>/^r-/.test(nn.id) && Number(nn.id.split('-')[1])===ri-1);
+        ring.forEach(n=>{
+          const nn = prev.slice().sort((A,B)=>this.dist(A,n)-this.dist(B,n)).slice(0,2);
+          nn.forEach(p=>this.createEdge(p,n));
+        });
+      }
+    });
+  }
+}
+
+/* Two walls */
+const wallBack  = new Graph();
+const wallFront = new Graph();
+
+/* ====================== Drawing layer ====================== */
+let drawMode='draw', brushSize=4, isDrawing=false, strokes=[], stroke=null;
+function toXY(canvas,e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+function redrawDrawing(){
+  dctx.clearRect(0,0,W,H);
+  for(const s of strokes){
+    dctx.lineCap='round'; dctx.lineJoin='round'; dctx.strokeStyle=s.color; dctx.lineWidth=s.width;
+    dctx.beginPath(); s.pts.forEach((p,i)=> i? dctx.lineTo(p.x,p.y): dctx.moveTo(p.x,p.y)); dctx.stroke();
+  }
+}
+drawCanvas.addEventListener('pointerdown', e=>{
+  if (state.mode!=='draw' && state.mode!=='erase') return;
+  isDrawing=true;
+  const p=toXY(drawCanvas,e);
+  const color = (state.mode==='erase')? '#0b0f14' : '#ff3aa5';
+  const width = (state.mode==='erase')? Math.max(brushSize*4,12) : brushSize;
+  stroke={color,width,pts:[p]}; strokes.push(stroke);
+  redrawDrawing(); updatePreview();
+});
+drawCanvas.addEventListener('pointermove', e=>{
+  if(!isDrawing) return;
+  const p=toXY(drawCanvas,e);
+  stroke.pts.push(p);
+  redrawDrawing();
+  updatePreview();
+});
+drawCanvas.addEventListener('pointerup', ()=>{ isDrawing=false; stroke=null; updatePreview(); });
+drawCanvas.addEventListener('pointerleave', ()=>{ isDrawing=false; stroke=null; });
+
+/* ====================== Link layer (between walls) ====================== */
+let links=[];
+function drawLinks(){
+  lctx.clearRect(0,0,W,H);
+  lctx.save(); lctx.globalAlpha = state.linkAlpha;
+  links.forEach(L=>{
+    const A = wallBack.nodes[L.iBack], B = wallFront.nodes[L.iFront];
+    if(!A||!B) return;
+    // Curved "depth" ribbon
+    const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+    const dx=B.y-A.y, dy=A.x-B.x; const k=0.24; const cx=mx+dx*k, cy=my+dy*k;
+    const grad=lctx.createLinearGradient(A.x,A.y,B.x,B.y);
+    grad.addColorStop(0,'#10e0e0'); grad.addColorStop(1,'#ff3aa5');
+    lctx.strokeStyle=grad; lctx.lineWidth=3;
+    lctx.beginPath(); lctx.moveTo(A.x,A.y); lctx.quadraticCurveTo(cx,cy,B.x,B.y); lctx.stroke();
+    // terminals
+    lctx.fillStyle='#10e0e0'; lctx.beginPath(); lctx.arc(A.x,A.y,3,0,Math.PI*2); lctx.fill();
+    lctx.fillStyle='#ff3aa5'; lctx.beginPath(); lctx.arc(B.x,B.y,3,0,Math.PI*2); lctx.fill();
+  });
+  lctx.restore();
+}
+
+/* ====================== Wall rendering & interaction ====================== */
+const NODE_R=8;
+
+// Render grid edges and nodes separately for independent transparency control
+function drawGridStructure(ctx, wall, gridAlpha, highlightIdx=null) {
+  if (gridAlpha <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = gridAlpha;
+
+  // Grid edges only (nodes with g- or r- or center IDs)
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='rgba(16,224,224,0.6)'; ctx.lineWidth=1.5;
+  wall.edges.forEach(e => {
+    const isGridEdge = (e.a.id.startsWith('g-') || e.a.id.startsWith('r-') || e.a.id === 'center') &&
+                      (e.b.id.startsWith('g-') || e.b.id.startsWith('r-') || e.b.id === 'center');
+    if (isGridEdge) {
+      ctx.beginPath();
+      ctx.moveTo(e.a.x, e.a.y);
+      ctx.lineTo(e.b.x, e.b.y);
+      ctx.stroke();
+    }
+  });
+
+  // Grid nodes only
+  wall.nodes.forEach((n, idx) => {
+    const isGridNode = n.id.startsWith('g-') || n.id.startsWith('r-') || n.id === 'center';
+    if (isGridNode) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, NODE_R + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = (idx === highlightIdx) ? 'rgba(255,222,80,0.4)' : 'rgba(16,224,224,0.25)';
+      ctx.lineWidth = 1; ctx.stroke();
+
+      ctx.beginPath(); ctx.arc(n.x, n.y, NODE_R - 1, 0, Math.PI * 2);
+      ctx.fillStyle = '#0a0f14'; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = '#10e0e0'; ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+}
+
+// Render user-created content (non-grid nodes and edges)
+function drawUserContent(ctx, wall, alpha, highlightIdx=null) {
+  if (alpha <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // User edges (at least one non-grid node)
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='rgba(16,224,224,0.85)'; ctx.lineWidth=2;
+  wall.edges.forEach(e => {
+    const isUserEdge = !(e.a.id.startsWith('g-') || e.a.id.startsWith('r-') || e.a.id === 'center') ||
+                      !(e.b.id.startsWith('g-') || e.b.id.startsWith('r-') || e.b.id === 'center');
+    if (isUserEdge) {
+      const aOffset = e.a.renderOffset || { x: 0, y: 0 };
+      const bOffset = e.b.renderOffset || { x: 0, y: 0 };
+      ctx.beginPath();
+      ctx.moveTo(e.a.x + aOffset.x, e.a.y + aOffset.y);
+      ctx.lineTo(e.b.x + bOffset.x, e.b.y + bOffset.y);
+      ctx.stroke();
+    }
+  });
+
+  // User nodes
+  wall.nodes.forEach((n, idx) => {
+    const isUserNode = !(n.id.startsWith('g-') || n.id.startsWith('r-') || n.id === 'center');
+    if (isUserNode) {
+      const offset = n.renderOffset || { x: 0, y: 0 };
+      const x = n.x + offset.x, y = n.y + offset.y;
+
+      ctx.beginPath(); ctx.arc(x, y, NODE_R + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = (idx === highlightIdx) ? 'rgba(255,222,80,0.6)' : 'rgba(16,224,224,0.35)';
+      ctx.lineWidth = 1; ctx.stroke();
+
+      ctx.beginPath(); ctx.arc(x, y, NODE_R, 0, Math.PI * 2);
+      ctx.fillStyle = '#111'; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#10e0e0'; ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+
+  // Render node light effects on top
+  renderNodeLightEffect(ctx, wall);
+}
+
+function drawWall(ctx, wall, alpha, gridAlpha, highlightIdx=null) {
+  ctx.clearRect(0, 0, W, H);
+  drawGridStructure(ctx, wall, gridAlpha, highlightIdx);
+  drawUserContent(ctx, wall, alpha, highlightIdx);
+}
+
+function findNodeAt(wall, x,y){
+  let hit=-1, best=Infinity, r2=(NODE_R+4)*(NODE_R+4);
+  wall.nodes.forEach((n,i)=>{ const dx=x-n.x, dy=y-n.y, d=dx*dx+dy*dy; if(d<=r2 && d<best){best=d; hit=i;} });
+  return hit;
+}
+
+/* ====================== App state & modes ====================== */
+const state = {
+  wall: 'front',       // which wall the wall-tools act on
+  mode: 'draw',        // draw|erase|edit|connect|link
+  backGridAlpha: 0.35,
+  backAlpha: 0.55,
+  frontAlpha: 0.75,
+  frontGridAlpha: 0.35,
+  linkAlpha: 0.90,
+  pendingIdx: null,    // for connect/link first click
+  draggingIdx: -1
+};
+function activeWall(){ return state.wall==='back' ? wallBack : wallFront; }
+function activeCtx(){  return state.wall==='back' ? bctx     : fctx; }
+
+function redrawAll(){
+  drawWall(bctx, wallBack,  state.backAlpha, state.backGridAlpha);
+  redrawDrawing();
+  drawLinks();
+  drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+}
+
+/* Wall canvas listeners (both walls share logic) */
+function attachWallHandlers(canvas, wallName){
+  canvas.addEventListener('pointerdown', e=>{
+    const {x,y}=toXY(canvas,e);
+    // If linking between walls: clicks are captured differently below
+    if (state.mode==='link') return;
+
+    // Only respond if the wallName matches current tool wall
+    if (state.wall!==wallName) return;
+
+    if (state.mode==='edit'){
+      const idx=findNodeAt(activeWall(),x,y);
+      if (idx!==-1){ state.draggingIdx=idx; }
+    } else if (state.mode==='connect'){
+      const idx=findNodeAt(activeWall(),x,y);
+      if (idx===-1) return;
+      if (state.pendingIdx==null){
+        state.pendingIdx=idx;
+        const gridAlpha = wallName==='back' ? state.backGridAlpha : state.frontGridAlpha;
+        const nodeAlpha = wallName==='back' ? state.backAlpha : state.frontAlpha;
+        drawWall(activeCtx(), activeWall(), nodeAlpha, gridAlpha, idx);
+      }
+      else if (state.pendingIdx!==idx){
+        activeWall().createEdge(activeWall().nodes[state.pendingIdx], activeWall().nodes[idx]);
+        state.pendingIdx=null;
+        const gridAlpha = wallName==='back' ? state.backGridAlpha : state.frontGridAlpha;
+        const nodeAlpha = wallName==='back' ? state.backAlpha : state.frontAlpha;
+        drawWall(activeCtx(), activeWall(), nodeAlpha, gridAlpha);
+      } else {
+        state.pendingIdx=null;
+        const gridAlpha = wallName==='back' ? state.backGridAlpha : state.frontGridAlpha;
+        const nodeAlpha = wallName==='back' ? state.backAlpha : state.frontAlpha;
+        drawWall(activeCtx(), activeWall(), nodeAlpha, gridAlpha);
+      }
+    }
+    updatePreview();
+  });
+  canvas.addEventListener('pointermove', e=>{
+    if(state.mode!=='edit' || state.wall!==wallName || state.draggingIdx<0) return;
+    const {x,y}=toXY(canvas,e);
+    const n = activeWall().nodes[state.draggingIdx];
+    n.x=x; n.y=y;
+    const gridAlpha = wallName==='back' ? state.backGridAlpha : state.frontGridAlpha;
+    const nodeAlpha = wallName==='back' ? state.backAlpha : state.frontAlpha;
+    drawWall(activeCtx(), activeWall(), nodeAlpha, gridAlpha, state.pendingIdx);
+    drawLinks(); // links may shift visually
+    updatePreview();
+  });
+  canvas.addEventListener('pointerup',   ()=>{ state.draggingIdx=-1; });
+  canvas.addEventListener('pointerleave',()=>{ state.draggingIdx=-1; });
+}
+attachWallHandlers(backGraph,'back');
+attachWallHandlers(frontGraph,'front');
+
+/* Linking between Back ↔ Front */
+let pendingBack=null, pendingFront=null;
+function handleLinkClickOn(canvas, which){
+  canvas.addEventListener('pointerdown', e=>{
+    if (state.mode!=='link') return;
+    const {x,y}=toXY(canvas,e);
+    if (which==='back'){
+      const i=findNodeAt(wallBack,x,y);
+      if (i!==-1){ pendingBack=i; drawWall(bctx, wallBack, state.backAlpha, state.backGridAlpha, i); }
+    } else {
+      const j=findNodeAt(wallFront,x,y);
+      if (j!==-1){ pendingFront=j; drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha, j); }
+    }
+    // If both picked, create link
+    if (pendingBack!=null && pendingFront!=null){
+      // prevent duplicates
+      if (!links.some(L=>L.iBack===pendingBack && L.iFront===pendingFront)){
+        links.push({iBack:pendingBack, iFront:pendingFront});
+      }
+      pendingBack=null; pendingFront=null;
+      drawLinks();
+      drawWall(bctx, wallBack, state.backAlpha, state.backGridAlpha);
+      drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+      updatePreview();
+    }
+  });
+}
+handleLinkClickOn(backGraph,'back');
+handleLinkClickOn(frontGraph,'front');
+
+/* ====================== UI wiring ====================== */
+const drawBtn   = document.getElementById('drawBtn');
+const eraseBtn  = document.getElementById('eraseBtn');
+const clearDraw = document.getElementById('clearDraw');
+const brush     = document.getElementById('brush');
+
+const wallSel   = document.getElementById('wall');
+const graphType = document.getElementById('graphType');
+const gridOpts  = document.getElementById('gridOpts');
+const radialOpts= document.getElementById('radialOpts');
+const rowsEl    = document.getElementById('rows');
+const colsEl    = document.getElementById('cols');
+const ringsEl   = document.getElementById('rings');
+const nprEl     = document.getElementById('npr');
+
+const genGraph  = document.getElementById('genGraph');
+const editWall  = document.getElementById('editWall');
+const connectBtn= document.getElementById('connectBtn');
+const spawnNode = document.getElementById('spawnNode');
+const spawnBox  = document.getElementById('spawnBox');
+const linkMode  = document.getElementById('linkMode');
+const glyphBtn  = document.getElementById('glyphBtn');
+const animateBtn= document.getElementById('animateBtn');
+const nodeGlyphBtn = document.getElementById('nodeGlyphBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const imageInput = document.getElementById('imageInput');
+const clearImage = document.getElementById('clearImage');
+const saveBtn   = document.getElementById('save');
+const exportPDF = document.getElementById('exportPDF');
+const exportGLB = document.getElementById('exportGLB');
+
+const backGridAlpha = document.getElementById('backGridAlpha');
+const backAlpha = document.getElementById('backAlpha');
+const linkAlpha = document.getElementById('linkAlpha');
+const frontAlpha= document.getElementById('frontAlpha');
+const frontGridAlpha = document.getElementById('frontGridAlpha');
+
+function setMode(m){
+  state.mode=m;
+  // toggle button highlights
+  drawBtn.classList.toggle('on', m==='draw');
+  eraseBtn.classList.toggle('on', m==='erase');
+  editWall.classList.toggle('on', m==='edit');
+  connectBtn.classList.toggle('on', m==='connect');
+  linkMode.classList.toggle('on', m==='link');
+  state.pendingIdx=null; pendingBack=null; pendingFront=null;
+  drawWall(bctx, wallBack, state.backAlpha, state.backGridAlpha);
+  drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+}
+drawBtn.onclick  = ()=> setMode('draw');
+eraseBtn.onclick = ()=> setMode('erase');
+clearDraw.onclick= ()=> { strokes=[]; redrawDrawing(); updatePreview(); };
+brush.oninput    = ()=> { brushSize=parseInt(brush.value,10); };
+
+wallSel.onchange = ()=> { state.wall = wallSel.value; };
+graphType.onchange = ()=>{
+  const t=graphType.value;
+  gridOpts.style.display   = t==='grid'?'':'none';
+  radialOpts.style.display = t==='radial'?'':'none';
+};
+
+genGraph.onclick = ()=>{
+  const wall  = activeWall();
+  const ctx   = activeCtx();
+  const type  = graphType.value;
+  const opt   = (type==='grid')
+    ? { rows:Math.max(2,parseInt(rowsEl.value||'6',10)),
+        cols:Math.max(2,parseInt(colsEl.value||'8',10)),
+        width:W,height:H }
+    : { center:{x:W/2,y:H/2},
+        rings:Math.max(1,parseInt(ringsEl.value||'4',10)),
+        per:  Math.max(1,parseInt(nprEl.value||'8',10)) };
+  if (type==='grid') wall.grid(opt); else wall.radial(opt);
+  const gridAlpha = state.wall==='back' ? state.backGridAlpha : state.frontGridAlpha;
+  const nodeAlpha = state.wall==='back' ? state.backAlpha : state.frontAlpha;
+  drawWall(ctx, wall, nodeAlpha, gridAlpha);
+  drawLinks(); updatePreview();
+};
+
+editWall.onclick   = ()=> setMode((state.mode==='edit')?'draw':'edit');
+connectBtn.onclick = ()=> setMode((state.mode==='connect')?'draw':'connect');
+linkMode.onclick   = ()=> setMode((state.mode==='link')?'draw':'link');
+
+/* Spawn node/shape on active wall (click to place) */
+let waitingSpawn = null; // 'node'|'box'
+function armSpawn(kind){
+  waitingSpawn = (waitingSpawn===kind)? null : kind;
+  spawnNode.classList.toggle('on', waitingSpawn==='node');
+  spawnBox.classList.toggle('on',  waitingSpawn==='box');
+}
+spawnNode.onclick = ()=> armSpawn('node');
+spawnBox.onclick  = ()=> armSpawn('box');
+
+function handleSpawnOn(canvas, wallName){
+  canvas.addEventListener('pointerdown', e=>{
+    if (!waitingSpawn) return;
+    if (state.wall!==wallName) return;
+    const {x,y}=toXY(canvas,e);
+    const wall = activeWall();
+    if (waitingSpawn==='node'){
+      wall.addNode(x,y);
+    } else if (waitingSpawn==='box'){
+      const s=48;
+      const n1=wall.addNode(x-s,y-s), n2=wall.addNode(x+s,y-s),
+            n3=wall.addNode(x+s,y+s), n4=wall.addNode(x-s,y+s);
+      wall.createEdge(n1,n2); wall.createEdge(n2,n3); wall.createEdge(n3,n4); wall.createEdge(n4,n1);
+      // diagonals optional: wall.createEdge(n1,n3); wall.createEdge(n2,n4);
+    }
+    waitingSpawn=null; spawnNode.classList.remove('on'); spawnBox.classList.remove('on');
+    const gridAlpha = state.wall==='back' ? state.backGridAlpha : state.frontGridAlpha;
+    const nodeAlpha = state.wall==='back' ? state.backAlpha : state.frontAlpha;
+    drawWall(activeCtx(), wall, nodeAlpha, gridAlpha);
+    updatePreview();
+  });
+}
+handleSpawnOn(backGraph,'back');
+handleSpawnOn(frontGraph,'front');
+
+/* Alpha sliders - Enhanced for more dramatic effect */
+backGridAlpha.oninput = () => {
+  state.backGridAlpha = Math.pow(parseInt(backGridAlpha.value,10)/100, 0.5);
+  drawWall(bctx, wallBack, state.backAlpha, state.backGridAlpha);
+  renderNodeLightEffect(bctx, wallBack);
+  updatePreview();
+};
+backAlpha.oninput  = ()=>{
+  state.backAlpha = Math.pow(parseInt(backAlpha.value,10)/100, 0.5); // Power curve for more dramatic range
+  drawWall(bctx, wallBack, state.backAlpha, state.backGridAlpha);
+  renderNodeLightEffect(bctx, wallBack);
+  updatePreview();
+};
+linkAlpha.oninput  = ()=>{
+  state.linkAlpha = Math.pow(parseInt(linkAlpha.value,10)/100, 0.3); // More dramatic link visibility
+  drawLinks();
+  updatePreview();
+};
+frontAlpha.oninput = ()=>{
+  state.frontAlpha= Math.pow(parseInt(frontAlpha.value,10)/100, 0.5); // Power curve
+  drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+  renderNodeLightEffect(fctx, wallFront);
+  updatePreview();
+};
+frontGridAlpha.oninput = () => {
+  state.frontGridAlpha = Math.pow(parseInt(frontGridAlpha.value,10)/100, 0.5);
+  drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+  renderNodeLightEffect(fctx, wallFront);
+  updatePreview();
+};
+
+/* Save composite */
+saveBtn.onclick = ()=>{
+  const out=document.createElement('canvas');
+  out.width=Math.floor(W*DPR); out.height=Math.floor(H*DPR);
+  const o=out.getContext('2d');
+  o.drawImage(baseGrid,   0,0);
+  o.drawImage(backGraph,  0,0);
+  o.drawImage(drawCanvas, 0,0);
+  o.drawImage(linkCanvas, 0,0);
+  o.drawImage(frontGraph, 0,0);
+  const a=document.createElement('a'); a.download='4d-composite.png'; a.href=out.toDataURL('image/png'); a.click();
+};
+
+/* ====================== GLYPH SYSTEM ====================== */
+const glyphs = {
+  aurora_lattice: { name: "Aurora Lattice", effect: "prismatic_refraction", intensity: 0.7 },
+  keystone_memory: { name: "Keystone Memory", effect: "time_anchor", intensity: 0.65 },
+  echo_weaver: { name: "Echo Weaver", effect: "chain_reaction", intensity: 0.6 },
+  fathom_drift: { name: "Fathom Drift", effect: "depth_calm", intensity: 0.55 },
+  solaris_anchor: { name: "Solaris Anchor", effect: "solar_fix", intensity: 0.75 },
+  umbra_veil: { name: "Umbra Veil", effect: "shadow_hush", intensity: 0.6 },
+  kintsugi_field: { name: "Kintsugi Field", effect: "golden_mend", intensity: 0.85 },
+  hearthbind: { name: "Hearthbind", effect: "warm_gather", intensity: 0.65 }
+};
+
+let activeGlyph = null;
+let glyphParticles = [];
+let nodeLightEffect = {
+  active: false,
+  intensity: 0,
+  targetIntensity: 0,
+  nodeGlows: new Map(),
+  edgeGlows: new Map()
+};
+
+function createNodeLightEffect() {
+  nodeLightEffect.active = true;
+  nodeLightEffect.targetIntensity = 1.0;
+
+  // Light up all user-created nodes and edges
+  [wallBack, wallFront].forEach(wall => {
+    wall.nodes.forEach(node => {
+      nodeLightEffect.nodeGlows.set(node.id, {
+        intensity: 0,
+        targetIntensity: 1.0,
+        color: '#00ffff',
+        pulsePhase: Math.random() * Math.PI * 2
+      });
+    });
+
+    wall.edges.forEach(edge => {
+      const edgeId = `${edge.a.id}-${edge.b.id}`;
+      nodeLightEffect.edgeGlows.set(edgeId, {
+        intensity: 0,
+        targetIntensity: 0.8,
+        color: '#00aaff'
+      });
+    });
+  });
+}
+
+function stopNodeLightEffect() {
+  nodeLightEffect.active = false;
+  nodeLightEffect.targetIntensity = 0;
+  // Fade out existing glows
+  nodeLightEffect.nodeGlows.forEach(glow => glow.targetIntensity = 0);
+  nodeLightEffect.edgeGlows.forEach(glow => glow.targetIntensity = 0);
+}
+
+function updateNodeLightEffect(dt) {
+  if (!nodeLightEffect.active && nodeLightEffect.nodeGlows.size === 0) return;
+
+  const fadeSpeed = 0.003;
+
+  // Update node glows
+  for (let [nodeId, glow] of nodeLightEffect.nodeGlows) {
+    glow.intensity += (glow.targetIntensity - glow.intensity) * fadeSpeed * dt;
+    glow.pulsePhase += dt * 0.005;
+
+    if (glow.intensity < 0.01 && glow.targetIntensity === 0) {
+      nodeLightEffect.nodeGlows.delete(nodeId);
+    }
+  }
+
+  // Update edge glows
+  for (let [edgeId, glow] of nodeLightEffect.edgeGlows) {
+    glow.intensity += (glow.targetIntensity - glow.intensity) * fadeSpeed * dt;
+
+    if (glow.intensity < 0.01 && glow.targetIntensity === 0) {
+      nodeLightEffect.edgeGlows.delete(edgeId);
+    }
+  }
+}
+
+function renderNodeLightEffect(ctx, wall) {
+  if (nodeLightEffect.nodeGlows.size === 0 && nodeLightEffect.edgeGlows.size === 0) return;
+
+  ctx.save();
+
+  // Render glowing edges
+  wall.edges.forEach(edge => {
+    const edgeId = `${edge.a.id}-${edge.b.id}`;
+    const glow = nodeLightEffect.edgeGlows.get(edgeId);
+    if (glow && glow.intensity > 0) {
+      const aOffset = edge.a.renderOffset || { x: 0, y: 0 };
+      const bOffset = edge.b.renderOffset || { x: 0, y: 0 };
+
+      ctx.globalAlpha = glow.intensity;
+      ctx.strokeStyle = glow.color;
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = glow.color;
+
+      ctx.beginPath();
+      ctx.moveTo(edge.a.x + aOffset.x, edge.a.y + aOffset.y);
+      ctx.lineTo(edge.b.x + bOffset.x, edge.b.y + bOffset.y);
+      ctx.stroke();
+    }
+  });
+
+  // Render glowing nodes
+  wall.nodes.forEach(node => {
+    const glow = nodeLightEffect.nodeGlows.get(node.id);
+    if (glow && glow.intensity > 0) {
+      const offset = node.renderOffset || { x: 0, y: 0 };
+      const x = node.x + offset.x, y = node.y + offset.y;
+      const pulse = Math.sin(glow.pulsePhase) * 0.3 + 0.7;
+
+      ctx.globalAlpha = glow.intensity * pulse;
+      ctx.fillStyle = glow.color;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = glow.color;
+
+      // Outer glow
+      ctx.beginPath();
+      ctx.arc(x, y, NODE_R + 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner bright core
+      ctx.globalAlpha = glow.intensity;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(x, y, NODE_R, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  ctx.restore();
+}
+
+function createGlyphEffect(glyphId, x, y) {
+  const glyph = glyphs[glyphId];
+  if (!glyph) return;
+
+  const intensity = document.getElementById('glyphIntensity').value / 100;
+  const effect = {
+    id: Math.random().toString(36),
+    type: glyph.effect,
+    x, y,
+    intensity: intensity * glyph.intensity,
+    time: 0,
+    duration: 3000 + Math.random() * 2000,
+    particles: []
+  };
+
+  // Create particles based on glyph type
+  const particleCount = Math.floor(20 + intensity * 30);
+  for (let i = 0; i < particleCount; i++) {
+    effect.particles.push({
+      x: x + (Math.random() - 0.5) * 100,
+      y: y + (Math.random() - 0.5) * 100,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      life: 1.0,
+      decay: 0.002 + Math.random() * 0.003,
+      size: 2 + Math.random() * 4,
+      color: getGlyphColor(glyph.effect)
+    });
+  }
+
+  glyphParticles.push(effect);
+  activeGlyph = effect;
+}
+
+function getGlyphColor(effectType) {
+  const colors = {
+    prismatic_refraction: ['#ff0080', '#00ff80', '#8000ff', '#ff8000'],
+    time_anchor: ['#ffd700', '#ffaa00'],
+    chain_reaction: ['#10e0e0', '#e010e0'],
+    depth_calm: ['#0080ff', '#004080'],
+    solar_fix: ['#ffff00', '#ffaa00'],
+    shadow_hush: ['#8000ff', '#4000aa'],
+    golden_mend: ['#ffd700', '#ffb000'],
+    warm_gather: ['#ff6040', '#ff8020']
+  };
+  const palette = colors[effectType] || ['#10e0e0'];
+  return palette[Math.floor(Math.random() * palette.length)];
+}
+
+function updateGlyphEffects(dt) {
+  glyphParticles.forEach((effect, effIdx) => {
+    effect.time += dt;
+    effect.particles.forEach((p, pIdx) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.vx *= 0.99;
+      p.vy *= 0.99;
+
+      if (p.life <= 0) {
+        effect.particles.splice(pIdx, 1);
+      }
+    });
+
+    if (effect.time > effect.duration || effect.particles.length === 0) {
+      glyphParticles.splice(effIdx, 1);
+    }
+  });
+}
+
+function renderGlyphEffects(ctx) {
+  glyphParticles.forEach(effect => {
+    effect.particles.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = p.life * effect.intensity;
+      ctx.fillStyle = p.color;
+      ctx.shadowBlur = p.size * 2;
+      ctx.shadowColor = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  });
+}
+
+/* ====================== ANIMATION SYSTEM ====================== */
+let sceneAnimation = {
+  active: false,
+  type: 'pulse',
+  time: 0,
+  speed: 25,
+  amplitude: 1.0
+};
+
+const animations = {
+  pulse: (wall, t, amp) => {
+    wall.nodes.forEach((node, i) => {
+      // Skip grid nodes - they should never move
+      if (node.id.startsWith('g-') || node.id.startsWith('r-') || node.id === 'center') {
+        node.renderOffset = { x: 0, y: 0 };
+        return;
+      }
+      const phase = t * 0.01 + i * 0.5;
+      const pulse = Math.sin(phase) * amp * 0.3;
+      node.renderOffset = { x: 0, y: pulse * 10 };
+    });
+  },
+
+  rotate: (wall, t, amp) => {
+    const centerX = W / 2, centerY = H / 2;
+    const angle = t * 0.002 * amp;
+    wall.nodes.forEach(node => {
+      // Skip grid nodes - they should never move
+      if (node.id.startsWith('g-') || node.id.startsWith('r-') || node.id === 'center') {
+        node.renderOffset = { x: 0, y: 0 };
+        return;
+      }
+      const dx = node.x - centerX, dy = node.y - centerY;
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      node.renderOffset = {
+        x: dx * cos - dy * sin - dx,
+        y: dx * sin + dy * cos - dy
+      };
+    });
+  },
+
+  morph: (wall, t, amp) => {
+    wall.nodes.forEach((node, i) => {
+      // Skip grid nodes - they should never move
+      if (node.id.startsWith('g-') || node.id.startsWith('r-') || node.id === 'center') {
+        node.renderOffset = { x: 0, y: 0 };
+        return;
+      }
+      const phase = t * 0.005 + i * 0.8;
+      const morph = Math.sin(phase) * amp;
+      node.renderOffset = {
+        x: Math.cos(phase + i) * morph * 20,
+        y: Math.sin(phase + i) * morph * 20
+      };
+    });
+  },
+
+  wave: (wall, t, amp) => {
+    wall.nodes.forEach(node => {
+      // Skip grid nodes - they should never move
+      if (node.id.startsWith('g-') || node.id.startsWith('r-') || node.id === 'center') {
+        node.renderOffset = { x: 0, y: 0 };
+        return;
+      }
+      const wave = Math.sin(t * 0.01 + node.x * 0.01) * amp;
+      node.renderOffset = { x: 0, y: wave * 15 };
+    });
+  },
+
+  spiral: (wall, t, amp) => {
+    const centerX = W / 2, centerY = H / 2;
+    wall.nodes.forEach(node => {
+      // Skip grid nodes - they should never move
+      if (node.id.startsWith('g-') || node.id.startsWith('r-') || node.id === 'center') {
+        node.renderOffset = { x: 0, y: 0 };
+        return;
+      }
+      const dx = node.x - centerX, dy = node.y - centerY;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx) + t * 0.002 * amp + dist * 0.01;
+      node.renderOffset = {
+        x: Math.cos(angle) * dist - dx,
+        y: Math.sin(angle) * dist - dy
+      };
+    });
+  },
+
+  bloom: (wall, t, amp) => {
+    const centerX = W / 2, centerY = H / 2;
+    const bloom = Math.sin(t * 0.008) * amp * 0.3 + 1;
+    wall.nodes.forEach(node => {
+      // Skip grid nodes - they should never move
+      if (node.id.startsWith('g-') || node.id.startsWith('r-') || node.id === 'center') {
+        node.renderOffset = { x: 0, y: 0 };
+        return;
+      }
+      const dx = (node.x - centerX) * (bloom - 1);
+      const dy = (node.y - centerY) * (bloom - 1);
+      node.renderOffset = { x: dx, y: dy };
+    });
+  }
+};
+
+function updateAnimation(dt) {
+  if (!sceneAnimation.active) return;
+
+  sceneAnimation.time += dt * (sceneAnimation.speed / 25);
+
+  const animFunc = animations[sceneAnimation.type];
+  if (animFunc) {
+    // Apply to both walls
+    animFunc(wallBack, sceneAnimation.time, sceneAnimation.amplitude);
+    animFunc(wallFront, sceneAnimation.time, sceneAnimation.amplitude);
+  }
+}
+
+function clearAnimations() {
+  [wallBack, wallFront].forEach(wall => {
+    wall.nodes.forEach(node => {
+      node.renderOffset = { x: 0, y: 0 };
+    });
+  });
+}
+
+/* Enhanced wall rendering with animation offsets */
+function drawWallAnimated(ctx, wall, alpha, gridAlpha, highlightIdx=null){
+  ctx.clearRect(0,0,W,H);
+
+  // Grid structure never moves
+  drawGridStructure(ctx, wall, gridAlpha, highlightIdx);
+
+  // User content with animation
+  if (alpha <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // User edges with animation
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='rgba(16,224,224,0.85)'; ctx.lineWidth=2;
+  wall.edges.forEach(e => {
+    const isUserEdge = !(e.a.id.startsWith('g-') || e.a.id.startsWith('r-') || e.a.id === 'center') ||
+                      !(e.b.id.startsWith('g-') || e.b.id.startsWith('r-') || e.b.id === 'center');
+    if (isUserEdge) {
+      const aOffset = e.a.renderOffset || { x: 0, y: 0 };
+      const bOffset = e.b.renderOffset || { x: 0, y: 0 };
+      ctx.beginPath();
+      ctx.moveTo(e.a.x + aOffset.x, e.a.y + aOffset.y);
+      ctx.lineTo(e.b.x + bOffset.x, e.b.y + bOffset.y);
+      ctx.stroke();
+    }
+  });
+
+  // User nodes with animation
+  wall.nodes.forEach((n,idx) => {
+    const isUserNode = !(n.id.startsWith('g-') || n.id.startsWith('r-') || n.id === 'center');
+    if (isUserNode) {
+      const offset = n.renderOffset || { x: 0, y: 0 };
+      const x = n.x + offset.x, y = n.y + offset.y;
+
+      ctx.beginPath(); ctx.arc(x,y,NODE_R+3,0,Math.PI*2);
+      ctx.strokeStyle=(idx===highlightIdx)? 'rgba(255,222,80,0.6)' : 'rgba(16,224,224,0.35)';
+      ctx.lineWidth=1; ctx.stroke();
+
+      ctx.beginPath(); ctx.arc(x,y,NODE_R,0,Math.PI*2);
+      ctx.fillStyle='#111'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#10e0e0'; ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+
+  // Render node light effects on top
+  renderNodeLightEffect(ctx, wall);
+}
+
+/* Animation loop */
+let lastTime = 0;
+function animationLoop(currentTime) {
+  const dt = currentTime - lastTime;
+  lastTime = currentTime;
+
+  updateGlyphEffects(dt);
+  updateAnimation(dt);
+  updateNodeLightEffect(dt);
+
+  if (sceneAnimation.active) {
+    drawWallAnimated(bctx, wallBack, state.backAlpha, state.backGridAlpha);
+    drawWallAnimated(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+    drawLinks(); // Redraws links with animated positions
+    updatePreview();
+  } else if (nodeLightEffect.nodeGlows.size > 0) {
+    // Update walls for node lighting even without scene animation
+    drawWall(bctx, wallBack, state.backAlpha, state.backGridAlpha);
+    drawWall(fctx, wallFront, state.frontAlpha, state.frontGridAlpha);
+    renderNodeLightEffect(bctx, wallBack);
+    renderNodeLightEffect(fctx, wallFront);
+    updatePreview();
+  }
+
+  // Render glyph effects on front layer
+  renderGlyphEffects(fctx);
+
+  requestAnimationFrame(animationLoop);
+}
+
+/* Event handlers */
+document.getElementById('glyphBtn').onclick = (e) => {
+  const glyphId = document.getElementById('glyphSelect').value;
+  const rect = frontGraph.getBoundingClientRect();
+  const x = rect.width / 2;
+  const y = rect.height / 2;
+  createGlyphEffect(glyphId, x, y);
+};
+
+document.getElementById('animateBtn').onclick = () => {
+  sceneAnimation.active = !sceneAnimation.active;
+  sceneAnimation.type = document.getElementById('animationType').value;
+  sceneAnimation.speed = parseInt(document.getElementById('animSpeed').value);
+
+  const btn = document.getElementById('animateBtn');
+  if (sceneAnimation.active) {
+    btn.textContent = 'Stop Animation';
+    btn.classList.add('on');
+  } else {
+    btn.textContent = 'Animate Scene';
+    btn.classList.remove('on');
+    clearAnimations();
+    redrawAll();
+  }
+};
+
+// Node lighting button
+nodeGlyphBtn.onclick = () => {
+  if (nodeLightEffect.active) {
+    stopNodeLightEffect();
+    nodeGlyphBtn.textContent = 'Light Nodes';
+    nodeGlyphBtn.classList.remove('on');
+  } else {
+    createNodeLightEffect();
+    nodeGlyphBtn.textContent = 'Stop Light';
+    nodeGlyphBtn.classList.add('on');
+  }
+};
+
+// Image upload handlers
+uploadBtn.onclick = () => imageInput.click();
+
+imageInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      uploadedImage = img;
+      drawBackgroundImage();
+      updatePreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+clearImage.onclick = () => {
+  uploadedImage = null;
+  drawBackgroundImage();
+  updatePreview();
+};
+
+// Enhanced export functions
+async function downloadAsZip(files, filename) {
+  // Simple zip creation for download
+  const zip = new JSZip();
+
+  for (let [name, data] of files) {
+    if (typeof data === 'string') {
+      zip.file(name, data);
+    } else {
+      // Canvas data
+      const canvas = data;
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      zip.file(name, blob);
+    }
+  }
+
+  const zipBlob = await zip.generateAsync({type: "blob"});
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+exportPDF.onclick = async () => {
+  // Create composite canvas
+  const out = document.createElement('canvas');
+  out.width = Math.floor(W * DPR);
+  out.height = Math.floor(H * DPR);
+  const o = out.getContext('2d');
+
+  // Draw all layers
+  if (uploadedImage) o.drawImage(imageLayer, 0, 0);
+  o.drawImage(baseGrid, 0, 0);
+  o.drawImage(backGraph, 0, 0);
+  o.drawImage(drawCanvas, 0, 0);
+  o.drawImage(linkCanvas, 0, 0);
+  o.drawImage(frontGraph, 0, 0);
+
+  // Convert to PDF data
+  // const imgData = out.toDataURL('image/png');
+
+  // Simple PDF creation (would need pdf-lib in real implementation)
+  const files = new Map([
+    ['4d-design.png', out],
+    ['README.txt', `4D Canvas Design Export\nGenerated: ${new Date().toISOString()}\nFormat: PNG + 3D Data`]
+  ]);
+
+  await downloadAsZip(files, '4d-export.zip');
+};
+
+exportGLB.onclick = async () => {
+  // Create 3D data from nodes and edges
+  const vertices = [];
+
+  // Add nodes as 3D points
+  [wallBack, wallFront].forEach((wall, wallIndex) => {
+    const z = wallIndex === 0 ? -50 : 50; // Back/front depth
+
+    wall.nodes.forEach(node => {
+      vertices.push(
+        (node.x / W) * 2 - 1,  // Normalize to [-1,1]
+        -((node.y / H) * 2 - 1), // Flip Y and normalize
+        z / 100 // Normalize Z
+      );
+    });
+  });
+
+  // Simple GLB structure (would need proper GLB library)
+  const glbData = {
+    scene: {
+      nodes: vertices.length / 3,
+      vertices: vertices
+    },
+    metadata: {
+      generator: "4D Canvas Editor",
+      created: new Date().toISOString()
+    }
+  };
+
+  const files = new Map([
+    ['model.json', JSON.stringify(glbData, null, 2)],
+    ['vertices.txt', vertices.join('\n')],
+    ['README.txt', `3D Export from 4D Canvas\nNodes: ${vertices.length/3}\nFormat: JSON + Text`]
+  ]);
+
+  await downloadAsZip(files, '4d-model.zip');
+};
+
+// Allow glyph effects on click
+frontGraph.addEventListener('click', e => {
+  if (!activeGlyph && document.getElementById('glyphBtn').classList.contains('on')) {
+    const {x,y} = toXY(frontGraph, e);
+    const glyphId = document.getElementById('glyphSelect').value;
+    createGlyphEffect(glyphId, x, y);
+  }
+});
+
+// Start animation loop
+requestAnimationFrame(animationLoop);
+
+/* Preview */
+function updatePreview(){
+  const pw=preview.clientWidth, ph=preview.clientHeight;
+  preview.width=Math.floor(pw*DPR); preview.height=Math.floor(ph*DPR);
+  const p=preview.getContext('2d'); p.setTransform(DPR,0,0,DPR,0,0);
+  p.clearRect(0,0,pw,ph);
+  const s=Math.min(pw/W, ph/H), tw=W*s, th=H*s, ox=(pw-tw)/2, oy=(ph-th)/2;
+  [imageLayer, baseGrid, backGraph, drawCanvas, linkCanvas, frontGraph].forEach(cv=>{
+    p.drawImage(cv, 0,0, cv.width, cv.height, ox,oy, tw,th);
+  });
+  p.strokeStyle='rgba(255,255,255,0.12)'; p.strokeRect(0.5,0.5,pw-1,ph-1);
+}
+
+/* ====================== Boot ====================== */
+resizeAll();
+/* Create default grids for immediate use */
+wallBack.grid({ rows: 6, cols: 8, width: W, height: H });
+wallFront.grid({ rows: 6, cols: 8, width: W, height: H });
+redrawAll();
+updatePreview();
+
+// Make global for AI integration
+window.wallBack = wallBack;
+window.wallFront = wallFront;
+window.links = links;
+window.state = state;
+window.redrawAll = redrawAll;
+window.drawLinks = drawLinks;
+window.updatePreview = updatePreview;
+window.setMode = setMode;
+window.W = () => W;
+window.H = () => H;
+</script>
+</body>
+</html>

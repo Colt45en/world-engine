@@ -1,0 +1,27 @@
+{
+  "tier5_systems": {
+    "master_interface": "./MASTER_UNIFIED_INTERFACE.html",
+    "engine_room": "./demos/tier4_collaborative_demo.html",
+    "unified_studio": "./unified-world-engine-studio.html",
+    "glyph_nexus": "./advanced-glyph-nexus.html",
+    "world_engine": "./public/worldengine.html",
+    "collaborative": "./world-studio-collaborative.html"
+  },
+  "ai_systems": {
+    "ai_bot": "./ai_bot_system.py",
+    "meta_librarian": "./meta_librarian_pipeline.py",
+    "vector_lab": "./vectorlab-codex-glyph.py"
+  },
+  "integration_points": {
+    "websocket_url": "ws://localhost:9000",
+    "server_url": "http://localhost:8000",
+    "bridge_script": "./studio-bridge.js",
+    "tier4_integration": "./tier4_room_integration.ts"
+  },
+  "status": {
+    "tier_level": "5+",
+    "systems_operational": true,
+    "websocket_enabled": true,
+    "iframe_integration": true
+  }
+}

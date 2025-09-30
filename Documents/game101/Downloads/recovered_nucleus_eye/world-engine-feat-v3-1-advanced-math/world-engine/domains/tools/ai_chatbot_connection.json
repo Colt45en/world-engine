@@ -1,0 +1,98 @@
+{
+    "ai_chatbot_connection": {
+        "connection_bridge": {
+            "name": "Nexus Merge Bridge",
+            "connection_id": "nexus-merge-bridge",
+            "description": "Maintains AI chatbot connection during nexus merge operations",
+            "persistent": true,
+            "status": "active"
+        },
+        "websocket_integration": {
+            "nucleus_url": "ws://localhost:9000",
+            "live_viewer_url": "http://localhost:7777",
+            "brain_panel": "http://localhost:7777/panel",
+            "sse_stream": "http://localhost:7777/sse",
+            "connection_monitoring": {
+                "check_interval": "5 seconds",
+                "auto_restore": true,
+                "bridge_persistence": true
+            }
+        },
+        "chat_response_system": {
+            "query_processing": {
+                "nucleus_routing": {
+                    "query": "VIBRATE",
+                    "learning": "OPTIMIZATION",
+                    "feedback": "STATE",
+                    "seed": "SEED"
+                },
+                "tier4_operators": {
+                    "VIBRATE": "ST",
+                    "OPTIMIZATION": "UP",
+                    "STATE": "CV",
+                    "SEED": "RB"
+                }
+            },
+            "glyph_bridge_integration": {
+                "enabled": true,
+                "auto_connection": true,
+                "python_epochs": true,
+                "chat_response_forwarding": true,
+                "description": "Bridges chat responses through glyph system while maintaining connection"
+            },
+            "response_structure": {
+                "connection_id": "nexus-merge-bridge",
+                "nexus_merge_active": true,
+                "connection_persists": true,
+                "bridge_data": "glyph_system_response",
+                "glyph_system_connected": true,
+                "bridge_status": "Connection maintained through nexus merge",
+                "websocket_url": "ws://localhost:9000"
+            }
+        },
+        "merge_persistence": {
+            "during_merge": {
+                "connection_maintained": true,
+                "bridge_active": true,
+                "data_flow_preserved": true,
+                "description": "AI chatbot connection persists even as systems merge into unified nexus"
+            },
+            "post_merge": {
+                "unified_interface": true,
+                "single_nexus_point": true,
+                "connection_bridge_remains": true,
+                "description": "After merge, connection bridge becomes part of unified nexus interface"
+            },
+            "monitoring": {
+                "connection_health": "continuous",
+                "auto_recovery": true,
+                "status_reporting": true,
+                "failover_support": true
+            }
+        }
+    },
+    "nexus_unified_interface": {
+        "post_merge_structure": {
+            "single_entry_point": "VectorLab Nexus Sandbox",
+            "chatbot_integration": "embedded",
+            "brain_processing": "native",
+            "glyph_system": "bridged",
+            "world_engine": "connected"
+        },
+        "connection_flow": {
+            "user_input": "AI Chatbot Interface",
+            "processing": "Nexus Brain (Neural Pathways)",
+            "data_access": "World Engine Domains",
+            "glyph_generation": "Python Bridge System",
+            "response": "Unified Nexus Output"
+        },
+        "maintained_features": {
+            "chat_functionality": true,
+            "real_time_monitoring": true,
+            "brain_visualization": true,
+            "glyph_automation": true,
+            "domain_access": true,
+            "websocket_communication": true
+        }
+    }
+}

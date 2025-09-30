@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "default_view": "lexicon",
+  "views": {
+    "lexicon": {
+      "source": "/mnt/data/mega_lexicon.csv",
+      "primary_key": "lemma",
+      "columns": [
+        "lemma",
+        "derived_topic",
+        "part_of_speech",
+        "etymology",
+        "morphological_roots",
+        "synonyms",
+        "antonyms",
+        "hypernyms",
+        "hyponyms",
+        "related_terms",
+        "collocations",
+        "conceptual_metaphors",
+        "usage_examples",
+        "solid_state",
+        "liquid_state",
+        "gas_state",
+        "unseen_infrastructure",
+        "reverse_reflection",
+        "topic_tags"
+      ]
+    },
+    "runes": {
+      "source": "/mnt/data/mega_runes.csv",
+      "primary_key": "code",
+      "columns": [
+        "lang",
+        "word",
+        "code",
+        "english",
+        "string",
+        "syn",
+        "ant",
+        "ex",
+        "class",
+        "game"
+      ]
+    }
+  },
+  "code_fields": {
+    "human_readable": "lemma",
+    "machine_code": "code",
+    "game_header": "game"
+  },
+  "ui": {
+    "toggle_hotkey": "T",
+    "remember_last_view": true,
+    "bookmarks_url": "bookmarks.json"
+  }
+}

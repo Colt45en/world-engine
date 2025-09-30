@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Widget System Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: 100vh;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            height: fit-content;
+        }
+
+        .widget-display {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .widget-list {
+            margin: 20px 0;
+        }
+
+        .widget-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .widget-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .widget-item.active {
+            background: rgba(102, 126, 234, 0.4);
+            border-color: #667eea;
+        }
+
+        .widget-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .widget-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .status {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="control-panel">
+            <h2>🚀 Nexus Widget Manager</h2>
+
+            <div class="status">
+                <span class="indicator"></span>
+                Bridge Status: <span id="bridge-status">Connected</span>
+            </div>
+
+            <div class="widget-list">
+                <div class="widget-item" onclick="loadWidget('nexus-math-academy-connected.html', this)">
+                    <div class="widget-title">🧮⚡ Math Academy (Connected)</div>
+                    <p class="widget-description">Full Nexus AI integration demo</p>
+                </div>
+
+                <div class="widget-item" onclick="loadWidget('nexus-3d-sculptor.html', this)">
+                    <div class="widget-title">🎯 Nexus 3D Sculptor</div>
+                    <p class="widget-description">AI-enhanced silhouette-to-mesh modeling</p>
+                </div>
+
+                <div class="widget-item" onclick="loadWidget('vector-forge-complete.html', this)">
+                    <div class="widget-title">🔥 Vector Forge Complete</div>
+                    <p class="widget-description">Full creative development suite with all tools</p>
+                </div>
+
+                <div class="widget-item" onclick="loadWidget('nexus-math-academy.html', this)">
+                    <div class="widget-title">🧮 Math Academy (Standard)</div>
+                    <p class="widget-description">Original widget without bridge</p>
+                </div>                <div class="widget-item" onclick="loadWidget('nexus-integrated-math-physics.html', this)">
+                    <div class="widget-title">⚛️ Physics Lab</div>
+                    <p class="widget-description">Physics simulations</p>
+                </div>
+
+                <div class="widget-item" onclick="loadWidget('nexus-forge.html', this)">
+                    <div class="widget-title">🔧 Nexus Forge</div>
+                    <p class="widget-description">3D environment builder</p>
+                </div>
+            </div>
+
+            <h3>Bridge Commands</h3>
+            <button onclick="testBridge()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 5px;">Test Bridge</button>
+            <button onclick="broadcastMessage()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 5px;">Broadcast</button>
+
+            <div id="message-log" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin-top: 15px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.8em;">
+                <div>Bridge initialized</div>
+            </div>
+        </div>
+
+        <div class="widget-display">
+            <h2 id="current-widget-title">Select a widget to begin</h2>
+            <div id="widget-container">
+                <div style="text-align: center; padding: 50px; opacity: 0.6;">
+                    <h3>🎯 Welcome to Nexus Widget System</h3>
+                    <p>Select a widget from the left panel to start the demo.</p>
+                    <p>The connected widgets can communicate with the main Nexus system!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentWidget = null;
+
+        // Mock bridge for demo
+        const nexusBridge = {
+            query: async (question) => {
+                return {
+                    answer: `Mock AI response to: "${question}"`
+                };
+            },
+            startTraining: () => {
+                addLog('Training started');
+                return { status: 'started' };
+            },
+            stopTraining: () => {
+                addLog('Training stopped');
+                return { status: 'stopped' };
+            },
+            getStatus: () => {
+                return {
+                    isTraining: false,
+                    memoryUsage: '45%',
+                    uptime: '2h 30m'
+                };
+            }
+        };
+
+        function addLog(message) {
+            const log = document.getElementById('message-log');
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function loadWidget(url, element) {
+            // Update UI
+            document.querySelectorAll('.widget-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+
+            const title = element.querySelector('.widget-title').textContent;
+            document.getElementById('current-widget-title').textContent = title;
+
+            // Load widget
+            const container = document.getElementById('widget-container');
+            container.innerHTML = `<iframe src="${url}" title="${title}"></iframe>`;
+            currentWidget = url;
+
+            addLog(`Loaded widget: ${title}`);
+        }
+
+        function testBridge() {
+            addLog('Testing bridge connection...');
+            // Simulate bridge test
+            setTimeout(() => {
+                addLog('Bridge test successful: All systems operational');
+            }, 1000);
+        }
+
+        function broadcastMessage() {
+            if (!currentWidget) {
+                addLog('No widget loaded to broadcast to');
+                return;
+            }
+
+            addLog('Broadcasting message to current widget...');
+
+            // Send message to iframe
+            const iframe = document.querySelector('iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'NEXUS_BROADCAST',
+                    data: {
+                        message: 'Hello from Nexus Bridge!',
+                        timestamp: new Date().toISOString()
+                    }
+                }, '*');
+            }
+        }
+
+        // Listen for messages from widgets
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+
+            switch (data.type) {
+                case 'NEXUS_WIDGET_READY':
+                    addLog(`Widget ready: ${data.widgetId}`);
+
+                    // Send bridge capabilities
+                    event.source.postMessage({
+                        type: 'NEXUS_BRIDGE_CAPABILITIES',
+                        data: {
+                            query: true,
+                            training: true,
+                            status: true,
+                            version: '1.0.0'
+                        }
+                    }, event.origin);
+                    break;
+
+                case 'NEXUS_QUERY_REQUEST':
+                    addLog(`Query from ${data.widgetId}: ${data.data.question}`);
+
+                    nexusBridge.query(data.data.question).then(response => {
+                        event.source.postMessage({
+                            type: 'NEXUS_QUERY_RESPONSE',
+                            targetWidget: data.widgetId,
+                            data: response
+                        }, event.origin);
+                    });
+                    break;
+
+                case 'NEXUS_TRAINING_CONTROL':
+                    const action = data.data.action;
+                    addLog(`Training ${action} requested by ${data.widgetId}`);
+
+                    const result = action === 'start' ?
+                        nexusBridge.startTraining() :
+                        nexusBridge.stopTraining();
+
+                    event.source.postMessage({
+                        type: 'NEXUS_TRAINING_RESPONSE',
+                        targetWidget: data.widgetId,
+                        data: { action, ...result }
+                    }, event.origin);
+                    break;
+
+                case 'NEXUS_STATUS_REQUEST':
+                    addLog(`Status requested by ${data.widgetId}`);
+
+                    const status = nexusBridge.getStatus();
+                    event.source.postMessage({
+                        type: 'NEXUS_STATUS_RESPONSE',
+                        targetWidget: data.widgetId,
+                        data: status
+                    }, event.origin);
+                    break;
+            }
+        });
+
+        // Initialize
+        addLog('Nexus Widget Bridge Demo initialized');
+        addLog('Click on a widget to see the integration in action!');
+    </script>
+</body>
+</html>

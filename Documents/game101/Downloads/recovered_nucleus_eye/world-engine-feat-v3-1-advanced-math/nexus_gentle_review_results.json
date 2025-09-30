@@ -1,0 +1,119 @@
+[
+  {
+    "question": 1,
+    "category": "fun",
+    "prompt": "How many legs does a cat have?",
+    "expected": "Four!",
+    "response": "Four!",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.662177"
+  },
+  {
+    "question": 2,
+    "category": "phonics",
+    "prompt": "What's one sound for the letter Z?",
+    "expected": "Letter Z: z. Symbols: z. ",
+    "response": "Letter Z: z. Symbols: z. ",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.667049"
+  },
+  {
+    "question": 3,
+    "category": "communication",
+    "prompt": "Remember this? If cat is an animal, then an animal is what?",
+    "expected": "cat",
+    "response": "cat",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.670914"
+  },
+  {
+    "question": 4,
+    "category": "phonics",
+    "prompt": "What's one sound for the letter T?",
+    "expected": "Letter T: t, sh. Symbols: t, \u0161. ",
+    "response": "Letter T: t, sh. Symbols: t, \u0161. ",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.671950"
+  },
+  {
+    "question": 5,
+    "category": "communication",
+    "prompt": "Remember this? If hello is a greeting, then a greeting is what?",
+    "expected": "hello",
+    "response": "hello",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.671950"
+  },
+  {
+    "question": 6,
+    "category": "fun",
+    "prompt": "What color is the sky on a sunny day?",
+    "expected": "Blue!",
+    "response": "Blue!",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.675602"
+  },
+  {
+    "question": 7,
+    "category": "logic",
+    "prompt": "If you have 2 apples and get 1 more, how many do you have?",
+    "expected": "3 apples!",
+    "response": "3 apples!",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.676669"
+  },
+  {
+    "question": 8,
+    "category": "communication",
+    "prompt": "Remember this? Put 'un' and 'happy' together. What word?",
+    "expected": "unhappy",
+    "response": "unhappy",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.678670"
+  },
+  {
+    "question": 9,
+    "category": "communication",
+    "prompt": "Remember this? Put 'run' and 'ing' together. What word?",
+    "expected": "running",
+    "response": "running",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.680671"
+  },
+  {
+    "question": 10,
+    "category": "phonics",
+    "prompt": "What's one sound for the letter N?",
+    "expected": "Letter N: n. Symbols: n. ",
+    "response": "Letter N: n. Symbols: n. ",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.683076"
+  },
+  {
+    "question": 11,
+    "category": "phonics",
+    "prompt": "What's one sound for the letter X?",
+    "expected": "Letter X: ks, z. Symbols: ks, \u1e8b. ",
+    "response": "Letter X: ks, z. Symbols: ks, \u1e8b. ",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.685073"
+  },
+  {
+    "question": 12,
+    "category": "phonics",
+    "prompt": "What's one sound for the letter W?",
+    "expected": "Letter W: w. Symbols: w. ",
+    "response": "Letter W: w. Symbols: w. ",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.687579"
+  },
+  {
+    "question": 13,
+    "category": "communication",
+    "prompt": "Remember this? Good morning! How's the weather?",
+    "expected": "It's sunny today!",
+    "response": "It's sunny today!",
+    "correct": true,
+    "timestamp": "2025-09-29T23:29:45.691712"
+  }
+]

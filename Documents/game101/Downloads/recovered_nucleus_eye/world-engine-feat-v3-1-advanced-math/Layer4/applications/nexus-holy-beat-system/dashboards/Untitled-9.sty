@@ -1,0 +1,1889 @@
+Carrier waveform: The shape of the base wave being modulated (e.g., sine, square, sawtooth, or triangle).Modulator waveform: The shape of the wave used to perform the AM and FM modulation (e.g., sine, noise).Modulator frequency: The rate at which the modulator oscillates. For the given example, the rates are determined by the BPM and divisions.Envelope (ADSR): This stands for Attack, Decay, Sustain, and Release, and it controls how the volume of the sound changes over time.Filter (Cutoff/Resonance): Used to remove frequencies from the sound and emphasize certain harmonic regions.Base Frequency (\(f_{0}\)): The lowest frequency of the sound, which determines its musical pitch. In this example, with 12 harmonics specified, the sound will have a rich timbre created from \(1\cdot f_{0}\), \(2\cdot f_{0}\), \(3\cdot f_{0}\), etc.. 
+
+Based on the provided BPM, a potential musical context: \(f_{0}\) calculation: Given the BPM, a base frequency could be chosen to match a musical note. A tempo of 120 BPM means a beat every 0.5 seconds, or a pulse of 2 Hz. This can be used to set a low-frequency pulse, which can then be musically related to a higher audible base frequency, \(f_{0}\). For example, a note that matches 120 BPM would have a base frequency related to 2 Hz (or octaves above it).Effect parameters: Settings for effects like reverb, delay, and distortion, which are common in musical synthesis.Stereo settings: For sounds like FM stereo, parameters related to signal splitting and manipulation would be necessary. 
+
+Given the parameters BPM (b): 120, AM Division (d_AM): 4, FM Division (d_FM): 2, AM Depth (D_AM): 0.2, FM Depth (D_FM): 6, Harmonics (N): 12, and Base Freq (f₀), you can find the base frequency and potentially other synthesizer settings. Calculating the base frequency (f₀) The base frequency, or fundamental frequency, is determined by the BPM (beats per minute). The formula to convert BPM to hertz (Hz), or cycles per second, is:\(f_{0}=\frac{BPM}{60}\) Using the given BPM of 120:\(f_{0}=\frac{120}{60}=2\text{\ Hz}\) A tempo of 120 BPM equals two beats per second. While a 2 Hz sine wave is too low for most humans to perceive as a musical tone, this calculated value is the tempo-based fundamental frequency that drives the rhythmic aspects of the synthesized sound. Other parameters The other parameters you've listed describe the sound's texture and how it changes over time, using Amplitude Modulation (AM) and Frequency Modulation (FM) synthesis. AM and FM Synthesis Parameters Carrier Frequency: The fundamental frequency (f₀) of the sound that is being modulated. In this case, it is 2 Hz.Modulator Frequency: The frequency of the signal that modifies the carrier. Its value is determined by its ratio to the carrier frequency.AM Modulator Frequency: A frequency for the amplitude modulator would be f₀ / d_AM. For the given values: \(2\text{\ Hz}/4=0.5\text{\ Hz}\). This low frequency will cause a tremolo-like effect on the sound's volume.FM Modulator Frequency: A frequency for the frequency modulator would be f₀ * d_FM. For the given values: \(2\text{\ Hz}\times 2=4\text{\ Hz}\).Modulation Index: This parameter controls the intensity of the modulation effect.Amplitude Modulation Depth (D_AM): The intensity of the volume fluctuation, with a value of 0.2.Frequency Modulation Depth (D_FM): The amount of pitch variation caused by the modulator, with a value of 6.Harmonics (N): The value 12 refers to the number of harmonics, or overtones, that are present in the final sound. In synthesis, these are often generated through techniques like frequency modulation. The harmonic series adds to the complexity and richness of the tone. Potential other parametersDepending on the synthesizer, other possible parameters could include: Envelope: Controls how a sound's amplitude, pitch, or other characteristics evolve over time (e.g., Attack, Decay, Sustain, Release).Filters: Manipulate the frequency spectrum to shape the sound, such as removing specific harmonics with a cutoff frequency.Feedback: The modulator's output is fed back into itself, which can generate more complex and chaotic tones.Algorithm: In FM synthesis, the algorithm defines the arrangement of carrier and modulator oscillators. 
+
+Key parameter functions120 BPM: At this tempo, the 2 Hz base frequency (\(f_{0}\)) causes a pulse to occur twice every second, giving the sound its rhythmic foundation.Low-frequency AM: The d_AM: 4 creates a slow, tremolo-like effect on the volume of the sound. Because the AM modulator is at \(f_{0}/4=0.5\) Hz, the volume would swell and decrease once every two seconds. This adds a slow, undulating motion that pulses in time with the tempo.High-frequency FM: With a d_FM: 2 ratio, the FM modulator is at \(f_{0}\times 2=4\) Hz, or four times the base frequency. This causes rapid pitch "wobbles," which are responsible for the complex, metallic textures characteristic of FM synthesis. The high D_FM: 6 depth value suggests these pitch shifts are quite intense, moving the sound from glassy bells to more chaotic, inharmonic noise.12 Harmonics (N): The high number of harmonics indicates a rich, bright sound with a full range of overtones. When combined with the high FM depth, this contributes to the sound's metallic and textured character.Examples of sounds with these parametersWith the right envelope settings (controlling the sound's volume over time), this patch could be used to create:A metallic, evolving pad: A long attack and decay could soften the percussive elements, allowing the rich FM texture to evolve slowly. The rhythmic AM would cause a slow, underwater-like volume fluctuation.A "dubstep growl" bass: The intense FM with its rich harmonics provides the core of a modern, aggressive bass sound. Applying a sharp, aggressive filter envelope could cause the sound to "growl" or "talk".Inharmonic, percussive bells: A very short envelope with a quick decay would emphasize the initial, sharp, metallic transients created by the high FM depth and the full harmonic spectrum. The AM would add a slow, pulsing volume contour to the rhythm of the bells.Eerie industrial drone: Using a low-pass filter to remove some of the high-frequency harmonics could result in a dark, gritty, and noisy texture. The combination of slow amplitude modulation and rapid frequency modulation creates a chaotic, but rhythmic, soundscape.
+
+Combining other synthesis techniques with FM and AM can create richer, more complex, and more dynamic sound designs. Layering and processing are common strategies for integrating these methods.
+Subtractive synthesis
+This is one of the most common techniques to pair with FM.
+The combination: Subtractive synthesis uses filters to "subtract" harmonics from a harmonically rich waveform, like a saw or square wave, to shape the tone. When combined with FM, it is often used for layering.
+The result: The clean, metallic, and complex timbres from FM can be layered with the warm, analog, and fat sounds of subtractive oscillators. For example, a sharp FM synth can provide a sound's "bite" and harmonic complexity, while a subtractive synth fills out the low-end with warmth and analog character.
+Wavetable synthesis
+Wavetable synthesis offers a great way to add evolving, digital textures to an FM sound.
+The combination: Wavetable synths create sound by morphing through different waveforms stored in a "wavetable". Many modern wavetable synths also have built-in FM capabilities.
+The result: You can use an FM sound as the basis for a wavetable, or use the FM sound to modulate a wavetable oscillator. This can create dynamic textures with movement that are both musically predictable and surprising.
+Granular synthesis
+This technique is ideal for adding chaotic, glitchy, and organic movement to a sound.
+The combination: Granular synthesis works by taking small "grains" of a sound and playing them back in various ways. The FM sound can be used as the source audio for the granular engine.
+The result: Running a metallic FM sound through a granular engine can add a new layer of chaotic movement. The granular processor can "stretch" the FM sound, manipulate its pitch and duration, and add surreal, evolving textures.
+Resynthesis and spectral manipulation
+These techniques use analysis to break down and rebuild sound, giving you surgical control over a sound's harmonics and formants.
+The combination: You can analyze the spectral signature of a complex FM patch and then resynthesize it. This can smooth out some of the harsher digital qualities of FM.
+The result: By using a hybrid approach, you can combine the raw power of FM with the precise control of additive techniques to create highly specific and evolving timbres.
+Effects and filtering
+Even without another synthesis type, effects processing can take your FM/AM sound to the next level.
+Comb filtering: This effect adds a time-delayed signal back into itself, which can create interesting resonant or hollow textures. It's excellent for further emphasizing the rhythmic and metallic qualities of the original patch.
+Feedback: Feeding the output of an FM operator back into itself can generate even more complex and chaotic sounds, pushing the harmonic complexity to new extremes.
+Distortion and saturation: Adding distortion or saturation can increase the sound's perceived loudness and richness, adding new harmonics and a more aggressive character.
+Reverb and delay: Used tastefully, these time-based effects can place the metallic FM sound in a specific acoustic space, making it sound larger or more spacious.
+
+Core timing and base frequencies
+
+Let BPM be
+𝑏
+b. Define the beat frequency (LFO realm) and the audio base:
+
+𝑓
+𝑏
+  
+=
+  
+𝑏
+60
+(beats per second; at 120 BPM, 
+𝑓
+𝑏
+=
+2
+ Hz)
+f
+b
+	​
+
+=
+60
+b
+	​
+
+(beats per second; at 120 BPM, f
+b
+	​
+
+=2 Hz)
+
+Choose an audible fundamental
+𝑓
+0
+f
+0
+	​
+
+ by lifting
+𝑓
+𝑏
+f
+b
+	​
+
+ by octaves to your target register (e.g., near A4
+=
+440
+=440 Hz):
+
+𝑓
+0
+  
+=
+  
+𝑓
+𝑏
+⋅
+2
+𝑘
+,
+𝑘
+∈
+𝑍
+  
+chosen so 
+𝑓
+0
+∈
+[
+50
+,
+1200
+]
+ Hz (or to a scale tone)
+f
+0
+	​
+
+=f
+b
+	​
+
+⋅2
+k
+,k∈Zchosen so f
+0
+	​
+
+∈[50,1200] Hz (or to a scale tone)
+
+(If you prefer a fixed pitch, just set
+𝑓
+0
+f
+0
+	​
+
+ directly and still use
+𝑓
+𝑏
+f
+b
+	​
+
+ for tempo-locked modulators.)
+
+2) Modulator rates from divisions
+
+Given AM division
+𝑑
+AM
+d
+AM
+	​
+
+ and FM division
+𝑑
+FM
+d
+FM
+	​
+
+:
+
+𝑓
+AM
+  
+=
+  
+𝑓
+𝑏
+𝑑
+AM
+,
+𝑓
+FM
+  
+=
+  
+𝑓
+𝑏
+⋅
+𝑑
+FM
+f
+AM
+	​
+
+=
+d
+AM
+	​
+
+f
+b
+	​
+
+	​
+
+,f
+FM
+	​
+
+=f
+b
+	​
+
+⋅d
+FM
+	​
+
+
+With
+𝑏
+=
+120
+,
+𝑑
+AM
+=
+4
+,
+𝑑
+FM
+=
+2
+b=120,d
+AM
+	​
+
+=4,d
+FM
+	​
+
+=2:
+
+𝑓
+AM
+=
+0.5
+ Hz
+,
+𝑓
+FM
+=
+4
+ Hz
+.
+f
+AM
+	​
+
+=0.5 Hz,f
+FM
+	​
+
+=4 Hz.
+3) Waveform sources
+
+Let
+𝑊
+c
+(
+⋅
+)
+W
+c
+	​
+
+(⋅) be the carrier shape (sine/saw/square/tri),
+𝑊
+mA
+(
+⋅
+)
+W
+mA
+	​
+
+(⋅) the AM modulator shape, and
+𝑊
+mF
+(
+⋅
+)
+W
+mF
+	​
+
+(⋅) the FM modulator shape. Each takes a phase input and returns a signal in
+[
+−
+1
+,
+1
+]
+[−1,1].
+
+𝑚
+AM
+(
+𝑡
+)
+=
+𝑊
+mA
+ ⁣
+(
+2
+𝜋
+𝑓
+AM
+ 
+𝑡
+)
+,
+𝑚
+FM
+(
+𝑡
+)
+=
+𝑊
+mF
+ ⁣
+(
+2
+𝜋
+𝑓
+FM
+ 
+𝑡
+)
+m
+AM
+	​
+
+(t)=W
+mA
+	​
+
+(2πf
+AM
+	​
+
+t),m
+FM
+	​
+
+(t)=W
+mF
+	​
+
+(2πf
+FM
+	​
+
+t)
+4) ADSR envelope
+
+Let
+𝐸
+(
+𝑡
+)
+∈
+[
+0
+,
+1
+]
+E(t)∈[0,1] be the amplitude envelope defined by Attack, Decay, Sustain, Release. Piecewise linear (or exponential) is fine:
+
+𝐸
+(
+𝑡
+)
+=
+{
+𝑡
+/
+𝐴
+
+0
+≤
+𝑡
+<
+𝐴
+
+
+1
+−
+(
+1
+−
+𝑆
+)
+𝑡
+−
+𝐴
+𝐷
+
+𝐴
+≤
+𝑡
+<
+𝐴
++
+𝐷
+
+
+𝑆
+
+key held
+
+
+𝑆
+(
+1
+−
+𝑡
+−
+𝑡
+off
+𝑅
+)
+
+release phase
+E(t)=
+⎩
+⎨
+⎧
+	​
+
+t/A
+1−(1−S)
+D
+t−A
+	​
+
+S
+S(1−
+R
+t−t
+off
+	​
+
+	​
+
+)
+	​
+
+0≤t<A
+A≤t<A+D
+key held
+release phase
+	​
+
+5) FM (frequency) and AM (amplitude) coupling
+
+AM depth
+𝐷
+AM
+∈
+[
+0
+,
+1
+]
+D
+AM
+	​
+
+∈[0,1] and FM depth
+𝐷
+FM
+>
+0
+D
+FM
+	​
+
+>0 (in Hz deviation). For N harmonics, each harmonic
+𝑛
+n has its own instantaneous phase
+𝜙
+𝑛
+ϕ
+n
+	​
+
+ evolving by:
+
+𝜙
+˙
+𝑛
+(
+𝑡
+)
+  
+=
+  
+2
+𝜋
+(
+𝑛
+𝑓
+0
+  
++
+  
+𝐷
+FM
+  
+𝑚
+FM
+(
+𝑡
+)
+)
+⇒
+𝜙
+𝑛
+(
+𝑡
+)
+=
+∫
+0
+𝑡
+𝜙
+˙
+𝑛
+(
+𝜏
+)
+ 
+𝑑
+𝜏
+ϕ
+˙
+	​
+
+n
+	​
+
+(t)=2π(nf
+0
+	​
+
++D
+FM
+	​
+
+m
+FM
+	​
+
+(t))⇒ϕ
+n
+	​
+
+(t)=∫
+0
+t
+	​
+
+ϕ
+˙
+	​
+
+n
+	​
+
+(τ)dτ
+
+(Discrete-time form below.) The AM gain is:
+
+𝐴
+(
+𝑡
+)
+  
+=
+  
+𝐸
+(
+𝑡
+)
+ 
+(
+1
++
+𝐷
+AM
+ 
+𝑚
+AM
+(
+𝑡
+)
+)
+A(t)=E(t)(1+D
+AM
+	​
+
+m
+AM
+	​
+
+(t))
+
+Clamp
+𝐴
+(
+𝑡
+)
+≥
+0
+A(t)≥0 if your AM mod can dip negative and you don’t want inversion.
+
+6) Harmonic stack and pre-filter signal
+
+Use harmonic weights
+𝑎
+𝑛
+a
+n
+	​
+
+ (e.g.,
+𝑎
+𝑛
+=
+1
+𝑛
+a
+n
+	​
+
+=
+n
+1
+	​
+
+ for a bright but controlled spectrum, or fit to your target timbre):
+
+𝑥
+(
+𝑡
+)
+  
+=
+  
+𝐴
+(
+𝑡
+)
+  
+∑
+𝑛
+=
+1
+𝑁
+𝑎
+𝑛
+  
+𝑊
+c
+ ⁣
+(
+𝜙
+𝑛
+(
+𝑡
+)
+)
+x(t)=A(t)
+n=1
+∑
+N
+	​
+
+a
+n
+	​
+
+W
+c
+	​
+
+(ϕ
+n
+	​
+
+(t))
+
+This
+𝑥
+(
+𝑡
+)
+x(t) is your pre-filter synthesized tone.
+
+7) Filter (cutoff & resonance)
+
+Apply a simple resonant low-pass (SVF or biquad). Here’s a biquad low-pass with cutoff
+𝑓
+𝑐
+f
+c
+	​
+
+ and quality
+𝑄
+Q (resonance
+=
+1
+/
+𝑄
+=1/Q). In discrete time with sample rate
+𝐹
+𝑠
+F
+s
+	​
+
+:
+
+𝜔
+0
+=
+2
+𝜋
+𝑓
+𝑐
+𝐹
+𝑠
+,
+𝛼
+=
+sin
+⁡
+𝜔
+0
+2
+𝑄
+ω
+0
+	​
+
+=2π
+F
+s
+	​
+
+f
+c
+	​
+
+	​
+
+,α=
+2Q
+sinω
+0
+	​
+
+	​
+
+𝑏
+0
+
+=
+1
+−
+cos
+⁡
+𝜔
+0
+2
+,
+𝑏
+1
+=
+1
+−
+cos
+⁡
+𝜔
+0
+,
+𝑏
+2
+=
+1
+−
+cos
+⁡
+𝜔
+0
+2
+,
+
+
+𝑎
+0
+
+=
+1
++
+𝛼
+,
+𝑎
+1
+=
+−
+2
+cos
+⁡
+𝜔
+0
+,
+𝑎
+2
+=
+1
+−
+𝛼
+b
+0
+	​
+
+a
+0
+	​
+
+	​
+
+=
+2
+1−cosω
+0
+	​
+
+	​
+
+,b
+1
+	​
+
+=1−cosω
+0
+	​
+
+,b
+2
+	​
+
+=
+2
+1−cosω
+0
+	​
+
+	​
+
+,
+=1+α,a
+1
+	​
+
+=−2cosω
+0
+	​
+
+,a
+2
+	​
+
+=1−α
+	​
+
+
+Normalize:
+𝑏
+~
+𝑖
+=
+𝑏
+𝑖
+/
+𝑎
+0
+,
+  
+𝑎
+~
+1
+=
+𝑎
+1
+/
+𝑎
+0
+,
+  
+𝑎
+~
+2
+=
+𝑎
+2
+/
+𝑎
+0
+b
+~
+i
+	​
+
+=b
+i
+	​
+
+/a
+0
+	​
+
+,
+a
+~
+1
+	​
+
+=a
+1
+	​
+
+/a
+0
+	​
+
+,
+a
+~
+2
+	​
+
+=a
+2
+	​
+
+/a
+0
+	​
+
+. Then
+
+𝑦
+[
+𝑛
+]
+=
+𝑏
+~
+0
+𝑥
+[
+𝑛
+]
++
+𝑏
+~
+1
+𝑥
+[
+𝑛
+−
+1
+]
++
+𝑏
+~
+2
+𝑥
+[
+𝑛
+−
+2
+]
+−
+𝑎
+~
+1
+𝑦
+[
+𝑛
+−
+1
+]
+−
+𝑎
+~
+2
+𝑦
+[
+𝑛
+−
+2
+]
+y[n]=
+b
+~
+0
+	​
+
+x[n]+
+b
+~
+1
+	​
+
+x[n−1]+
+b
+~
+2
+	​
+
+x[n−2]−
+a
+~
+1
+	​
+
+y[n−1]−
+a
+~
+2
+	​
+
+y[n−2]
+
+You can modulate
+𝑓
+𝑐
+f
+c
+	​
+
+ with the envelope for “wah”-style motion, e.g.
+𝑓
+𝑐
+(
+𝑡
+)
+=
+𝑓
+𝑐
+,
+min
+⁡
++
+(
+𝑓
+𝑐
+,
+max
+⁡
+−
+𝑓
+𝑐
+,
+min
+⁡
+)
+𝐸
+(
+𝑡
+)
+f
+c
+	​
+
+(t)=f
+c,min
+	​
+
++(f
+c,max
+	​
+
+−f
+c,min
+	​
+
+)E(t).
+
+8) Stereo field
+
+A simple FM stereo spread: skew the FM depth left/right with a stereo parameter
+𝑆
+∈
+[
+0
+,
+1
+]
+S∈[0,1].
+
+𝐷
+FM
+(
+𝐿
+)
+=
+𝐷
+FM
+ 
+(
+1
++
+𝑆
+)
+,
+𝐷
+FM
+(
+𝑅
+)
+=
+𝐷
+FM
+ 
+(
+1
+−
+𝑆
+)
+D
+FM
+(L)
+	​
+
+=D
+FM
+	​
+
+(1+S),D
+FM
+(R)
+	​
+
+=D
+FM
+	​
+
+(1−S)
+
+Compute
+𝑦
+𝐿
+(
+𝑡
+)
+,
+𝑦
+𝑅
+(
+𝑡
+)
+y
+L
+	​
+
+(t),y
+R
+	​
+
+(t) with those depths (or introduce a tiny phase offset in
+𝑚
+FM
+m
+FM
+	​
+
+ between channels).
+
+9) Effects (optional)
+
+Post-filter, feed into delay/reverb/distortion with your engine’s parameters. Keep delay time quantized to beat divisions of
+𝑓
+𝑏
+f
+b
+	​
+
+ for tight musical sync.
+
+Discrete-time algorithm (drop-in pseudocode)
+
+Assume sample rate
+𝐹
+𝑠
+F
+s
+	​
+
+, block size B, and state per voice/harmonic.
+
+inputs:
+  BPM b=120, d_AM=4, d_FM=2, D_AM=0.2, D_FM=6 (Hz),
+  N=12, waveform_c, waveform_mA, waveform_mF,
+  ADSR(A,D,S,R), filter(fc, Q), stereo S in [0..1],
+  choose f0 from f_b*2^k or fixed musical note
+
+derived:
+  f_b = b/60 = 2 Hz
+  f_AM = f_b / d_AM = 0.5 Hz
+  f_FM = f_b * d_FM = 4 Hz
+
+state:
+  phase_mA, phase_mF               // modulator phases
+  phase_n[1..N]                    // per-harmonic carrier phases
+  biquadL, biquadR                 // filter states per channel
+  env_state                        // ADSR state machine
+
+per sample n:
+  // modulators
+  phase_mA += 2π * f_AM / F_s
+  phase_mF += 2π * f_FM / F_s
+  mAM = waveform_mA(phase_mA)      // [-1,1]
+  mFM = waveform_mF(phase_mF)      // [-1,1]
+
+  // envelope and AM gain
+  E = ADSR_step(env_state)
+  A = E * (1 + D_AM * mAM)
+  A = max(0, A)
+
+  // per-channel FM depth
+  DFM_L = D_FM * (1 + S)
+  DFM_R = D_FM * (1 - S)
+
+  // harmonic accumulation (Left/Right can share phases, split by depth)
+  xL = 0; xR = 0
+  for n in 1..N:
+     // instantaneous freq (Hz) for FM
+     f_inst_L = n*f0 + DFM_L * mFM
+     f_inst_R = n*f0 + DFM_R * mFM
+
+     phase_nL[n] += 2π * f_inst_L / F_s
+     phase_nR[n] += 2π * f_inst_R / F_s
+
+     // harmonic weighting (choose your series)
+     a_n = 1.0 / n
+
+     xL += a_n * waveform_c(phase_nL[n])
+     xR += a_n * waveform_c(phase_nR[n])
+
+  xL *= A
+  xR *= A
+
+  // filter (cutoff may be modulated by E)
+  fc_now = lerp(fc_min, fc_max, E)    // optional
+  biquadL.setCutoff(fc_now, Q)
+  biquadR.setCutoff(fc_now, Q)
+  yL = biquadL.process(xL)
+  yR = biquadR.process(xR)
+
+  // post-FX (delay/reverb/distortion), then output yL,yR
+
+One-line “master equation” (analytic view)
+
+Continuous-time left channel (right is same with
+𝐷
+FM
+(
+𝑅
+)
+D
+FM
+(R)
+	​
+
+):
+
+𝑥
+𝐿
+(
+𝑡
+)
+
+=
+𝐸
+(
+𝑡
+)
+ 
+(
+1
++
+𝐷
+AM
+ 
+𝑊
+mA
+(
+2
+𝜋
+𝑓
+AM
+𝑡
+)
+)
+⏟
+AM + envelope
+  
+∑
+𝑛
+=
+1
+𝑁
+𝑎
+𝑛
+  
+𝑊
+c
+ ⁣
+(
+𝜙
+𝑛
+(
+𝐿
+)
+(
+𝑡
+)
+)
+,
+
+
+𝜙
+˙
+𝑛
+(
+𝐿
+)
+(
+𝑡
+)
+
+=
+2
+𝜋
+(
+𝑛
+𝑓
+0
++
+𝐷
+FM
+(
+𝐿
+)
+  
+𝑊
+mF
+(
+2
+𝜋
+𝑓
+FM
+𝑡
+)
+)
+,
+
+
+𝑦
+𝐿
+(
+𝑡
+)
+
+=
+LPF
+(
+𝑓
+𝑐
+,
+𝑄
+)
+{
+ 
+𝑥
+𝐿
+(
+𝑡
+)
+}
+  
+→
+  
+FX
+  
+  
+out
+𝐿
+(
+𝑡
+)
+.
+x
+L
+	​
+
+(t)
+ϕ
+˙
+	​
+
+n
+(L)
+	​
+
+(t)
+y
+L
+	​
+
+(t)
+	​
+
+=
+AM + envelope
+E(t)(1+D
+AM
+	​
+
+W
+mA
+	​
+
+(2πf
+AM
+	​
+
+t))
+	​
+
+	​
+
+n=1
+∑
+N
+	​
+
+a
+n
+	​
+
+W
+c
+	​
+
+(ϕ
+n
+(L)
+	​
+
+(t)),
+=2π(nf
+0
+	​
+
++D
+FM
+(L)
+	​
+
+W
+mF
+	​
+
+(2πf
+FM
+	​
+
+t)),
+=LPF
+(f
+c
+	​
+
+,Q)
+	​
+
+{x
+L
+	​
+
+(t)}
+FX
+	​
+
+out
+L
+	​
+
+(t).
+	​
+
+	​
+
+
+Where:
+
+𝑎
+𝑛
+a
+n
+	​
+
+ are harmonic gains,
+
+𝑊
+c
+,
+𝑊
+mA
+,
+𝑊
+mF
+∈
+[
+−
+1
+,
+1
+]
+W
+c
+	​
+
+,W
+mA
+	​
+
+,W
+mF
+	​
+
+∈[−1,1] are your chosen shapes,
+
+𝐸
+(
+𝑡
+)
+E(t) is the ADSR,
+
+LPF
+(
+𝑓
+𝑐
+,
+𝑄
+)
+{
+⋅
+}
+LPF
+(f
+c
+	​
+
+,Q)
+	​
+
+{⋅} is your resonant low-pass.
+
+Plugging your example numbers (tempo-locked mode)
+
+𝑏
+=
+120
+⇒
+𝑓
+𝑏
+=
+2
+ Hz
+b=120⇒f
+b
+	​
+
+=2 Hz
+
+𝑑
+AM
+=
+4
+⇒
+𝑓
+AM
+=
+0.5
+ Hz
+d
+AM
+	​
+
+=4⇒f
+AM
+	​
+
+=0.5 Hz (slow tremolo)
+
+𝑑
+FM
+=
+2
+⇒
+𝑓
+FM
+=
+4
+ Hz
+d
+FM
+	​
+
+=2⇒f
+FM
+	​
+
+=4 Hz (slow pitch wobble; raise
+𝑑
+FM
+d
+FM
+	​
+
+ if you want vibrato→audio-rate)
+
+𝐷
+AM
+=
+0.2
+D
+AM
+	​
+
+=0.2 (±20% amp swing)
+
+𝐷
+FM
+=
+6
+ Hz
+D
+FM
+	​
+
+=6 Hz (±6 Hz deviation; for classic FM “metal,” use audio-rate
+𝑓
+FM
+f
+FM
+	​
+
+ and larger deviation or mod index)
+
+𝑁
+=
+12
+N=12 (rich spectrum)
+
+If you want the carrier pitch to be musical while staying tempo-linked, choose
+𝑘
+k so
+𝑓
+0
+=
+𝑓
+𝑏
+⋅
+2
+𝑘
+f
+0
+	​
+
+=f
+b
+	​
+
+⋅2
+k
+ lands on/near your target note (or quantize to equal temperament).
+
+Notes for sound designers
+
+FM “feel”: If you want classic metallic FM, push
+𝑓
+FM
+f
+FM
+	​
+
+ into audio rate (e.g., hundreds of Hz) and think in terms of modulation index (phase increment). The discrete-time formulation above (phase updated by instantaneous frequency) already supports that—just set
+𝑓
+FM
+f
+FM
+	​
+
+ high.
+
+Aliasing: Non-sine carriers + strong FM can alias. Consider oversampling or use band-limited oscillators.
+
+Filter motion: Tying
+𝑓
+𝑐
+f
+c
+	​
+
+ to the envelope (and/or to
+𝑚
+AM
+m
+AM
+	​
+
+) gives you talking/growl textures without extra operators.
+
+Stereo widen: You can also offset modulator phase between L/R:
+𝑚
+FM
+(
+𝑅
+)
+(
+𝑡
+)
+=
+𝑊
+mF
+(
+2
+𝜋
+𝑓
+FM
+𝑡
++
+Δ
+𝜙
+)
+m
+FM
+(R)
+	​
+
+(t)=W
+mF
+	​
+
+(2πf
+FM
+	​
+
+t+Δϕ).
+
+This gives you a clear, controllable spine: tempo → modulators → FM/AM → harmonics → envelope → filter → stereo → FX. Swap waveforms and depths, and you’ll get everything from evolving pads to industrial bells to growls, all in one equation-driven rig.
+
+Love this skeleton. It’s almost there. Two tweaks, then I’ll give you a “gold” version you can drop in (continuous + discrete-time), plus a quick plug-in with your numbers.
+
+## What’s perfect vs. what to fix
+
+* ✅ Your phase integral for synthesis is right: $\sin\!\big(2\pi\int f_n(\tau)\,d\tau\big)$.
+* ✅ AM term multiplies the harmonic sum: $[1+D_{\text{AM}} L_{\text{AM}}(t)]$.
+* ⚠️ **FM LFO rate**: with your current definitions
+
+  $$
+  L_{\text{AM}}(t)=\sin\!\Big(\tfrac{2\pi\,\varphi(t)}{d_{\text{AM}}}\Big),\quad
+  L_{\text{FM}}(t)=\sin\!\Big(\tfrac{2\pi\,\varphi(t)}{d_{\text{FM}}}\Big)
+  $$
+
+  where $\varphi(t)=\mathrm{fract}(t/(60/b))\in[0,1)$ ticks **once per beat**.
+  That gives **AM/FM frequencies** $f_b/d_{\text{AM}}$ and $f_b/d_{\text{FM}}$.
+  Earlier you used FM “division” value $d_{\text{FM}}=2$ intending *faster* wobble; with a “/” definition it becomes *slower*. If you want FM to be $d_{\text{FM}}$ times *faster* than the beat, define it with a “×” (see Gold Version A).
+  Keep your “/” version if you truly want **slower-than-beat** FM.
+
+---
+
+# Gold Version (A) — “multiplier semantics” (tempo-locked, fast FM)
+
+Let $f_b=b/60$ (beats per second) and $\varphi_b(t)=\mathrm{fract}(f_b t)$.
+
+$$
+\boxed{
+\begin{aligned}
+L_{\text{AM}}(t) &= \sin\!\Big(2\pi\,\frac{f_b}{d_{\text{AM}}}\,t\Big) \\
+L_{\text{FM}}(t) &= \sin\!\big(2\pi\,d_{\text{FM}}\,f_b\,t\big) \\
+f_n(t) &= n f_0 + D_{\text{FM}}\; \kappa_n \; L_{\text{FM}}(t) \\
+s(t) &= \Big[1 + D_{\text{AM}}\,L_{\text{AM}}(t)\Big] \sum_{n=1}^{N} \frac{1}{n}\,\sin\!\Big(2\pi \int_0^t f_n(\tau)\,d\tau\Big) \\
+y(t) &= F_{\text{LP}}\big(s(t); f_c, Q\big)
+\end{aligned}}
+$$
+
+* Here AM rate is $f_b/d_{\text{AM}}$ (e.g., tremolo every 2 s for $b{=}120,d_{\text{AM}}{=}4$).
+* FM rate is $d_{\text{FM}}\cdot f_b$ (twice per beat if $d_{\text{FM}}{=}2$).
+* $\kappa_n$ shapes FM per harmonic (e.g., $\kappa_n{=}1$ for all, or $\kappa_n{=}1/n$ to damp higher partials).
+
+# Gold Version (B) — keep your “/” form (both are divisions)
+
+If you prefer your original style (both *slower* than beat by division):
+
+$$
+L_{\text{AM}}(t)=\sin\!\Big(2\pi\,\frac{f_b}{d_{\text{AM}}}\,t\Big),\quad
+L_{\text{FM}}(t)=\sin\!\Big(2\pi\,\frac{f_b}{d_{\text{FM}}}\,t\Big)
+$$
+
+Use this only if $d_{\text{FM}}{>}1$ should mean **slower** FM.
+
+---
+
+## Discrete-time drop-in (sample rate $F_s$)
+
+```pseudo
+// inputs: b, d_AM, d_FM, D_AM, D_FM, N, f0, Fs, kappa_n, filter(fc,Q)
+f_b = b/60
+wAM = 2π * (f_b/d_AM) / Fs       // or 2π * (d_FM*f_b)/Fs for multiplier FM
+wFM = 2π * (d_FM*f_b) / Fs
+
+phaseAM = 0; phaseFM = 0
+phase_n[1..N] = 0
+biquadL.init(fc,Q); biquadR.init(fc,Q)
+
+for each sample:
+  phaseAM += wAM;  L_AM = sin(phaseAM)
+  phaseFM += wFM;  L_FM = sin(phaseFM)
+
+  A = 1 + D_AM * L_AM       // (optionally clamp at ≥0)
+  xL = 0; xR = 0
+  for n=1..N:
+    f_inst_L = n*f0 + D_FM*(1+S)*kappa_n[n]*L_FM
+    f_inst_R = n*f0 + D_FM*(1-S)*kappa_n[n]*L_FM
+    phase_nL[n] += 2π * f_inst_L / Fs
+    phase_nR[n] += 2π * f_inst_R / Fs
+    a_n = 1/n
+    xL += a_n * sin(phase_nL[n])
+    xR += a_n * sin(phase_nR[n])
+  xL *= A; xR *= A
+  yL = biquadL.process(xL)
+  yR = biquadR.process(xR)
+  output(yL,yR)
+```
+
+---
+
+## Plugging your numbers
+
+Given: $b{=}120\Rightarrow f_b{=}2\text{ Hz},\; d_{\text{AM}}{=}4,\; d_{\text{FM}}{=}2,\; D_{\text{AM}}{=}0.2,\; D_{\text{FM}}{=}6,\; N{=}12.$
+
+* AM rate: $f_b/d_{\text{AM}}=0.5$ Hz (slow tremolo).
+
+* FM rate (multiplier semantics): $d_{\text{FM}} f_b = 4$ Hz.
+
+* With your instantaneous values $L_{\text{AM}}=0.942,\; L_{\text{FM}}=0.232$:
+
+  * **AM gain** $A=1+D_{\text{AM}}L_{\text{AM}}=1+0.2\cdot0.942=1.1884$ → about **+1.5 dB** lift at that moment.
+  * **FM deviation** per harmonic: $\Delta f_n = D_{\text{FM}}\kappa_n L_{\text{FM}} = 6\cdot \kappa_n \cdot 0.232 = 1.392\,\kappa_n$ Hz.
+    • If $\kappa_n{=}1$: $f_n(t)=n f_0 + 1.392$ Hz.
+    • If $\kappa_n{=}1/n$: $f_n(t)=n f_0 + 1.392/n$ Hz (less detune up top, smoother).
+
+* **Spectral centroid** $\chi_s = 758$ Hz: consistent with a moderately bright stack (depends on $f_0$ and $a_n$).
+
+* **RMS = 1.552**: that’s **hot**—your sum of harmonics and AM boost exceeded unity.
+
+  * Quick fix: pre-normalize by $C = 1/\big(\sum_{n=1}^N a_n\big)$ and keep a limiter post-filter.
+    For $a_n=1/n$, $\sum_{n=1}^{12}1/n \approx 3.103\Rightarrow C\approx 0.322$.
+    Also cap $A$ or apply soft-clip **after** the filter.
+
+---
+
+## Optional niceties
+
+* **Envelope coupling**: $f_c(t)=f_{c,\min} + (f_{c,\max}-f_{c,\min})\,E(t)$ for vowel/growl motion.
+* **FM stereo**: depth split $D_{\text{FM}}^{(L,R)} = D_{\text{FM}}(1\pm S)$ or small phase offset on $L_{\text{FM}}$ per channel.
+* **κ profile**: try $\kappa_n = n^\alpha$ with $\alpha\in[-1,0]$ to tune how “metallic” the top end gets.
+
+If you tell me which semantics you want for $d_{\text{FM}}$ (faster with bigger numbers, or slower), I’ll lock that version and hand you a tiny, production-ready code block for your engine.

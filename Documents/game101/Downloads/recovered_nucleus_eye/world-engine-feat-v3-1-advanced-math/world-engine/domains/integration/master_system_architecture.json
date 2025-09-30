@@ -1,0 +1,588 @@
+{
+    "system_architecture": {
+        "name": "World Engine Master Integration System",
+        "version": "3.1.0",
+        "type": "complete_integration_framework",
+        "overview": "One-screen, no-overflow system integrating dashboard, sandbox, codex automations, OPFS storage, shaders, and 360-camera prototype",
+        "routing_system": {
+            "hash_routes": {
+                "#": {
+                    "component": "Dashboard",
+                    "description": "Main entry with automation cards and sandbox links",
+                    "public": true
+                },
+                "#sandbox": {
+                    "component": "SandboxScene",
+                    "description": "General sandbox entry with dev tools",
+                    "public": true
+                },
+                "#sandbox-360": {
+                    "component": "Camera360Sandbox",
+                    "description": "360 Camera Prototype (dev-only)",
+                    "public": false,
+                    "dev_only": true
+                },
+                "#portrait": {
+                    "component": "PortraitCodex",
+                    "description": "Portrait batch automation",
+                    "public": true
+                },
+                "#shave-mesh": {
+                    "component": "MeshCodex",
+                    "description": "Mesh processing automation",
+                    "public": true
+                },
+                "#heightfield": {
+                    "component": "HeightfieldCodex",
+                    "description": "Heightfield generation",
+                    "public": true
+                },
+                "#outline-extrude": {
+                    "component": "OutlineCodex",
+                    "description": "2D outline to 3D extrusion",
+                    "public": true
+                },
+                "#artifact-bundle": {
+                    "component": "ArtifactCodex",
+                    "description": "Bundle multiple artifacts",
+                    "public": true
+                },
+                "#release-bundler": {
+                    "component": "ReleaseCodex",
+                    "description": "Release package generator",
+                    "public": true
+                },
+                "#spin-capture": {
+                    "component": "SpinCodex",
+                    "description": "Turntable frame capture",
+                    "public": true
+                },
+                "#composer-turntable": {
+                    "component": "ComposerCodex",
+                    "description": "Composer turntable with post-effects",
+                    "public": true
+                },
+                "#turntable-sprite": {
+                    "component": "SpriteCodex",
+                    "description": "Sprite sheet generation",
+                    "public": true
+                },
+                "#lod-pack": {
+                    "component": "LODCodex",
+                    "description": "LOD chain generation",
+                    "public": true
+                },
+                "#pose-thumbs": {
+                    "component": "PoseCodex",
+                    "description": "Pose thumbnail generation",
+                    "public": true
+                },
+                "#geo-stats": {
+                    "component": "GeoStatsCodex",
+                    "description": "Geometry statistics analysis",
+                    "public": true
+                }
+            },
+            "linking_discipline": {
+                "rule": "Routes and buttons created same day as features",
+                "back_button": "← Back to Dashboard always present",
+                "covers_path": "public/covers/",
+                "cover_format": "1024x576 JPG with high-contrast text"
+            }
+        },
+        "application_layout": {
+            "center": "R3F Canvas (scene, impostor overlay, hull preview)",
+            "left_rail": "Sandbox & assets (context + galleries)",
+            "right_drawer": "Codex cards → parameter panels and job execution",
+            "bottom_bar": "Status, progress, FPS, active job monitoring"
+        }
+    },
+    "codex_automation_system": {
+        "pattern": "Cards → Actions → Outputs",
+        "card_structure": {
+            "id": "unique_route_identifier",
+            "title": "display_name",
+            "cover": "thumbnail_path",
+            "panel": "parameter_sliders_config",
+            "action": "handler_function",
+            "outputs": [
+                "expected_output_paths"
+            ]
+        },
+        "click_flow": [
+            "Open right pull-over panel with parameters",
+            "User adjusts sliders/toggles",
+            "Click Run → call action handler",
+            "Engine returns artifacts array",
+            "Write to OPFS, build ZIP if multiple artifacts",
+            "Append manifest entry",
+            "Toast status, update Recent list"
+        ],
+        "automation_definitions": {
+            "atlas_bake": {
+                "id": "bake-atlas",
+                "title": "Bake Atlas → ZIP",
+                "action": "impostor.bake()",
+                "artifacts": [
+                    "impostors/atlas.png",
+                    "impostors/cams.json",
+                    "bundle.zip"
+                ],
+                "engine_path": "Scene FBO → PNG encode with Y-flip",
+                "side_effects": "Write OPFS, append manifest"
+            },
+            "hull_build": {
+                "id": "build-hull",
+                "title": "Build Hull → GLB/OBJ → ZIP",
+                "action": "hull.build()",
+                "artifacts": [
+                    "models/hull.glb",
+                    "models/hull.obj",
+                    "cameras/cams.json",
+                    "bundle.zip"
+                ],
+                "engine_path": "Worker carve → mesh → export",
+                "side_effects": "Preview mesh, OPFS write, manifest"
+            },
+            "portrait_batch": {
+                "id": "portrait-batch",
+                "title": "Portrait Batch → ZIP",
+                "action": "portrait.batch()",
+                "artifacts": [
+                    "portraits/*.png",
+                    "bundle.zip"
+                ],
+                "engine_path": "Toon + outline baker",
+                "side_effects": "OPFS write, manifest"
+            },
+            "frame_presets": {
+                "id": "360-presets",
+                "title": "360 Presets → ZIP",
+                "action": "frames.run(kind)",
+                "artifacts": [
+                    "frames/*.png",
+                    "bundle.zip"
+                ],
+                "engine_path": "Temp cam path → PNG frames",
+                "side_effects": "OPFS or download"
+            }
+        }
+    },
+    "storage_system": {
+        "opfs_primary": {
+            "description": "Origin Private File System - default persistent store",
+            "layout": {
+                "impostors/": [
+                    "atlas.png",
+                    "cams.json"
+                ],
+                "models/": [
+                    "hull.glb",
+                    "hull.obj"
+                ],
+                "portraits/": [
+                    "batch outputs"
+                ],
+                "cameras/": [
+                    "cams.json"
+                ],
+                "manifests/": [
+                    "manifest.json"
+                ],
+                "frames/": [
+                    "captured PNG sequences"
+                ],
+                "sprites/": [
+                    "sprite sheets and metadata"
+                ],
+                "reports/": [
+                    "analysis outputs"
+                ]
+            },
+            "helpers": "export/opfs.ts: writeFile, readFile, listDir"
+        },
+        "fsa_optional": {
+            "description": "File System Access for real user libraries",
+            "trigger": "Connect Folder... button",
+            "behavior": "Mirror writes after OPFS success",
+            "use_case": "Long-term archives and user organization"
+        },
+        "zip_bundling": {
+            "library": "JSZip with DEFLATE compression",
+            "fallbacks": [
+                "store-only ZIP",
+                "multiple direct downloads"
+            ],
+            "rule": "ZIP if multiple artifacts, direct download for single files",
+            "compatibility": "Keeps demos unblocked offline"
+        },
+        "manifest_system": {
+            "path": "manifests/manifest.json",
+            "structure": {
+                "version": 1,
+                "jobs": [
+                    {
+                        "id": "unique_job_id",
+                        "codex": "automation_name",
+                        "params": "user_parameters_object",
+                        "started": "timestamp_ms",
+                        "ended": "timestamp_ms",
+                        "status": "ok|error",
+                        "error": "error_message_if_failed",
+                        "perf": {
+                            "cpuMs": "processing_time",
+                            "gpuMs": "gpu_time",
+                            "tris": "triangle_count"
+                        },
+                        "outputs": [
+                            {
+                                "path": "relative_path",
+                                "bytes": "file_size"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "usage": "RecentPanel reads manifest → users reopen/download outputs"
+        }
+    },
+    "graphics_pipeline": {
+        "impostor_atlas": {
+            "goal": "Bake multi-view color (optionally depth) into tiled atlas",
+            "bridge": "lib/atlasBridge.ts",
+            "methods": {
+                "setAtlasBaker": "Scene registers bake function",
+                "bakeAtlas": "UI calls to trigger baking",
+                "bakeFromRenderTarget": "Read RT, flip Y, encode PNG, return artifacts"
+            },
+            "cams_template": {
+                "layout": "3x3|4x4",
+                "order": [
+                    "cam0",
+                    "cam1",
+                    "cam2",
+                    "..."
+                ],
+                "per_camera": {
+                    "K": "intrinsics (fx,fy,cx,cy,width,height)",
+                    "E": "extrinsics (R rotation matrix, t translation)"
+                }
+            },
+            "compositor_shader": {
+                "technique": "Top-2 angular similarity blend",
+                "compatibility": "Strict texture2D sampling",
+                "blend_rule": "dot(viewDir, camDir) with power p≈4"
+            }
+        },
+        "visual_hull": {
+            "worker": "visualHull.worker.ts",
+            "inputs": [
+                "voxel_grid",
+                "camera_pack_K_E",
+                "binary_masks_ImageData"
+            ],
+            "carve_rule": "Early reject voxel if ANY camera fails silhouette test",
+            "progress": "Report (z, nz) slab progress",
+            "meshing": {
+                "phase_a": "Fast voxel surface (exposed faces) for previews",
+                "phase_b": "occ → field (blur/EDT) → Marching Cubes → indexed geometry + normals"
+            },
+            "controls": {
+                "resolution": "64/96/128 voxel grid",
+                "threshold": "silhouette_threshold",
+                "closeRadius": "morphological_operations",
+                "thickness": "mesh_inflation",
+                "smoothIter": "mesh_smoothing_iterations"
+            },
+            "exports": [
+                "GLB primary",
+                "OBJ fallback",
+                "cameras/cams.json bundle"
+            ]
+        },
+        "camera_360_prototype": {
+            "route": "#sandbox-360",
+            "concept": "Hologram rises from grid center, camera ring captures views",
+            "hologram_modes": {
+                "raymarch_projector": {
+                    "technique": "Additive signed-distance SDF",
+                    "appearance": "Solid body volumetric look",
+                    "shaders": "SDF helpers: sdSphere, sdBox, sdCylinder, opSmoothUnion"
+                },
+                "particle_fill": {
+                    "technique": "Aquamarine points streaming upward",
+                    "appearance": "Particle cloud filling volume",
+                    "optimization": "Cap particle count for performance"
+                }
+            },
+            "ring_capture": {
+                "layouts": "3x3 or 4x4 cameras",
+                "parameters": [
+                    "rotation_speed_omega",
+                    "radius",
+                    "height",
+                    "captureEvery_frames"
+                ],
+                "render_target": "Single RT with atlas layout, updated live"
+            },
+            "frame_presets": {
+                "orbit": "Constant radius circular motion",
+                "overhead_arc": "Radius decreases, height increases",
+                "spiral_drop": "Height decreases while spinning"
+            },
+            "exports": {
+                "atlas_mode": "impostors/atlas.png + cams.json → ZIP",
+                "frames_mode": "frames/####.png sequence → ZIP"
+            },
+            "directions_hud": {
+                "always_visible": true,
+                "hotkeys": {
+                    "M": "Toggle raymarch/particle mode",
+                    "T": "Switch 3x3/4x4 tiles",
+                    "←/→": "Adjust spin speed omega",
+                    "PgUp/PgDn": "Ring height adjustment",
+                    "[/]": "Tile size adjustment",
+                    "1/2/3": "Orbit/Overhead/Spiral presets"
+                },
+                "perf_tips": "Reduce tile size, increase captureEvery, use 3x3, disable bloom"
+            }
+        }
+    },
+    "performance_guardrails": {
+        "auto_degradation": {
+            "trigger": "EMA frame time > budget",
+            "adjustments": {
+                "tile_size": "1024→512→384→256",
+                "capture_every": "1→2→3→4 frames",
+                "bloom_intensity": "1.1→0.9→0.7→0.55"
+            },
+            "manual_overrides": "Always available via UI sliders"
+        },
+        "targets": {
+            "atlas_9_view_512": "≤20ms per frame on mid laptops",
+            "visual_hull_96_cubed": "<800ms processing time",
+            "visual_hull_128_cubed": "≤2s processing time"
+        },
+        "guidance": "HUD shows how to reduce: tile size, capture interval, 3x3 mode, single hologram"
+    },
+    "ui_theming": {
+        "dashboard_css": {
+            "aesthetic": "Tech-future with neon accents on dark chrome",
+            "colors": {
+                "accent": "#0f0 (neon green)",
+                "hover": "glow effects",
+                "layout": "responsive grids"
+            }
+        },
+        "scene_aesthetic": {
+            "palette": "Holo-tech neutrals in 3D",
+            "energy_colors": [
+                "#6cf3ff (cyan)",
+                "#aee9ff (light cyan)",
+                "#9ad1ff (blue cyan)"
+            ],
+            "background": "#0b0f16 (deep navy)",
+            "platform": "hex-ring meshPhysicalMaterial (transmission + clearcoat)",
+            "post_effects": "Bloom with mipmap and moderate threshold"
+        }
+    },
+    "data_contracts": {
+        "cams_json": {
+            "layout": "3x3|4x4",
+            "order": [
+                "cam0",
+                "cam1",
+                "cam2",
+                "cam3",
+                "cam4",
+                "cam5",
+                "cam6",
+                "cam7",
+                "cam8"
+            ],
+            "cams": [
+                {
+                    "id": "cam0",
+                    "K": {
+                        "fx": 800,
+                        "fy": 800,
+                        "cx": 512,
+                        "cy": 512,
+                        "width": 1024,
+                        "height": 1024
+                    },
+                    "E": {
+                        "R": [
+                            1,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            1
+                        ],
+                        "t": [
+                            0,
+                            0,
+                            1.2
+                        ]
+                    }
+                }
+            ]
+        },
+        "manifest_job": {
+            "id": "string",
+            "codex": "string",
+            "params": "Record<string,unknown>",
+            "started": "number_timestamp",
+            "ended": "number_timestamp",
+            "status": "ok|error",
+            "error": "string_optional",
+            "perf": {
+                "cpuMs": "number_optional",
+                "gpuMs": "number_optional",
+                "tris": "number_optional"
+            },
+            "outputs": [
+                {
+                    "path": "string",
+                    "bytes": "number"
+                }
+            ]
+        }
+    },
+    "shader_specifications": {
+        "impostor_compositor": {
+            "technique": "Full-screen quad with top-2 blend",
+            "inputs": "atlas tiles + ring directions",
+            "selection": "compute dot(viewDir, camDir), blend top-2 with exponent p≈4",
+            "sampling": "Strictly texture2D for cross-browser compatibility",
+            "diagnostics": [
+                "tile_index",
+                "quality_heat",
+                "occlusion_view"
+            ]
+        },
+        "projector_raymarch": {
+            "technique": "SDF with additive glow",
+            "helpers": "sdSphere, sdBox, sdCylinder, opSmoothUnion, opRep",
+            "marching": "steps=64, eps≈0.0025, maxD≈12",
+            "effects": "Edge banding, scanline mask, volumetric feel"
+        },
+        "platform_hex": {
+            "displacement": "Hex-ring with procedural ridge + bowl",
+            "material": "meshPhysicalMaterial with clearcoat glass feel",
+            "overlay": "drei/Line with worldUnits, depth-disabled for crispness"
+        }
+    },
+    "error_taxonomy": {
+        "E_ASSET_LOAD": {
+            "trigger": "Missing/invalid cams.json or masks",
+            "message": "Check paths or drag-drop files; see template",
+            "recovery": "Prompt path/drag-drop interface"
+        },
+        "E_MASK_BINARIZE": {
+            "trigger": "Non-binary mask data",
+            "message": "Apply threshold (0.5) and try again",
+            "recovery": "Threshold/morph hints in UI"
+        },
+        "E_WORKER_CRASH": {
+            "trigger": "Visual hull worker failure",
+            "message": "Retry with lower resolution or disable SAB",
+            "recovery": "Fallback to 96³, disable SharedArrayBuffer"
+        },
+        "E_EXPORT_FAIL": {
+            "trigger": "GLB export failure",
+            "message": "Try OBJ fallback format",
+            "recovery": "Offer alternative export formats"
+        },
+        "E_STORAGE": {
+            "trigger": "OPFS/FSA quota or permission issues",
+            "message": "Free space, re-grant folder, or use direct download",
+            "recovery": "Quota guidance, download fallback"
+        }
+    },
+    "testing_acceptance": {
+        "golden_sphere": "96³ carve radius within ±2 voxels",
+        "export_reopen": "GLB → parse → bounding box equals original within 1%",
+        "zip_hygiene": "Forward slashes, unique UTF-8 names, deterministic ordering",
+        "performance": {
+            "atlas_512": "≤20ms/frame on mid laptops",
+            "hull_96": "<800ms processing",
+            "hull_128": "≤2s processing"
+        },
+        "cross_browser": "Chrome/Edge/Firefox desktop, iPadOS Safari with ZIP fallback"
+    },
+    "security_headers": {
+        "shared_array_buffer": {
+            "requirements": "COOP: same-origin, COEP: require-corp",
+            "feature_detection": "Fall back to non-SAB worker if unavailable",
+            "use_case": "High-resolution visual hull carving optimization"
+        }
+    },
+    "build_configuration": {
+        "import_fixes": {
+            "three_examples": "Must use explicit .js suffix for three/examples/jsm/",
+            "vite_ts": "moduleResolution: Bundler, target ES2022",
+            "webgl": "preserveDrawingBuffer: true for screenshot/PNG capture"
+        }
+    },
+    "operator_workflow": {
+        "bake_impostor_atlas": [
+            "Open Atlas card OR navigate to 360 Camera",
+            "Click 'Bake Atlas → ZIP'",
+            "Find outputs in OPFS impostors/ and Recent panel"
+        ],
+        "build_visual_hull": [
+            "Open Hull card",
+            "Load cams.json & masks/ directory",
+            "Click 'Build → Export GLB/OBJ → ZIP'",
+            "Monitor progress in bottom bar"
+        ],
+        "run_360_presets": [
+            "Navigate to #sandbox-360",
+            "Choose Orbit/Overhead Arc/Spiral Drop",
+            "Click 'Capture Frames → ZIP'",
+            "Download or save to OPFS"
+        ],
+        "performance_optimization": [
+            "Reduce tile size via [ ] hotkeys",
+            "Increase capture interval via UI slider",
+            "Switch to 3x3 tiles via T hotkey",
+            "Reduce bloom intensity",
+            "Use single hologram mode via M hotkey"
+        ]
+    },
+    "implementation_checklist": {
+        "per_automation": [
+            "Route added (hash) and dashboard button present",
+            "Card entry complete (id/title/cover/panel/action/outputs)",
+            "Action handler implemented (returns {name, blob}[])",
+            "OPFS writes configured, ZIP creation for multiple artifacts",
+            "Manifest append (success/error) with performance metrics",
+            "Cover image added with alt text",
+            "Directions and performance tips visible in panel",
+            "Recent list integration functional",
+            "Golden/sanity test passes"
+        ],
+        "live_systems": [
+            "Dashboard + route wiring (hash-based)",
+            "Atlas bridge (scene↔UI), Atlas Bake Codex pattern",
+            "OPFS helpers + ZIP + downloads, RecentPanel",
+            "360-Camera prototype in Sandbox (#sandbox-360)",
+            "Ring capture & impostor overlay",
+            "Raymarch/particles modes",
+            "Frame presets → ZIP export",
+            "Performance guardrails",
+            "Directions HUD always visible"
+        ],
+        "next_integrations": [
+            "Ensure every automation appends manifest for Recent",
+            "Swap voxel-surface for marching cubes in hull builds",
+            "Add cams.json & masks/ drag-drop to hull panel",
+            "Complete cross-browser compatibility testing"
+        ]
+    }
+}

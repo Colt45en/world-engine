@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>NEXUS • Intelligence Operations Center (4 Walls • 12 Librarian Stations • 3D Control Room)</title>
+<meta name="color-scheme" content="dark"/>
+<style>
+  :root{ --ink:#e8fff6; --muted:#9ddac0; --edge:rgba(255,255,255,.16); --glass:rgba(255,255,255,.06); }
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 700px at 60% -10%, #0e241d 0%, #08120f 60%); color:var(--ink); font:14px ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; overflow:hidden}
+  #css{position:fixed; inset:0; pointer-events:auto}
+  #gl{position:fixed; inset:0}
+  #hudDock{position:fixed; left:10px; bottom:10px; z-index:6}
+  #hudToggle{appearance:none; border:1px solid rgba(124,252,203,.6); background:rgba(124,252,203,.12); color:#eafff7; padding:6px 10px; border-radius:10px; font-weight:800; cursor:pointer; font-size:12px}
+  #hud{position:fixed; left:10px; bottom:50px; z-index:5; display:none; flex-direction:column; gap:6px}
+  .hudbox{background:rgba(8,18,14,.55); border:1px solid var(--edge); border-radius:10px; backdrop-filter:blur(6px); padding:8px 10px; max-width:760px}
+  #title{font-weight:800; color:#7cfccb; letter-spacing:.2px}
+  #hint{font-size:12px; color:#9ddac0}
+  #stats{font-size:12px; color:#c9ffe9}
+  #embedBtn{appearance:none; border:1px solid rgba(124,252,203,.6); background:rgba(124,252,203,.12); color:#eafff7; padding:6px 10px; border-radius:8px; font-weight:700; cursor:pointer}
+  #dialog{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:10}
+  #dialog .shade{position:absolute; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(4px)}
+  #dialog .panel{position:relative; z-index:1; width:700px; max-width:calc(100% - 24px); background:linear-gradient(180deg, rgba(10,25,20,.9), rgba(8,18,14,.85)); border:1px solid var(--edge); border-radius:12px; padding:12px}
+  #dialog h3{margin:0 0 6px 0; font:700 14px/1 ui-sans-serif; color:#7cfccb}
+  #dialog label{font-size:12px; opacity:.9}
+  #dialog input[type="url"], #dialog input[type="text"]{width:100%; padding:8px 10px; border:1px solid var(--edge); border-radius:8px; background:rgba(255,255,255,.04); color:var(--ink)}
+  #dialog .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  #dialog .btn{appearance:none; border:1px solid rgba(124,252,203,.6); background:rgba(124,252,203,.12); color:#eafff7; padding:8px 10px; border-radius:8px; font-weight:800; cursor:pointer}
+  #dialog .pill{border:1px solid rgba(255,255,255,.16); padding:6px 10px; border-radius:8px; background:rgba(255,255,255,.06); color:#c7ffeb}
+  #toast{position:fixed; right:12px; bottom:12px; z-index:6; display:none; background:rgba(0,0,0,.6); border:1px solid var(--edge); border-radius:10px; padding:8px 10px}
+  .css-panel{position:absolute; overflow:hidden; border-radius:12px; box-shadow:0 10px 34px rgba(0,0,0,.55)}
+  .css-panel iframe{position:absolute; inset:0; width:100%; height:100%; border:0; background:#0b1216; filter:saturate(1.02) contrast(1.01)}
+</style>
+<script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }</script>
+</head>
+<body>
+<div id="gl"></div>
+<div id="css"></div>
+<div id="hudDock"><button id="hudToggle">HUD</button></div>
+<div id="hud">
+  <div class="hudbox">
+    <div id="title">NEXUS Intelligence Operations Center — Front: Hub•Nucleus•Meta | Right: Math•English•Pattern | Back: Memory•Comm•Diagnostics | Left: Glyph•3DLab•Core. Keys: <b>R</b> reset • <b>S</b> snapshot • <b>E</b> embed.</div>
+    <div id="hint">12 Librarian Stations across 4 walls • Each panel hosts specialized AI intelligence systems. Double‑click panel <i>edge</i> to swap intelligence modules (HTML, dashboards, or live feeds). Build algorithmic knowledge through embedded systems.</div>
+  </div>
+  <div class="hudbox" id="stats">FPS: – • Panels: –</div>
+  <div class="hudbox"><button id="embedBtn">Embed HTML into Panel (Sandbox Iframe)</button></div>
+</div>
+<div id="dialog" role="dialog" aria-modal="true">
+  <div class="shade"></div>
+  <div class="panel">
+    <h3>Swap Panel Embed</h3>
+    <div style="font-size:12px; opacity:.85; margin-bottom:8px">Paste any URL. Helpers insert local pages or a two‑sandbox dock (A/B). Drive <b>file</b> → preview, Drive <b>folder</b> → embedded folder view.</div>
+    <label for="url">URL</label>
+    <input id="url" type="url" placeholder="https://example.com or answer.html or data:…"/><!-- toolbar (put somewhere in sandbox UI) -->
+      Look — Left‑drag (free 360° yaw, no lateral move) • wheel: zoom (FOV) • R reset • S snapshot
+FPS: – • Panels: –
+Embed HTML into Panel (Sandbox Iframe)
+<div class="toolbar" style="position:fixed; right:10px; top:10px; z-index:99; display:flex; gap:6px">
+  <button onclick="saveState()">Save</button>
+  <button onclick="loadState()">Load</button>
+  <button onclick="exportZip()">Export .zip</button>
+</div>
+
+<script type="module">
+  // simple state example — replace with your actual gather/apply logic:
+  function collectState(){
+    return {
+      // put your sandbox knobs here (camera, params…)
+      time: Date.now()
+    };
+  }
+  function applyState(s){ console.log('Loaded state:', s); /* set your params here */ }
+
+  const KEY = 'sandbox_state_v1';
+
+  window.saveState = () => {
+    localStorage.setItem(KEY, JSON.stringify(collectState()));
+    alert('Saved locally');
+  };
+  window.loadState = () => {
+    const s = localStorage.getItem(KEY);
+    if(!s) return alert('No local save yet');
+    applyState(JSON.parse(s));
+  };
+
+  window.exportZip = async () => {
+    // lazy load JSZip
+    const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+    const zip = new JSZip();
+    zip.file('state.json', JSON.stringify(collectState(), null, 2));
+    // include any text/JSON you want:
+    // zip.file('readme.txt', 'NEXUS sandbox export');
+
+    const blob = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sandbox-export.zip';
+    a.click();
+  };
+</script>
+    <div style="height:8px"></div>
+    <div class="row">
+      <button class="btn" id="apply">Apply to Selected</button>
+      <button class="btn" id="close">Close</button>
+      <span class="pill" id="which">No panel selected</span>
+    </div>
+    <div style="height:8px"></div>
+    <div class="row" style="font-size:12px; opacity:.8">
+      <span>Helpers:</span>
+      <button class="btn" id="useAnswer">answer.html</button>
+      <button class="btn" id="useIndex">index.html</button>
+      <button class="btn" id="useDock">SandboxDock (A/B)</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script type="module">
+import * as THREE from 'three';
+import { CSS3DRenderer, CSS3DObject } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js?module';
+let lastFPS=60, last=performance.now(), frames=0;
+const glHost=document.getElementById('gl');
+const cssHost=document.getElementById('css');
+let targetDPR=Math.min(devicePixelRatio||1,1.5);
+const gl=new THREE.WebGLRenderer({antialias:true,alpha:true}); gl.setPixelRatio(targetDPR); gl.setSize(innerWidth,innerHeight); glHost.appendChild(gl.domElement);
+const css=new CSS3DRenderer(); css.setSize(innerWidth,innerHeight); css.domElement.style.pointerEvents='auto'; cssHost.appendChild(css.domElement);
+const scene=new THREE.Scene();
+const sceneCSS=new THREE.Scene();
+const ROOM=10, HALF=ROOM/2, FLOOR_Y=-HALF;
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.05,200);
+const EYE_Y = FLOOR_Y + 0.32;
+camera.position.set(0, EYE_Y, 0);
+camera.rotation.order='YXZ';
+scene.add(camera);
+scene.add(new THREE.AmbientLight(0xbaffea,0.22)); const key=new THREE.DirectionalLight(0x9ff7dc,0.5); key.position.set(3,4,2); scene.add(key);
+const room=new THREE.Mesh(new THREE.BoxGeometry(ROOM,ROOM,ROOM), new THREE.MeshPhongMaterial({color:0x0a1612,side:THREE.BackSide,shininess:10,specular:0x0a1f17})); scene.add(room);
+const grid=new THREE.GridHelper(ROOM, ROOM, 0x29584a, 0x12362c); grid.position.y=FLOOR_Y+0.01; scene.add(grid);
+const panels=[]; let nextId=1; const pxPerUnit=100; const statsEl=document.getElementById('stats');
+function updateStatsFPS(fps){ statsEl.textContent=`FPS: ${fps.toFixed(0)} • Panels: ${panels.length} • DPR: ${gl.getPixelRatio().toFixed(2)}`; }
+function toast(msg,t=1600){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; clearTimeout(el._t); el._t=setTimeout(()=>el.style.display='none', t); }
+function driveEmbed(url){ if(!url) return ''; let m=url.match(/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/); if(m) return `https://drive.google.com/embeddedfolderview?id=${m[1]}#grid`; m=url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/); if(m) return `https://drive.google.com/file/d/${m[1]}/preview`; m=url.match(/id=([a-zA-Z0-9_-]{20,})/); if(m) return `https://drive.google.com/file/d/${m[1]}/preview`; return url; }
+function sandboxDockHTML(a='about:blank', b='about:blank'){
+  return `<!doctype html><html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Sandbox Dock</title><style>html,body{height:100%}body{margin:0;background:#0a1316;color:#c8fff0;font:13px ui-sans-serif} .top{display:flex;gap:6px;padding:6px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.12)} .btn{appearance:none;border:1px solid rgba(124,252,203,.6);background:rgba(124,252,203,.12);color:#eafff7;padding:6px 10px;border-radius:8px;font-weight:800;cursor:pointer} iframe{position:absolute;inset:36px 0 0 0;width:100%;height:calc(100% - 36px);border:0;background:#0b1216} </style></head><body><div class='top'><button class='btn' onclick="document.getElementById('f').src='${a.replace(/'/g,"%27")}';">Sandbox A</button><button class='btn' onclick="document.getElementById('f').src='${b.replace(/'/g,"%27")}';">Sandbox B</button></div><iframe id='f' src='${a}'></iframe></body></html>`;
+}
+function sandboxDockDataURL(a,b){ return 'data:text/html;charset=utf-8,'+encodeURIComponent(sandboxDockHTML(a,b)); }
+function createPanel({ name, pos, rot, w=2.2, h=1.6, url='about:blank' }){
+  const id=nextId++;
+  const geo=new THREE.PlaneGeometry(w,h);
+  const mat=new THREE.MeshBasicMaterial({ color:0x0d1512, transparent:true, opacity:0.22, side:THREE.DoubleSide });
+  const mesh=new THREE.Mesh(geo,mat); mesh.position.copy(pos); mesh.rotation.set(rot.x,rot.y,rot.z); mesh.userData={id,name,edgeBand:0.06}; mesh.updateMatrix(); mesh.matrixAutoUpdate=false;
+  scene.add(mesh);
+  const wire=new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color:0x56ffd2 }));
+  wire.position.copy(mesh.position); wire.rotation.copy(mesh.rotation); wire.updateMatrix(); wire.matrixAutoUpdate=false; scene.add(wire);
+  const div=document.createElement('div'); div.className='css-panel'; div.style.width=`${(w-2*mesh.userData.edgeBand)*pxPerUnit}px`; div.style.height=`${(h-2*mesh.userData.edgeBand)*pxPerUnit}px`;
+  const iframe=document.createElement('iframe'); iframe.allow='clipboard-write; fullscreen'; iframe.loading='lazy'; iframe.referrerPolicy='no-referrer'; iframe.src=url; div.appendChild(iframe);
+  const cssObj=new CSS3DObject(div); cssObj.position.copy(pos); cssObj.rotation.copy(mesh.rotation); const s=1/pxPerUnit; cssObj.scale.set(s,s,1);
+  const forward=new THREE.Vector3(0,0,1).applyEuler(cssObj.rotation).multiplyScalar(0.002); cssObj.position.add(forward); cssObj.updateMatrix(); cssObj.matrixAutoUpdate=false; sceneCSS.add(cssObj);
+  const rec={id,name,mesh,wire,cssObj,iframe,w,h,url,edgeBand:mesh.userData.edgeBand}; panels.push(rec); updateStatsFPS(lastFPS); return rec;
+}
+const EPS=0.06;
+const WIDTH=2.2, HEIGHT=1.6;
+const GAP=3.0;
+const LIFT_FROM_FLOOR=0.4572;
+const PANEL_Y = FLOOR_Y + LIFT_FROM_FLOOR + HEIGHT*0.5;
+function wallPanels(wall, urls){
+  const common={ w:WIDTH, h:HEIGHT };
+  if(wall==='front'){
+    const z=-HALF+EPS; const xs=[-GAP, 0, GAP]; const rot=new THREE.Euler(0,0,0);
+    return [
+      createPanel({name:'F‑L', pos:new THREE.Vector3(xs[0], PANEL_Y, z), rot, url:urls[0]||'about:blank', ...common}),
+      createPanel({name:'F‑C', pos:new THREE.Vector3(xs[1], PANEL_Y, z), rot, url:urls[1]||'answer.html', ...common}),
+      createPanel({name:'F‑R', pos:new THREE.Vector3(xs[2], PANEL_Y, z), rot, url:urls[2]||'index.html',  ...common}),
+    ];
+  }
+  if(wall==='back'){
+    const z= HALF-EPS; const xs=[-GAP, 0, GAP]; const rot=new THREE.Euler(0,Math.PI,0);
+    return [
+      createPanel({name:'B‑L', pos:new THREE.Vector3(xs[0], PANEL_Y, z), rot, url:urls[0]||'about:blank', ...common}),
+      createPanel({name:'B‑C', pos:new THREE.Vector3(xs[1], PANEL_Y, z), rot, url:urls[1]||'about:blank', ...common}),
+      createPanel({name:'B‑R', pos:new THREE.Vector3(xs[2], PANEL_Y, z), rot, url:urls[2]||'about:blank', ...common}),
+    ];
+  }
+  if(wall==='left'){
+    const x=-HALF+EPS; const zs=[-GAP, 0, GAP]; const rot=new THREE.Euler(0,Math.PI/2,0);
+    return [
+      createPanel({name:'L‑F', pos:new THREE.Vector3(x, PANEL_Y, zs[0]), rot, url:urls[0]||'about:blank', ...common}),
+      createPanel({name:'L‑C', pos:new THREE.Vector3(x, PANEL_Y, zs[1]), rot, url:urls[1]||'https://drive.google.com/embeddedfolderview?id=YOUR_FOLDER_ID#grid', ...common}),
+      createPanel({name:'L‑B', pos:new THREE.Vector3(x, PANEL_Y, zs[2]), rot, url:urls[2]||'about:blank', ...common}),
+    ];
+  }
+  if(wall==='right'){
+    const x= HALF-EPS; const zs=[-GAP, 0, GAP]; const rot=new THREE.Euler(0,-Math.PI/2,0);
+    return [
+      createPanel({name:'R‑F', pos:new THREE.Vector3(x, PANEL_Y, zs[0]), rot, url:urls[0]||'about:blank', ...common}),
+      createPanel({name:'R‑C', pos:new THREE.Vector3(x, PANEL_Y, zs[1]), rot, url:urls[1]||'about:blank', ...common}),
+      createPanel({name:'R‑B', pos:new THREE.Vector3(x, PANEL_Y, zs[2]), rot, url:urls[2]||'about:blank', ...common}),
+    ];
+  }
+}
+// INTELLIGENCE OPERATIONS CENTER - 4 WALLS OF NEXUS LIBRARIANS
+wallPanels('front',  [
+  'intelligence-hub.html',                    // F-L: Main Intelligence Hub
+  'nucleus-control-center.html',             // F-C: Nucleus Control Center
+  'meta-librarian-canvas.html'               // F-R: Meta-Librarian Canvas
+]);
+wallPanels('right',  [
+  'librarian-math.html',                     // R-F: Math Librarian Station
+  'librarian-english.html',                  // R-C: English Librarian Station
+  'librarian-pattern.html'                   // R-B: Pattern Librarian Station
+]);
+wallPanels('back',   [
+  'memory-storage.html',                     // B-L: Memory Storage Systems
+  'communication-feed.html',                 // B-C: Communication Feed
+  'system-diagnostics.html'                 // B-R: System Diagnostics
+]);
+wallPanels('left',   [
+  'glyph-forge.html',                       // L-F: Glyph Forge System
+  'nexus-scene-lab-studio.html',           // L-C: 3D Glyph Training Lab
+  'automation-nucleus.html'                 // L-B: Automation Nucleus Core
+]);
+let dragging=false, sx=0, sy=0, yaw0=0, pitch0=0, yaw=0, pitch=0; const PITCH_MIN=-0.05, PITCH_MAX=0.28;
+const yawSens=0.0060, pitchSens=0.0018; let dragMode=null; const DEADZONE=6;
+function applyView(){ camera.rotation.set(pitch, yaw, 0); camera.updateProjectionMatrix(); }
+addEventListener('pointerdown',(e)=>{ dragging=true; sx=e.clientX; sy=e.clientY; yaw0=yaw; pitch0=pitch; dragMode=null; });
+addEventListener('pointermove',(e)=>{ if(!dragging) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!dragMode){ const ax=Math.abs(dx), ay=Math.abs(dy); if(Math.max(ax,ay)<DEADZONE) return; dragMode = ax>=ay ? 'yaw' : 'pitch'; }
+  if(dragMode==='yaw'){ yaw = yaw0 + dx*yawSens; }
+  else { pitch = THREE.MathUtils.clamp(pitch0 - dy*pitchSens, PITCH_MIN, PITCH_MAX); }
+  applyView(); });
+addEventListener('pointerup',()=>{ dragging=false; dragMode=null; });
+addEventListener('wheel',(e)=>{ camera.fov = THREE.MathUtils.clamp(camera.fov + (e.deltaY>0? 3.0 : -3.0), 35, 85); applyView(); }, {passive:true});
+addEventListener('keydown',(e)=>{ if(e.key==='r'||e.key==='R'){ yaw=0; pitch=0; camera.fov=55; applyView(); toast('Reset'); } if(e.key==='s'||e.key==='S') saveSnapshot(); if(e.key==='e'||e.key==='E') openDialog(hoveredPanel||panels[0]); });
+const raycaster=new THREE.Raycaster(); const mouseNDC=new THREE.Vector2(); let hoveredPanel=null, lastClick=0;
+function panelAtClient(x,y){ mouseNDC.set((x/innerWidth)*2-1, -(y/innerHeight)*2+1); raycaster.setFromCamera(mouseNDC, camera); const hits=raycaster.intersectObjects(panels.map(p=>p.mesh)); if(!hits.length) return null; const hit=hits[0]; const p=panels.find(p=>p.mesh===hit.object); if(!p) return null; const u=hit.uv.x,v=hit.uv.y,t=p.edgeBand/Math.max(p.w,p.h); const nearEdge=(u<t||u>1-t||v<t||v>1-t); return {panel:p,nearEdge,uv:hit.uv}; }
+addEventListener('mousemove',(e)=>{ const r=panelAtClient(e.clientX,e.clientY); hoveredPanel=r?.panel||null; });
+addEventListener('dblclick',(e)=>{ const now=performance.now(); if(now-lastClick<240) return; lastClick=now; const r=panelAtClient(e.clientX,e.clientY); if(!r) return; if(r.nearEdge) openDialog(r.panel); });
+function saveSnapshot(){ try{ const url=gl.domElement.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download='nexus_room.png'; a.click(); toast('Saved WebGL snapshot (iframes not captured)'); }catch(err){ toast('Snapshot failed: '+(err?.message||err)); } }
+const dialog=document.getElementById('dialog'); const urlInput=document.getElementById('url'); const which=document.getElementById('which'); let selectedPanel=null;
+function openDialog(p){ selectedPanel=p; which.textContent=p?`Selected: #${p.id} • ${p.name}`:'No panel selected'; urlInput.value=p?.url||''; dialog.style.display='flex'; urlInput.focus(); }
+function closeDialog(){ dialog.style.display='none'; }
+function applyEmbed(){ if(!selectedPanel) return; const raw=urlInput.value.trim(); const src=driveEmbed(raw); selectedPanel.iframe.src=src; selectedPanel.url=src; toast(`Panel #${selectedPanel.id} set`); closeDialog(); }
+document.getElementById('embedBtn').addEventListener('click',()=>openDialog(hoveredPanel||panels[1]));
+document.getElementById('apply').addEventListener('click',applyEmbed);
+document.getElementById('close').addEventListener('click',closeDialog);
+urlInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') applyEmbed(); if(e.key==='Escape') closeDialog(); });
+document.querySelector('#dialog .shade').addEventListener('click',closeDialog);
+document.getElementById('useAnswer').addEventListener('click',()=>urlInput.value='answer.html');
+document.getElementById('useIndex').addEventListener('click',()=>urlInput.value='index.html');
+const useDock=document.getElementById('useDock');
+useDock.addEventListener('click',()=>{ urlInput.value='SandboxDock.html?a=sandbox.html&b=luminous_grid_2_d_under_3_d_lantern_composer_less_fixed.html'; });
+const hud=document.getElementById('hud'); document.getElementById('hudToggle').addEventListener('click',()=>{ hud.style.display = hud.style.display==='flex' ? 'none' : 'flex'; });
+let lowFPSfor=0, highFPSfor=0; function loop(){ const now=performance.now(); frames++; if(now-last>600){ lastFPS=frames*1000/(now-last); updateStatsFPS(lastFPS); lowFPSfor = lastFPS<28 ? lowFPSfor+0.6 : 0; highFPSfor = lastFPS>55 ? highFPSfor+0.6 : 0; if(lowFPSfor>2 && gl.getPixelRatio()>0.75){ gl.setPixelRatio(Math.max(0.75, gl.getPixelRatio()-0.25)); gl.setSize(innerWidth, innerHeight); lowFPSfor=0; toast('Auto-tuned quality ↓ DPR'); } if(highFPSfor>4 && gl.getPixelRatio()<targetDPR){ gl.setPixelRatio(Math.min(targetDPR, gl.getPixelRatio()+0.25)); gl.setSize(innerWidth, innerHeight); highFPSfor=0; toast('Auto-tuned quality ↑ DPR'); } last=now; frames=0; }
+  gl.render(scene,camera); css.render(sceneCSS,camera); requestAnimationFrame(loop); }
+applyView(); loop();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); gl.setSize(innerWidth,innerHeight); css.setSize(innerWidth,innerHeight); });
+setTimeout(()=>toast('Grounded FPV • Axis‑locked look • Panels lowered & spaced • HUD docked bottom‑left.'), 600);
+</script>
+</body>
+</html>

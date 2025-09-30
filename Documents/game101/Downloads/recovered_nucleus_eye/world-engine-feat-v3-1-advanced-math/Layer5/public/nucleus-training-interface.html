@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Nucleus Training Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .training-interface {
+            display: grid;
+            grid-template-columns: 400px 1fr 350px;
+            grid-template-rows: 70px 1fr 120px;
+            height: 100vh;
+            gap: 1px;
+            background: #000;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(90deg, #1a1a2e, #16213e);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 3px solid #00ffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
+            animation: brainScan 4s linear infinite;
+        }
+
+        @keyframes brainScan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00, #00ff00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px #00ffff;
+        }
+
+        .nucleus-status {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-brain {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            position: relative;
+            animation: nucleusPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes nucleusPulse {
+            0%, 100% { box-shadow: 0 0 10px #00ffff; transform: scale(1); }
+            50% { box-shadow: 0 0 30px #00ffff; transform: scale(1.1); }
+        }
+
+        .status-brain::before {
+            content: '🧠';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+        }
+
+        .connection-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .connection-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+            margin-bottom: 4px;
+            animation: connectionPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes connectionPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .training-panel {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #00ffff;
+        }
+
+        .main-display {
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nucleus-panel {
+            background: rgba(22, 33, 62, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #00ffff;
+        }
+
+        .control-footer {
+            grid-column: 1 / -1;
+            background: rgba(15, 52, 96, 0.95);
+            padding: 15px 30px;
+            border-top: 2px solid #00ffff;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .training-section {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .training-section h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 1px solid #00ffff;
+            padding-bottom: 8px;
+        }
+
+        .message-composer {
+            background: rgba(255, 0, 255, 0.1);
+            border-color: #ff00ff;
+        }
+
+        .message-composer h3 {
+            color: #ff00ff;
+        }
+
+        .message-input {
+            width: 100%;
+            min-height: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ff00ff;
+            border-radius: 8px;
+            color: #ff00ff;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        .message-controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .priority-select {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ff00ff;
+            border-radius: 6px;
+            color: #ff00ff;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .send-button {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .send-button:hover {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .training-data-section {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #ffd700;
+        }
+
+        .training-data-section h3 {
+            color: #ffd700;
+        }
+
+        .data-input {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            color: #ffd700;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        .category-select {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ffd700;
+            border-radius: 6px;
+            color: #ffd700;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .train-button {
+            background: linear-gradient(45deg, #ffd700, #ffb000);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            padding: 12px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .train-button:hover {
+            background: linear-gradient(45deg, #ffff00, #ffd700);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .conversation-display {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            margin: 20px;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+
+        .message-bubble {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .message-bubble.sent {
+            background: rgba(255, 0, 255, 0.2);
+            border: 1px solid #ff00ff;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message-bubble.received {
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #00ffff;
+            margin-right: auto;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .nucleus-insights {
+            background: rgba(138, 43, 226, 0.1);
+            border-color: #8a2be2;
+        }
+
+        .nucleus-insights h3 {
+            color: #8a2be2;
+        }
+
+        .insight-item {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #8a2be2;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .learning-progress {
+            background: rgba(255, 69, 0, 0.1);
+            border-color: #ff4500;
+        }
+
+        .learning-progress h3 {
+            color: #ff4500;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4500, #ff6500);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .progress-stat {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            padding: 8px 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(45deg, #ff00ff, #8000ff);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .training-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ffff;
+        }
+
+        .connection-lost {
+            background: #ff4444;
+        }
+
+        .auto-trainer {
+            background: rgba(0, 255, 127, 0.1);
+            border-color: #00ff7f;
+        }
+
+        .auto-trainer h3 {
+            color: #00ff7f;
+        }
+
+        .auto-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #00ff7f;
+        }
+
+        .toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+
+        .neural-activity {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.8);
+            animation: neuralPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes neuralPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px #00ffff; }
+            50% { transform: scale(1.2); box-shadow: 0 0 40px #00ffff; }
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 5px;
+            color: #888;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: #888;
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite both;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="training-interface">
+        <header class="header">
+            <div class="logo">🧠 NEXUS Nucleus Training Interface</div>
+            <div class="nucleus-status">
+                <div class="status-brain"></div>
+                <div class="connection-indicator">
+                    <div class="connection-dot" id="connectionDot"></div>
+                    <span id="connectionStatus">Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <aside class="training-panel">
+            <!-- Message Composer -->
+            <div class="training-section message-composer">
+                <h3>💬 Message Nucleus</h3>
+                <textarea id="messageInput" class="message-input"
+                    placeholder="Type your message to the Nucleus AI core..."></textarea>
+                <div class="message-controls">
+                    <select id="messagePriority" class="priority-select">
+                        <option value="low">Low Priority</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="high">High Priority</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                    <select id="messageType" class="priority-select">
+                        <option value="general">General</option>
+                        <option value="mathematical">Mathematical</option>
+                        <option value="experiment">Experiment</option>
+                        <option value="insight-request">Insight Request</option>
+                    </select>
+                    <button id="sendMessage" class="send-button">Send</button>
+                </div>
+            </div>
+
+            <!-- Training Data Input -->
+            <div class="training-section training-data-section">
+                <h3>📚 Train Nucleus</h3>
+                <textarea id="trainingData" class="data-input"
+                    placeholder="Enter training data (JSON, patterns, equations, etc.)"></textarea>
+                <select id="trainingCategory" class="category-select">
+                    <option value="mathematical">Mathematical Patterns</option>
+                    <option value="geometric">Geometric Structures</option>
+                    <option value="algebraic">Algebraic Operations</option>
+                    <option value="sacred">Sacred Geometry</option>
+                    <option value="physics">Physics Simulations</option>
+                    <option value="fractals">Fractal Patterns</option>
+                    <option value="experimental">Experimental Results</option>
+                </select>
+                <button id="trainNucleus" class="train-button">Train Nucleus</button>
+            </div>
+
+            <!-- Auto-Trainer -->
+            <div class="training-section auto-trainer">
+                <h3>🤖 Auto-Training</h3>
+                <div class="auto-toggle">
+                    <div id="autoTrainingToggle" class="toggle-switch">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <span>Auto-send mathematical patterns</span>
+                </div>
+                <div class="progress-stat">
+                    <span>Auto-training frequency:</span>
+                    <span id="autoFrequency">Every 30s</span>
+                </div>
+                <input type="range" id="autoFrequencySlider" min="10" max="300" value="30" style="width: 100%; margin-top: 10px;">
+            </div>
+        </aside>
+
+        <main class="main-display">
+            <div class="neural-activity" id="neuralActivity">
+                🧠
+            </div>
+
+            <div class="conversation-display" id="conversationDisplay">
+                <div class="message-bubble received">
+                    <div class="message-meta">Nucleus Core • System Message</div>
+                    <div>Welcome to the Nucleus Training Interface. I'm ready to learn from your mathematical insights and patterns.</div>
+                </div>
+
+                <div class="typing-indicator" id="typingIndicator">
+                    <span>Nucleus is thinking</span>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="nucleus-panel">
+            <!-- Nucleus Insights -->
+            <div class="training-section nucleus-insights">
+                <h3>🔮 Nucleus Insights</h3>
+                <div id="insightsList">
+                    <div class="insight-item">
+                        Mathematical pattern recognition enhanced by 15% after sacred geometry training
+                    </div>
+                    <div class="insight-item">
+                        Discovered correlation between fractal dimension and emotional resonance
+                    </div>
+                    <div class="insight-item">
+                        Physics simulation accuracy improved through audio-reactive parameters
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Progress -->
+            <div class="training-section learning-progress">
+                <h3>📈 Learning Progress</h3>
+
+                <div class="progress-stat">
+                    <span>Pattern Recognition:</span>
+                    <span id="patternProgress">87%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="patternBar" style="width: 87%;"></div>
+                </div>
+
+                <div class="progress-stat">
+                    <span>Mathematical Analysis:</span>
+                    <span id="mathProgress">92%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="mathBar" style="width: 92%;"></div>
+                </div>
+
+                <div class="progress-stat">
+                    <span>Geometric Understanding:</span>
+                    <span id="geoProgress">78%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="geoBar" style="width: 78%;"></div>
+                </div>
+
+                <div class="progress-stat">
+                    <span>Sacred Knowledge:</span>
+                    <span id="sacredProgress">65%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="sacredBar" style="width: 65%;"></div>
+                </div>
+
+                <div class="progress-stat">
+                    <span>Overall Learning:</span>
+                    <span id="overallProgress">80%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="overallBar" style="width: 80%;"></div>
+                </div>
+            </div>
+        </aside>
+
+        <footer class="control-footer">
+            <div class="quick-actions">
+                <button class="action-btn" onclick="sendMathematicalState()">📊 Send Math State</button>
+                <button class="action-btn" onclick="requestInsights()">💡 Request Insights</button>
+                <button class="action-btn" onclick="syncWithNucleus()">🔄 Sync</button>
+                <button class="action-btn" onclick="exportConversation()">💾 Export Chat</button>
+            </div>
+
+            <div class="training-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="messagesSent">247</div>
+                    <div>Messages Sent</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="trainingSessions">89</div>
+                    <div>Training Sessions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="insightsReceived">156</div>
+                    <div>Insights Received</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="learningAccuracy">94%</div>
+                    <div>Learning Accuracy</div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Include required JavaScript files -->
+    <script src="nexus-forge-mathematical-engine.js"></script>
+    <script src="nexus-forge-mathematical-sandbox.js"></script>
+    <script src="nexus-forge-nucleus-communicator.js"></script>
+
+    <script>
+        // Initialize the training interface
+        let nucleusCommunicator = null;
+        let mathEngine = null;
+        let sandbox = null;
+        let autoTrainingEnabled = false;
+        let autoTrainingInterval = null;
+        let messageCount = 247;
+        let trainingSessionCount = 89;
+        let insightCount = 156;
+
+        // Initialize when page loads
+        window.addEventListener('load', async () => {
+            await initializeTrainingInterface();
+            setupEventListeners();
+            startConnectionMonitoring();
+            startProgressSimulation();
+        });
+
+        async function initializeTrainingInterface() {
+            try {
+                // Initialize Nucleus communicator
+                if (typeof NexusForgeNucleusCommunicator !== 'undefined') {
+                    nucleusCommunicator = new NexusForgeNucleusCommunicator();
+                    console.log('✅ Nucleus Communicator initialized');
+                }
+
+                // Initialize mathematical engine
+                if (typeof NexusForgemathematicalEngine !== 'undefined') {
+                    mathEngine = new NexusForgemathematicalEngine();
+                    console.log('✅ Mathematical Engine initialized');
+                }
+
+                // Initialize sandbox
+                if (typeof NexusForgeMathematicalSandbox !== 'undefined') {
+                    sandbox = new NexusForgeMathematicalSandbox();
+                    console.log('✅ Mathematical Sandbox initialized');
+                }
+
+                // Send initial connection message
+                if (nucleusCommunicator) {
+                    await nucleusCommunicator.sendMessageToNucleus(
+                        'Training Interface connected and ready for learning',
+                        'system-status',
+                        'high'
+                    );
+                }
+
+            } catch (error) {
+                console.error('❌ Training interface initialization failed:', error);
+                updateConnectionStatus(false);
+            }
+        }
+
+        function setupEventListeners() {
+            // Message sending
+            document.getElementById('sendMessage').addEventListener('click', sendMessage);
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    sendMessage();
+                }
+            });
+
+            // Training data
+            document.getElementById('trainNucleus').addEventListener('click', trainNucleus);
+
+            // Auto-training toggle
+            document.getElementById('autoTrainingToggle').addEventListener('click', toggleAutoTraining);
+            document.getElementById('autoFrequencySlider').addEventListener('input', updateAutoFrequency);
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const priority = document.getElementById('messagePriority').value;
+            const type = document.getElementById('messageType').value;
+            const message = messageInput.value.trim();
+
+            if (!message || !nucleusCommunicator) return;
+
+            // Add message to conversation
+            addMessageToConversation(message, 'sent', type, priority);
+
+            // Clear input
+            messageInput.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Send to Nucleus
+                const response = await nucleusCommunicator.sendMessageToNucleus(message, type, priority);
+
+                // Hide typing indicator and show response
+                hideTypingIndicator();
+
+                if (response.data && response.data.nucleusResponse) {
+                    addMessageToConversation(response.data.nucleusResponse, 'received', 'response');
+                } else {
+                    addMessageToConversation('Message received and processed', 'received', 'acknowledgment');
+                }
+
+                // Update stats
+                messageCount++;
+                document.getElementById('messagesSent').textContent = messageCount;
+
+            } catch (error) {
+                hideTypingIndicator();
+                addMessageToConversation('Error: Failed to send message', 'received', 'error');
+                console.error('❌ Failed to send message:', error);
+            }
+        }
+
+        async function trainNucleus() {
+            const trainingData = document.getElementById('trainingData').value.trim();
+            const category = document.getElementById('trainingCategory').value;
+
+            if (!trainingData || !nucleusCommunicator) return;
+
+            try {
+                // Parse training data if it's JSON
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(trainingData);
+                } catch (e) {
+                    parsedData = { rawData: trainingData, type: 'text' };
+                }
+
+                // Send to Nucleus for training
+                const response = await nucleusCommunicator.trainNucleus(parsedData, category);
+
+                // Clear input
+                document.getElementById('trainingData').value = '';
+
+                // Add to conversation
+                addMessageToConversation(
+                    `Training data sent successfully (${category})`,
+                    'sent',
+                    'training'
+                );
+
+                if (response.data && response.data.insights) {
+                    const insights = Object.entries(response.data.insights)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join('\n');
+
+                    addMessageToConversation(
+                        `Training completed!\n\nInsights:\n${insights}`,
+                        'received',
+                        'training-result'
+                    );
+
+                    // Add insight to insights panel
+                    addInsight(`New ${category} training improved system performance`);
+                }
+
+                // Update stats
+                trainingSessionCount++;
+                document.getElementById('trainingSessions').textContent = trainingSessionCount;
+
+                // Update progress bars
+                updateLearningProgress();
+
+            } catch (error) {
+                addMessageToConversation('Error: Failed to send training data', 'received', 'error');
+                console.error('❌ Training failed:', error);
+            }
+        }
+
+        function addMessageToConversation(message, sender, type = 'general', priority = 'normal') {
+            const conversationDisplay = document.getElementById('conversationDisplay');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-bubble ${sender}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            const senderLabel = sender === 'sent' ? 'You' : 'Nucleus Core';
+            const typeLabel = type !== 'general' ? ` • ${type}` : '';
+            const priorityLabel = priority !== 'normal' ? ` • ${priority}` : '';
+
+            messageDiv.innerHTML = `
+                <div class="message-meta">${senderLabel} • ${timestamp}${typeLabel}${priorityLabel}</div>
+                <div>${message.replace(/\n/g, '<br>')}</div>
+            `;
+
+            // Insert before typing indicator
+            const typingIndicator = document.getElementById('typingIndicator');
+            conversationDisplay.insertBefore(messageDiv, typingIndicator);
+
+            // Scroll to bottom
+            conversationDisplay.scrollTop = conversationDisplay.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'flex';
+            const conversationDisplay = document.getElementById('conversationDisplay');
+            conversationDisplay.scrollTop = conversationDisplay.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        function toggleAutoTraining() {
+            autoTrainingEnabled = !autoTrainingEnabled;
+            const toggle = document.getElementById('autoTrainingToggle');
+
+            if (autoTrainingEnabled) {
+                toggle.classList.add('active');
+                startAutoTraining();
+            } else {
+                toggle.classList.remove('active');
+                stopAutoTraining();
+            }
+        }
+
+        function startAutoTraining() {
+            const frequency = parseInt(document.getElementById('autoFrequencySlider').value) * 1000;
+
+            autoTrainingInterval = setInterval(async () => {
+                if (mathEngine && nucleusCommunicator) {
+                    // Generate random mathematical pattern for training
+                    const patterns = [
+                        { type: 'algebraic', data: generateRandomEquation() },
+                        { type: 'geometric', data: generateRandomShape() },
+                        { type: 'fractal', data: generateRandomFractal() }
+                    ];
+
+                    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+                    try {
+                        await nucleusCommunicator.sendMathematicalPattern(
+                            pattern.data,
+                            pattern.type,
+                            { source: 'auto-trainer' }
+                        );
+
+                        addMessageToConversation(
+                            `Auto-training: ${pattern.type} pattern sent`,
+                            'sent',
+                            'auto-training'
+                        );
+
+                    } catch (error) {
+                        console.error('❌ Auto-training failed:', error);
+                    }
+                }
+            }, frequency);
+        }
+
+        function stopAutoTraining() {
+            if (autoTrainingInterval) {
+                clearInterval(autoTrainingInterval);
+                autoTrainingInterval = null;
+            }
+        }
+
+        function updateAutoFrequency() {
+            const slider = document.getElementById('autoFrequencySlider');
+            const frequency = slider.value;
+            document.getElementById('autoFrequency').textContent = `Every ${frequency}s`;
+
+            if (autoTrainingEnabled) {
+                stopAutoTraining();
+                startAutoTraining();
+            }
+        }
+
+        function generateRandomEquation() {
+            const equations = [
+                'y = sin(x) + cos(2x)',
+                'y = x² + 3x + 2',
+                'y = e^x * sin(x)',
+                'y = log(x) + sqrt(x)'
+            ];
+            return equations[Math.floor(Math.random() * equations.length)];
+        }
+
+        function generateRandomShape() {
+            const shapes = ['circle', 'square', 'triangle', 'pentagon', 'hexagon'];
+            return {
+                shape: shapes[Math.floor(Math.random() * shapes.length)],
+                size: Math.random() * 100 + 20,
+                rotation: Math.random() * 360
+            };
+        }
+
+        function generateRandomFractal() {
+            return {
+                type: 'tree',
+                iterations: Math.floor(Math.random() * 5) + 3,
+                angle: Math.random() * 45 + 15,
+                scale: Math.random() * 0.5 + 0.5
+            };
+        }
+
+        function addInsight(insight) {
+            const insightsList = document.getElementById('insightsList');
+            const insightDiv = document.createElement('div');
+            insightDiv.className = 'insight-item';
+            insightDiv.textContent = insight;
+
+            insightsList.insertBefore(insightDiv, insightsList.firstChild);
+
+            // Keep only latest 5 insights
+            while (insightsList.children.length > 5) {
+                insightsList.removeChild(insightsList.lastChild);
+            }
+
+            insightCount++;
+            document.getElementById('insightsReceived').textContent = insightCount;
+        }
+
+        function updateLearningProgress() {
+            const progress = {
+                pattern: Math.min(100, Math.random() * 5 + 85),
+                math: Math.min(100, Math.random() * 3 + 90),
+                geo: Math.min(100, Math.random() * 8 + 75),
+                sacred: Math.min(100, Math.random() * 10 + 60),
+                overall: Math.min(100, Math.random() * 5 + 78)
+            };
+
+            document.getElementById('patternProgress').textContent = Math.round(progress.pattern) + '%';
+            document.getElementById('patternBar').style.width = progress.pattern + '%';
+
+            document.getElementById('mathProgress').textContent = Math.round(progress.math) + '%';
+            document.getElementById('mathBar').style.width = progress.math + '%';
+
+            document.getElementById('geoProgress').textContent = Math.round(progress.geo) + '%';
+            document.getElementById('geoBar').style.width = progress.geo + '%';
+
+            document.getElementById('sacredProgress').textContent = Math.round(progress.sacred) + '%';
+            document.getElementById('sacredBar').style.width = progress.sacred + '%';
+
+            document.getElementById('overallProgress').textContent = Math.round(progress.overall) + '%';
+            document.getElementById('overallBar').style.width = progress.overall + '%';
+        }
+
+        function startConnectionMonitoring() {
+            setInterval(() => {
+                const connected = nucleusCommunicator ? nucleusCommunicator.isConnected() : false;
+                updateConnectionStatus(connected);
+            }, 5000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('connectionDot');
+            const status = document.getElementById('connectionStatus');
+
+            if (connected) {
+                dot.style.background = '#00ff00';
+                dot.style.boxShadow = '0 0 10px #00ff00';
+                status.textContent = 'Connected';
+                dot.classList.remove('connection-lost');
+            } else {
+                dot.style.background = '#ff4444';
+                dot.style.boxShadow = '0 0 10px #ff4444';
+                status.textContent = 'Disconnected';
+                dot.classList.add('connection-lost');
+            }
+        }
+
+        function startProgressSimulation() {
+            setInterval(() => {
+                updateLearningProgress();
+
+                // Randomly add insights
+                if (Math.random() > 0.9) {
+                    const insights = [
+                        'Detected new mathematical relationship in sacred geometry',
+                        'Improved fractal generation algorithm efficiency',
+                        'Enhanced pattern recognition in algebraic structures',
+                        'Discovered correlation between audio frequencies and geometric forms'
+                    ];
+                    addInsight(insights[Math.floor(Math.random() * insights.length)]);
+                }
+            }, 10000);
+        }
+
+        // Control functions
+        async function sendMathematicalState() {
+            if (!nucleusCommunicator || !mathEngine) {
+                alert('Systems not available');
+                return;
+            }
+
+            try {
+                await nucleusCommunicator.syncMathematicalState(mathEngine);
+                addMessageToConversation('Mathematical state synchronized with Nucleus', 'sent', 'sync');
+            } catch (error) {
+                console.error('❌ Failed to send mathematical state:', error);
+            }
+        }
+
+        async function requestInsights() {
+            if (!nucleusCommunicator) {
+                alert('Nucleus communicator not available');
+                return;
+            }
+
+            try {
+                const response = await nucleusCommunicator.requestNucleusInsights(
+                    'Provide insights on current mathematical patterns and suggest optimizations'
+                );
+
+                if (response && response.data) {
+                    addMessageToConversation(
+                        response.data.nucleusResponse || 'Insights generated successfully',
+                        'received',
+                        'insights'
+                    );
+                }
+            } catch (error) {
+                console.error('❌ Failed to request insights:', error);
+            }
+        }
+
+        async function syncWithNucleus() {
+            if (!sandbox) {
+                alert('Sandbox not available');
+                return;
+            }
+
+            try {
+                await sandbox.syncWithNucleus();
+                addMessageToConversation('Full system synchronization completed', 'sent', 'full-sync');
+            } catch (error) {
+                console.error('❌ Failed to sync with Nucleus:', error);
+            }
+        }
+
+        function exportConversation() {
+            const conversation = Array.from(document.querySelectorAll('.message-bubble')).map(bubble => {
+                const meta = bubble.querySelector('.message-meta').textContent;
+                const content = bubble.children[1].textContent;
+                return { meta, content };
+            });
+
+            const blob = new Blob([JSON.stringify(conversation, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `nucleus-conversation-${Date.now()}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

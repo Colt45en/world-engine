@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine - Visual Test</title>
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --fg: #e6f0ff;
+            --panel: #121824;
+            --border: #2a3548;
+            --accent: #7cdcff;
+            --success: #18c08f;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            padding: 20px;
+        }
+
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--success));
+            border-radius: 8px;
+            color: var(--bg);
+        }
+
+        .test-section {
+            margin: 16px 0;
+            padding: 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .button:hover {
+            background: var(--success);
+            transform: translateY(-2px);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--success);
+            color: var(--bg);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .grid-test {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .grid-item {
+            background: var(--panel);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .animate {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>🚀 World Engine Visual Test</h1>
+            <div class="status-indicator">CSS Loading Successfully</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Basic Styling Test</h2>
+            <p>If you can see this styled properly with dark theme, borders, and colors, then CSS is working!</p>
+            <button class="button" onclick="alert('Button works!')">Test Button</button>
+            <button class="button animate">Animated Button</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Grid Layout Test</h2>
+            <div class="grid-test">
+                <div class="grid-item">Grid Item 1</div>
+                <div class="grid-item">Grid Item 2</div>
+                <div class="grid-item">Grid Item 3</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Server Status</h2>
+            <p id="server-status">Testing server connection...</p>
+            <button class="button" onclick="try { testStudio(); } catch(e) { console.error(\'Button error:\', e); }">Open Main Studio</button>
+        </div>
+    </div>
+
+    <script>
+        // Test server connection
+        fetch('/studio.html')
+            .then(response => {
+                document.getElementById('server-status').innerHTML =
+                    `✅ <strong>Server OK</strong> - Main studio should be accessible`;
+            })
+            .catch(error => {
+                document.getElementById('server-status').innerHTML =
+                    `❌ <strong>Server Error</strong> - ${error.message}`;
+            });
+
+        function testStudio() {
+            window.open('/studio.html', '_blank');
+        }
+    </script>
+</body>
+</html>

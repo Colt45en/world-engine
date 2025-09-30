@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ Game Logic Integration - NEXUS Holy Beat</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0b0e14, #1e3c72);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #54f0b8, #ff69b4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .status-panel {
+            background: rgba(15, 21, 35, 0.8);
+            border: 1px solid rgba(84, 240, 184, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            background: rgba(15, 21, 35, 0.6);
+            border: 1px solid rgba(84, 240, 184, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .control-group h3 {
+            color: #54f0b8;
+            margin-top: 0;
+        }
+
+        .slider-group {
+            margin: 10px 0;
+        }
+
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #54f0b8;
+            cursor: pointer;
+        }
+
+        .value-display {
+            text-align: right;
+            color: #ff69b4;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #54f0b8, #ff69b4);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .log-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(84, 240, 184, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎮 C++ Game Logic Integration</h1>
+            <p>Real-time C++ game engine synchronized with NEXUS Holy Beat System</p>
+        </div>
+
+        <div class="status-panel">
+            <h3>🎵 System Status</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                    <strong>Clock Bus:</strong> <span id="clockBus" class="pulse">●</span> <span id="clockBusStatus">Active</span>
+                </div>
+                <div>
+                    <strong>Audio Engine:</strong> <span id="audioEngine" class="pulse">●</span> <span id="audioEngineStatus">Active</span>
+                </div>
+                <div>
+                    <strong>Art Engine:</strong> <span id="artEngine" class="pulse">●</span> <span id="artEngineStatus">Active</span>
+                </div>
+                <div>
+                    <strong>World Engine:</strong> <span id="worldEngine" class="pulse">●</span> <span id="worldEngineStatus">Active</span>
+                </div>
+                <div>
+                    <strong>Game Engine:</strong> <span id="gameEngine" class="pulse">●</span> <span id="gameEngineStatus">Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <h3>🥁 Audio Parameters</h3>
+                <div class="slider-group">
+                    <label>BPM: <span id="bpmValue" class="value-display">120</span></label>
+                    <input type="range" id="bpmSlider" class="slider" min="60" max="200" value="120">
+                </div>
+                <div class="slider-group">
+                    <label>Harmonics: <span id="harmonicsValue" class="value-display">6</span></label>
+                    <input type="range" id="harmonicsSlider" class="slider" min="1" max="16" value="6">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 Art Parameters</h3>
+                <div class="slider-group">
+                    <label>Petal Count: <span id="petalCountValue" class="value-display">8</span></label>
+                    <input type="range" id="petalCountSlider" class="slider" min="3" max="32" value="8">
+                </div>
+                <div class="slider-group">
+                    <label>Terrain Roughness: <span id="terrainRoughnessValue" class="value-display">0.4</span></label>
+                    <input type="range" id="terrainRoughnessSlider" class="slider" min="0" max="1" step="0.1" value="0.4">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎮 Game Controls</h3>
+                <button id="startGameBtn" class="btn">Start Game Logic</button>
+                <button id="pauseGameBtn" class="btn" style="margin-top: 10px;">Pause</button>
+                <button id="resetGameBtn" class="btn" style="margin-top: 10px;">Reset</button>
+                <div style="margin-top: 15px;">
+                    <strong>Entities:</strong> <span id="entityCount">0</span><br>
+                    <strong>FPS:</strong> <span id="fps">0</span><br>
+                    <strong>Delta Time:</strong> <span id="deltaTime">0ms</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-panel">
+            <h3>📜 Game Logic Log</h3>
+            <div id="gameLog" class="log-panel">
+                <div style="color: #54f0b8;">🎮 NEXUS C++ Game Logic Integration Ready</div>
+                <div>📊 Waiting for parameters synchronization...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NexusGameIntegration {
+            constructor() {
+                this.parameters = {
+                    bpm: 120,
+                    harmonics: 6,
+                    petalCount: 8,
+                    terrainRoughness: 0.4
+                };
+
+                this.gameRunning = false;
+                this.entityCount = 0;
+                this.fps = 0;
+                this.deltaTime = 0;
+
+                this.initializeControls();
+                this.startStatusUpdates();
+                this.logMessage('🚀 Game integration initialized');
+            }
+
+            initializeControls() {
+                // BPM Control
+                const bpmSlider = document.getElementById('bpmSlider');
+                const bpmValue = document.getElementById('bpmValue');
+                bpmSlider.addEventListener('input', (e) => {
+                    this.parameters.bpm = parseInt(e.target.value);
+                    bpmValue.textContent = this.parameters.bpm;
+                    this.syncWithGameEngine();
+                });
+
+                // Harmonics Control
+                const harmonicsSlider = document.getElementById('harmonicsSlider');
+                const harmonicsValue = document.getElementById('harmonicsValue');
+                harmonicsSlider.addEventListener('input', (e) => {
+                    this.parameters.harmonics = parseInt(e.target.value);
+                    harmonicsValue.textContent = this.parameters.harmonics;
+                    this.syncWithGameEngine();
+                });
+
+                // Petal Count Control
+                const petalCountSlider = document.getElementById('petalCountSlider');
+                const petalCountValue = document.getElementById('petalCountValue');
+                petalCountSlider.addEventListener('input', (e) => {
+                    this.parameters.petalCount = parseInt(e.target.value);
+                    petalCountValue.textContent = this.parameters.petalCount;
+                    this.syncWithGameEngine();
+                });
+
+                // Terrain Roughness Control
+                const terrainRoughnessSlider = document.getElementById('terrainRoughnessSlider');
+                const terrainRoughnessValue = document.getElementById('terrainRoughnessValue');
+                terrainRoughnessSlider.addEventListener('input', (e) => {
+                    this.parameters.terrainRoughness = parseFloat(e.target.value);
+                    terrainRoughnessValue.textContent = this.parameters.terrainRoughness;
+                    this.syncWithGameEngine();
+                });
+
+                // Game Control Buttons
+                document.getElementById('startGameBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.startGameLogic();
+                });
+
+                document.getElementById('pauseGameBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.pauseGameLogic();
+                });
+
+                document.getElementById('resetGameBtn').addEventListener("click", function(e) { try { ((e); } catch(err) { console.error("Event error:", err); } }) => {
+                    this.resetGameLogic();
+                });
+            }
+
+            async startGameLogic() {
+                if (!this.gameRunning) {
+                    this.gameRunning = true;
+                    this.logMessage('🎮 Starting C++ game logic...');
+
+                    // In a real implementation, this would initialize the Node.js addon
+                    try {
+                        // Simulate game engine initialization
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        this.logMessage('✅ Game engine initialized');
+                        this.logMessage(`🎵 BPM: ${this.parameters.bpm}, Harmonics: ${this.parameters.harmonics}`);
+                        this.logMessage(`🌸 Petals: ${this.parameters.petalCount}, Terrain: ${this.parameters.terrainRoughness}`);
+
+                        this.startGameLoop();
+                    } catch (error) {
+                        this.logMessage(`❌ Failed to start game logic: ${error.message}`);
+                        this.gameRunning = false;
+                    }
+                }
+            }
+
+            pauseGameLogic() {
+                if (this.gameRunning) {
+                    this.gameRunning = false;
+                    this.logMessage('⏸️ Game logic paused');
+                }
+            }
+
+            resetGameLogic() {
+                this.gameRunning = false;
+                this.entityCount = 0;
+                this.fps = 0;
+                this.deltaTime = 0;
+                this.updateGameStats();
+                this.logMessage('🔄 Game logic reset');
+            }
+
+            startGameLoop() {
+                if (!this.gameRunning) return;
+
+                // Simulate game update
+                this.entityCount = this.parameters.petalCount + this.parameters.harmonics + 1; // +1 for center
+                this.fps = Math.floor(58 + Math.random() * 4); // Simulate ~60fps
+                this.deltaTime = Math.floor(14 + Math.random() * 4); // Simulate ~16ms
+
+                this.updateGameStats();
+
+                // Continue game loop
+                requestAnimationFrame(() => this.startGameLoop());
+            }
+
+            updateGameStats() {
+                document.getElementById('entityCount').textContent = this.entityCount;
+                document.getElementById('fps').textContent = this.fps;
+                document.getElementById('deltaTime').textContent = this.deltaTime + 'ms';
+            }
+
+            async syncWithGameEngine() {
+                try {
+                    // Send parameters to NEXUS API
+                    const response = await fetch('/api/game/sync', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(this.parameters)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        this.logMessage(`🔗 Synced with NEXUS systems: ${result.timestamp}`);
+                    }
+                } catch (error) {
+                    this.logMessage(`⚠️ Sync failed: ${error.message}`);
+                }
+            }
+
+            async startStatusUpdates() {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+
+                    // Update status indicators
+                    this.updateSystemStatus('clockBus', data.components?.clockBus === 'active');
+                    this.updateSystemStatus('audioEngine', data.components?.audioEngine === 'active');
+                    this.updateSystemStatus('artEngine', data.components?.artEngine === 'active');
+                    this.updateSystemStatus('worldEngine', data.components?.worldEngine === 'active');
+
+                    // Update game engine status
+                    const gameResponse = await fetch('/api/game/status');
+                    const gameData = await gameResponse.json();
+                    this.updateSystemStatus('gameEngine', gameData.gameEngine === 'ready');
+
+                } catch (error) {
+                    this.logMessage(`⚠️ Status update failed: ${error.message}`);
+                }
+
+                // Update every 2 seconds
+                setTimeout(() => this.startStatusUpdates(), 2000);
+            }
+
+            updateSystemStatus(systemId, active) {
+                const indicator = document.getElementById(systemId);
+                const status = document.getElementById(systemId + 'Status');
+
+                if (active) {
+                    indicator.style.color = '#54f0b8';
+                    indicator.classList.add('pulse');
+                    status.textContent = 'Active';
+                } else {
+                    indicator.style.color = '#ff6b6b';
+                    indicator.classList.remove('pulse');
+                    status.textContent = 'Inactive';
+                }
+            }
+
+            logMessage(message) {
+                const log = document.getElementById('gameLog');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+                log.appendChild(logEntry);
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+
+        // Initialize the integration when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            new NexusGameIntegration();
+        });
+    </script>
+</body>
+</html>

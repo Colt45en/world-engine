@@ -1,0 +1,647 @@
+{
+    "operators": {
+        "arithmetic": {
+            "addition": {
+                "symbol": "+",
+                "precedence": 1,
+                "associativity": "left",
+                "operands": 2,
+                "operation": "sum",
+                "identity": 0,
+                "commutative": true,
+                "examples": [
+                    "2 + 3 = 5",
+                    "x + y",
+                    "a + b + c"
+                ]
+            },
+            "subtraction": {
+                "symbol": "-",
+                "precedence": 1,
+                "associativity": "left",
+                "operands": 2,
+                "operation": "difference",
+                "identity": 0,
+                "commutative": false,
+                "examples": [
+                    "5 - 3 = 2",
+                    "x - y",
+                    "a - b"
+                ]
+            },
+            "multiplication": {
+                "symbol": "*",
+                "precedence": 2,
+                "associativity": "left",
+                "operands": 2,
+                "operation": "product",
+                "identity": 1,
+                "commutative": true,
+                "examples": [
+                    "2 * 3 = 6",
+                    "x * y",
+                    "abc"
+                ]
+            },
+            "division": {
+                "symbol": "/",
+                "precedence": 2,
+                "associativity": "left",
+                "operands": 2,
+                "operation": "quotient",
+                "identity": 1,
+                "commutative": false,
+                "examples": [
+                    "6 / 3 = 2",
+                    "x / y",
+                    "a ÷ b"
+                ]
+            },
+            "exponentiation": {
+                "symbol": "^",
+                "precedence": 3,
+                "associativity": "right",
+                "operands": 2,
+                "operation": "power",
+                "identity": 1,
+                "commutative": false,
+                "examples": [
+                    "2^3 = 8",
+                    "x^n",
+                    "a^b"
+                ]
+            },
+            "modulo": {
+                "symbol": "%",
+                "precedence": 2,
+                "associativity": "left",
+                "operands": 2,
+                "operation": "remainder",
+                "commutative": false,
+                "examples": [
+                    "7 % 3 = 1",
+                    "x mod y"
+                ]
+            }
+        },
+        "comparison": {
+            "equal": {
+                "symbol": "=",
+                "precedence": 0,
+                "operation": "equality",
+                "examples": [
+                    "x = 5",
+                    "2 + 2 = 4"
+                ]
+            },
+            "not_equal": {
+                "symbol": "≠",
+                "precedence": 0,
+                "operation": "inequality",
+                "examples": [
+                    "x ≠ y",
+                    "3 ≠ 4"
+                ]
+            },
+            "less_than": {
+                "symbol": "<",
+                "precedence": 0,
+                "operation": "less_than",
+                "examples": [
+                    "x < y",
+                    "3 < 5"
+                ]
+            },
+            "greater_than": {
+                "symbol": ">",
+                "precedence": 0,
+                "operation": "greater_than",
+                "examples": [
+                    "x > y",
+                    "5 > 3"
+                ]
+            },
+            "less_equal": {
+                "symbol": "≤",
+                "precedence": 0,
+                "operation": "less_than_or_equal",
+                "examples": [
+                    "x ≤ y",
+                    "3 ≤ 5"
+                ]
+            },
+            "greater_equal": {
+                "symbol": "≥",
+                "precedence": 0,
+                "operation": "greater_than_or_equal",
+                "examples": [
+                    "x ≥ y",
+                    "5 ≥ 3"
+                ]
+            }
+        },
+        "logical": {
+            "and": {
+                "symbol": "∧",
+                "precedence": -1,
+                "operation": "conjunction",
+                "truth_table": [
+                    [
+                        true,
+                        true,
+                        true
+                    ],
+                    [
+                        true,
+                        false,
+                        false
+                    ],
+                    [
+                        false,
+                        true,
+                        false
+                    ],
+                    [
+                        false,
+                        false,
+                        false
+                    ]
+                ],
+                "examples": [
+                    "P ∧ Q",
+                    "x > 0 AND y > 0"
+                ]
+            },
+            "or": {
+                "symbol": "∨",
+                "precedence": -2,
+                "operation": "disjunction",
+                "truth_table": [
+                    [
+                        true,
+                        true,
+                        true
+                    ],
+                    [
+                        true,
+                        false,
+                        true
+                    ],
+                    [
+                        false,
+                        true,
+                        true
+                    ],
+                    [
+                        false,
+                        false,
+                        false
+                    ]
+                ],
+                "examples": [
+                    "P ∨ Q",
+                    "x = 0 OR y = 0"
+                ]
+            },
+            "not": {
+                "symbol": "¬",
+                "precedence": 4,
+                "operands": 1,
+                "operation": "negation",
+                "truth_table": [
+                    [
+                        true,
+                        false
+                    ],
+                    [
+                        false,
+                        true
+                    ]
+                ],
+                "examples": [
+                    "¬P",
+                    "NOT (x > 0)"
+                ]
+            },
+            "implies": {
+                "symbol": "→",
+                "precedence": -3,
+                "operation": "implication",
+                "truth_table": [
+                    [
+                        true,
+                        true,
+                        true
+                    ],
+                    [
+                        true,
+                        false,
+                        false
+                    ],
+                    [
+                        false,
+                        true,
+                        true
+                    ],
+                    [
+                        false,
+                        false,
+                        true
+                    ]
+                ],
+                "examples": [
+                    "P → Q",
+                    "If P then Q"
+                ]
+            },
+            "biconditional": {
+                "symbol": "↔",
+                "precedence": -4,
+                "operation": "biconditional",
+                "truth_table": [
+                    [
+                        true,
+                        true,
+                        true
+                    ],
+                    [
+                        true,
+                        false,
+                        false
+                    ],
+                    [
+                        false,
+                        true,
+                        false
+                    ],
+                    [
+                        false,
+                        false,
+                        true
+                    ]
+                ],
+                "examples": [
+                    "P ↔ Q",
+                    "P if and only if Q"
+                ]
+            }
+        },
+        "set_theory": {
+            "union": {
+                "symbol": "∪",
+                "operation": "union",
+                "examples": [
+                    "A ∪ B",
+                    "{1,2} ∪ {2,3} = {1,2,3}"
+                ]
+            },
+            "intersection": {
+                "symbol": "∩",
+                "operation": "intersection",
+                "examples": [
+                    "A ∩ B",
+                    "{1,2} ∩ {2,3} = {2}"
+                ]
+            },
+            "complement": {
+                "symbol": "′",
+                "operation": "complement",
+                "examples": [
+                    "A′",
+                    "complement of A"
+                ]
+            },
+            "subset": {
+                "symbol": "⊆",
+                "operation": "subset",
+                "examples": [
+                    "A ⊆ B",
+                    "{1,2} ⊆ {1,2,3}"
+                ]
+            },
+            "element_of": {
+                "symbol": "∈",
+                "operation": "membership",
+                "examples": [
+                    "x ∈ A",
+                    "2 ∈ {1,2,3}"
+                ]
+            },
+            "not_element_of": {
+                "symbol": "∉",
+                "operation": "non_membership",
+                "examples": [
+                    "x ∉ A",
+                    "4 ∉ {1,2,3}"
+                ]
+            }
+        },
+        "calculus": {
+            "derivative": {
+                "symbol": "d/dx",
+                "operation": "differentiation",
+                "examples": [
+                    "d/dx(x²) = 2x",
+                    "f'(x)"
+                ]
+            },
+            "integral": {
+                "symbol": "∫",
+                "operation": "integration",
+                "examples": [
+                    "∫x dx = x²/2 + C",
+                    "∫₀¹ f(x) dx"
+                ]
+            },
+            "partial_derivative": {
+                "symbol": "∂/∂x",
+                "operation": "partial_differentiation",
+                "examples": [
+                    "∂f/∂x",
+                    "∂z/∂x where z = f(x,y)"
+                ]
+            },
+            "limit": {
+                "symbol": "lim",
+                "operation": "limit",
+                "examples": [
+                    "lim(x→0) sin(x)/x = 1",
+                    "lim(x→∞) 1/x = 0"
+                ]
+            },
+            "summation": {
+                "symbol": "Σ",
+                "operation": "summation",
+                "examples": [
+                    "Σᵢ₌₁ⁿ i = n(n+1)/2",
+                    "Σ xᵢ"
+                ]
+            },
+            "product": {
+                "symbol": "Π",
+                "operation": "product",
+                "examples": [
+                    "Πᵢ₌₁ⁿ i = n!",
+                    "Π xᵢ"
+                ]
+            }
+        }
+    },
+    "mappings": {
+        "glyph_to_operator": {
+            "⊕": "xor",
+            "⊗": "tensor_product",
+            "⊙": "hadamard_product",
+            "⊚": "composition",
+            "⊛": "convolution",
+            "⊜": "circle_equals",
+            "⊝": "circle_minus",
+            "⊞": "box_plus",
+            "⊟": "box_minus",
+            "⊠": "box_times",
+            "⊡": "box_dot",
+            "△": "triangle_up",
+            "▽": "triangle_down",
+            "◊": "diamond",
+            "⋄": "diamond_operator",
+            "★": "star",
+            "☆": "star_outline",
+            "※": "reference_mark",
+            "‡": "double_dagger",
+            "†": "dagger",
+            "°": "degree",
+            "′": "prime",
+            "″": "double_prime",
+            "‴": "triple_prime"
+        },
+        "unicode_math": {
+            "∀": "for_all",
+            "∃": "exists",
+            "∄": "not_exists",
+            "∅": "empty_set",
+            "∆": "delta",
+            "∇": "nabla",
+            "∈": "element_of",
+            "∉": "not_element_of",
+            "∋": "contains",
+            "∌": "not_contains",
+            "∍": "small_contains",
+            "∎": "end_of_proof",
+            "∏": "n_ary_product",
+            "∐": "n_ary_coproduct",
+            "∑": "n_ary_summation",
+            "∓": "minus_or_plus",
+            "∔": "dot_plus",
+            "∕": "division_slash",
+            "∖": "set_minus",
+            "∗": "asterisk_operator",
+            "∘": "ring_operator",
+            "∙": "bullet_operator",
+            "√": "square_root",
+            "∛": "cube_root",
+            "∜": "fourth_root",
+            "∝": "proportional_to",
+            "∞": "infinity",
+            "∟": "right_angle",
+            "∠": "angle",
+            "∡": "measured_angle",
+            "∢": "spherical_angle",
+            "∣": "divides",
+            "∤": "does_not_divide",
+            "∥": "parallel_to",
+            "∦": "not_parallel_to",
+            "∧": "logical_and",
+            "∨": "logical_or",
+            "∩": "intersection",
+            "∪": "union",
+            "∫": "integral",
+            "∬": "double_integral",
+            "∭": "triple_integral",
+            "∮": "contour_integral",
+            "∯": "surface_integral",
+            "∰": "volume_integral",
+            "∱": "clockwise_integral",
+            "∲": "clockwise_contour_integral",
+            "∳": "anticlockwise_contour_integral"
+        }
+    },
+    "constants": {
+        "fundamental": {
+            "pi": {
+                "symbol": "π",
+                "value": 3.141592653589793,
+                "description": "Ratio of circumference to diameter",
+                "applications": [
+                    "geometry",
+                    "trigonometry",
+                    "calculus"
+                ]
+            },
+            "e": {
+                "symbol": "e",
+                "value": 2.718281828459045,
+                "description": "Base of natural logarithm",
+                "applications": [
+                    "calculus",
+                    "exponential_functions",
+                    "growth_models"
+                ]
+            },
+            "golden_ratio": {
+                "symbol": "φ",
+                "value": 1.618033988749895,
+                "description": "Golden ratio (1 + √5)/2",
+                "applications": [
+                    "art",
+                    "nature",
+                    "fibonacci_sequence"
+                ]
+            },
+            "sqrt_2": {
+                "symbol": "√2",
+                "value": 1.4142135623730951,
+                "description": "Square root of 2",
+                "applications": [
+                    "geometry",
+                    "pythagorean_theorem"
+                ]
+            }
+        },
+        "physical": {
+            "speed_of_light": {
+                "symbol": "c",
+                "value": 299792458,
+                "units": "m/s",
+                "description": "Speed of light in vacuum"
+            },
+            "planck_constant": {
+                "symbol": "h",
+                "value": 6.62607015e-34,
+                "units": "J⋅s",
+                "description": "Planck constant"
+            },
+            "gravitational_constant": {
+                "symbol": "G",
+                "value": 6.67430e-11,
+                "units": "m³⋅kg⁻¹⋅s⁻²",
+                "description": "Gravitational constant"
+            }
+        }
+    },
+    "functions": {
+        "elementary": {
+            "trigonometric": {
+                "sine": {
+                    "symbol": "sin",
+                    "domain": "ℝ",
+                    "range": "[-1, 1]",
+                    "period": "2π",
+                    "derivative": "cos(x)"
+                },
+                "cosine": {
+                    "symbol": "cos",
+                    "domain": "ℝ",
+                    "range": "[-1, 1]",
+                    "period": "2π",
+                    "derivative": "-sin(x)"
+                },
+                "tangent": {
+                    "symbol": "tan",
+                    "domain": "ℝ \\ {π/2 + nπ}",
+                    "range": "ℝ",
+                    "period": "π",
+                    "derivative": "sec²(x)"
+                }
+            },
+            "exponential": {
+                "exponential": {
+                    "symbol": "exp",
+                    "domain": "ℝ",
+                    "range": "(0, ∞)",
+                    "derivative": "exp(x)"
+                },
+                "logarithm": {
+                    "symbol": "ln",
+                    "domain": "(0, ∞)",
+                    "range": "ℝ",
+                    "derivative": "1/x"
+                }
+            }
+        },
+        "special": {
+            "gamma": {
+                "symbol": "Γ",
+                "domain": "ℝ \\ {0, -1, -2, ...}",
+                "description": "Gamma function",
+                "property": "Γ(n) = (n-1)! for positive integers n"
+            },
+            "beta": {
+                "symbol": "B",
+                "domain": "ℝ⁺ × ℝ⁺",
+                "description": "Beta function",
+                "relation": "B(x,y) = Γ(x)Γ(y)/Γ(x+y)"
+            },
+            "zeta": {
+                "symbol": "ζ",
+                "domain": "ℂ \\ {1}",
+                "description": "Riemann zeta function",
+                "famous_conjecture": "Riemann hypothesis"
+            }
+        }
+    },
+    "number_systems": {
+        "natural": {
+            "symbol": "ℕ",
+            "description": "Natural numbers",
+            "elements": "{1, 2, 3, 4, ...}",
+            "operations": [
+                "addition",
+                "multiplication"
+            ]
+        },
+        "integers": {
+            "symbol": "ℤ",
+            "description": "Integers",
+            "elements": "{..., -2, -1, 0, 1, 2, ...}",
+            "operations": [
+                "addition",
+                "subtraction",
+                "multiplication"
+            ]
+        },
+        "rational": {
+            "symbol": "ℚ",
+            "description": "Rational numbers",
+            "elements": "{p/q : p,q ∈ ℤ, q ≠ 0}",
+            "operations": [
+                "addition",
+                "subtraction",
+                "multiplication",
+                "division"
+            ]
+        },
+        "real": {
+            "symbol": "ℝ",
+            "description": "Real numbers",
+            "elements": "All rational and irrational numbers",
+            "operations": [
+                "addition",
+                "subtraction",
+                "multiplication",
+                "division",
+                "exponentiation"
+            ]
+        },
+        "complex": {
+            "symbol": "ℂ",
+            "description": "Complex numbers",
+            "elements": "{a + bi : a,b ∈ ℝ, i² = -1}",
+            "operations": [
+                "addition",
+                "subtraction",
+                "multiplication",
+                "division"
+            ]
+        }
+    }
+}

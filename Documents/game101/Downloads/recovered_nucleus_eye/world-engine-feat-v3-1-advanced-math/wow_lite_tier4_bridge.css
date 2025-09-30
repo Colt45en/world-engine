@@ -1,0 +1,118 @@
+/* WoW Lite Tier-4 Bridge Styles */
+
+.wow-lite-bridge-ui {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 8px;
+  color: white;
+  font-size: 12px;
+  font-family: monospace;
+  min-width: 200px;
+}
+
+.wow-lite-bridge-header {
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.wow-lite-bridge-metrics {
+  margin-top: 8px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.wow-lite-operator-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.wow-lite-operator-button {
+  padding: 5px 10px;
+  background: #4ade80;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+
+.wow-lite-operator-button:hover {
+  background: #22c55e;
+}
+
+.wow-lite-macro-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.wow-lite-macro-button {
+  padding: 5px 10px;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background-color 0.2s;
+}
+
+.wow-lite-macro-button:hover {
+  background: #7c3aed;
+}
+
+/* 3D Element Styles */
+.wow-lite-bridge-structure {
+  transition: all 0.3s ease;
+}
+
+.wow-lite-state-sphere {
+  transition: all 0.5s ease;
+}
+
+.wow-lite-kappa-indicator {
+  transition: height 0.3s ease;
+}
+
+.wow-lite-connection-indicator {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .wow-lite-bridge-ui {
+    font-size: 10px;
+    min-width: 150px;
+  }
+
+  .wow-lite-operator-panel,
+  .wow-lite-macro-panel {
+    padding: 8px;
+  }
+
+  .wow-lite-operator-button,
+  .wow-lite-macro-button {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+}

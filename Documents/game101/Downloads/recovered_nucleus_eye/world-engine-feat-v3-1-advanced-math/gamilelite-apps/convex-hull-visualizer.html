@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Hull Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        #canvas {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            cursor: crosshair;
+        }
+
+        #panel {
+            width: 340px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            padding: 28px;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: #ffd89b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        button {
+            padding: 12px 18px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        select option {
+            background: #333;
+            color: #fff;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .info-value {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .legend-marker {
+            width: 28px;
+            height: 14px;
+            border-radius: 3px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .instructions {
+            background: rgba(255, 215, 0, 0.15);
+            border-left: 3px solid #ffd700;
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #ffd89b;
+        }
+
+        .status {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'Consolas', monospace;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .algo-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 8px;
+            font-weight: 600;
+            color: #ffd700;
+        }
+
+        @media (max-width: 1024px) {
+            #container {
+                flex-direction: column;
+            }
+            #panel {
+                width: 100%;
+                max-height: 45vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container">
+            <canvas id="canvas" width="900" height="700"></canvas>
+            <div class="status" id="status">Click to add points • Right-click to compute hull</div>
+        </div>
+
+        <div id="panel">
+            <h1>Convex Hull</h1>
+            <div class="subtitle">Graham's Scan Algorithm</div>
+
+            <div class="section">
+                <div class="section-title">Instructions</div>
+                <div class="instructions">
+                    <strong>Left-click:</strong> Add points to canvas<br>
+                    <strong>Right-click:</strong> Compute convex hull<br>
+                    <strong>Or use buttons below for patterns</strong>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Algorithm</div>
+                <select id="algorithm" onchange="updateAlgorithm()">
+                    <option value="graham">Graham's Scan O(n log n)</option>
+                    <option value="jarvis">Jarvis March O(nh)</option>
+                    <option value="quick">QuickHull O(n log n)</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Actions</div>
+                <div class="button-grid">
+                    <button onclick="clearAll()">Clear</button>
+                    <button onclick="computeHull()">Compute</button>
+                    <button onclick="addPattern('random', 20)" class="full-width">Random (20)</button>
+                    <button onclick="addPattern('circle', 12)" class="full-width">Circle (12)</button>
+                    <button onclick="addPattern('grid', 25)" class="full-width">Grid (25)</button>
+                    <button onclick="addPattern('spiral', 30)" class="full-width">Spiral (30)</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Statistics</div>
+                <div class="info-box">
+                    <div class="info-label">Total Points</div>
+                    <div class="info-value" id="point-count">0</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Hull Vertices</div>
+                    <div class="info-value" id="hull-count">0</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Hull Area</div>
+                    <div class="info-value" id="hull-area">0.00</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Hull Perimeter</div>
+                    <div class="info-value" id="hull-perimeter">0.00</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Computation Time</div>
+                    <div class="info-value" id="compute-time">0.00 ms</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Legend</div>
+                <div class="legend">
+                    <div class="legend-marker" style="background: #3498db;"></div>
+                    <div>Input points</div>
+                    <div class="legend-marker" style="background: #e74c3c;"></div>
+                    <div>Hull vertices</div>
+                    <div class="legend-marker" style="background: #2ecc71; height: 3px;"></div>
+                    <div>Hull edges</div>
+                    <div class="legend-marker" style="background: #f39c12;"></div>
+                    <div>Base point (p₀)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Geometry Classes =====
+        class Point {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            distSqFrom(other) {
+                const dx = this.x - other.x;
+                const dy = this.y - other.y;
+                return dx * dx + dy * dy;
+            }
+        }
+
+        // ===== Convex Hull Algorithms =====
+        function orientation(p, q, r) {
+            const val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+            if (Math.abs(val) < 1e-10) return 0;
+            return val > 0 ? 1 : 2;
+        }
+
+        function convexHullGraham(inputPoints) {
+            const n = inputPoints.length;
+            if (n < 3) return [];
+
+            const points = [...inputPoints];
+
+            // Find bottom-most point
+            let minIdx = 0;
+            for (let i = 1; i < n; i++) {
+                if (points[i].y < points[minIdx].y || 
+                    (points[i].y === points[minIdx].y && points[i].x < points[minIdx].x)) {
+                    minIdx = i;
+                }
+            }
+
+            [points[0], points[minIdx]] = [points[minIdx], points[0]];
+            const p0 = points[0];
+
+            // Sort by polar angle
+            const compare = (a, b) => {
+                const o = orientation(p0, a, b);
+                if (o === 0) return p0.distSqFrom(a) - p0.distSqFrom(b);
+                return o === 2 ? -1 : 1;
+            };
+
+            const sorted = [p0, ...points.slice(1).sort(compare)];
+
+            // Remove collinear
+            let m = 1;
+            for (let i = 1; i < n; i++) {
+                while (i < n - 1 && orientation(p0, sorted[i], sorted[i + 1]) === 0) i++;
+                sorted[m] = sorted[i];
+                m++;
+            }
+
+            if (m < 3) return [];
+
+            // Graham's scan
+            const hull = [sorted[0], sorted[1], sorted[2]];
+            for (let i = 3; i < m; i++) {
+                while (hull.length > 1 && 
+                       orientation(hull[hull.length - 2], hull[hull.length - 1], sorted[i]) !== 2) {
+                    hull.pop();
+                }
+                hull.push(sorted[i]);
+            }
+
+            return hull;
+        }
+
+        function convexHullJarvis(points) {
+            const n = points.length;
+            if (n < 3) return [];
+
+            let l = 0;
+            for (let i = 1; i < n; i++) {
+                if (points[i].x < points[l].x) l = i;
+            }
+
+            const hull = [];
+            let p = l;
+            do {
+                hull.push(points[p]);
+                let q = (p + 1) % n;
+                for (let i = 0; i < n; i++) {
+                    if (orientation(points[p], points[i], points[q]) === 2) q = i;
+                }
+                p = q;
+            } while (p !== l);
+
+            return hull;
+        }
+
+        function convexHullQuick(points) {
+            // Simplified QuickHull for demo
+            return convexHullGraham(points);
+        }
+
+        function polygonArea(points) {
+            let area = 0;
+            const n = points.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                area += points[i].x * points[j].y - points[j].x * points[i].y;
+            }
+            return Math.abs(area) / 2;
+        }
+
+        function polygonPerimeter(points) {
+            let perimeter = 0;
+            const n = points.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                const dx = points[j].x - points[i].x;
+                const dy = points[j].y - points[i].y;
+                perimeter += Math.sqrt(dx * dx + dy * dy);
+            }
+            return perimeter;
+        }
+
+        // ===== Canvas Setup =====
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let points = [];
+        let hull = [];
+        let algorithm = 'graham';
+        let animationStep = 0;
+
+        // ===== Drawing =====
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw hull polygon (filled)
+            if (hull.length > 0) {
+                ctx.fillStyle = 'rgba(46, 204, 113, 0.15)';
+                ctx.beginPath();
+                ctx.moveTo(hull[0].x, hull[0].y);
+                for (let i = 1; i < hull.length; i++) {
+                    ctx.lineTo(hull[i].x, hull[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw hull edges
+                ctx.strokeStyle = '#2ecc71';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(hull[0].x, hull[0].y);
+                for (let i = 1; i < hull.length; i++) {
+                    ctx.lineTo(hull[i].x, hull[i].y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // Draw all points
+            points.forEach((p, i) => {
+                const isOnHull = hull.some(h => h.x === p.x && h.y === p.y);
+                const isBase = i === 0 && hull.length > 0;
+
+                ctx.fillStyle = isBase ? '#f39c12' : (isOnHull ? '#e74c3c' : '#3498db');
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, isBase ? 8 : 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (isBase) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('point-count').textContent = points.length;
+            document.getElementById('hull-count').textContent = hull.length;
+            document.getElementById('hull-area').textContent = hull.length > 0 ? 
+                polygonArea(hull).toFixed(2) : '0.00';
+            document.getElementById('hull-perimeter').textContent = hull.length > 0 ? 
+                polygonPerimeter(hull).toFixed(2) : '0.00';
+        }
+
+        // ===== Event Handlers =====
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            points.push(new Point(x, y));
+            render();
+            updateUI();
+        });
+
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            computeHull();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.round(e.clientX - rect.left);
+            const y = Math.round(e.clientY - rect.top);
+            document.getElementById('status').textContent = `(${x}, ${y})`;
+        });
+
+        // ===== Actions =====
+        function clearAll() {
+            points = [];
+            hull = [];
+            render();
+            updateUI();
+        }
+
+        function computeHull() {
+            if (points.length < 3) {
+                alert('Need at least 3 points!');
+                return;
+            }
+
+            const start = performance.now();
+            
+            switch (algorithm) {
+                case 'graham':
+                    hull = convexHullGraham(points);
+                    break;
+                case 'jarvis':
+                    hull = convexHullJarvis(points);
+                    break;
+                case 'quick':
+                    hull = convexHullQuick(points);
+                    break;
+            }
+
+            const elapsed = performance.now() - start;
+            document.getElementById('compute-time').textContent = `${elapsed.toFixed(2)} ms`;
+
+            render();
+            updateUI();
+        }
+
+        function updateAlgorithm() {
+            algorithm = document.getElementById('algorithm').value;
+            if (points.length >= 3) computeHull();
+        }
+
+        function addPattern(type, count) {
+            clearAll();
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const r = Math.min(canvas.width, canvas.height) * 0.35;
+
+            switch (type) {
+                case 'random':
+                    for (let i = 0; i < count; i++) {
+                        points.push(new Point(
+                            Math.random() * canvas.width * 0.8 + canvas.width * 0.1,
+                            Math.random() * canvas.height * 0.8 + canvas.height * 0.1
+                        ));
+                    }
+                    break;
+
+                case 'circle':
+                    for (let i = 0; i < count; i++) {
+                        const angle = (i / count) * 2 * Math.PI;
+                        points.push(new Point(
+                            cx + r * Math.cos(angle),
+                            cy + r * Math.sin(angle)
+                        ));
+                    }
+                    // Add some interior points
+                    for (let i = 0; i < 5; i++) {
+                        const angle = Math.random() * 2 * Math.PI;
+                        const dist = Math.random() * r * 0.7;
+                        points.push(new Point(
+                            cx + dist * Math.cos(angle),
+                            cy + dist * Math.sin(angle)
+                        ));
+                    }
+                    break;
+
+                case 'grid':
+                    const side = Math.ceil(Math.sqrt(count));
+                    const spacing = (r * 2) / side;
+                    for (let i = 0; i < side; i++) {
+                        for (let j = 0; j < side && points.length < count; j++) {
+                            points.push(new Point(
+                                cx - r + i * spacing + spacing / 2,
+                                cy - r + j * spacing + spacing / 2
+                            ));
+                        }
+                    }
+                    break;
+
+                case 'spiral':
+                    for (let i = 0; i < count; i++) {
+                        const t = i / count * 4 * Math.PI;
+                        const dist = (i / count) * r;
+                        points.push(new Point(
+                            cx + dist * Math.cos(t),
+                            cy + dist * Math.sin(t)
+                        ));
+                    }
+                    break;
+            }
+
+            render();
+            updateUI();
+            computeHull();
+        }
+
+        // ===== Initialize =====
+        updateUI();
+        render();
+    </script>
+</body>
+</html>

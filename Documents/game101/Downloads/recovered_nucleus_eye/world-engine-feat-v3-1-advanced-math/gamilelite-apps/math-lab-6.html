@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 6: Orb Graph System</title>
+    <style>
+        :root {
+            --bg: #0b0b0f;
+            --panel: #0f121f;
+            --accent: #72f6d1;
+            --text: #eaf1ff;
+            --muted: #9fb3ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(180deg, #11182c, #0b1030);
+            border-bottom: 1px solid #1c2a54;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 12px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .graph-stage {
+            background: #060a18;
+            border: 1px solid #20325f;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .controls {
+            background: var(--panel);
+            border: 1px solid #213261;
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .control-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-section h3 {
+            font-size: 0.875rem;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button {
+            width: 100%;
+            background: #13254d;
+            color: #dbe6ff;
+            border: 1px solid #29427c;
+            padding: 0.625rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #183064;
+            border-color: var(--accent);
+        }
+
+        button.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        label span {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #1c2746;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info {
+            background: rgba(114, 246, 209, 0.1);
+            border: 1px solid rgba(114, 246, 209, 0.3);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Lab 6: Orb Graph System</h1>
+                <div class="subtitle">Draggable nodes with spring physics and orbital arrangement</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="math-lab-5.html" style="padding: 0.5rem 1rem; background: #0d1221; border: 1px solid #72f6d1; color: #72f6d1; border-radius: 4px; text-decoration: none; font-size: 1rem;">← Lab 5</a>
+                <a href="math-lab-7.html" style="padding: 0.5rem 1rem; background: #0d1221; border: 1px solid #72f6d1; color: #72f6d1; border-radius: 4px; text-decoration: none; font-size: 1rem;">Lab 7 →</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="graph-stage">
+            <canvas id="graphCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>🔷 Graph Controls</h3>
+                <label>
+                    <span>Node Count: <b id="nodeCountValue">16</b></span>
+                    <input type="range" id="nodeCount" min="4" max="120" value="16">
+                </label>
+                <label>
+                    <span>Orb Radius: <b id="orbRadiusValue">120</b>px</span>
+                    <input type="range" id="orbRadius" min="60" max="260" value="120">
+                </label>
+                <label>
+                    <span>Links per Node: <b id="linksPerNodeValue">3</b></span>
+                    <input type="range" id="linksPerNode" min="1" max="8" value="3">
+                </label>
+            </div>
+
+            <div class="control-section">
+                <h3>🎨 Visual Settings</h3>
+                <label>
+                    <span>Node Opacity: <b id="nodeOpacityValue">1.0</b></span>
+                    <input type="range" id="nodeOpacity" min="0" max="1" step="0.05" value="1">
+                </label>
+                <div class="checkbox-label">
+                    <input type="checkbox" id="pulseCB" checked>
+                    <span>Pulse Colors</span>
+                </div>
+                <div class="checkbox-label">
+                    <input type="checkbox" id="orbitCB" checked>
+                    <span>Show Orbit Ring</span>
+                </div>
+                <div class="checkbox-label">
+                    <input type="checkbox" id="gridCB">
+                    <span>Show Grid Overlay</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>📐 Grid Settings</h3>
+                <label>
+                    <span>Grid Size: <b id="gridSizeValue">50</b>px</span>
+                    <input type="range" id="gridSize" min="20" max="100" value="50">
+                </label>
+                <label>
+                    <span>Grid Opacity: <b id="gridOpacityValue">20</b>%</span>
+                    <input type="range" id="gridOpacity" min="5" max="50" value="20">
+                </label>
+                <div class="checkbox-label">
+                    <input type="checkbox" id="snapCB">
+                    <span>Snap to Grid</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>⚙️ Actions</h3>
+                <button id="btnRecenter">⭕ Recenter Ring</button>
+                <button id="btnRandomize">🎲 Randomize</button>
+                <button id="btnReset">🔄 Reset Graph</button>
+            </div>
+
+            <div class="info">
+                <strong>💡 Controls:</strong><br>
+                • Drag nodes to move them<br>
+                • Press Space to recenter<br>
+                • Spring physics pulls to orbit<br>
+                • Links connect nearby nodes
+            </div>
+        </div>
+    </main>
+
+    <script src="./lens-tunnel-state.js"></script>
+    <script src="./math-lab-6.js"></script>
+</body>
+</html>

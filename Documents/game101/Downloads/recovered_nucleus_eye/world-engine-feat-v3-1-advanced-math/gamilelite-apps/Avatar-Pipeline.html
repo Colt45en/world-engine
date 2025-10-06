@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👤 Avatar Tools - Create from PNG → GLB</title>
+    <style>
+:root{--bg:#0a0f17;--ink:#e9f0ff;--muted:#9fb0d1;--line:rgba(170,220,255,.25);--good:#22c55e;--lime:#b6ff00;--lime-200:#d4ff66;}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(1200px 800px at 15% -10%,#10183b,var(--bg));color:var(--ink);font-family:system-ui,'Segoe UI',Roboto,Inter,Arial,sans-serif}
+#app{position:fixed;inset:0;display:grid;grid-template-columns:300px 1fr 280px;grid-template-rows:auto 1fr}
+header{grid-column:1/-1;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:.8rem 1rem;display:flex;align-items:center;gap:1rem}
+.logo{font-size:1.25rem;font-weight:700;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+button{border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.4);color:var(--ink);padding:.5rem 1rem;font-size:.875rem;border-radius:8px;cursor:pointer;transition:all .2s;font-family:inherit}
+button:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.1);transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(135deg,var(--lime) 0%,#92cc00 100%);color:#0a0f17;font-weight:600;border-color:var(--lime)}
+.btn-primary:hover{background:var(--lime)}
+aside{background:rgba(0,0,0,.3);border-right:1px solid var(--line);padding:1rem;overflow-y:auto}
+aside.right{border-right:none;border-left:1px solid var(--line)}
+.panel{background:rgba(16,24,40,.5);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1rem}
+.title{font-weight:600;margin-bottom:.75rem;font-size:.9rem}
+.row{display:flex;gap:.5rem;margin:.5rem 0;align-items:center}
+.label{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+input[type=range]{flex:1;accent-color:var(--lime)}
+input[type=number],input[type=color]{background:rgba(0,0,0,.4);border:1px solid var(--line);color:var(--ink);padding:.35rem .5rem;border-radius:6px;font-family:inherit}
+.drop{border:2px dashed rgba(255,255,255,.25);border-radius:12px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .2s;font-size:.9rem;color:var(--muted);background:rgba(0,0,0,.2)}
+.drop:hover{border-color:var(--lime);background:rgba(182,255,0,.05)}
+.tiny{font-size:.75rem;color:var(--muted);opacity:.8;margin-top:.5rem}
+.console{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:8px;padding:.5rem;max-height:200px;overflow-y:auto;font-family:ui-monospace,Menlo,monospace;font-size:.8rem}
+.console .mut{color:var(--muted)}
+.console .ok{color:var(--good)}
+.console .warn{color:#ef4444}
+#view3d{display:block;width:100%;height:100%}
+    </style>
+</head>
+<body>
+<div id="app">
+    <header>
+        <div class="logo">👤 Avatar Tools</div>
+        <button onclick="location.href='index.html'">← Back to Hub</button>
+        <span style="flex:1"></span>
+        <button onclick="location.href='City-Sandbox-Weather.html'">🏙️ Avatar Hub (Staging)</button>
+    </header>
+    <aside>
+        <div class="panel">
+            <div class="title">📤 Upload PNG Mask</div>
+            <div id="drop" class="drop">Drop image or click to upload</div>
+            <input id="file" type="file" accept="image/*" style="display:none">
+            <div class="tiny" id="status">No image loaded.</div>
+        </div>
+        <div class="panel">
+            <div class="title">⚙️ Avatar Settings</div>
+            <div class="row">
+                <label class="label">Height (m) <input id="height" type="range" min="0.6" max="2.2" step="0.1" value="1.8"></label>
+                <span id="heightVal">1.8m</span>
+            </div>
+            <div class="row">
+                <label class="label">Threshold <input id="iso" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+                <span id="isoVal">0.50</span>
+            </div>
+            <div class="row">
+                <label class="label">Smooth <input id="smooth" type="range" min="0" max="3" step="1" value="1"></label>
+                <span id="smoothVal">1</span>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="title">🎨 Material</div>
+            <div class="row">
+                <label class="label">Color <input id="color" type="color" value="#66ccff"></label>
+            </div>
+            <div class="row">
+                <label class="label">Metal <input id="metal" type="range" min="0" max="1" step="0.01" value="0.10"></label>
+                <span id="metalVal">0.10</span>
+            </div>
+            <div class="row">
+                <label class="label">Rough <input id="rough" type="range" min="0" max="1" step="0.01" value="0.55"></label>
+                <span id="roughVal">0.55</span>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="title">🚀 Actions</div>
+            <button id="btnGen" class="btn-primary" style="width:100%;padding:.75rem">Generate Avatar</button>
+            <button id="btnClear" style="width:100%;margin-top:.5rem">Clear Scene</button>
+        </div>
+    </aside>
+    <div id="view3d-container" style="position:relative"><div id="view3d"></div></div>
+    <aside class="right">
+        <div class="panel">
+            <div class="title">📦 Export</div>
+            <button id="btnExport" class="btn-primary" style="width:100%;padding:.75rem">Export GLB</button>
+            <div class="tiny" id="exportStatus">Generate avatar first</div>
+        </div>
+        <div class="panel">
+            <div class="title">💡 Quick Guide</div>
+            <div class="tiny">
+                1. Upload a PNG silhouette<br>
+                2. Adjust settings<br>
+                3. Click "Generate Avatar"<br>
+                4. Tweak materials<br>
+                5. Click "Export GLB"<br><br>
+                <b>Tip:</b> High contrast images work best!
+            </div>
+        </div>
+        <div class="panel">
+            <div class="title">🖥 Console</div>
+            <div id="log" class="console"><div class="mut">Ready...</div></div>
+        </div>
+    </aside>
+</div>
+<script type="module">
+import*as THREE from'https://unpkg.com/three@0.165.0/build/three.module.js';
+import{OrbitControls}from'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+import{GLTFExporter}from'https://unpkg.com/three@0.165.0/examples/jsm/exporters/GLTFExporter.js';
+import*as BufferGeometryUtils from'https://unpkg.com/three@0.165.0/examples/jsm/utils/BufferGeometryUtils.js';
+const $=id=>document.getElementById(id);
+const log=(msg,cls='mut')=>{const line=document.createElement('div');line.className=cls;line.textContent=msg;$('log').appendChild(line);$('log').scrollTop=$('log').scrollHeight;};
+const viewEl=$('view3d-container');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+renderer.setSize(viewEl.clientWidth,viewEl.clientHeight,false);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.shadowMap.enabled=true;
+$('view3d').appendChild(renderer.domElement);
+renderer.domElement.style.display='block';
+renderer.domElement.style.width='100%';
+renderer.domElement.style.height='100%';
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b0f18);
+const camera=new THREE.PerspectiveCamera(60,viewEl.clientWidth/viewEl.clientHeight,0.1,500);
+camera.position.set(3,2,4);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.target.set(0,0.9,0);
+new ResizeObserver(()=>{renderer.setSize(viewEl.clientWidth,viewEl.clientHeight,false);camera.aspect=viewEl.clientWidth/viewEl.clientHeight;camera.updateProjectionMatrix();}).observe(viewEl);
+const amb=new THREE.AmbientLight(0x6a8fb0,0.5);scene.add(amb);
+const dir=new THREE.DirectionalLight(0xffffff,1.5);
+dir.position.set(5,10,7);dir.castShadow=true;
+dir.shadow.mapSize.set(2048,2048);
+scene.add(dir);
+const gridHelper=new THREE.GridHelper(10,20,0x4a5f7f,0x2a3f5f);
+gridHelper.position.y=0;
+scene.add(gridHelper);
+let imageData=null;
+let avatarMesh=null;
+const CAP_MAT=new THREE.MeshStandardMaterial({color:0x66ccff,metalness:0.10,roughness:0.55});
+const WALL_MAT=new THREE.MeshStandardMaterial({color:0x1e2a3a,metalness:0.00,roughness:0.95});
+$('drop').addEventListener('click',()=>$('file').click());
+$('drop').addEventListener('dragover',e=>{e.preventDefault();$('drop').style.borderColor='var(--lime)';$('drop').style.background='rgba(182,255,0,.05)';});
+$('drop').addEventListener('dragleave',()=>{$('drop').style.borderColor='rgba(255,255,255,.25)';$('drop').style.background='';});
+$('drop').addEventListener('drop',e=>{e.preventDefault();$('drop').style.borderColor='rgba(255,255,255,.25)';$('drop').style.background='';const f=e.dataTransfer.files?.[0];if(f&&f.type.startsWith('image/'))readImage(f);});
+$('file').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)readImage(f);});
+function readImage(file){const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),ctx=c.getContext('2d');c.width=img.naturalWidth;c.height=img.naturalHeight;ctx.drawImage(img,0,0);imageData=ctx.getImageData(0,0,c.width,c.height);$('status').textContent=`Loaded ${file.name} (${c.width}×${c.height})`;const imgUrl=URL.createObjectURL(file);$('drop').style.backgroundImage=`url(${imgUrl})`;$('drop').style.backgroundSize='contain';$('drop').style.backgroundPosition='center';$('drop').style.backgroundRepeat='no-repeat';$('drop').textContent='✓ Image Loaded';$('drop').style.color='var(--lime-200)';log(`[upload] ${file.name} loaded (${c.width}×${c.height})`,'ok');};img.onerror=()=>log('[upload] Failed to load image','warn');img.src=URL.createObjectURL(file);}
+function extractAlphaLuma(imageData){const{data,width,height}=imageData;const out=new Uint8Array(width*height);for(let i=0;i<width*height;i++){const r=data[i*4+0],g=data[i*4+1],b=data[i*4+2],a=data[i*4+3];out[i]=a>0?a:(0.2126*r+0.7152*g+0.0722*b);}return{data:out,width,height};}
+function ensureIndexedTriGeometry(g){let geo=g.index?g.clone():g.toNonIndexed();geo=BufferGeometryUtils.mergeVertices(geo,1e-7);if(!geo.getIndex()){const n=geo.attributes.position.count;const idx=(n/3|0)*3;geo.setIndex([...Array(idx)].map((_,i)=>i));}return geo;}
+const hasAttr=(g,name,itemSize)=>!!(g.attributes?.[name]&&g.attributes[name].itemSize===itemSize);
+const pushVertex=(buffers,pos,uv,col)=>{const{positions,uvs,colors}=buffers;const idx=positions.length/3;positions.push(pos[0],pos[1],pos[2]);if(uvs)uvs.push(uv?uv[0]:0,uv?uv[1]:0);if(colors)colors.push(col?col[0]:1,col?col[1]:1,col?col[2]:1);return idx;};
+function thickenSolid(geo,thickness=0.02){if(!geo?.attributes?.position)return geo;const g=ensureIndexedTriGeometry(geo);g.computeVertexNormals();const pos=g.attributes.position,nor=g.attributes.normal,idx=g.index.array;const haveUV=hasAttr(g,'uv',2),haveCol=hasAttr(g,'color',3);const uvAttr=haveUV?g.attributes.uv:null;const colAttr=haveCol?g.attributes.color:null;const vcount=pos.count;const outP=new Float32Array(vcount*3),inP=new Float32Array(vcount*3);for(let i=0;i<vcount;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);const nx=nor.getX(i),ny=nor.getY(i),nz=nor.getZ(i);outP[i*3+0]=x+nx*thickness;outP[i*3+1]=y+ny*thickness;outP[i*3+2]=z+nz*thickness;inP[i*3+0]=x-nx*thickness;inP[i*3+1]=y-ny*thickness;inP[i*3+2]=z-nz*thickness;}const positions=[],uvs=haveUV?[]:null,colors=haveCol?[]:null,faces=[];const buffers={positions,uvs,colors};const outIndex=new Array(vcount),inIndex=new Array(vcount);const getUV=(i)=>uvAttr?[uvAttr.getX(i),uvAttr.getY(i)]:null;const getCol=(i)=>colAttr?[colAttr.getX(i),colAttr.getY(i),colAttr.getZ(i)]:null;for(let i=0;i<vcount;i++){const uv=getUV(i),col=getCol(i);outIndex[i]=pushVertex(buffers,[outP[i*3+0],outP[i*3+1],outP[i*3+2]],uv,col);inIndex[i]=pushVertex(buffers,[inP[i*3+0],inP[i*3+1],inP[i*3+2]],uv,col);}const groups=[];let capStart=0,capCount=0,wallStart=0,wallCount=0;for(let f=0;f<idx.length;f+=3){const a=idx[f],b=idx[f+1],c=idx[f+2];faces.push(outIndex[a],outIndex[b],outIndex[c]);faces.push(inIndex[c],inIndex[b],inIndex[a]);capCount+=2;}wallStart=capCount;const seen=new Set();const edgeKey=(i,j)=>(i<j)?`${i}_${j}`:`${j}_${i}`;const getPos=(arr,i)=>[arr[i*3+0],arr[i*3+1],arr[i*3+2]];const addEdgeQuad=(i,j)=>{const key=edgeKey(i,j);if(seen.has(key))return;seen.add(key);const ip=getPos(outP,i),jp=getPos(outP,j),in_=getPos(inP,i),jn=getPos(inP,j);const ci=getCol(i),cj=getCol(j);const i_plus=pushVertex(buffers,ip,[0,0],ci);const j_plus=pushVertex(buffers,jp,[1,0],cj);const j_minus=pushVertex(buffers,jn,[1,1],cj);const i_minus=pushVertex(buffers,in_,[0,1],ci);faces.push(i_plus,j_plus,j_minus);faces.push(i_plus,j_minus,i_minus);wallCount+=2;};for(let f=0;f<idx.length;f+=3){const a=idx[f],b=idx[f+1],c=idx[f+2];addEdgeQuad(a,b);addEdgeQuad(b,c);addEdgeQuad(c,a);}const thick=new THREE.BufferGeometry();thick.setAttribute('position',new THREE.BufferAttribute(new Float32Array(positions),3));if(uvs)thick.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(uvs),2));if(colors)thick.setAttribute('color',new THREE.BufferAttribute(new Float32Array(colors),3));thick.setIndex(faces);thick.addGroup(capStart*3,capCount*3,0);thick.addGroup(wallStart*3,wallCount*3,1);thick.computeVertexNormals();return thick;}
+function laplacianSmooth(geo,iters=1){if(!geo?.attributes?.position||!geo.index)return;const pos=geo.attributes.position;const idx=geo.index.array;const n=pos.count;const adj=Array.from({length:n},()=>[]);for(let i=0;i<idx.length;i+=3){const a=idx[i],b=idx[i+1],c=idx[i+2];adj[a].push(b,c);adj[b].push(a,c);adj[c].push(a,b);}const newPos=new Float32Array(n*3);for(let iter=0;iter<iters;iter++){for(let i=0;i<n;i++){if(adj[i].length===0){newPos[i*3+0]=pos.getX(i);newPos[i*3+1]=pos.getY(i);newPos[i*3+2]=pos.getZ(i);continue;}let sx=0,sy=0,sz=0;for(const j of adj[i]){sx+=pos.getX(j);sy+=pos.getY(j);sz+=pos.getZ(j);}newPos[i*3+0]=sx/adj[i].length;newPos[i*3+1]=sy/adj[i].length;newPos[i*3+2]=sz/adj[i].length;}for(let i=0;i<n;i++){pos.setXYZ(i,newPos[i*3+0],newPos[i*3+1],newPos[i*3+2]);}}geo.computeVertexNormals();}
+function normalizeHeightAndGround(mesh,targetHeight=1.8){if(!mesh)return;const box=new THREE.Box3().setFromObject(mesh);const size=new THREE.Vector3();box.getSize(size);const scale=targetHeight/(size.y||1);mesh.scale.multiplyScalar(scale);mesh.updateMatrixWorld(true);const box2=new THREE.Box3().setFromObject(mesh);const center=new THREE.Vector3();box2.getCenter(center);mesh.position.sub(new THREE.Vector3(center.x,box2.min.y,center.z));mesh.updateMatrixWorld(true);}
+function extractPlaneFromMask(){const{data:w,width,height}=extractAlphaLuma(imageData);const wSegs=Math.min(256,width-1),hSegs=Math.min(256,height-1);const geo=new THREE.PlaneGeometry(1,height/width,wSegs,hSegs);const pos=geo.attributes.position;const iso=parseFloat($('iso').value);for(let i=0;i<pos.count;i++){const x=i%(wSegs+1);const y=Math.floor(i/(wSegs+1));const u=x/wSegs,v=y/hSegs;const ix=Math.min(width-1,Math.floor(u*(width-1)));const iy=Math.min(height-1,Math.floor((1-v)*(height-1)));const a=w[iy*width+ix]/255;const d=Math.max(0,a-iso)*0.25;pos.setZ(i,d);}geo.computeVertexNormals();return geo;}
+async function generateAvatar(){if(!imageData){log('No image loaded.','warn');$('status').textContent='No image loaded.';$('exportStatus').textContent='Generate avatar first';return;}log('[avatar] Generating from mask...','mut');const smoothIters=parseInt($('smooth').value,10);const target=parseFloat($('height').value);let geo=extractPlaneFromMask();if(smoothIters>0)laplacianSmooth(geo,smoothIters);const shell=thickenSolid(geo,0.02);const mesh=new THREE.Mesh(shell,[CAP_MAT,WALL_MAT]);mesh.castShadow=mesh.receiveShadow=true;normalizeHeightAndGround(mesh,target);if(avatarMesh){scene.remove(avatarMesh);}avatarMesh=mesh;scene.add(mesh);const vcount=mesh.geometry.attributes.position.count;log(`[avatar] Generated • ${vcount.toLocaleString()} verts`,'ok');$('status').textContent='Avatar ready.';$('exportStatus').textContent='Ready to export GLB';}
+function cloneDeepWithSharedGeo(node){if(!node)return null;const clone=node.clone();clone.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry=o.geometry.clone();if(o.material){if(Array.isArray(o.material))o.material=o.material.map(m=>m.clone());else o.material=o.material.clone();}});return clone;}
+function bakeNodeTransformsToGeometry(node){if(!node)return;node.updateMatrixWorld(true);node.traverse(o=>{if(!o.isMesh||!o.geometry)return;o.geometry.applyMatrix4(o.matrixWorld);o.position.set(0,0,0);o.rotation.set(0,0,0);o.scale.set(1,1,1);o.updateMatrix();o.updateMatrixWorld(true);});}
+function exportGLB(node,fname){if(!node){log('Nothing to export.','warn');$('exportStatus').textContent='Nothing to export';return;}log('[export] Preparing GLB...','mut');const clone=cloneDeepWithSharedGeo(node);bakeNodeTransformsToGeometry(clone);const exporter=new GLTFExporter();exporter.parse(clone,(bin)=>{const blob=new Blob([bin],{type:'model/gltf-binary'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);log(`[export] ${fname} downloaded`,'ok');$('exportStatus').textContent=`✓ Exported ${fname}`;},{binary:true});}
+$('height').addEventListener('input',e=>$('heightVal').textContent=e.target.value+'m');
+$('iso').addEventListener('input',e=>$('isoVal').textContent=parseFloat(e.target.value).toFixed(2));
+$('smooth').addEventListener('input',e=>$('smoothVal').textContent=e.target.value);
+$('metal').addEventListener('input',e=>{$('metalVal').textContent=parseFloat(e.target.value).toFixed(2);CAP_MAT.metalness=parseFloat(e.target.value);});
+$('rough').addEventListener('input',e=>{$('roughVal').textContent=parseFloat(e.target.value).toFixed(2);CAP_MAT.roughness=parseFloat(e.target.value);});
+$('color').addEventListener('input',e=>{CAP_MAT.color.set(e.target.value);});
+$('btnGen').onclick=generateAvatar;
+$('btnClear').onclick=()=>{if(avatarMesh){scene.remove(avatarMesh);avatarMesh=null;log('[avatar] Cleared','mut');$('exportStatus').textContent='Generate avatar first';}};
+$('btnExport').onclick=()=>{if(!avatarMesh){log('[export] No avatar to export','warn');$('exportStatus').textContent='Generate avatar first';return;}exportGLB(avatarMesh,'avatar.glb');};
+function tick(){controls.update();renderer.render(scene,camera);requestAnimationFrame(tick);}
+log('Avatar Tools ready! Upload a PNG mask to begin.','ok');
+tick();
+</script>
+</body>
+</html>

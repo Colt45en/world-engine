@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NEXUS Unified System — AI Vault + Lab Integration</title>
+<link rel="icon" href="data:,">
+<style>
+  :root{
+    --lime:#b6ff00;
+    --lime-200:#d7ff66;
+    --neon:#ff6a00;
+    --neon-200:#ff9a4d;
+    --text:#e8f0ff;
+    --muted:#9aa7b5;
+    --bg:#000000;
+    --panel:#05070c;
+    --panel-inner:#0a0e16;
+    --border:#1a2b46;
+    --glow-lime: 0 0 24px rgba(182,255,0,.16);
+    --glow-neon: 0 0 24px rgba(255,106,0,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 800px at 60% 40%, rgba(255,106,0,.08), transparent 50%),
+      radial-gradient(900px 600px at 30% 70%, rgba(182,255,0,.07), transparent 50%),
+      #000;
+    color:var(--text);
+    font:14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow:hidden;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.018), rgba(255,255,255,.018) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:soft-light; opacity:.35;
+  }
+
+  .layout{
+    height:100vh; width:100vw; display:grid; gap:12px; padding:12px;
+    grid-template-columns: 70px 1fr minmax(280px,22vw);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 
+      "header header header"
+      "left center right";
+  }
+
+  .panel{
+    position:relative;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-inner) 100%);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-lime), var(--glow-neon);
+  }
+  .panel::before{
+    content:"";
+    position:absolute; inset:0; padding:1.5px; border-radius:inherit;
+    background: conic-gradient(from var(--angle,0deg), var(--neon), var(--lime), var(--neon));
+    filter: saturate(120%) blur(.2px);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: spin 18s linear infinite;
+    opacity:.85;
+    pointer-events:none;
+  }
+  @keyframes spin { to { --angle:360deg; } }
+  .panel:hover::before{ opacity:1; filter: drop-shadow(0 0 18px rgba(255,106,0,.15)); }
+
+  /* HEADER */
+  .toolbar-header {
+    grid-area: header;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-inner) 100%);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-lime), var(--glow-neon);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    gap: 20px;
+    position: relative;
+  }
+  .toolbar-header::before {
+    content:"";
+    position:absolute; inset:0; padding:1.5px; border-radius:inherit;
+    background: conic-gradient(from var(--angle,0deg), var(--neon), var(--lime), var(--neon));
+    filter: saturate(120%) blur(.2px);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: spin 18s linear infinite;
+    opacity:.85;
+    pointer-events:none;
+  }
+  .title-section{
+    display:flex; align-items:center; gap:12px;
+  }
+  .pulse-dot{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--lime);
+    box-shadow: 0 0 12px var(--lime);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .title-text{
+    font-size:18px; font-weight:700; letter-spacing:.5px;
+    background: linear-gradient(90deg, var(--lime), var(--neon));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-buttons{
+    display:flex; gap:10px; align-items:center;
+  }
+  .header-btn{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(11,15,23,.8);
+    color:var(--text);
+    padding:8px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    transition:all .12s ease;
+    white-space:nowrap;
+  }
+  .header-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(182,255,0,.6);
+    box-shadow: 0 0 16px rgba(182,255,0,.25);
+  }
+  .header-btn.neon{
+    border-color: rgba(255,106,0,.6);
+    color:var(--neon-200);
+    box-shadow: 0 0 0 1px rgba(255,106,0,.25);
+  }
+  .header-btn.neon:hover{
+    box-shadow: 0 0 16px rgba(255,106,0,.35);
+  }
+
+  /* LEFT SIDEBAR */
+  .left{ 
+    grid-area:left; 
+    display:flex; 
+    flex-direction:column; 
+    gap:10px; 
+    padding:10px;
+  }
+  .nav-btn{
+    position:relative;
+    border:1px solid rgba(255,255,255,.08);
+    background:#0b0f17;
+    color:var(--text);
+    padding:14px 8px;
+    border-radius:10px;
+    cursor:pointer;
+    text-align:center;
+    font-size:20px;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    user-select:none;
+  }
+  .nav-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(255,255,255,.18);
+    box-shadow:0 6px 18px rgba(0,0,0,.45);
+  }
+  .nav-btn.active{
+    border-color: rgba(182,255,0,.8);
+    color:var(--lime-200);
+    background:rgba(182,255,0,.12);
+    box-shadow: 0 0 24px rgba(182,255,0,.25);
+  }
+  .spacer{ flex:1 1 auto }
+
+  /* CENTER */
+  .center{ 
+    grid-area:center; 
+    display:flex;
+  }
+  .main-content{
+    flex:1; 
+    display:flex; 
+    flex-direction:column;
+    position:relative;
+  }
+  .panel-header{
+    padding:16px 20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .panel-title{
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .panel-body{
+    flex:1;
+    padding:16px;
+    overflow:auto;
+  }
+  .codepad{
+    width:100%;
+    height:100%;
+    resize:none;
+    outline:none;
+    background:#0a0e16;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;
+    padding:16px;
+    color:var(--text);
+    font:13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    transition: border-color .2s ease;
+  }
+  .codepad:focus{
+    border-color:var(--lime);
+    box-shadow: 0 0 12px rgba(182,255,0,.25);
+  }
+
+  /* RIGHT SIDEBAR */
+  .right{
+    grid-area:right;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .analyst{ flex:4 1 0 }
+  .console{ flex:3 1 0 }
+  .panel-title-small{
+    padding:12px 16px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.3px;
+  }
+  .scrollbox{
+    padding:12px;
+    overflow-y:auto;
+    height:calc(100% - 40px);
+    font-size:12px;
+    line-height:1.6;
+  }
+  .ok{ color:var(--lime-200) }
+  .warn{ color:#ffd166 }
+  .err{ color:#ff7474 }
+  .muted{ color:var(--muted) }
+
+  /* VAULT VIEW */
+  .vault-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .vault-entry{
+    background:rgba(11,15,23,.9);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;
+    padding:12px;
+    transition:all .2s ease;
+  }
+  .vault-entry:hover{
+    border-color:rgba(182,255,0,.5);
+    box-shadow: 0 0 12px rgba(182,255,0,.15);
+  }
+  .vault-header{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    font-size:11px;
+  }
+  .vault-timestamp{
+    color:var(--neon-200);
+  }
+  .vault-reason{
+    color:var(--lime-200);
+  }
+  .vault-meta{
+    font-size:11px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .vault-code{
+    background:#000;
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:6px;
+    padding:8px;
+    font-size:11px;
+    font-family:monospace;
+    max-height:100px;
+    overflow:auto;
+    white-space:pre-wrap;
+    word-break:break-all;
+  }
+
+  /* AUDIO VISUALIZER */
+  .visualizer-panel{
+    position:fixed;
+    left:24px;
+    bottom:24px;
+    width:500px;
+    height:600px;
+    background: linear-gradient(135deg, #0a0e1a 0%, #050810 100%);
+    border:2px solid var(--neon);
+    border-radius:16px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.8), 0 0 24px rgba(255,106,0,.25);
+    display:none;
+    flex-direction:column;
+    overflow:hidden;
+    z-index:9999;
+    animation: slideUp .3s ease;
+  }
+  .visualizer-panel.active{ display:flex }
+  @keyframes slideUp{
+    from{ transform:translateY(100px); opacity:0 }
+    to{ transform:translateY(0); opacity:1 }
+  }
+  .viz-header{
+    background: linear-gradient(90deg, var(--neon), #ff1493);
+    padding:16px;
+    color:#000;
+    font-weight:700;
+    font-size:16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .close-btn{
+    background:rgba(0,0,0,.3);
+    border:none;
+    color:#fff;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .2s;
+  }
+  .close-btn:hover{
+    background:rgba(0,0,0,.6);
+    transform:rotate(90deg);
+  }
+  .viz-canvas-area{
+    flex:1;
+    position:relative;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #vizCanvas{
+    width:100%;
+    height:100%;
+  }
+  .viz-controls{
+    padding:16px;
+    background:rgba(0,0,0,.5);
+    border-top:2px solid rgba(255,255,255,.08);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .viz-control-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .viz-btn{
+    flex:1;
+    background:var(--neon);
+    color:#000;
+    border:none;
+    border-radius:8px;
+    padding:10px;
+    cursor:pointer;
+    font-weight:700;
+    font-size:13px;
+    transition:all .2s;
+  }
+  .viz-btn:hover{
+    transform:scale(1.05);
+    box-shadow: 0 0 16px rgba(255,106,0,.5);
+  }
+  .viz-btn.active{
+    background:var(--lime);
+    box-shadow: 0 0 20px rgba(182,255,0,.6);
+  }
+  .viz-label{
+    color:var(--lime);
+    font-size:12px;
+    font-weight:700;
+    min-width:80px;
+  }
+  .viz-select{
+    flex:1;
+    background:#070a10;
+    border:1px solid rgba(255,255,255,.2);
+    color:var(--text);
+    padding:8px;
+    border-radius:6px;
+    font-size:13px;
+  }
+  .pattern-info{
+    background:rgba(182,255,0,.1);
+    border:1px solid var(--lime);
+    border-radius:8px;
+    padding:8px;
+    font-size:11px;
+    color:var(--lime);
+    text-align:center;
+  }
+
+  /* SWARM VIEW */
+  .swarm-container{
+    position:relative;
+    width:100%;
+    height:100%;
+    min-height:300px;
+    background:#000;
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .agent{
+    position:absolute;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform .3s ease;
+  }
+  .agent:hover{
+    transform:scale(1.3);
+  }
+
+  /* SCROLLBARS */
+  .scrollbox::-webkit-scrollbar,
+  .codepad::-webkit-scrollbar,
+  .vault-code::-webkit-scrollbar{ width:10px }
+  .scrollbox::-webkit-scrollbar-track,
+  .codepad::-webkit-scrollbar-track,
+  .vault-code::-webkit-scrollbar-track{ background:#0b0f17 }
+  .scrollbox::-webkit-scrollbar-thumb,
+  .codepad::-webkit-scrollbar-thumb,
+  .vault-code::-webkit-scrollbar-thumb{
+    background: linear-gradient(var(--neon), var(--lime));
+    border-radius:10px;
+    border:2px solid #0b0f17;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .panel::before, .toolbar-header::before{ animation:none }
+    .nav-btn{ transition:none }
+  }
+</style>
+</head>
+<body>
+  <main class="layout">
+    <!-- HEADER -->
+    <header class="toolbar-header">
+      <div class="title-section">
+        <div class="pulse-dot"></div>
+        <span class="title-text">NEXUS Unified System</span>
+      </div>
+      <div class="header-buttons">
+        <button class="header-btn" onclick="runCode()">▶ Run</button>
+        <button class="header-btn" onclick="saveFile()">💾 Save</button>
+        <button class="header-btn" onclick="formatCode()">🛠️ Format</button>
+        <button class="header-btn neon" onclick="exportBrain()">💽 Export Brain</button>
+        <label class="header-btn neon" style="cursor:pointer; margin:0;">
+          📥 Import
+          <input type="file" accept="application/json" style="display:none" onchange="importBrainFromFile(event)" />
+        </label>
+      </div>
+    </header>
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="left">
+      <button class="nav-btn active" data-panel="code" onclick="switchPanel('code')" title="Code Editor">💻</button>
+      <button class="nav-btn" data-panel="swarm" onclick="switchPanel('swarm')" title="Swarm Intelligence">🤖</button>
+      <button class="nav-btn" data-panel="audio" onclick="openVisualizer()" title="Audio Visualizer">🎵</button>
+      <button class="nav-btn" data-panel="output" onclick="switchPanel('output')" title="Output Console">📊</button>
+      <button class="nav-btn" data-panel="vault" onclick="switchPanel('vault')" title="Knowledge Vault">🗄️</button>
+      <div class="spacer"></div>
+      <button class="nav-btn" onclick="window.location.reload()" title="Reset">🔄</button>
+    </aside>
+
+    <!-- CENTER -->
+    <section class="center">
+      <div class="main-content panel">
+        <div id="mainPanel">
+          <!-- Content rendered dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="right">
+      <div class="panel analyst">
+        <div class="panel-title-small">📊 Analyst Output</div>
+        <div id="analyst" class="scrollbox">
+          <div class="ok">[Analyst] Online</div>
+          <div class="muted">Waiting for execution…</div>
+        </div>
+      </div>
+      <div class="panel console">
+        <div class="panel-title-small">🖥 System Console</div>
+        <div id="console" class="scrollbox">
+          <div class="muted">NEXUS console initialized.</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- AUDIO VISUALIZER PANEL -->
+  <div class="visualizer-panel" id="visualizerPanel">
+    <div class="viz-header">
+      <span>🎵 Audio Visualizer & Pattern Recognition</span>
+      <button class="close-btn" onclick="closeVisualizer()">×</button>
+    </div>
+    <div class="viz-canvas-area">
+      <canvas id="vizCanvas"></canvas>
+    </div>
+    <div class="viz-controls">
+      <div class="viz-control-row">
+        <button class="viz-btn" id="startAudioBtn" onclick="startAudio()">🎤 Start Audio</button>
+        <button class="viz-btn" id="autoplayBtn" onclick="toggleAutoplay()">▶️ Autoplay</button>
+      </div>
+      <div class="viz-control-row">
+        <span class="viz-label">Shape:</span>
+        <select class="viz-select" id="shapeSelect" onchange="changeShape()">
+          <option value="bars">Bars</option>
+          <option value="circle">Circle</option>
+          <option value="wave">Wave</option>
+          <option value="spiral">Spiral</option>
+          <option value="particles">Particles</option>
+          <option value="mandala">Mandala</option>
+        </select>
+      </div>
+      <div class="viz-control-row">
+        <span class="viz-label">Color Mode:</span>
+        <select class="viz-select" id="colorSelect" onchange="changeColorMode()">
+          <option value="rainbow">Rainbow</option>
+          <option value="neon">Neon Pulse</option>
+          <option value="fire">Fire</option>
+          <option value="ocean">Ocean</option>
+          <option value="matrix">Matrix</option>
+        </select>
+      </div>
+      <div class="viz-control-row">
+        <button class="viz-btn" id="recordBtn" onclick="toggleRecording()">🔴 Record</button>
+        <button class="viz-btn" onclick="takeScreenshot()">📸 Screenshot</button>
+      </div>
+      <div class="pattern-info" id="patternInfo">
+        Pattern: None | BPM: 0 | Frequency: 0 Hz
+      </div>
+      <div class="pattern-info" id="recordInfo" style="display:none; background:rgba(255,0,0,.2); border-color:#ff0000;">
+        ⏺️ Recording: <span id="recordTime">00:00</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ==========================================
+   KNOWLEDGE VAULT SYSTEM
+   ========================================== */
+const VAULT_KEY = "nexus.vault.v1";
+
+class KnowledgeVault {
+  constructor() {
+    const fallback = { meta: { version: 1, app: "NEXUS" }, entries: [] };
+    try {
+      const raw = localStorage.getItem(VAULT_KEY);
+      this.data = raw ? JSON.parse(raw) : fallback;
+    } catch {
+      this.data = fallback;
+    }
+  }
+  
+  add(entry) {
+    this.data.entries.push(entry);
+    if (this.data.entries.length > 1000) {
+      this.data.entries.splice(0, this.data.entries.length - 1000);
+    }
+    this.save();
+  }
+  
+  save() {
+    try {
+      localStorage.setItem(VAULT_KEY, JSON.stringify(this.data));
+    } catch(e) {
+      console.error('[VAULT] Save failed:', e);
+    }
+  }
+  
+  exportObject() {
+    return this.data;
+  }
+  
+  importObject(obj) {
+    this.data = obj;
+    this.save();
+  }
+  
+  getEntries() {
+    return this.data.entries || [];
+  }
+  
+  clear() {
+    this.data.entries = [];
+    this.save();
+  }
+}
+
+/* Compression helpers */
+async function compressStringGzip(str) {
+  if (typeof CompressionStream !== "undefined") {
+    const cs = new CompressionStream("gzip");
+    const reader = new Blob([str]).stream().pipeThrough(cs).getReader();
+    const chunks = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.length;
+    }
+    return out;
+  }
+  return new TextEncoder().encode(str);
+}
+
+async function decompressToStringGzip(bytes) {
+  if (typeof DecompressionStream !== "undefined") {
+    const ds = new DecompressionStream("gzip");
+    const blob = new Blob([bytes]);
+    const reader = blob.stream().pipeThrough(ds).getReader();
+    const chunks = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.length;
+    }
+    return new TextDecoder().decode(out);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+function u8ToBase64(bytes) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToU8(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* Code complexity calculator */
+function calculateComplexity(code) {
+  let score = 0;
+  score += (code.match(/function/g) || []).length * 2;
+  score += (code.match(/class/g) || []).length * 3;
+  score += (code.match(/\bif\b|\bfor\b|\bwhile\b/g) || []).length * 1;
+  return Math.min(score / 10, 1);
+}
+
+/* ==========================================
+   AUDIO VISUALIZER SYSTEM
+   ========================================== */
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let dataArray = null;
+let bufferLength = 0;
+let isAudioActive = false;
+let isAutoplay = false;
+let animationId = null;
+let currentShape = 'bars';
+let currentColorMode = 'rainbow';
+let dominantFreq = 0;
+let detectedBPM = 0;
+
+// Recording
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let recordStartTime = 0;
+let recordTimer = null;
+
+let canvas = null;
+let ctx = null;
+
+function initCanvas() {
+  canvas = document.getElementById('vizCanvas');
+  if (!canvas) return;
+  ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+async function startAudio() {
+  try {
+    initCanvas();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    microphone = audioContext.createMediaStreamSource(stream);
+    
+    analyser.fftSize = 256;
+    bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+    
+    microphone.connect(analyser);
+    
+    isAudioActive = true;
+    document.getElementById('startAudioBtn').textContent = '🔇 Stop Audio';
+    document.getElementById('startAudioBtn').classList.add('active');
+    
+    visualize();
+    
+    log('[AUDIO] Visualizer started', 'console');
+  } catch(err) {
+    log('[ERROR] Microphone access denied: ' + err.message, 'console');
+  }
+}
+
+function stopAudio() {
+  if (microphone) {
+    microphone.disconnect();
+    microphone = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+  isAudioActive = false;
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  document.getElementById('startAudioBtn').textContent = '🎤 Start Audio';
+  document.getElementById('startAudioBtn').classList.remove('active');
+  log('[AUDIO] Visualizer stopped', 'console');
+}
+
+function toggleAutoplay() {
+  isAutoplay = !isAutoplay;
+  const btn = document.getElementById('autoplayBtn');
+  btn.classList.toggle('active', isAutoplay);
+  btn.textContent = isAutoplay ? '⏸️ Pause' : '▶️ Autoplay';
+}
+
+function changeShape() {
+  currentShape = document.getElementById('shapeSelect').value;
+  log('[VIZ] Shape: ' + currentShape, 'console');
+}
+
+function changeColorMode() {
+  currentColorMode = document.getElementById('colorSelect').value;
+  log('[VIZ] Color: ' + currentColorMode, 'console');
+}
+
+function visualize() {
+  if (!isAudioActive) return;
+  
+  animationId = requestAnimationFrame(visualize);
+  analyser.getByteFrequencyData(dataArray);
+  
+  detectPattern();
+  
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  switch(currentShape) {
+    case 'bars': drawBars(); break;
+    case 'circle': drawCircle(); break;
+    case 'wave': drawWave(); break;
+    case 'spiral': drawSpiral(); break;
+    case 'particles': drawParticles(); break;
+    case 'mandala': drawMandala(); break;
+  }
+}
+
+function detectPattern() {
+  let sum = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    sum += dataArray[i];
+  }
+  const avg = sum / bufferLength;
+  
+  let maxVal = 0;
+  let maxIndex = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    if (dataArray[i] > maxVal) {
+      maxVal = dataArray[i];
+      maxIndex = i;
+    }
+  }
+  dominantFreq = Math.round((maxIndex * audioContext.sampleRate) / (analyser.fftSize * 2));
+  
+  if (maxVal > 200) {
+    detectedBPM = Math.round(60 + (maxVal / 255) * 120);
+  }
+  
+  let pattern = 'Silent';
+  if (avg > 150) pattern = 'Intense';
+  else if (avg > 100) pattern = 'Active';
+  else if (avg > 50) pattern = 'Moderate';
+  else if (avg > 20) pattern = 'Quiet';
+  
+  document.getElementById('patternInfo').textContent = 
+    `Pattern: ${pattern} | BPM: ${detectedBPM} | Frequency: ${dominantFreq} Hz`;
+}
+
+function getColor(index, total) {
+  const hue = (index / total) * 360;
+  
+  switch(currentColorMode) {
+    case 'rainbow':
+      return `hsl(${hue}, 100%, 50%)`;
+    case 'neon':
+      return `hsl(${280 + Math.sin(Date.now() / 500) * 80}, 100%, 50%)`;
+    case 'fire':
+      return `hsl(${Math.random() * 60}, 100%, 50%)`;
+    case 'ocean':
+      return `hsl(${180 + hue / 2}, 100%, 50%)`;
+    case 'matrix':
+      return `hsl(120, 100%, ${30 + (index / total) * 70}%)`;
+    default:
+      return `hsl(${hue}, 100%, 50%)`;
+  }
+}
+
+function drawBars() {
+  const barWidth = (canvas.width / bufferLength) * 2.5;
+  let x = 0;
+  
+  for (let i = 0; i < bufferLength; i++) {
+    const barHeight = (dataArray[i] / 255) * canvas.height;
+    ctx.fillStyle = getColor(i, bufferLength);
+    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+    x += barWidth + 1;
+  }
+}
+
+function drawCircle() {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) - 50;
+  
+  for (let i = 0; i < bufferLength; i++) {
+    const angle = (i / bufferLength) * Math.PI * 2;
+    const amp = (dataArray[i] / 255) * 100;
+    const x = centerX + Math.cos(angle) * (radius + amp);
+    const y = centerY + Math.sin(angle) * (radius + amp);
+    
+    ctx.fillStyle = getColor(i, bufferLength);
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawWave() {
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const sliceWidth = canvas.width / bufferLength;
+  let x = 0;
+  
+  for (let i = 0; i < bufferLength; i++) {
+    const v = dataArray[i] / 128.0;
+    const y = v * canvas.height / 2;
+    
+    ctx.strokeStyle = getColor(i, bufferLength);
+    
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+    
+    x += sliceWidth;
+  }
+  
+  ctx.stroke();
+}
+
+function drawSpiral() {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const time = Date.now() / 1000;
+  
+  for (let i = 0; i < bufferLength; i++) {
+    const angle = (i / bufferLength) * Math.PI * 4 + time;
+    const radius = (i / bufferLength) * 200;
+    const amp = (dataArray[i] / 255) * 50;
+    const x = centerX + Math.cos(angle) * (radius + amp);
+    const y = centerY + Math.sin(angle) * (radius + amp);
+    
+    ctx.fillStyle = getColor(i, bufferLength);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawParticles() {
+  for (let i = 0; i < 50; i++) {
+    const dataIndex = Math.floor((i / 50) * bufferLength);
+    const amp = dataArray[dataIndex] / 255;
+    
+    const x = (Math.random() * canvas.width);
+    const y = (Math.random() * canvas.height) * amp;
+    const size = amp * 10;
+    
+    ctx.fillStyle = getColor(i, 50);
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawMandala() {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const petals = 8;
+  
+  for (let i = 0; i < bufferLength; i += 4) {
+    for (let p = 0; p < petals; p++) {
+      const angle = (p / petals) * Math.PI * 2;
+      const radius = (dataArray[i] / 255) * 150;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      
+      ctx.fillStyle = getColor(i, bufferLength);
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    initCanvas();
+    const canvasStream = canvas.captureStream(30);
+    
+    const options = { mimeType: 'video/webm;codecs=vp9' };
+    
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options.mimeType = 'video/webm;codecs=vp8';
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options.mimeType = 'video/webm';
+      }
+    }
+    
+    mediaRecorder = new MediaRecorder(canvasStream, options);
+    recordedChunks = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nexus-visualizer-${Date.now()}.webm`;
+      a.click();
+      
+      log('[RECORDER] Video saved!', 'console');
+      URL.revokeObjectURL(url);
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    recordStartTime = Date.now();
+    
+    document.getElementById('recordBtn').textContent = '⏹️ Stop';
+    document.getElementById('recordBtn').classList.add('active');
+    document.getElementById('recordInfo').style.display = 'block';
+    
+    recordTimer = setInterval(updateRecordTime, 1000);
+    
+    log('[RECORDER] Recording started!', 'console');
+  } catch(err) {
+    log('[ERROR] Recording failed: ' + err.message, 'console');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    
+    clearInterval(recordTimer);
+    recordTimer = null;
+    
+    document.getElementById('recordBtn').textContent = '🔴 Record';
+    document.getElementById('recordBtn').classList.remove('active');
+    document.getElementById('recordInfo').style.display = 'none';
+    
+    log('[RECORDER] Recording stopped', 'console');
+  }
+}
+
+function updateRecordTime() {
+  const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  document.getElementById('recordTime').textContent = 
+    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function takeScreenshot() {
+  if (!canvas) {
+    log('[ERROR] Start the visualizer first!', 'console');
+    return;
+  }
+  
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nexus-screenshot-${Date.now()}.png`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    log('[SCREENSHOT] Image saved!', 'console');
+  }, 'image/png');
+}
+
+/* ==========================================
+   MAIN APPLICATION
+   ========================================== */
+const vault = new KnowledgeVault();
+let currentPanel = 'code';
+
+const $ = id => document.getElementById(id);
+
+const defaultCode = `// Welcome to NEXUS Unified System
+// Start coding here...
+
+console.log('🚀 NEXUS Dashboard Ready!');
+
+// Example: Integrated environment
+const NEXUS = {
+  clock: {
+    bpm: 120,
+    phase: 0,
+    start() {
+      console.log('Clock started at ' + this.bpm + ' BPM');
+    }
+  },
+  audio: {
+    spectralCentroid: 440,
+    synthesize(freq) {
+      return \`Synthesizing at \${freq}Hz\`;
+    }
+  },
+  swarm: {
+    agents: 7,
+    analyze(code) {
+      return {
+        complexity: code.length / 1000,
+        patterns: (code.match(/function/g) || []).length
+      };
+    }
+  }
+};
+
+// Test the system
+NEXUS.clock.start();
+console.log(NEXUS.audio.synthesize(440));
+const analysis = NEXUS.swarm.analyze('example');
+console.log('Code analysis:', analysis);
+`;
+
+function log(msg, to='console') {
+  const box = $(to);
+  const line = document.createElement('div');
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function switchPanel(panel) {
+  currentPanel = panel;
+  
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.panel === panel);
+  });
+  
+  renderPanel();
+}
+
+function renderPanel() {
+  const main = $('mainPanel');
+  
+  if (currentPanel === 'code') {
+    const savedCode = localStorage.getItem('nexus.code') || defaultCode;
+    main.innerHTML = `
+      <div class="panel-header">
+        <div class="panel-title">💻 Code Editor</div>
+      </div>
+      <div class="panel-body">
+        <textarea id="codepad" class="codepad" spellcheck="false">${savedCode}</textarea>
+      </div>
+    `;
+  }
+  else if (currentPanel === 'swarm') {
+    main.innerHTML = `
+      <div class="panel-header">
+        <div class="panel-title">🤖 Swarm Intelligence</div>
+      </div>
+      <div class="panel-body">
+        <div class="swarm-container" id="swarmContainer"></div>
+      </div>
+    `;
+    renderSwarm();
+  }
+  else if (currentPanel === 'output') {
+    main.innerHTML = `
+      <div class="panel-header">
+        <div class="panel-title">📊 Output Console</div>
+      </div>
+      <div class="panel-body">
+        <div id="outputArea" class="scrollbox" style="height:100%; background:#000; border-radius:10px; padding:12px; font-size:12px;"></div>
+      </div>
+    `;
+  }
+  else if (currentPanel === 'vault') {
+    const entries = vault.getEntries();
+    const entryHtml = entries.length === 0 
+      ? '<div class="muted">No vault entries yet. Run code to create snapshots.</div>'
+      : entries.map((entry, i) => `
+        <div class="vault-entry">
+          <div class="vault-header">
+            <span class="vault-timestamp">#${i + 1} • ${new Date(entry.t).toLocaleString()}</span>
+            <span class="vault-reason">${entry.reason || 'snapshot'}</span>
+          </div>
+          <div class="vault-meta">
+            Panel: ${entry.panel || 'unknown'} • 
+            Complexity: ${((entry.analysis?.complexity || 0) * 100).toFixed(1)}%
+          </div>
+          ${entry.code ? `<div class="vault-code">${entry.code.substring(0, 300)}${entry.code.length > 300 ? '...' : ''}</div>` : ''}
+        </div>
+      `).join('');
+    
+    main.innerHTML = `
+      <div class="panel-header">
+        <div class="panel-title">🗄️ Knowledge Vault</div>
+        <button class="header-btn" onclick="vault.clear(); switchPanel('vault');" style="padding:6px 12px; font-size:12px;">🗑️ Clear</button>
+      </div>
+      <div class="panel-body">
+        <div class="vault-list">${entryHtml}</div>
+      </div>
+    `;
+  }
+}
+
+function renderSwarm() {
+  const container = $('swarmContainer');
+  if (!container) return;
+  
+  const agents = [
+    { name: "Data Sentinel", color: "#64ffda", x: 20, y: 20 },
+    { name: "Code Oracle", color: "#57cbff", x: 80, y: 30 },
+    { name: "Pattern Watcher", color: "#f57dff", x: 60, y: 70 },
+    { name: "Strategy Architect", color: "#ff9e64", x: 40, y: 50 },
+  ];
+  
+  agents.forEach(agent => {
+    const div = document.createElement('div');
+    div.className = 'agent';
+    div.style.left = `${agent.x}%`;
+    div.style.top = `${agent.y}%`;
+    div.style.background = agent.color;
+    div.style.color = '#000';
+    div.style.boxShadow = `0 0 20px ${agent.color}`;
+    div.title = agent.name;
+    div.textContent = agent.name.split(' ').map(w => w[0]).join('');
+    container.appendChild(div);
+  });
+}
+
+function runCode() {
+  const code = $('codepad') ? $('codepad').value : '';
+  
+  const ok = document.createElement('div');
+  ok.className = 'ok';
+  ok.textContent = '[OK] Running code...';
+  $('analyst').appendChild(ok);
+  $('analyst').scrollTop = $('analyst').scrollHeight;
+  
+  try {
+    const result = eval(code);
+    const r = (result !== undefined) ? (' → ' + String(result)) : '';
+    
+    const success = document.createElement('div');
+    success.className = 'ok';
+    success.textContent = '✅ Code executed' + r;
+    $('analyst').appendChild(success);
+    $('analyst').scrollTop = $('analyst').scrollHeight;
+    
+    log('[OK] Execution successful', 'console');
+    
+    // Save to vault
+    snapshotToVault('run-success');
+  } catch(err) {
+    const error = document.createElement('div');
+    error.className = 'err';
+    error.textContent = '❌ ERROR: ' + err.message;
+    $('console').appendChild(error);
+    $('console').scrollTop = $('console').scrollHeight;
+    
+    log('[ERROR] ' + err.message, 'console');
+  }
+}
+
+function saveFile() {
+  const code = $('codepad') ? $('codepad').value : '';
+  localStorage.setItem('nexus.code', code);
+  log('[SYSTEM] Code saved', 'console');
+  
+  const ok = document.createElement('div');
+  ok.className = 'ok';
+  ok.textContent = '💾 File saved successfully';
+  $('analyst').appendChild(ok);
+  $('analyst').scrollTop = $('analyst').scrollHeight;
+}
+
+function formatCode() {
+  const codepad = $('codepad');
+  if (!codepad) return;
+  
+  const formatted = codepad.value
+    .replace(/\{\s*/g, " {\n    ")
+    .replace(/\}\s*/g, "\n}\n")
+    .replace(/;\s*/g, ";\n");
+  codepad.value = formatted;
+  
+  log('[SYSTEM] Code formatted', 'console');
+}
+
+function snapshotToVault(reason) {
+  const code = $('codepad') ? $('codepad').value : '';
+  const complexity = calculateComplexity(code);
+  vault.add({
+    t: Date.now(),
+    reason,
+    code,
+    panel: currentPanel,
+    analysis: { complexity }
+  });
+}
+
+async function exportBrain() {
+  const obj = vault.exportObject();
+  const json = JSON.stringify(obj);
+  const gz = await compressStringGzip(json);
+  const pkg = { 
+    format: "NexusBrainV1", 
+    compressed: true, 
+    gzipBase64: u8ToBase64(gz), 
+    rawSize: json.length 
+  };
+  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `nexus-brain-${Date.now()}.json`;
+  a.click();
+  
+  URL.revokeObjectURL(a.href);
+  log('[BRAIN] Vault exported', 'console');
+}
+
+async function importBrainFromFile(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  
+  const text = await file.text();
+  try {
+    const pkg = JSON.parse(text);
+    if (pkg && pkg.format === "NexusBrainV1" && pkg.compressed && pkg.gzipBase64) {
+      const bytes = base64ToU8(pkg.gzipBase64);
+      const json = await decompressToStringGzip(bytes);
+      const obj = JSON.parse(json);
+      vault.importObject(obj);
+    } else {
+      vault.importObject(JSON.parse(text));
+    }
+    log('[BRAIN] Vault imported', 'console');
+  } catch(err) {
+    log('[ERROR] Import failed: ' + err.message, 'console');
+  }
+  e.target.value = "";
+}
+
+function openVisualizer() {
+  $('visualizerPanel').classList.add('active');
+}
+
+function closeVisualizer() {
+  $('visualizerPanel').classList.remove('active');
+  if (isAudioActive) stopAudio();
+}
+
+/* ==========================================
+   INITIALIZATION
+   ========================================== */
+window.addEventListener('load', () => {
+  console.log('%c🚀 NEXUS Unified System Ready!', 'color: #b6ff00; font-size: 18px; font-weight: bold;');
+  
+  renderPanel();
+  
+  log('[SYSTEM] NEXUS Unified System initialized', 'console');
+  log('[VAULT] Knowledge Vault ready (' + vault.getEntries().length + ' entries)', 'console');
+  
+  // Make NEXUS available globally
+  window.NEXUS = {
+    vault,
+    switchPanel,
+    runCode,
+    saveFile,
+    formatCode,
+    exportBrain
+  };
+  
+  console.log('%c💡 TIP: Use window.NEXUS to interact with the system', 'color: #9aa7b5;');
+});
+</script>
+</body>
+</html>

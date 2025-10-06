@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 3 & 4: Color Fill System</title>
+    <style>
+        :root {
+            --bg: #0b0b0f;
+            --panel: #0f121f;
+            --accent: #72f6d1;
+            --text: #eaf1ff;
+            --muted: #9fb3ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(180deg, #11182c, #0b1030);
+            border-bottom: 1px solid #1c2a54;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .panel-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .panel-header {
+            background: var(--panel);
+            border: 1px solid #213261;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            font-size: 1rem;
+            color: var(--accent);
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: #000;
+            border: 1px solid #20325f;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .toolbar {
+            background: var(--panel);
+            border: 1px solid #213261;
+            border-radius: 8px;
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            flex: 1;
+            min-width: 80px;
+            background: #13254d;
+            color: #dbe6ff;
+            border: 1px solid #29427c;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #183064;
+            border-color: var(--accent);
+        }
+
+        .tool-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        .color-picker-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #29427c;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .size-control {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: #1c2746;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .stats {
+            background: var(--panel);
+            border: 1px solid #213261;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .stat-item {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+        }
+
+        .stat-value {
+            color: var(--accent);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Lab 3 & 4: Color Fill System</h1>
+                <div class="subtitle">Interactive painting with complementary fill algorithms</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="math-lab-2.html" style="padding: 0.5rem 1rem; background: #1c2a54; border: 1px solid #72f6d1; color: #72f6d1; border-radius: 4px; text-decoration: none; font-size: 1rem;">← Lab 2</a>
+                <a href="math-lab-5.html" style="padding: 0.5rem 1rem; background: #1c2a54; border: 1px solid #72f6d1; color: #72f6d1; border-radius: 4px; text-decoration: none; font-size: 1rem;">Lab 5 →</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Lab 3: Main Fill Panel -->
+        <div class="panel-wrapper">
+            <div class="panel-header">
+                <h2>🎨 Lab 3: Primary Fill</h2>
+                <button class="tool-btn" id="btn3Clear">Clear</button>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="canvas3"></canvas>
+            </div>
+
+            <div class="toolbar">
+                <button class="tool-btn active" data-tool="paint">🖌️ Paint</button>
+                <button class="tool-btn" data-tool="fill">🪣 Fill</button>
+                <button class="tool-btn" data-tool="spray">💨 Spray</button>
+                <button class="tool-btn" data-tool="erase">🧹 Erase</button>
+            </div>
+
+            <div class="toolbar">
+                <div class="color-picker-row">
+                    <input type="color" id="color3" value="#72f6d1">
+                    <div class="size-control">
+                        <span>Size:</span>
+                        <input type="range" id="size3" min="5" max="100" value="20">
+                        <span id="size3Value">20</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Coverage:</span>
+                    <span class="stat-value" id="coverage3">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Strokes:</span>
+                    <span class="stat-value" id="strokes3">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab 4: Complementary Fill -->
+        <div class="panel-wrapper">
+            <div class="panel-header">
+                <h2>✨ Lab 4: Complementary Fill</h2>
+                <button class="tool-btn" id="btn4Clear">Clear</button>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="canvas4"></canvas>
+            </div>
+
+            <div class="toolbar">
+                <button class="tool-btn active" data-tool4="voronoi">📐 Voronoi</button>
+                <button class="tool-btn" data-tool4="delaunay">🔷 Delaunay</button>
+                <button class="tool-btn" data-tool4="grid">⊞ Grid</button>
+                <button class="tool-btn" data-tool4="organic">🌿 Organic</button>
+            </div>
+
+            <div class="toolbar">
+                <div class="color-picker-row">
+                    <input type="color" id="color4" value="#ff79c6">
+                    <div class="size-control">
+                        <span>Density:</span>
+                        <input type="range" id="density4" min="10" max="100" value="30">
+                        <span id="density4Value">30</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Coverage:</span>
+                    <span class="stat-value" id="coverage4">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Cells:</span>
+                    <span class="stat-value" id="cells4">0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="./math-lab-3-4.js"></script>
+</body>
+</html>

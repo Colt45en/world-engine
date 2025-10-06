@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heightfield Codex — Image to 3D Mesh</title>
+    <style>
+        :root {
+            --bg: #0a0f17;
+            --ink: #e9f0ff;
+            --muted: #9fb0d1;
+            --line: rgba(170,220,255,.25);
+            --accent: #3b82f6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: var(--bg); 
+            color: var(--ink); 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+        h1 { margin-bottom: 1.5rem; font-size: 1.5rem; }
+        .controls { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .control { 
+            display: flex; 
+            align-items: center; 
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+        label { min-width: 80px; color: var(--muted); }
+        input[type="text"] {
+            flex: 1;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: var(--line);
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            width: 16px; height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="checkbox"] {
+            width: 18px; height: 18px;
+            cursor: pointer;
+        }
+        .value { min-width: 50px; text-align: right; color: var(--muted); }
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        button:hover:not(:disabled) { 
+            background: #60a5fa; 
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .format-options {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        .format-options label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: auto;
+        }
+        pre {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.75rem;
+            max-height: 300px;
+            overflow-y: auto;
+            color: var(--muted);
+            margin-top: 1.5rem;
+            white-space: pre-wrap;
+        }
+        .info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏔️ Heightfield Codex — Image → 3D Mesh ZIP</h1>
+        
+        <div class="info">
+            Upload a grayscale image (bright = high, dark = low) to generate a 3D heightfield mesh.
+            Exports PNG thumbnail + GLB/OBJ/PLY formats in a ZIP file.
+        </div>
+
+        <div class="controls">
+            <div class="control">
+                <label>Name</label>
+                <input type="text" id="name" value="heightfield">
+            </div>
+            
+            <div class="control">
+                <label>Grid Size</label>
+                <input type="range" id="gridSize" min="32" max="512" step="16" value="128">
+                <span class="value" id="gridSizeVal">128</span>
+            </div>
+
+            <div class="control">
+                <label>Height Scale</label>
+                <input type="range" id="heightScale" min="0" max="5" step="0.05" value="1">
+                <span class="value" id="heightScaleVal">1.00</span>
+            </div>
+
+            <div class="control">
+                <label>Smoothing</label>
+                <input type="range" id="smoothIter" min="0" max="10" step="1" value="0">
+                <span class="value" id="smoothIterVal">0</span>
+            </div>
+        </div>
+
+        <div class="format-options">
+            <span style="color: var(--muted);">Export Formats:</span>
+            <label><input type="checkbox" id="fmtGLB" checked> GLB</label>
+            <label><input type="checkbox" id="fmtOBJ"> OBJ</label>
+            <label><input type="checkbox" id="fmtPLY" checked> PLY</label>
+        </div>
+
+        <button id="runBtn">📁 Choose Image & Generate</button>
+
+        <pre id="log">Ready. Choose an image to generate a heightfield mesh.</pre>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <script type="module">
+    import * as THREE from 'three';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+    import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
+
+    const $ = (id) => document.getElementById(id);
+    const fileInput = $('fileInput');
+    const logEl = $('log');
+    let busy = false;
+
+    function log(...lines) {
+        logEl.textContent = lines.join('\n');
+    }
+
+    // UI Updates
+    ['gridSize', 'heightScale', 'smoothIter'].forEach(id => {
+        const el = $(id);
+        const val = $(id + 'Val');
+        el.addEventListener('input', () => {
+            const v = parseFloat(el.value);
+            val.textContent = id === 'gridSize' || id === 'smoothIter' ? v : v.toFixed(2);
+        });
+    });
+
+    $('runBtn').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        await processImage(file);
+    });
+
+    async function processImage(file) {
+        if (busy) return;
+        busy = true;
+        $('runBtn').disabled = true;
+
+        const config = {
+            name: $('name').value || 'heightfield',
+            gridSize: parseInt($('gridSize').value),
+            heightScale: parseFloat($('heightScale').value),
+            smoothIter: parseInt($('smoothIter').value),
+            pngSize: 768,
+            exportGLB: $('fmtGLB').checked,
+            exportOBJ: $('fmtOBJ').checked,
+            exportPLY: $('fmtPLY').checked
+        };
+
+        log(`▶ Reading image: ${file.name}`);
+
+        try {
+            // Load image
+            const img = await loadImage(file);
+            log(`• Image loaded: ${img.width}×${img.height}px`);
+
+            // Sample to heightfield
+            const heights = imageToHeights(img, config.gridSize, config.gridSize);
+            log(`• Sampled to ${config.gridSize}×${config.gridSize} grid`);
+
+            // Build geometry
+            let geo = buildHeightfieldGeometry(heights, config.gridSize, config.gridSize, config.heightScale);
+            log(`• Built geometry: ${geo.attributes.position.count} vertices`);
+
+            // Smooth if requested
+            if (config.smoothIter > 0) {
+                laplacianSmooth(geo, config.smoothIter);
+                log(`• Smoothed (${config.smoothIter} iterations)`);
+            }
+
+            // Center and normalize
+            centerAndUnitize(geo);
+            log(`• Centered and normalized`);
+
+            // Create mesh
+            const mesh = new THREE.Mesh(
+                geo,
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x9fb2d8, 
+                    metalness: 0.05, 
+                    roughness: 0.75 
+                })
+            );
+            mesh.name = config.name;
+
+            // Render thumbnail
+            log(`• Rendering thumbnail...`);
+            const pngBlob = await renderPNG(mesh, config.pngSize);
+            log(`• Thumbnail rendered (${config.pngSize}×${config.pngSize}px)`);
+
+            // Export formats
+            const files = {};
+            files[`${config.name}.png`] = pngBlob;
+
+            if (config.exportGLB) {
+                log(`• Exporting GLB...`);
+                files[`${config.name}.glb`] = await exportGLB(mesh);
+            }
+
+            if (config.exportOBJ) {
+                log(`• Exporting OBJ...`);
+                files[`${config.name}.obj`] = exportOBJ(mesh);
+            }
+
+            if (config.exportPLY) {
+                log(`• Exporting PLY...`);
+                files[`${config.name}.ply`] = exportPLY(geo);
+            }
+
+            // Create manifest
+            const manifest = {
+                codex: "heightfield_codex",
+                createdAt: new Date().toISOString(),
+                item: {
+                    name: config.name,
+                    files: Object.keys(files),
+                    params: {
+                        gridSize: config.gridSize,
+                        heightScale: config.heightScale,
+                        smoothIter: config.smoothIter
+                    }
+                }
+            };
+            files[`${config.name}_manifest.json`] = new Blob(
+                [JSON.stringify(manifest, null, 2)], 
+                { type: 'application/json' }
+            );
+
+            // Create ZIP
+            log(`• Creating ZIP...`);
+            const zip = new JSZip();
+            Object.entries(files).forEach(([name, blob]) => {
+                zip.file(name, blob);
+            });
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            
+            // Download
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(zipBlob);
+            a.download = `${config.name}.zip`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+
+            log(`✓ Complete!
+✓ Downloaded ${config.name}.zip
+✓ Contains: ${Object.keys(files).join(', ')}
+✓ Vertices: ${geo.attributes.position.count}
+✓ Faces: ${geo.index ? geo.index.count / 3 : 0}`);
+
+        } catch (err) {
+            log(`✗ Error: ${err.message}`);
+            console.error(err);
+        } finally {
+            busy = false;
+            $('runBtn').disabled = false;
+        }
+    }
+
+    // Helper Functions
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            const reader = new FileReader();
+            reader.onload = () => { img.src = reader.result; };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function imageToHeights(img, W, H) {
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, W, H);
+        
+        const { data } = ctx.getImageData(0, 0, W, H);
+        const heights = new Float32Array(W * H);
+        
+        for (let i = 0; i < W * H; i++) {
+            const r = data[i * 4];
+            const g = data[i * 4 + 1];
+            const b = data[i * 4 + 2];
+            // Luminance
+            const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+            heights[i] = lum;
+        }
+        
+        return heights;
+    }
+
+    function buildHeightfieldGeometry(heights, W, H, heightScale) {
+        const dx = 1 / (W - 1);
+        const dy = 1 / (H - 1);
+        const pos = [];
+        const idx = [];
+
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                const u = x * dx;
+                const v = y * dy;
+                const h = heights[y * W + x];
+                const z = (h - 0.5) * 2 * heightScale;
+                pos.push((u - 0.5) * 2, z, (v - 0.5) * 2);
+            }
+        }
+
+        for (let y = 0; y < H - 1; y++) {
+            for (let x = 0; x < W - 1; x++) {
+                const i = y * W + x;
+                idx.push(i, i + W, i + 1);
+                idx.push(i + 1, i + W, i + W + 1);
+            }
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(pos), 3));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        
+        return geo;
+    }
+
+    function laplacianSmooth(geo, iterations) {
+        const pos = geo.getAttribute('position');
+        const indices = geo.index ? geo.index.array : [...Array(pos.count).keys()];
+        const n = pos.count;
+
+        // Build adjacency
+        const adj = Array.from({ length: n }, () => new Set());
+        for (let i = 0; i < indices.length; i += 3) {
+            const a = indices[i];
+            const b = indices[i + 1];
+            const c = indices[i + 2];
+            adj[a].add(b).add(c);
+            adj[b].add(a).add(c);
+            adj[c].add(a).add(b);
+        }
+
+        const tmp = new Float32Array(n * 3);
+
+        for (let iter = 0; iter < iterations; iter++) {
+            for (let i = 0; i < n; i++) {
+                let sx = 0, sy = 0, sz = 0, count = 0;
+                adj[i].forEach(j => {
+                    sx += pos.getX(j);
+                    sy += pos.getY(j);
+                    sz += pos.getZ(j);
+                    count++;
+                });
+
+                if (count > 0) {
+                    tmp[i * 3 + 0] = (pos.getX(i) + sx / count) * 0.5;
+                    tmp[i * 3 + 1] = (pos.getY(i) + sy / count) * 0.5;
+                    tmp[i * 3 + 2] = (pos.getZ(i) + sz / count) * 0.5;
+                } else {
+                    tmp[i * 3 + 0] = pos.getX(i);
+                    tmp[i * 3 + 1] = pos.getY(i);
+                    tmp[i * 3 + 2] = pos.getZ(i);
+                }
+            }
+            pos.array.set(tmp);
+            pos.needsUpdate = true;
+        }
+        
+        geo.computeVertexNormals();
+    }
+
+    function centerAndUnitize(geo) {
+        geo.computeBoundingBox();
+        const bb = geo.boundingBox;
+        const center = new THREE.Vector3();
+        bb.getCenter(center);
+        const size = new THREE.Vector3();
+        bb.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z) || 1e-6;
+        const scale = 2 / maxDim;
+
+        const p = geo.getAttribute('position');
+        for (let i = 0; i < p.count; i++) {
+            p.setXYZ(
+                i,
+                (p.getX(i) - center.x) * scale,
+                (p.getY(i) - center.y) * scale,
+                (p.getZ(i) - center.z) * scale
+            );
+        }
+        p.needsUpdate = true;
+        geo.computeBoundingSphere();
+    }
+
+    async function renderPNG(mesh, size) {
+        const canvas = document.createElement('canvas');
+        const renderer = new THREE.WebGLRenderer({ 
+            canvas, 
+            antialias: true, 
+            preserveDrawingBuffer: true 
+        });
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+        renderer.setSize(size, size, false);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1f2e);
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x223344, 0.9));
+        scene.add(mesh.clone(true));
+
+        const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 100);
+        const box = new THREE.Box3().setFromObject(scene);
+        const sphere = new THREE.Sphere();
+        box.getBoundingSphere(sphere);
+        const dist = sphere.radius / Math.tan((camera.fov * Math.PI) / 360) * 1.35;
+        camera.position.copy(sphere.center).add(
+            new THREE.Vector3(0.3, 0.4, 1).normalize().multiplyScalar(dist)
+        );
+        camera.lookAt(sphere.center);
+        camera.near = Math.max(0.01, dist / 100);
+        camera.far = dist * 10;
+        camera.updateProjectionMatrix();
+
+        renderer.render(scene, camera);
+
+        return new Promise((resolve, reject) => {
+            canvas.toBlob(
+                b => b ? resolve(b) : reject(new Error('toBlob failed')),
+                'image/png'
+            );
+        });
+    }
+
+    async function exportGLB(mesh) {
+        const exporter = new GLTFExporter();
+        const scene = new THREE.Scene();
+        scene.add(mesh.clone(true));
+
+        return new Promise((resolve, reject) => {
+            exporter.parse(
+                scene,
+                (result) => {
+                    if (result instanceof ArrayBuffer) {
+                        resolve(new Blob([result], { type: 'model/gltf-binary' }));
+                    } else {
+                        resolve(new Blob([JSON.stringify(result)], { type: 'application/json' }));
+                    }
+                },
+                reject,
+                { binary: true }
+            );
+        });
+    }
+
+    function exportOBJ(mesh) {
+        const exporter = new OBJExporter();
+        const text = exporter.parse(mesh);
+        return new Blob([text], { type: 'text/plain' });
+    }
+
+    function exportPLY(geo) {
+        const pos = geo.getAttribute('position');
+        const norm = geo.getAttribute('normal');
+        const indices = geo.index ? geo.index.array : [...Array(pos.count).keys()];
+        
+        const lines = [];
+        lines.push('ply');
+        lines.push('format ascii 1.0');
+        lines.push(`element vertex ${pos.count}`);
+        lines.push('property float x');
+        lines.push('property float y');
+        lines.push('property float z');
+        
+        if (norm) {
+            lines.push('property float nx');
+            lines.push('property float ny');
+            lines.push('property float nz');
+        }
+        
+        const faceCount = Math.floor(indices.length / 3);
+        lines.push(`element face ${faceCount}`);
+        lines.push('property list uchar int vertex_indices');
+        lines.push('end_header');
+
+        // Vertices
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i);
+            const y = pos.getY(i);
+            const z = pos.getZ(i);
+            
+            if (norm) {
+                const nx = norm.getX(i);
+                const ny = norm.getY(i);
+                const nz = norm.getZ(i);
+                lines.push(`${x} ${y} ${z} ${nx} ${ny} ${nz}`);
+            } else {
+                lines.push(`${x} ${y} ${z}`);
+            }
+        }
+
+        // Faces
+        for (let i = 0; i < indices.length; i += 3) {
+            lines.push(`3 ${indices[i]} ${indices[i+1]} ${indices[i+2]}`);
+        }
+
+        return new Blob([lines.join('\n')], { type: 'text/plain' });
+    }
+    </script>
+</body>
+</html>

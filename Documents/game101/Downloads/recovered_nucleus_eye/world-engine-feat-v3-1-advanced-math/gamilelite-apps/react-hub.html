@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameLite React Apps Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0f17 0%, #1a1a2e 100%);
+            color: #e9f0ff;
+            min-height: 100vh;
+        }
+
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            color: #9fb0d1;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading React Apps...</div>
+        </div>
+    </div>
+
+    <!-- React Development Build (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Main App Script -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Main App Component
+        function App() {
+            const [mode, setMode] = useState('menu');
+
+            // Render menu
+            const renderMenu = () => (
+                <div style={styles.menuContainer}>
+                    <div style={styles.header}>
+                        <h1 style={styles.title}>🎮 GameLite React Hub</h1>
+                        <p style={styles.subtitle}>Select an application to launch</p>
+                    </div>
+
+                    <div style={styles.grid}>
+                        <a href="react-sandbox.html" style={{...styles.card, ...styles.featuredCard}}>
+                            <div style={styles.cardIcon}>⚛️</div>
+                            <h2 style={styles.cardTitle}>React Sandbox</h2>
+                            <p style={styles.cardDesc}>Unified React components hub</p>
+                            <div style={styles.badge}>NEW</div>
+                        </a>
+
+                        <a href="r3f-sandbox.html" style={{...styles.card, ...styles.featuredCard}}>
+                            <div style={styles.cardIcon}>🎮</div>
+                            <h2 style={styles.cardTitle}>R3F Sandbox</h2>
+                            <p style={styles.cardDesc}>React Three Fiber game builder</p>
+                            <div style={styles.badge}>NEW</div>
+                        </a>
+
+                        <a href="game-builder-grid.html" style={styles.card}>
+                            <div style={styles.cardIcon}>🎲</div>
+                            <h2 style={styles.cardTitle}>Game Builder (Classic)</h2>
+                            <p style={styles.cardDesc}>Vanilla Three.js with terrain tools</p>
+                        </a>
+
+                        <a href="WebStore.html" style={styles.card}>
+                            <div style={styles.cardIcon}>🛒</div>
+                            <h2 style={styles.cardTitle}>WebStore</h2>
+                            <p style={styles.cardDesc}>E-commerce platform for digital assets</p>
+                        </a>
+
+                        <a href="png-to-glb-converter.html" style={styles.card}>
+                            <div style={styles.cardIcon}>🖼️</div>
+                            <h2 style={styles.cardTitle}>PNG to GLB</h2>
+                            <p style={styles.cardDesc}>Convert images to 3D models</p>
+                        </a>
+
+                        <a href="threejs-interactive-demo.html" style={styles.card}>
+                            <div style={styles.cardIcon}>🎨</div>
+                            <h2 style={styles.cardTitle}>Three.js Demo</h2>
+                            <p style={styles.cardDesc}>Interactive 3D sandbox</p>
+                        </a>
+
+                        <a href="index.html" style={styles.card}>
+                            <div style={styles.cardIcon}>🏠</div>
+                            <h2 style={styles.cardTitle}>Main Hub</h2>
+                            <p style={styles.cardDesc}>Complete platform with all tools</p>
+                        </a>
+
+                        <a href="RNES-Nexus-Visualizer.html" style={styles.card}>
+                            <div style={styles.cardIcon}>🎵</div>
+                            <h2 style={styles.cardTitle}>Nexus Visualizer</h2>
+                            <p style={styles.cardDesc}>Audio visualization engine</p>
+                        </a>
+
+                        <a href="Avatar-Pipeline.html" style={styles.card}>
+                            <div style={styles.cardIcon}>👤</div>
+                            <h2 style={styles.cardTitle}>Avatar Pipeline</h2>
+                            <p style={styles.cardDesc}>Character creation system</p>
+                        </a>
+                    </div>
+
+                    <div style={styles.footer}>
+                        <p style={styles.footerText}>
+                            💡 Each app is standalone - click to open in full screen
+                        </p>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div style={styles.appContainer}>
+                    {renderMenu()}
+                </div>
+            );
+        }
+
+        // Styles
+        const styles = {
+            appContainer: {
+                width: '100vw',
+                minHeight: '100vh',
+                background: 'linear-gradient(135deg, #0a0f17 0%, #1a1a2e 100%)',
+                color: '#e9f0ff',
+            },
+
+            menuContainer: {
+                maxWidth: '1400px',
+                margin: '0 auto',
+                padding: '2rem',
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+            },
+
+            header: {
+                textAlign: 'center',
+                marginBottom: '3rem',
+            },
+
+            title: {
+                fontSize: '3rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '0.5rem',
+            },
+
+            subtitle: {
+                fontSize: '1.2rem',
+                color: '#9fb0d1',
+            },
+
+            grid: {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '1.5rem',
+                marginBottom: '3rem',
+            },
+
+            card: {
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '16px',
+                padding: '2rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                textAlign: 'center',
+                textDecoration: 'none',
+                color: 'inherit',
+                display: 'block',
+                position: 'relative',
+            },
+
+            featuredCard: {
+                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
+                border: '2px solid rgba(102, 126, 234, 0.5)',
+            },
+
+            badge: {
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '12px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+            },
+
+            cardIcon: {
+                fontSize: '4rem',
+                marginBottom: '1rem',
+            },
+
+            cardTitle: {
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                marginBottom: '0.5rem',
+                color: '#e9f0ff',
+            },
+
+            cardDesc: {
+                fontSize: '0.9rem',
+                color: '#9fb0d1',
+                lineHeight: 1.5,
+            },
+
+            footer: {
+                textAlign: 'center',
+                padding: '2rem 0',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            },
+
+            footerText: {
+                color: '#9fb0d1',
+                fontSize: '0.9rem',
+            },
+        };
+
+        // Add hover effect via CSS
+        const styleSheet = document.createElement("style");
+        styleSheet.textContent = `
+            a[style*="card"]:hover {
+                transform: translateY(-8px);
+                border-color: rgba(102, 126, 234, 0.5) !important;
+                box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+            }
+        `;
+        document.head.appendChild(styleSheet);
+
+        // Render App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

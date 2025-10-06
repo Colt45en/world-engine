@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Silhouette to 3D Voxel Model</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body class="bg-slate-900 text-white">
+    <div class="p-6 max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2">🧊 Silhouette to 3D Voxel Converter</h1>
+        <p class="text-slate-400 mb-6">Upload paper cutout silhouettes (like upper body, profile, etc.) to create 3D voxel models</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Upload Section -->
+            <div class="bg-slate-800 rounded-lg p-4">
+                <h2 class="text-xl font-bold mb-4">📤 Upload</h2>
+                <button id="uploadBtn" class="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold mb-3">
+                    📁 Upload Silhouette PNG
+                </button>
+                
+                <div class="space-y-2 text-sm">
+                    <div class="mb-3">
+                        <label class="block mb-1 font-bold text-cyan-400">Preset:</label>
+                        <select id="presetMode" class="w-full bg-slate-700 rounded px-3 py-2">
+                            <option value="balanced">🎯 Balanced (recommended)</option>
+                            <option value="chunky">🧊 Chunky/Thick 3D</option>
+                            <option value="detailed">✨ High Detail</option>
+                            <option value="minimal">⚡ Fast/Minimal</option>
+                            <option value="custom">⚙️ Custom Settings</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Voxel Size:</span>
+                        <input type="range" id="voxelSize" min="0.05" max="0.3" step="0.01" value="0.08" class="w-32">
+                        <span id="voxelSizeVal" class="font-mono">0.08</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Depth Factor:</span>
+                        <input type="range" id="depthFactor" min="0.1" max="0.8" step="0.05" value="0.45" class="w-32">
+                        <span id="depthFactorVal" class="font-mono">0.45</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Height Scale:</span>
+                        <input type="range" id="heightScale" min="0.5" max="3.0" step="0.1" value="1.8" class="w-32">
+                        <span id="heightScaleVal" class="font-mono">1.8m</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Depth Curve:</span>
+                        <input type="range" id="depthCurve" min="0.3" max="1.5" step="0.1" value="0.7" class="w-32">
+                        <span id="depthCurveVal" class="font-mono">0.7</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Threshold:</span>
+                        <select id="thresholdMode" class="bg-slate-700 rounded px-2 py-1">
+                            <option value="auto">Auto (Otsu)</option>
+                            <option value="127">127 (Medium)</option>
+                            <option value="100">100 (Dark)</option>
+                            <option value="200">200 (Light)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button id="exportBtn" class="w-full px-4 py-3 bg-green-500 hover:bg-green-600 rounded-lg font-bold mt-4" disabled>
+                    💾 Export GLB Model
+                </button>
+            </div>
+            
+            <!-- Preview Section -->
+            <div class="bg-slate-800 rounded-lg p-4 lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4">👁️ 3D Preview</h2>
+                <div id="preview3d" class="w-full h-96 bg-slate-900 rounded-lg"></div>
+                <div id="stats" class="mt-4 grid grid-cols-3 gap-2 text-sm">
+                    <div class="bg-slate-900 rounded p-2 text-center">
+                        <div class="text-slate-400">Voxels</div>
+                        <div id="voxelCount" class="text-xl font-bold text-blue-400">0</div>
+                    </div>
+                    <div class="bg-slate-900 rounded p-2 text-center">
+                        <div class="text-slate-400">Vertices</div>
+                        <div id="vertexCount" class="text-xl font-bold text-green-400">0</div>
+                    </div>
+                    <div class="bg-slate-900 rounded p-2 text-center">
+                        <div class="text-slate-400">File Size</div>
+                        <div id="fileSize" class="text-xl font-bold text-purple-400">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Processing View -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-800 rounded-lg p-4">
+                <h3 class="font-bold mb-2">Original Image</h3>
+                <canvas id="originalCanvas" class="w-full border border-slate-700 rounded"></canvas>
+            </div>
+            <div class="bg-slate-800 rounded-lg p-4">
+                <h3 class="font-bold mb-2">Processed Mask</h3>
+                <canvas id="maskCanvas" class="w-full border border-slate-700 rounded"></canvas>
+            </div>
+        </div>
+        
+        <div id="status" class="mt-4 p-4 bg-slate-800 rounded-lg text-sm"></div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+        const status = document.getElementById('status');
+        const originalCanvas = document.getElementById('originalCanvas');
+        const maskCanvas = document.getElementById('maskCanvas');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const preview3d = document.getElementById('preview3d');
+
+        let currentMesh = null;
+        let currentGeometry = null;
+        let scene, camera, renderer, controls;
+        let currentImageData = null;
+
+        function log(msg) {
+            console.log(msg);
+            status.innerHTML = `<span class="text-cyan-400">→</span> ${msg}`;
+        }
+
+        // Setup 3D scene
+        function setup3DPreview() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            camera = new THREE.PerspectiveCamera(45, preview3d.clientWidth / preview3d.clientHeight, 0.1, 1000);
+            camera.position.set(3, 2, 4);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(preview3d.clientWidth, preview3d.clientHeight);
+            preview3d.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(3, 5, 2);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            const gridHelper = new THREE.GridHelper(5, 25, 0x475569, 0x1e293b);
+            scene.add(gridHelper);
+
+            const axesHelper = new THREE.AxesHelper(1);
+            scene.add(axesHelper);
+
+            // Mouse controls
+            let isRotating = false;
+            let lastX = 0, lastY = 0;
+            let rotationY = 0, rotationX = 0.3;
+
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isRotating = true;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isRotating) return;
+                const deltaX = e.clientX - lastX;
+                const deltaY = e.clientY - lastY;
+                rotationY += deltaX * 0.01;
+                rotationX += deltaY * 0.01;
+                rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+                
+                const radius = 5;
+                camera.position.x = radius * Math.cos(rotationY) * Math.cos(rotationX);
+                camera.position.y = radius * Math.sin(rotationX);
+                camera.position.z = radius * Math.sin(rotationY) * Math.cos(rotationX);
+                camera.lookAt(0, 0, 0);
+                
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isRotating = false;
+            });
+
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const scale = e.deltaY > 0 ? 1.1 : 0.9;
+                camera.position.multiplyScalar(scale);
+                const length = camera.position.length();
+                if (length < 1) camera.position.normalize().multiplyScalar(1);
+                if (length > 20) camera.position.normalize().multiplyScalar(20);
+            });
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (currentMesh) {
+                currentMesh.rotation.y += 0.003;
+            }
+            renderer.render(scene, camera);
+        }
+
+        // Image processing
+        function imageToCanvas(img, maxSize = 256) {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            const maxDim = Math.max(w, h);
+            if (maxDim > maxSize) {
+                const scale = maxSize / maxDim;
+                w = Math.floor(w * scale);
+                h = Math.floor(h * scale);
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            return canvas;
+        }
+
+        function canvasToGrayscale(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const a = data[i + 3];
+                const gray = a > 0 ? (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) : 0;
+                data[i] = data[i + 1] = data[i + 2] = gray;
+                data[i + 3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function otsuThreshold(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const hist = new Array(256).fill(0);
+
+            for (let i = 0; i < data.length; i += 4) {
+                hist[data[i]]++;
+            }
+
+            const total = canvas.width * canvas.height;
+            let sum = 0;
+            for (let i = 0; i < 256; i++) sum += i * hist[i];
+
+            let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 0;
+            for (let t = 0; t < 256; t++) {
+                wB += hist[t];
+                if (wB === 0) continue;
+                wF = total - wB;
+                if (wF === 0) break;
+
+                sumB += t * hist[t];
+                const mB = sumB / wB;
+                const mF = (sum - sumB) / wF;
+                const varBetween = wB * wF * (mB - mF) * (mB - mF);
+
+                if (varBetween > maxVar) {
+                    maxVar = varBetween;
+                    threshold = t;
+                }
+            }
+
+            return threshold;
+        }
+
+        function applyThreshold(canvas, threshold) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const v = data[i];
+                const bin = v >= threshold ? 255 : 0;
+                data[i] = data[i + 1] = data[i + 2] = bin;
+                data[i + 3] = 255;
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function readMask(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const mask = new Uint8Array(canvas.width * canvas.height);
+            for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+                mask[i] = data[p];
+            }
+            return mask;
+        }
+
+        // Voxel geometry creation with adjustable parameters
+        function createVoxelGeometry(mask, w, h, config) {
+            const VOXEL_SIZE = config.voxelSize || 0.08;
+            const depthFactor = config.depthFactor || 0.45;
+            const depthCurve = config.depthCurve || 0.7;
+            const depth = Math.floor(w * depthFactor);
+            const voxels = [];
+
+            log(`🧊 Creating voxels (size=${VOXEL_SIZE}, depth=${depth}, curve=${depthCurve})...`);
+
+            // Calculate distance field with better edge detection
+            const distField = new Float32Array(w * h);
+            let maxDist = 0;
+            
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = y * w + x;
+                    if (mask[idx] > 0) {
+                        let minDist = Math.max(w, h);
+                        const searchR = Math.min(30, Math.floor(Math.max(w, h) * 0.2));
+                        
+                        for (let dy = -searchR; dy <= searchR; dy++) {
+                            const sy = y + dy;
+                            if (sy < 0 || sy >= h) continue;
+                            for (let dx = -searchR; dx <= searchR; dx++) {
+                                const sx = x + dx;
+                                if (sx < 0 || sx >= w) continue;
+                                if (mask[sy * w + sx] === 0) {
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+                                    minDist = Math.min(minDist, dist);
+                                }
+                            }
+                        }
+                        distField[idx] = minDist;
+                        maxDist = Math.max(maxDist, minDist);
+                    }
+                }
+            }
+
+            log(`Max distance from edge: ${maxDist.toFixed(1)} pixels`);
+
+            // Create voxels with varying depth using improved algorithm
+            let maxVoxels = 150000;
+            let voxelCount = 0;
+            
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = y * w + x;
+                    if (mask[idx] > 0) {
+                        const distFromEdge = distField[idx];
+                        
+                        // Improved depth calculation
+                        const normalizedDist = Math.min(1, distFromEdge / Math.max(10, maxDist * 0.5));
+                        const depthProfile = Math.pow(normalizedDist, depthCurve);
+                        const voxelDepth = Math.max(1, Math.floor(depth * depthProfile * 0.9));
+                        
+                        for (let z = 0; z < voxelDepth; z++) {
+                            voxels.push({ x, y, z });
+                            voxelCount++;
+                            if (voxelCount >= maxVoxels) break;
+                        }
+                    }
+                    if (voxelCount >= maxVoxels) break;
+                }
+                if (voxelCount >= maxVoxels) break;
+            }
+
+            document.getElementById('voxelCount').textContent = voxels.length.toLocaleString();
+            log(`Generated ${voxels.length.toLocaleString()} voxels`);
+
+            if (voxels.length === 0) {
+                return new THREE.BoxGeometry(0.5, 1.7, 0.3);
+            }
+
+            // Merge voxel cubes efficiently
+            const boxGeo = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+            const positions = [];
+            const normals = [];
+            const indices = [];
+            let vertexOffset = 0;
+
+            const sx = (w * VOXEL_SIZE) * 0.5;
+            const sy = (h * VOXEL_SIZE) * 0.5;
+            const sz = (depth * VOXEL_SIZE) * 0.5;
+
+            const matrix = new THREE.Matrix4();
+            const tempGeo = boxGeo.clone();
+
+            voxels.forEach((cell) => {
+                const px = cell.x * VOXEL_SIZE - sx + VOXEL_SIZE * 0.5;
+                const py = -(cell.y * VOXEL_SIZE) + sy - VOXEL_SIZE * 0.5;
+                const pz = cell.z * VOXEL_SIZE - sz + VOXEL_SIZE * 0.5;
+
+                matrix.makeTranslation(px, py, pz);
+                tempGeo.applyMatrix4(matrix);
+
+                const pos = tempGeo.attributes.position.array;
+                for (let i = 0; i < pos.length; i++) positions.push(pos[i]);
+
+                const norm = tempGeo.attributes.normal.array;
+                for (let i = 0; i < norm.length; i++) normals.push(norm[i]);
+
+                const idx = tempGeo.index.array;
+                for (let i = 0; i < idx.length; i++) indices.push(idx[i] + vertexOffset);
+
+                vertexOffset += pos.length / 3;
+
+                matrix.makeTranslation(-px, -py, -pz);
+                tempGeo.applyMatrix4(matrix);
+            });
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+            geometry.setIndex(indices);
+
+            document.getElementById('vertexCount').textContent = vertexOffset.toLocaleString();
+
+            // Scale to target height
+            const targetHeight = config.heightScale || 1.7;
+            const bbox = new THREE.Box3().setFromBufferAttribute(geometry.attributes.position);
+            const size = new THREE.Vector3();
+            bbox.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0) {
+                const targetScale = targetHeight / maxDim;
+                geometry.scale(targetScale, targetScale, targetScale);
+            }
+
+            geometry.computeVertexNormals();
+            log(`✓ Mesh complete: ${voxels.length} cubes, ${vertexOffset} vertices`);
+            
+            return geometry;
+        }
+
+        function processImage() {
+            if (!currentImageData) return;
+
+            const config = {
+                voxelSize: parseFloat(document.getElementById('voxelSize').value),
+                depthFactor: parseFloat(document.getElementById('depthFactor').value),
+                heightScale: parseFloat(document.getElementById('heightScale').value),
+                depthCurve: parseFloat(document.getElementById('depthCurve').value)
+            };
+
+            const thresholdMode = document.getElementById('thresholdMode').value;
+
+            // Process to mask
+            const canvas = imageToCanvas(currentImageData.img);
+            canvasToGrayscale(canvas);
+            
+            const threshold = thresholdMode === 'auto' ? otsuThreshold(canvas) : parseInt(thresholdMode);
+            log(`Applying threshold: ${threshold}`);
+            applyThreshold(canvas, threshold);
+
+            // Update mask canvas
+            maskCanvas.width = canvas.width;
+            maskCanvas.height = canvas.height;
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCtx.drawImage(canvas, 0, 0);
+
+            // Create 3D mesh
+            const mask = readMask(canvas);
+            const geometry = createVoxelGeometry(mask, canvas.width, canvas.height, config);
+            
+            if (currentGeometry) {
+                currentGeometry.dispose();
+            }
+            currentGeometry = geometry;
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x4ecdc4,
+                roughness: 0.6,
+                metalness: 0.3,
+                flatShading: false
+            });
+
+            if (currentMesh) {
+                scene.remove(currentMesh);
+                currentMesh.geometry.dispose();
+                currentMesh.material.dispose();
+            }
+
+            currentMesh = new THREE.Mesh(geometry, material);
+            scene.add(currentMesh);
+
+            exportBtn.disabled = false;
+            log(`✅ 3D model ready! Adjust settings or export.`);
+        }
+
+        // Upload handler
+        uploadBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/png,image/jpeg,image/jpg';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                log(`Loading ${file.name}...`);
+                document.getElementById('fileSize').textContent = '--';
+
+                const img = new Image();
+                img.onload = () => {
+                    // Show original
+                    originalCanvas.width = img.width;
+                    originalCanvas.height = img.height;
+                    const origCtx = originalCanvas.getContext('2d');
+                    origCtx.drawImage(img, 0, 0);
+
+                    currentImageData = { img, file };
+                    processImage();
+                };
+
+                img.src = URL.createObjectURL(file);
+            };
+            input.click();
+        });
+
+        // Preset configurations
+        const presets = {
+            balanced: { voxelSize: 0.08, depthFactor: 0.45, heightScale: 1.8, depthCurve: 0.7 },
+            chunky: { voxelSize: 0.12, depthFactor: 0.6, heightScale: 2.0, depthCurve: 0.6 },
+            detailed: { voxelSize: 0.05, depthFactor: 0.4, heightScale: 1.8, depthCurve: 0.8 },
+            minimal: { voxelSize: 0.15, depthFactor: 0.3, heightScale: 1.5, depthCurve: 0.7 }
+        };
+
+        // Preset selector
+        document.getElementById('presetMode').addEventListener('change', (e) => {
+            const preset = e.target.value;
+            if (preset !== 'custom' && presets[preset]) {
+                const settings = presets[preset];
+                document.getElementById('voxelSize').value = settings.voxelSize;
+                document.getElementById('depthFactor').value = settings.depthFactor;
+                document.getElementById('heightScale').value = settings.heightScale;
+                document.getElementById('depthCurve').value = settings.depthCurve;
+                
+                document.getElementById('voxelSizeVal').textContent = settings.voxelSize;
+                document.getElementById('depthFactorVal').textContent = settings.depthFactor;
+                document.getElementById('heightScaleVal').textContent = settings.heightScale + 'm';
+                document.getElementById('depthCurveVal').textContent = settings.depthCurve;
+                
+                if (currentImageData) {
+                    processImage();
+                }
+            }
+        });
+
+        // Parameter change handlers
+        ['voxelSize', 'depthFactor', 'heightScale', 'depthCurve', 'thresholdMode'].forEach(id => {
+            const elem = document.getElementById(id);
+            elem.addEventListener('change', () => {
+                // Switch to custom when user manually adjusts
+                if (elem.type === 'range') {
+                    document.getElementById('presetMode').value = 'custom';
+                }
+                
+                if (id === 'voxelSize') {
+                    document.getElementById('voxelSizeVal').textContent = elem.value;
+                } else if (id === 'depthFactor') {
+                    document.getElementById('depthFactorVal').textContent = elem.value;
+                } else if (id === 'heightScale') {
+                    document.getElementById('heightScaleVal').textContent = elem.value + 'm';
+                } else if (id === 'depthCurve') {
+                    document.getElementById('depthCurveVal').textContent = elem.value;
+                }
+                
+                if (currentImageData) {
+                    processImage();
+                }
+            });
+            
+            if (elem.type === 'range') {
+                elem.addEventListener('input', () => {
+                    if (id === 'voxelSize') {
+                        document.getElementById('voxelSizeVal').textContent = elem.value;
+                    } else if (id === 'depthFactor') {
+                        document.getElementById('depthFactorVal').textContent = elem.value;
+                    } else if (id === 'heightScale') {
+                        document.getElementById('heightScaleVal').textContent = elem.value + 'm';
+                    } else if (id === 'depthCurve') {
+                        document.getElementById('depthCurveVal').textContent = elem.value;
+                    }
+                });
+            }
+        });
+
+        // Export handler
+        exportBtn.addEventListener('click', () => {
+            if (!currentMesh) return;
+
+            log('🔄 Exporting to GLB format...');
+            const exporter = new GLTFExporter();
+            exporter.parse(
+                currentMesh,
+                (result) => {
+                    const blob = new Blob([result], { type: 'model/gltf-binary' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = (currentImageData?.file?.name || 'model').replace(/\.(png|jpg|jpeg)$/i, '') + '_voxel.glb';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+                    const sizeKB = (blob.size / 1024).toFixed(1);
+                    document.getElementById('fileSize').textContent = sizeMB > 1 ? sizeMB + 'MB' : sizeKB + 'KB';
+                    log(`✅ Exported ${a.download} (${sizeKB} KB)`);
+                },
+                (error) => {
+                    log(`❌ Export error: ${error.message}`);
+                },
+                { binary: true }
+            );
+        });
+
+        setup3DPreview();
+        log('Ready! Upload your silhouette PNG to begin.');
+    </script>
+</body>
+</html>

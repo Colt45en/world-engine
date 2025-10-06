@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>3D Viewport Annotations Lab — Canvas 2D</title>
+  <style>
+    :root{
+      --bg:#0b1325; --grid:#132243; --ink:#e8f0ff; --muted:#9bb3ff; --accent:#72f6d1;
+      --panel:#0f1a33; --panel2:#101a30; --yellow:#ffcf66; --shadow:rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; color:var(--ink); background:var(--bg); font:14px/1.4 system-ui, Segoe UI, Roboto, sans-serif}
+    .shell{display:grid; grid-template-columns: 1fr 320px; grid-template-rows:auto 1fr auto; height:100%}
+    header{grid-column:1/-1; display:flex; gap:.5rem; align-items:center; padding:.6rem 1rem; background:linear-gradient(180deg,#0f1a33,#0b1427); border-bottom:1px solid #1d2c56; position:sticky; top:0; z-index:10}
+    header .title{font-weight:700; letter-spacing:.2px}
+    header .spacer{flex:1}
+    header .btn{background:#14254b; color:#d9e4ff; border:1px solid #243869; border-radius:10px; padding:.45rem .7rem; cursor:pointer}
+    header .btn:hover{background:#1a2f5e}
+
+    .viewport-wrap{position:relative; overflow:hidden}
+    #view3d{display:block; width:100%; height:100%; background:var(--bg)}
+    .overlay{pointer-events:none; position:absolute; inset:0}
+
+    /* Pins */
+    .pin{position:absolute; transform:translate(-50%,-100%); pointer-events:auto; cursor:pointer}
+    .pin .head{width:12px; height:12px; border-radius:50%; box-shadow:0 2px 6px var(--shadow); border:2px solid rgba(255,255,255,.75)}
+    .pin[data-cat="anim"] .head{background:#66b3ff}
+    .pin[data-cat="vfx"] .head{background:#ff6666}
+    .pin[data-cat="sfx"] .head{background:#66ff9b}
+    .pin[data-cat="cam"] .head{background:#ffc266}
+    .pin .tail{width:2px; height:14px; background:#e7f0ff; margin:0 auto; opacity:.7}
+
+    /* Note popover */
+    .note{position:absolute; top:-8px; left:16px; background:var(--panel); border:1px solid #203664; border-radius:12px; padding:.6rem .7rem; min-width:220px; max-width:320px; box-shadow:0 8px 20px rgba(0,0,0,.35); display:none}
+    .note h4{margin:.1rem 0 .4rem; font-size:14px}
+    .note .meta{color:#b9c7ff; font-size:12px; opacity:.9}
+    .note .media{margin:.45rem 0 .2rem}
+    .note .media img{width:100%; height:120px; object-fit:cover; border-radius:8px; border:1px solid #203664}
+    .pin.open .note{display:block}
+
+    /* Timeline */
+    .timeline{grid-column:1/-1; background:#0e1830; border-top:1px solid #1b2a54; padding:.4rem .8rem; position:relative}
+    .tl-bar{height:48px; background:#0b152b; border:1px solid #1a2953; border-radius:10px; position:relative; overflow:hidden}
+    .tl-ruler{position:absolute; inset:0; background: repeating-linear-gradient(90deg, transparent 0 44px, #1a2a50 44px 45px)}
+    .tl-notes{position:absolute; inset:0}
+    .tl-note{position:absolute; bottom:0; width:2px; height:100%;}
+    .tl-note[data-cat="sfx"]{background:#59f4a2}
+    .tl-note[data-cat="cam"]{background:#ffb84d}
+    .tl-note[data-cat="anim"]{background:#6ab1ff}
+    .tl-note[data-cat="vfx"]{background:#ff6a6a}
+    .tl-note .tag{position:absolute; bottom:4px; left:6px; white-space:nowrap; font-size:12px; background:#14254b; border:1px solid #26407a; padding:.05rem .35rem; border-radius:6px}
+    .tl-note .hover{position:absolute; bottom:52px; left:-70px; width:160px; background:#0f1a33; border:1px solid #26407a; border-radius:10px; padding:.35rem; display:none}
+    .tl-note:hover .hover{display:block}
+    .tl-tools{display:flex; gap:.5rem; margin-top:.5rem; align-items:center}
+    .pill{background:#132448; border:1px solid #27407a; padding:.25rem .5rem; border-radius:999px; font-size:12px}
+
+    /* Sidebar */
+    aside{background:linear-gradient(180deg,#0e1830,#0c1426); border-left:1px solid #1d2c56; padding:.8rem .9rem; overflow:auto}
+    aside h3{margin:.2rem 0 .6rem; font-size:14px; text-transform:uppercase; letter-spacing:.8px; color:#b7c6ff}
+    .field{display:grid; gap:.25rem; margin:.5rem 0}
+    .field label{font-size:12px; color:#b7c6ff}
+    .field input,.field select,.field textarea{background:#0a1226; color:#eaf2ff; border:1px solid #20335f; border-radius:8px; padding:.45rem .5rem}
+    .avatars{display:flex; gap:.35rem; margin:.4rem 0}
+    .avatar{width:26px; height:26px; border-radius:50%; border:2px solid #193060; background:#24407c; display:grid; place-items:center; font-size:12px}
+    .status{font-size:12px; color:#8fb0ff; margin-left:.2rem}
+    .split{height:1px; background:#1a2a52; margin:.8rem 0}
+    .kbd{font-family: ui-monospace, Menlo, monospace; background:#0f1a33; border:1px solid #203664; border-radius:6px; padding:.15rem .35rem; font-size:12px}
+
+    /* HUD */
+    .hud{position:absolute; left:10px; top:10px; display:flex; gap:.4rem; flex-wrap:wrap; pointer-events:none}
+    .hud .chip{pointer-events:auto; background:#122347; border:1px solid #243c72; border-radius:999px; padding:.25rem .5rem}
+    .hud .chip b{color:#fff}
+
+    .hidden{display:none !important}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="title">3D Viewport Annotations — Canvas‑only sandbox</div>
+      <button class="btn" id="togglePins">Alt+H Hide Pins</button>
+      <button class="btn" id="addNoteBtn">Ctrl+Click add note</button>
+      <button class="btn" id="toggleJoint">🔒 Lock Joint</button>
+      <button class="btn" id="toggleBreakApart">💥 Break Apart</button>
+      <div class="spacer"></div>
+      <button class="btn" id="aiSuggest">AI Suggest</button>
+    </header>
+
+    <div class="viewport-wrap" id="viewWrap">
+      <canvas id="view3d"></canvas>
+      <div class="overlay" id="pinLayer"></div>
+      <div class="hud">
+        <div class="chip">Drag: orbit camera</div>
+        <div class="chip">Wheel: zoom</div>
+        <div class="chip">Shift+Drag: pan</div>
+        <div class="chip">R: reset camera</div>
+        <div class="chip">Pins: <b id="pinCount">0</b></div>
+      </div>
+    </div>
+
+    <aside>
+      <h3>Note Details</h3>
+      <div id="noSelection">Select a pin to edit its note.</div>
+      <div id="notePanel" class="hidden">
+        <div class="field"><label>Title</label>
+          <input id="f_title"/>
+        </div>
+        <div class="field"><label>Category</label>
+          <select id="f_cat">
+            <option value="anim">Dialogue / Animation (Blue)</option>
+            <option value="vfx">VFX (Red)</option>
+            <option value="sfx">SFX (Green)</option>
+            <option value="cam">Camera (Orange)</option>
+          </select>
+        </div>
+        <div class="field"><label>Target</label>
+          <input id="f_target" disabled/>
+        </div>
+        <div class="field"><label>Linked element</label>
+          <input id="f_link" placeholder="groan.wav, shot_004"/>
+        </div>
+        <div class="field"><label>Rich text</label>
+          <textarea id="f_text" rows="5" placeholder="Storyboard notes, extra context..."></textarea>
+        </div>
+        <div class="field"><label>Media (URL)</label>
+          <input id="f_media" placeholder="https://…"/>
+        </div>
+        <div class="field"><label>Frame</label>
+          <input id="f_frame" type="number" min="0" value="0"/>
+        </div>
+        <div class="field">
+          <button class="btn" id="saveNote">Save</button>
+          <button class="btn" id="deleteNote">Delete</button>
+          <button class="btn" id="versionBtn">Version History</button>
+        </div>
+        <div class="split"></div>
+        <div>
+          <div class="avatars">
+            <div class="avatar" title="Alex">A</div>
+            <div class="avatar" title="Bea">B</div>
+            <div class="avatar" title="Chen">C</div>
+          </div>
+          <div class="status">Live edit: <span id="liveStatus">Idle</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="timeline">
+      <div class="tl-bar">
+        <div class="tl-ruler"></div>
+        <div class="tl-notes" id="tlNotes"></div>
+      </div>
+      <div class="tl-tools">
+        <label class="pill"><input type="checkbox" id="showNotesTrack" checked style="accent-color:#6ab1ff"> Show Notes track</label>
+        <span class="pill">FPS synced to display</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+// === Math & core types ===
+class Vector3{constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;} clone(){return new Vector3(this.x,this.y,this.z)} add(v){return new Vector3(this.x+v.x,this.y+v.y,this.z+v.z)} sub(v){return new Vector3(this.x-v.x,this.y-v.y,this.z-v.z)} scale(s){return new Vector3(this.x*s,this.y*s,this.z*s)} dot(v){return this.x*v.x+this.y*v.y+this.z*v.z} cross(v){return new Vector3(this.y*v.z-this.z*v.y,this.z*v.x-this.x*v.z,this.x*v.y-this.y*v.x)} len(){return Math.hypot(this.x,this.y,this.z)} norm(){const m=this.len()||1;return new Vector3(this.x/m,this.y/m,this.z/m)}}
+
+class Camera{
+  constructor(position=new Vector3(0,2.2,8), lookAt=new Vector3(0,0,0), up=new Vector3(0,1,0)){
+    this.position=position; this.lookAt=lookAt; this.up=up;
+    this.fov=60*Math.PI/180; this.near=0.1; this.far=1000; this.aspect=1;
+  }
+  getViewMatrix(){
+    const z = this.position.sub(this.lookAt); const zN=z.len()?z.norm():new Vector3(0,0,1);
+    const x = this.up.cross(zN).norm();
+    const y = zN.cross(x);
+    return [
+      [x.x,x.y,x.z,-x.dot(this.position)],
+      [y.x,y.y,y.z,-y.dot(this.position)],
+      [zN.x,zN.y,zN.z,-zN.dot(this.position)]
+    ];
+  }
+  project(v, canvas){
+    const view=this.getViewMatrix();
+    const x = v.x*view[0][0] + v.y*view[0][1] + v.z*view[0][2] + view[0][3];
+    const y = v.x*view[1][0] + v.y*view[1][1] + v.z*view[1][2] + view[1][3];
+    const z = v.x*view[2][0] + v.y*view[2][1] + v.z*view[2][2] + view[2][3];
+    const scale = (0.5*canvas.height)/ (Math.abs(z)+0.001 + 1.5); // perspective fudge
+    return [ canvas.width*0.5 + x*scale, canvas.height*0.5 - y*scale, z, scale ];
+  }
+  screenRay(nx,ny){ // normalized screen in [-1,1]
+    // simple ray from camera through lookAt direction; we approximate using camera basis
+    const view=this.getViewMatrix();
+    // camera basis (columns of inverse rotation = rows of rotation here)
+    const cx=new Vector3(view[0][0],view[1][0],view[2][0]);
+    const cy=new Vector3(view[0][1],view[1][1],view[2][1]);
+    const cz=new Vector3(view[0][2],view[1][2],view[2][2]);
+    const dir = cx.scale(nx).add(cy.scale(-ny)).add(cz.scale(-1)).norm();
+    return {origin:this.position.clone(), dir};
+  }
+}
+
+class Mesh{
+  constructor(name, vertices, faces){this.name=name; this.vertices=vertices; this.faces=faces; this.position=new Vector3(0,0,0); this.rotation=new Vector3(0,0,0); this.scale=new Vector3(1,1,1);}
+  static cube(name, w=1,h=1,d=1){
+    const x=w*0.5, y=h*0.5, z=d*0.5;
+    const v=[ new Vector3(-x,-y, z), new Vector3( x,-y, z), new Vector3( x, y, z), new Vector3(-x, y, z), // front
+              new Vector3(-x,-y,-z), new Vector3( x,-y,-z), new Vector3( x, y,-z), new Vector3(-x, y,-z)];
+    const f=[ [0,1,2,3], [1,5,6,2], [5,4,7,6], [4,0,3,7], [3,2,6,7], [4,5,1,0] ];
+    return new Mesh(name,v,f);
+  }
+  worldVertex(i){
+    const v=this.vertices[i];
+    // apply rotation (Y then X then Z), scale, translate
+    const s=this.scale, r=this.rotation;
+    let x=v.x*s.x, y=v.y*s.y, z=v.z*s.z;
+    const cy=Math.cos(r.y), sy=Math.sin(r.y);
+    let x1= x*cy + z*sy; let z1= -x*sy + z*cy; let y1=y;
+    const cx=Math.cos(r.x), sx=Math.sin(r.x);
+    let y2= y1*cx - z1*sx; let z2= y1*sx + z1*cx; let x2=x1;
+    const cz=Math.cos(r.z), sz=Math.sin(r.z);
+    let x3= x2*cz - y2*sz; let y3= x2*sz + y2*cz; let z3=z2;
+    return new Vector3(x3+this.position.x, y3+this.position.y, z3+this.position.z);
+  }
+}
+
+// === Renderer ===
+const canvas=document.getElementById('view3d');
+const ctx=canvas.getContext('2d');
+function resize(){ const r=canvas.getBoundingClientRect(); canvas.width=r.width; canvas.height=r.height; }
+new ResizeObserver(resize).observe(document.getElementById('viewWrap'));
+resize();
+
+const cam=new Camera();
+
+// === TRANSPARENT WIREFRAME CUBE WITH PRONG JOINT ===
+// Cube state
+const cubeSize = 2;
+let jointLocked = false;
+let brokenApart = false;
+let swingAngle = 0;
+let swingVelocity = 0;
+let swingTime = 0;
+
+// Cube pieces (8 vertices)
+const cubeVertices = [
+  new Vector3(-1, -1,  1), // 0: front bottom-left
+  new Vector3( 1, -1,  1), // 1: front bottom-right
+  new Vector3( 1,  1,  1), // 2: front top-right
+  new Vector3(-1,  1,  1), // 3: front top-left
+  new Vector3(-1, -1, -1), // 4: back bottom-left
+  new Vector3( 1, -1, -1), // 5: back bottom-right
+  new Vector3( 1,  1, -1), // 6: back top-right
+  new Vector3(-1,  1, -1)  // 7: back top-left
+];
+
+// Cube edges (12 edges)
+const cubeEdges = [
+  [0,1], [1,2], [2,3], [3,0], // front face
+  [4,5], [5,6], [6,7], [7,4], // back face
+  [0,4], [1,5], [2,6], [3,7]  // connecting edges
+];
+
+// Prong joint (Y-shaped support)
+const prongBase = new Vector3(0, -3, 0);
+const prongTop = new Vector3(0, -1.5, 0); // connects to cube bottom center
+const prongLeftLeg = new Vector3(-0.5, -3, 0);
+const prongRightLeg = new Vector3(0.5, -3, 0);
+
+// Break apart offsets (for each vertex when broken)
+const breakOffsets = [
+  new Vector3(-0.3, -0.2,  0.3),
+  new Vector3( 0.3, -0.2,  0.3),
+  new Vector3( 0.3,  0.2,  0.3),
+  new Vector3(-0.3,  0.2,  0.3),
+  new Vector3(-0.3, -0.2, -0.3),
+  new Vector3( 0.3, -0.2, -0.3),
+  new Vector3( 0.3,  0.2, -0.3),
+  new Vector3(-0.3,  0.2, -0.3)
+];
+
+let orbit={yaw:0, pitch:0, dist:8, panX:0, panY:0};
+function updateCamera(){
+  const cy=Math.cos(orbit.yaw), sy=Math.sin(orbit.yaw);
+  const cp=Math.cos(orbit.pitch), sp=Math.sin(orbit.pitch);
+  const dir = new Vector3(sy*cp, sp, -cy*cp);
+  const focus=new Vector3(orbit.panX, orbit.panY, 0);
+  cam.position = focus.add(dir.scale(-orbit.dist));
+  cam.lookAt = focus;
+  cam.aspect = canvas.width/canvas.height;
+}
+updateCamera();
+
+// === Annotations ===
+let notes=[]; // {id, title, cat, type:'world'|'object'|'camera', world?:Vector3, object?:{name, local:Vector3}, frame, media, text, link}
+let selectedNote=null; let pinsHidden=false;
+
+function addSampleNotes(){
+  // pin to the "Sword" tip (object/local anchor)
+  notes.push({ id:crypto.randomUUID(), title:'Raise sword @Frame 30', cat:'anim', type:'object', object:{name:'Sword', local:new Vector3(0,0,1.2)}, frame:30, media:'https://via.placeholder.com/320x120.png?text=Concept+Panel', text:'Raise sword to catch light.' });
+  // pin to camera location
+  notes.push({ id:crypto.randomUUID(), title:'Zoom here @Frame 120', cat:'cam', type:'camera', frame:120, text:'Dolly-in starts here.' });
+  // world-space VFX target on Z=0 plane
+  notes.push({ id:crypto.randomUUID(), title:'Place explosion VFX here', cat:'vfx', type:'world', world:new Vector3(1.5,0,0), frame:50, text:'Burst at impact', media:'' });
+}
+addSampleNotes();
+
+function getObjectByName(name){ return scene.find(o=>o.name===name); }
+
+// project note -> screen pos
+function noteWorldPosition(n){
+  if(n.type==='camera') return cam.position.clone();
+  if(n.type==='world') return n.world.clone();
+  if(n.type==='object'){
+    const obj=getObjectByName(n.object.name); if(!obj) return new Vector3();
+    // transform local to world by reusing Mesh temp vertex logic
+    const tmp=new Mesh('tmp',[n.object.local],[[]]); tmp.position=obj.position; tmp.rotation=obj.rotation; tmp.scale=obj.scale;
+    return tmp.worldVertex(0);
+  }
+  return new Vector3();
+}
+
+// create/update pin DOM
+const pinLayer=document.getElementById('pinLayer');
+function ensurePin(n){
+  let el=document.getElementById('pin-'+n.id);
+  if(!el){
+    el=document.createElement('div'); el.className='pin'; el.dataset.cat=n.cat; el.id='pin-'+n.id;
+    el.innerHTML=`<div class="head"></div><div class="tail"></div><div class="note"><h4></h4><div class="meta"></div><div class="media"></div><div class="body"></div></div>`;
+    pinLayer.appendChild(el);
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); selectNote(n.id); el.classList.toggle('open'); });
+  }
+  // populate note content
+  el.querySelector('h4').textContent=n.title;
+  el.querySelector('.meta').textContent=`${n.type.toUpperCase()} · ${n.cat.toUpperCase()} · Frame ${n.frame||0}`;
+  const media=el.querySelector('.media'); media.innerHTML='';
+  if(n.media){ const img=new Image(); img.src=n.media; media.appendChild(img); }
+  const body=el.querySelector('.body'); body.textContent=n.text||'';
+  return el;
+}
+
+function layoutPins(){
+  document.getElementById('pinCount').textContent=String(notes.length);
+  for(const n of notes){
+    const el=ensurePin(n);
+    const p=noteWorldPosition(n); const [sx,sy,z] = cam.project(p, canvas);
+    // occlusion hint: hide if behind camera
+    el.style.display = pinsHidden || z>  15 ? 'none' : 'block';
+    el.style.left = sx+'px'; el.style.top = sy+'px';
+  }
+}
+
+// === Timeline ===
+const tl=document.getElementById('tlNotes');
+function refreshTimeline(){
+  tl.innerHTML='';
+  const width=tl.parentElement.clientWidth; const frames=200; // simple scale: 1px per frame approx
+  for(const n of notes){ if(n.frame==null) continue; const x=Math.max(0, Math.min(width-2, n.frame));
+    const d=document.createElement('div'); d.className='tl-note'; d.dataset.cat=n.cat; d.style.left=x+'px';
+    d.innerHTML=`<div class="tag">${n.title}</div><div class="hover"><b>Frame ${n.frame}</b><br><i>${n.cat}</i><br><button data-id="${n.id}" class="miniEdit">Quick Edit</button></div>`;
+    d.addEventListener('click',()=> selectNote(n.id));
+    tl.appendChild(d);
+  }
+}
+
+// === Sidebar binding ===
+const panel=document.getElementById('notePanel');
+function selectNote(id){ selectedNote=notes.find(n=>n.id===id)||null; bindFields(); highlightSelectedPin(); }
+function bindFields(){
+  const noSel=document.getElementById('noSelection');
+  if(!selectedNote){ panel.classList.add('hidden'); noSel.classList.remove('hidden'); return; }
+  panel.classList.remove('hidden'); noSel.classList.add('hidden');
+  f_title.value=selectedNote.title||''; f_cat.value=selectedNote.cat||'anim';
+  f_target.value = selectedNote.type==='object' ? `${selectedNote.object.name} (local ${fmtV(selectedNote.object.local)})` : selectedNote.type==='world'? `World ${fmtV(selectedNote.world)}` : 'Camera';
+  f_text.value=selectedNote.text||''; f_media.value=selectedNote.media||''; f_link.value=selectedNote.link||''; f_frame.value=selectedNote.frame||0;
+}
+function fmtV(v){ return `(${(v.x).toFixed(2)}, ${(v.y).toFixed(2)}, ${(v.z).toFixed(2)})`; }
+
+saveNote.onclick=()=>{ if(!selectedNote) return; selectedNote.title=f_title.value; selectedNote.cat=f_cat.value; selectedNote.text=f_text.value; selectedNote.media=f_media.value; selectedNote.link=f_link.value; selectedNote.frame=parseInt(f_frame.value||'0',10); refreshTimeline(); layoutPins(); bindFields(); };
+deleteNote.onclick=()=>{ if(!selectedNote) return; notes=notes.filter(n=>n!==selectedNote); selectedNote=null; refreshTimeline(); layoutPins(); bindFields(); };
+versionBtn.onclick=()=> alert('Version history stub — hook this to your storage.');
+
+// === Interaction: orbit/pan/zoom & add notes ===
+let dragging=false, lastX=0, lastY=0, mode='orbit';
+canvas.addEventListener('pointerdown', (e)=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; mode = e.shiftKey? 'pan' : 'orbit'; canvas.setPointerCapture(e.pointerId); });
+window.addEventListener('pointerup', ()=> dragging=false);
+window.addEventListener('pointermove', (e)=>{
+  if(!dragging) return; const dx=(e.clientX-lastX), dy=(e.clientY-lastY); lastX=e.clientX; lastY=e.clientY;
+  if(mode==='orbit'){ orbit.yaw += dx*0.01; orbit.pitch = Math.max(-1.2, Math.min(1.2, orbit.pitch + dy*0.01)); }
+  else { // pan
+    const s= orbit.dist*0.002; orbit.panX -= dx*s; orbit.panY += dy*s;
+  }
+  updateCamera();
+});
+canvas.addEventListener('wheel', (e)=>{ orbit.dist = Math.max(2, Math.min(40, orbit.dist + Math.sign(e.deltaY)*0.6)); updateCamera(); });
+
+window.addEventListener('keydown', (e)=>{
+  if(e.key==='r' || e.key==='R'){ orbit={yaw:0,pitch:0,dist:8,panX:0,panY:0}; updateCamera(); }
+  if(e.altKey && (e.key==='h' || e.key==='H')){ pinsHidden=!pinsHidden; layoutPins(); }
+});
+
+document.getElementById('togglePins').onclick=()=>{ pinsHidden=!pinsHidden; layoutPins(); };
+
+// Ctrl+Click to add a world-space note by intersecting Z=0 plane
+canvas.addEventListener('click', (e)=>{
+  if(!(e.ctrlKey||e.metaKey)) return; const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)/rect.width*2-1; const y=(e.clientY-rect.top)/rect.height*2-1;
+  const ray=cam.screenRay(x,y);
+  const t = -ray.origin.z / (ray.dir.z||1e-6); // intersect z=0
+  const hit = ray.origin.add(ray.dir.scale(t));
+  const n = { id:crypto.randomUUID(), title:'New Note', cat:'anim', type:'world', world:hit, frame:0, text:'', media:'' };
+  notes.push(n); refreshTimeline(); layoutPins(); selectNote(n.id);
+});
+
+// quick edit buttons inside timeline tooltips
+document.addEventListener('click', (e)=>{
+  const btn=e.target.closest('.miniEdit'); if(!btn) return; const id=btn.getAttribute('data-id'); selectNote(id);
+});
+
+// AI Suggest stub — reads selected note & offers a suggestion
+aiSuggest.onclick=()=>{
+  const n=selectedNote || notes[0]; if(!n){ alert('No notes to analyze.'); return; }
+  let hint='';
+  const t=(n.title+' '+(n.text||'')).toLowerCase();
+  if(t.includes('smooth')) hint='Try easing keyframes: slow in/out; adjust tangents at F-curves.';
+  else if(t.includes('camera')||n.cat==='cam') hint='Consider a 3-frame lead-in before the zoom; keep motion blur under control.';
+  else if(t.includes('explosion')||n.cat==='vfx') hint='Spawn VFX at world anchor; add light flash synced to SFX at frame '+(n.frame||0)+'.';
+  else hint='Balance spacing between keys; check arcs and silhouette at the same frames.';
+  alert('AI Suggestion for "'+n.title+'":\n\n'+hint);
+};
+
+// highlight selected pin
+function highlightSelectedPin(){
+  for(const n of notes){ const el=document.getElementById('pin-'+n.id); if(!el) continue; el.style.filter= selectedNote && n.id===selectedNote.id ? 'drop-shadow(0 0 8px #7fffd4)' : 'none'; }
+}
+
+// === Render loop ===
+function drawGrid(){
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg'); ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--grid'); ctx.lineWidth=1;
+  ctx.beginPath();
+  const step=40; for(let x=0;x<canvas.width;x+=step){ ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); }
+  for(let y=0;y<canvas.height;y+=step){ ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); }
+  ctx.stroke();
+}
+
+function drawScene(){
+  // Update swing physics
+  if (!jointLocked) {
+    swingTime += 0.016; // ~60fps
+    const gravity = 0.002;
+    const damping = 0.98;
+    
+    swingVelocity += -Math.sin(swingAngle) * gravity;
+    swingVelocity *= damping;
+    swingAngle += swingVelocity;
+    
+    // Limit swing angle
+    swingAngle = Math.max(-0.5, Math.min(0.5, swingAngle));
+  }
+  
+  // Calculate cube center with swing
+  const cubeCenter = new Vector3(
+    Math.sin(swingAngle) * 1.5,
+    prongTop.y + 1.5,
+    0
+  );
+  
+  // Transform cube vertices
+  const transformedVertices = cubeVertices.map((v, i) => {
+    let pos = v.clone();
+    
+    // Apply break apart offset
+    if (brokenApart) {
+      pos = pos.add(breakOffsets[i].scale(2));
+    }
+    
+    // Apply swing rotation around prong joint
+    if (!jointLocked) {
+      const dy = pos.y;
+      pos = new Vector3(
+        pos.x * Math.cos(swingAngle) - dy * Math.sin(swingAngle),
+        pos.x * Math.sin(swingAngle) + dy * Math.cos(swingAngle),
+        pos.z
+      );
+    }
+    
+    // Translate to cube center
+    return pos.add(cubeCenter);
+  });
+  
+  // Project vertices
+  const projectedVertices = transformedVertices.map(v => cam.project(v, canvas));
+  
+  // Draw transparent wireframe cube
+  ctx.strokeStyle = 'rgba(173, 198, 255, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+  
+  for (const [i, j] of cubeEdges) {
+    const [x1, y1] = projectedVertices[i];
+    const [x2, y2] = projectedVertices[j];
+    
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  
+  // Draw invisible vector constraint lines when broken apart
+  if (brokenApart) {
+    ctx.strokeStyle = 'rgba(255, 100, 100, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    
+    for (const [i, j] of cubeEdges) {
+      const [x1, y1] = projectedVertices[i];
+      const [x2, y2] = projectedVertices[j];
+      
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+  
+  // Draw vertex points
+  ctx.fillStyle = 'rgba(16, 224, 224, 0.8)';
+  for (const [x, y] of projectedVertices) {
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Draw prong joint (Y-shaped support)
+  const prongBaseProj = cam.project(prongBase, canvas);
+  const prongTopProj = cam.project(prongTop, canvas);
+  const prongLeftProj = cam.project(prongLeftLeg, canvas);
+  const prongRightProj = cam.project(prongRightLeg, canvas);
+  
+  ctx.strokeStyle = jointLocked ? '#ff6666' : '#66ff66';
+  ctx.lineWidth = 3;
+  
+  // Draw Y-shape
+  ctx.beginPath();
+  ctx.moveTo(prongLeftProj[0], prongLeftProj[1]);
+  ctx.lineTo(prongTopProj[0], prongTopProj[1]);
+  ctx.lineTo(prongRightProj[0], prongRightProj[1]);
+  ctx.stroke();
+  
+  // Draw connection to cube
+  const cubeBottomCenter = cam.project(cubeCenter.add(new Vector3(0, -1, 0)), canvas);
+  ctx.strokeStyle = 'rgba(255, 255, 100, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(prongTopProj[0], prongTopProj[1]);
+  ctx.lineTo(cubeBottomCenter[0], cubeBottomCenter[1]);
+  ctx.stroke();
+  
+  // Draw joint pivot point
+  ctx.fillStyle = jointLocked ? '#ff0000' : '#00ff00';
+  ctx.shadowColor = jointLocked ? '#ff0000' : '#00ff00';
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.arc(prongTopProj[0], prongTopProj[1], 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  
+  // axes gizmo at origin
+  const o=new Vector3(0,0,0); const px=cam.project(new Vector3(1,0,0),canvas); const py=cam.project(new Vector3(0,1,0),canvas); const pz=cam.project(new Vector3(0,0,1),canvas); const po=cam.project(o,canvas);
+  ctx.lineWidth=2; ctx.beginPath(); ctx.strokeStyle='#ff6a6a'; ctx.moveTo(po[0],po[1]); ctx.lineTo(px[0],px[1]); ctx.stroke();
+  ctx.beginPath(); ctx.strokeStyle='#59f4a2'; ctx.moveTo(po[0],po[1]); ctx.lineTo(py[0],py[1]); ctx.stroke();
+  ctx.beginPath(); ctx.strokeStyle='#6ab1ff'; ctx.moveTo(po[0],po[1]); ctx.lineTo(pz[0],pz[1]); ctx.stroke();
+}
+
+function animate(t){
+  drawGrid();
+  drawScene();
+  layoutPins();
+  requestAnimationFrame(animate);
+}
+
+// Button handlers for joint and break apart
+document.getElementById('toggleJoint').addEventListener('click', () => {
+  jointLocked = !jointLocked;
+  document.getElementById('toggleJoint').textContent = jointLocked ? '🔓 Unlock Joint' : '🔒 Lock Joint';
+  if (jointLocked) {
+    swingVelocity = 0;
+  }
+});
+
+document.getElementById('toggleBreakApart').addEventListener('click', () => {
+  brokenApart = !brokenApart;
+  document.getElementById('toggleBreakApart').textContent = brokenApart ? '🔧 Reassemble' : '💥 Break Apart';
+});
+
+// boot
+refreshTimeline();
+requestAnimationFrame(animate);
+
+// UI toggles
+showNotesTrack.addEventListener('change', ()=>{ document.querySelector('.timeline .tl-bar').style.display = showNotesTrack.checked? 'block' : 'none'; });
+
+// live-status playful blinker
+setInterval(()=>{ document.getElementById('liveStatus').textContent = Math.random()>.5? 'Editing…' : 'Idle'; }, 1500);
+</script>
+</body>
+</html>

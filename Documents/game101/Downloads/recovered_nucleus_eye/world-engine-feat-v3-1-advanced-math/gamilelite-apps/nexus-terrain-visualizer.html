@@ -1,0 +1,2632 @@
+# 🎨 Nexus Lab Visual Enhancement Suite
+
+
+## Overview
+Dramatically enhanced the Nexus Lab with **curved ribbon links**, **alpha layer controls**, **shape spawning tools**, and **advanced visual effects** for creating stunning terrain graphs.
+
+
+---
+
+
+## ✨ New Features
+
+
+### 1. **Curved Ribbon Links with Depth Gradients** 🌈
+
+
+#### Visual Effect
+- Links are now **curved Bezier ribbons** instead of straight lines
+- **Gradient coloring** simulates depth and 3D connection
+- **Dynamic shadows and highlights** create ribbon effect
+- **Height-based color transitions** (cyan → purple → pink)
+
+
+#### Technical Details
+```javascript
+// Curved ribbon rendering
+- Quadratic Bezier curves with perpendicular control points
+- Triple-layer rendering: shadow + gradient ribbon + highlight
+- Gradient changes based on node height differences
+- Adjustable curve intensity (0-100%)
+```
+
+
+#### Controls
+- **Link Width Slider**: 2-20px thickness
+- **Link Curve Slider**: 0-100% curve intensity
+- **Link Alpha Slider**: 0-100% opacity
+
+
+#### Color Schemes
+```javascript
+// Height difference > 5 units
+cyan (0%) → purple (50%) → pink (100%)
+
+
+// Flat connections
+cyan (bright at ends) → cyan (dim at center)
+```
+
+
+---
+
+
+### 2. **Shape Spawning Tools** 🎭
+
+
+#### Lake (Circle Water Feature) 🌊
+**Tool**: 🌊 Lake button
+
+
+**Appearance**:
+- Radial gradient (bright center → dark edges)
+- Animated sparkles (rotating)
+- Blue color palette (100, 200, 255)
+
+
+**Controls**:
+- **Lake Size Slider**: 10-100px radius
+- Click to spawn at cursor position
+
+
+**Use Case**: Water bodies, pools, oases
+
+
+#### Box Structure ⬜
+**Tool**: ⬜ Box button
+
+
+**Appearance**:
+- Square/rectangle with isometric tilt
+- Earth tones (brown/tan)
+- Double border for depth
+- Selected state highlights
+
+
+**Controls**:
+- **Box Size Slider**: 20-120px
+- Click to spawn
+
+
+**Use Case**: Buildings, platforms, foundations
+
+
+#### Radial Ring Structure ✨
+**Tool**: ✨ Radial button
+
+
+**Appearance**:
+- Center node + concentric rings
+- Automatic connections to first ring
+- Evenly spaced points per ring
+
+
+**Controls**:
+- **Radial Rings Slider**: 1-6 rings
+- **Points/Ring Slider**: 3-12 points
+- Creates entire structure in one click
+
+
+**Use Case**: Circular patterns, symmetrical designs, hub-and-spoke
+
+
+**Example**:
+```
+3 rings, 6 points/ring = 1 center + 18 nodes + 6 connections
+```
+
+
+---
+
+
+### 3. **Layer Opacity Controls** 🎚️
+
+
+#### New Control Panel
+**Location**: Top-left corner (below toolbar)
+
+
+**Sliders**:
+1. **Nodes Alpha** (0-100%)
+   - Controls all node visibility
+   - Affects standard nodes, lakes, boxes
+
+
+2. **Links Alpha** (0-100%)
+   - Controls curved ribbon opacity
+   - Affects shadows and highlights proportionally
+
+
+3. **Boundaries Alpha** (0-100%)
+   - Controls polygon fill and stroke
+   - Affects labels
+
+
+4. **Grid Alpha** (0-100%)
+   - Controls background grid lines
+   - Useful for clean screenshots
+
+
+#### Visual Feedback
+- **Live updates** as you drag sliders
+- **Percentage display** next to each slider
+- **Proportional transparency** (shadows/highlights scale with alpha)
+- **Gradient sliders** with cyan accent color
+
+
+#### Use Cases
+```
+Screenshot mode: Grid 0%, Nodes 100%, Links 80%
+Focus on terrain: Links 30%, Boundaries 100%
+Clean preview: All 100%
+Ghost mode: All 20-40% for subtle overlay
+```
+
+
+---
+
+
+### 4. **Enhanced Shape Controls** ⚙️
+
+
+**Location**: Layer Controls Panel (middle section)
+
+
+**All Controls**:
+| Slider | Range | Default | Effect |
+|--------|-------|---------|--------|
+| Lake Size | 10-100 | 40 | Radius of water circles |
+| Box Size | 20-120 | 60 | Width/height of boxes |
+| Radial Rings | 1-6 | 3 | Number of concentric rings |
+| Points/Ring | 3-12 | 6 | Nodes per ring |
+| Link Width | 2-20 | 8 | Thickness of curved ribbons |
+| Link Curve | 0-100 | 50 | Curve intensity (0=straight) |
+
+
+**Real-time Updates**:
+- Lake/Box size affects existing shapes on redraw
+- Link settings apply immediately to all connections
+- Radial settings apply to next spawn
+
+
+---
+
+
+### 5. **Erase Tool** 🧹
+
+
+**Tool**: 🧹 Erase button
+
+
+**Functionality**:
+- **Click node** to delete it
+- **Auto-removes** all connected edges
+- **Updates boundaries** (removes node from polygons)
+- **Deletes invalid boundaries** (< 3 nodes)
+- **Cleans selections** (removes from selected list)
+
+
+**Feedback**:
+- Toast notification: "🧹 Node erased"
+- Immediate visual update
+- No undo (yet) - use cautiously
+
+
+---
+
+
+## 🎮 Enhanced Toolbar
+
+
+### Updated Tool Layout
+```
+🧬 Nexus Lab
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⛰️ Pull Mountains | 📐 Draw Boundaries
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➕ Node | 🌊 Lake | ⬜ Box | ✨ Radial
+🔗 Connect | ✋ Move | 🧹 Erase | 🎯 Select | ⭕ Boundary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Front | 🔍 Right | 🔍 Back | 🔍 Left | 🔄 Reset View
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗑️ Clear All
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💾 Save to Region | 📂 Load Region
+```
+
+
+### Shortened Button Labels
+- "Spawn Node" → "Node"
+- "Create Boundary" → "Boundary"
+- Cleaner, more compact
+
+
+---
+
+
+## 🎨 Visual Examples
+
+
+### Curved Ribbon Showcase
+```
+Before (Straight Lines):
+A ────────────── B
+
+
+After (Curved Ribbons):
+A ╱──────────╲ B
+  ╲──────────╱
+  └─ Shadow ─┘
+```
+
+
+### Layer Opacity Combinations
+```
+1. Full Visibility (All 100%)
+   ■■■■ Nodes, ──── Links, ▓▓ Boundaries, ╬╬ Grid
+
+
+2. Focus Mode (Nodes 100%, Links 50%, Boundaries 30%, Grid 10%)
+   ■■■■ Nodes, ··── Links, ░░ Boundaries, ┄┄ Grid
+
+
+3. Ghost Mode (All 20%)
+   ░░ Nodes, ··── Links, ░ Boundaries, ┄ Grid
+```
+
+
+### Shape Types
+```
+Lake:        Box:         Radial (3 rings, 6 points):
+  ●●●         ┌────┐              ○
+ ●   ●        │    │          ○       ○
+●  ⭐  ●       │    │        ○     ●     ○
+ ●   ●        └────┘          ○       ○
+  ●●●                             ○
+(sparkles)   (structure)    (hub-spoke)
+```
+
+
+---
+
+
+## 🛠️ Technical Implementation
+
+
+### Curved Ribbon Algorithm
+```javascript
+function drawCurvedRibbon(posA, posB, nodeA, nodeB) {
+    // 1. Calculate midpoint
+    const midX = (posA.x + posB.x) / 2;
+    const midY = (posA.y + posB.y) / 2;
+
+
+    // 2. Calculate perpendicular offset
+    const dx = posB.x - posA.x;
+    const dy = posB.y - posB.y;
+    const distance = Math.sqrt(dx² + dy²);
+    const offset = distance * curveFactor * 0.3;
+
+
+    // 3. Control point (perpendicular to line)
+    const perpX = -dy / length * offset;
+    const perpY = dx / length * offset;
+    const controlX = midX + perpX;
+    const controlY = midY + perpY;
+
+
+    // 4. Draw gradient ribbon
+    ctx.quadraticCurveTo(controlX, controlY, posB.x, posB.y);
+
+
+    // 5. Add highlight + shadow layers
+}
+```
+
+
+### Layer Opacity System
+```javascript
+// Opacity state
+let layerOpacity = {
+    nodes: 1.0,     // 100%
+    links: 1.0,
+    boundaries: 1.0,
+    grid: 1.0
+};
+
+
+// Apply to rendering
+ctx.fillStyle = `rgba(16, 224, 224, ${layerOpacity.nodes})`;
+ctx.strokeStyle = `rgba(16, 224, 224, ${0.6 * layerOpacity.links})`;
+```
+
+
+### Shape Rendering
+```javascript
+// Node type determines rendering function
+const nodeType = node.type || 'node';
+
+
+if (nodeType === 'lake') {
+    drawLakeNode(basePos, node, nodeAlpha);
+} else if (nodeType === 'box') {
+    drawBoxNode(basePos, node, nodeAlpha);
+} else {
+    drawStandardNode(basePos, topPos, node, height, nodeAlpha);
+}
+```
+
+
+---
+
+
+## 🎯 Workflow Examples
+
+
+### Creating a Lake Scene
+```
+1. Select 🌊 Lake tool
+2. Adjust Lake Size slider to 60
+3. Click to spawn 3-4 lakes
+4. Select ➕ Node tool
+5. Add shore nodes around lakes
+6. Use 🔗 Connect to link shores
+7. Set Links Alpha to 70% for subtle connections
+8. Set Link Curve to 80% for natural flow
+```
+
+
+### Building a Town Structure
+```
+1. Select ⬜ Box tool
+2. Set Box Size to 80
+3. Click to place building boxes
+4. Select ✨ Radial tool
+5. Set Radial Rings = 2, Points = 8
+6. Create central plaza
+7. Connect buildings to plaza with 🔗 Connect
+8. Set Link Width to 12 for roads
+9. Set Boundaries Alpha to 40% for zones
+```
+
+
+### Terrain with Rivers
+```
+1. Use ➕ Node to create mountain peaks
+2. ⛰️ Pull Mountains to elevate nodes
+3. Use 🌊 Lake for river source
+4. Connect lake to valley nodes (curved ribbons = river)
+5. Set Link Curve to 90% for meandering river
+6. Set Link Width to 6 for stream size
+7. Adjust Links Alpha to 80% for water transparency
+```
+
+
+---
+
+
+## 📊 Performance Optimizations
+
+
+### Efficient Rendering
+```javascript
+// Skip invisible layers
+if (layerOpacity.nodes === 0) return;
+if (layerOpacity.links === 0) return;
+
+
+// Single-pass ribbon rendering
+// No redundant redraw calls
+```
+
+
+### Smart Updates
+- **Slider input**: Only redraws on change
+- **Shape spawning**: Single redraw per action
+- **Erase**: Batch updates (edges, boundaries, nodes)
+
+
+---
+
+
+## 🎨 CSS Enhancements
+
+
+### Slider Styling
+```css
+.alpha-slider {
+    width: 100%; height: 6px;
+    background: linear-gradient(to right,
+        rgba(16,224,224,0.2),
+        rgba(16,224,224,1));
+    border-radius: 3px;
+}
+
+
+.alpha-slider::-webkit-slider-thumb {
+    width: 14px; height: 14px;
+    background: var(--accent);
+    box-shadow: 0 0 4px rgba(16,224,224,0.6);
+}
+```
+
+
+### Layer Controls Panel
+```css
+.layer-controls-panel {
+    position: absolute; top: 80px; left: 12px;
+    background: rgba(15, 22, 32, 0.95);
+    border-radius: 10px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto; /* Scrollable */
+}
+```
+
+
+---
+
+
+## 🚀 Future Enhancements
+
+
+### Potential Additions
+1. **Animation**: Animated water sparkles (done), flowing rivers
+2. **Textures**: Pattern fills for lakes, boxes
+3. **Grouping**: Multi-select shapes, group operations
+4. **Templates**: Save/load shape presets
+5. **Undo/Redo**: History stack for all operations
+6. **Advanced Shapes**: Triangles, hexagons, custom polygons
+7. **Link Styles**: Dashed, dotted, animated flow
+8. **Layer Groups**: Toggle entire categories
+9. **Export**: PNG/SVG export with current opacity settings
+
+
+---
+
+
+## 📝 Summary of Changes
+
+
+### Files Modified
+- **index.html** - Complete enhancement implementation
+
+
+### New UI Components
+1. **Layer Controls Panel** (10 sliders)
+2. **Shape Tool Buttons** (4 new tools)
+3. **Erase Tool Button**
+4. **Curved Ribbon Rendering**
+
+
+### New State Variables
+```javascript
+layerOpacity: {
+    nodes: 1.0,
+    links: 1.0,
+    boundaries: 1.0,
+    grid: 1.0
+}
+
+
+shapeSettings: {
+    lakeSize: 40,
+    boxSize: 60,
+    radialRings: 3,
+    radialPoints: 6,
+    linkWidth: 8,
+    linkCurve: 50
+}
+```
+
+
+### New Functions
+| Function | Purpose |
+|----------|---------|
+| `drawCurvedRibbon()` | Render Bezier curves with gradient |
+| `drawLakeNode()` | Render water circle with sparkles |
+| `drawBoxNode()` | Render box structure |
+| `spawnLake()` | Create lake node |
+| `spawnBox()` | Create box node |
+| `spawnRadial()` | Create ring structure |
+| `eraseNode()` | Delete node + cleanup |
+
+
+### Updated Functions
+| Function | Enhancement |
+|----------|-------------|
+| `drawEdges()` | Now calls `drawCurvedRibbon()` |
+| `drawNodes()` | Type-based rendering (lake/box/standard) |
+| `drawGrid()` | Opacity support |
+| `drawBoundaries()` | Opacity support |
+| `updateToolButtons()` | 4 new buttons |
+
+
+---
+
+
+## 🎉 Visual Impact
+
+
+### Before vs After
+
+
+**Before**:
+- Straight lines
+- Fixed opacity
+- Basic nodes only
+- Limited visual depth
+
+
+**After**:
+- ✨ Curved ribbon links with gradients
+- 🎚️ Full layer opacity control (4 independent sliders)
+- 🎭 3 shape types (lakes, boxes, radials)
+- 🌈 Depth simulation with shadows/highlights
+- 🧹 Erase tool for editing
+- ⚙️ 6 shape/link control sliders
+
+
+### Result
+A **professional-grade graph editor** with:
+- Beautiful, organic-looking connections
+- Flexible visual customization
+- Diverse shape palette
+- Intuitive controls
+- Real-time feedback
+
+
+---
+
+
+**Status**: ✅ Complete - All visual enhancements implemented
+**Testing**: Ready for user testing
+**Performance**: Optimized with smart rendering
+
+
+
+
+
+
+
+# 🎮 Master Canvas Region System - Quick Start Guide
+
+
+## 🚀 How to Use (Step-by-Step)
+
+
+### Step 1: Open Nexus Lab
+```
+Click: 🧬 Nexus Lab button (top toolbar)
+```
+
+
+### Step 2: Create Terrain
+```
+1. Click: ➕ Spawn Node
+2. Click on canvas to place nodes
+3. Click: 🔗 Connect
+4. Click two nodes to connect them
+5. Switch to: ⛰️ Pull Mountains mode
+6. Drag nodes up/down to create elevation
+```
+
+
+### Step 3: View Region Grid
+```
+1. Look at preview panel (bottom-right)
+2. Click: 📍 Show Region Grid button
+3. See 5×5 grid overlay appear
+```
+
+
+### Step 4: Select Target Region
+```
+1. Click any cell in the grid
+2. Watch it turn PINK (that's your target)
+3. See "Target: (x,y)" update below
+```
+
+
+### Step 5: Save Your Terrain
+```
+1. Click: 💾 Save to Region
+2. Your terrain is saved!
+3. Cell turns GREEN on grid (has data)
+4. 3D markers appear in main scene
+```
+
+
+### Step 6: Load & Edit
+```
+1. Click different cell on grid
+2. Click: 📂 Load Region
+3. That region's terrain loads
+4. Edit it, then save again
+```
+
+
+---
+
+
+## 🎨 Color Guide
+
+
+### Grid Cell Colors
+- 🟦 **CYAN** = You're editing this region right now
+- 🟪 **PINK** = This is where your terrain will be saved
+- 🟩 **GREEN** = This region has saved terrain
+- ⬛ **GRAY** = Empty region (no data)
+
+
+### Example Grid
+```
+┌────┬────┬────┬────┬────┐
+│ ⬛ │ ⬛ │ ⬛ │ ⬛ │ ⬛ │  Empty regions
+├────┼────┼────┼────┼────┤
+│ ⬛ │ 🟩 │ 🟪 │ ⬛ │ ⬛ │  (1,1) has data, (2,1) is target
+├────┼────┼────┼────┼────┤
+│ ⬛ │ ⬛ │ 🟦 │ ⬛ │ ⬛ │  (2,2) is being edited (center)
+├────┼────┼────┼────┼────┤
+│ ⬛ │ ⬛ │ ⬛ │ ⬛ │ ⬛ │
+├────┼────┼────┼────┼────┤
+│ ⬛ │ ⬛ │ ⬛ │ ⬛ │ ⬛ │
+└────┴────┴────┴────┴────┘
+```
+
+
+---
+
+
+## 💡 Pro Tips
+
+
+### Tip 1: Plan Your Layout
+Before sculpting, decide which regions will have:
+- Mountains (high elevation)
+- Valleys (low/flat)
+- Rivers (connecting regions)
+- Plateaus (flat but elevated)
+
+
+### Tip 2: Use Rotation Views
+```
+1. Sculpt terrain in Nexus Lab
+2. Click 🔍 Front/Right/Back/Left
+3. Preview how it looks from each angle
+4. The rotation is SAVED with your terrain!
+```
+
+
+### Tip 3: Build Incrementally
+```
+Start Center → Expand Outward
+    (2,2) → (2,1), (2,3), (1,2), (3,2) → Corners
+```
+
+
+### Tip 4: Non-Destructive Workflow
+```
+Current work NOT lost when loading!
+- Click 🗑️ Clear All first if you want fresh start
+- Or save current work before loading
+```
+
+
+### Tip 5: Multiple Heights
+```
+Use Pull mode to create dramatic terrain:
+- Valleys: height = 0-50
+- Hills: height = 50-150
+- Mountains: height = 150-300
+- Peaks: height = 300+
+```
+
+
+---
+
+
+## 🎯 Common Workflows
+
+
+### Workflow A: Single Mountain
+```
+1. Spawn 4 nodes in square pattern
+2. Connect them in circle
+3. Spawn center node, connect to all
+4. Pull center node up (height ~200)
+5. Save to center region (2,2)
+```
+
+
+### Workflow B: Mountain Range
+```
+1. Create mountain in region (2,2) - Save
+2. Select region (3,2) as target
+3. Create connected mountain - Save
+4. Select region (4,2) as target
+5. Create third peak - Save
+Result: 3-region mountain chain!
+```
+
+
+### Workflow C: Valley System
+```
+1. Create high edges in (2,2) - Save
+2. Create low center in (3,2) - Save
+3. Create river path in (2,3) - Save
+4. Create lake in (3,3) - Save
+Result: Connected valley landscape!
+```
+
+
+---
+
+
+## 🔧 Troubleshooting
+
+
+### "No data in region"
+**Problem**: Clicked Load but got error
+**Solution**: That cell is empty. Create terrain first, then save!
+
+
+### "Can't see grid"
+**Problem**: Preview panel doesn't show grid
+**Solution**: Click 📍 Show Region Grid button (top-right of preview)
+
+
+### "Terrain not appearing in 3D scene"
+**Problem**: Saved but don't see 3D markers
+**Solution**: Look around! Markers spawn at calculated positions. Try rotating main camera.
+
+
+### "Lost my work!"
+**Problem**: Loaded region and current work disappeared
+**Solution**:
+- Use 💾 Save BEFORE loading
+- Or click 🗑️ Clear All first if you want fresh start
+
+
+---
+
+
+## 📍 Region Coordinate System
+
+
+```
+     X →
+  ┌───┬───┬───┬───┬───┐
+Y │0,0│1,0│2,0│3,0│4,0│
+↓ ├───┼───┼───┼───┼───┤
+  │0,1│1,1│2,1│3,1│4,1│
+  ├───┼───┼───┼───┼───┤
+  │0,2│1,2│2,2│3,2│4,2│ ← Center (default)
+  ├───┼───┼───┼───┼───┤
+  │0,3│1,3│2,3│3,3│4,3│
+  ├───┼───┼───┼───┼───┤
+  │0,4│1,4│2,4│3,4│4,4│
+  └───┴───┴───┴───┴───┘
+```
+
+
+### World Space Mapping
+- **Region (0,0)** = Top-left corner of world
+- **Region (2,2)** = Center (where cube spawns)
+- **Region (4,4)** = Bottom-right corner
+- Each cell = **480 world units** (10 grid squares)
+
+
+---
+
+
+## 🎬 Example Session
+
+
+```
+1. Open Nexus Lab
+2. Click "Show Region Grid"
+3. Spawn 5 nodes in star pattern
+4. Connect all to center node
+5. Pull center up to height 150
+6. Click grid cell (2,3) - that's my target
+7. Click "Save to Region"
+8. ✅ Terrain saved to (2,3)!
+9. Click grid cell (3,2)
+10. Create new terrain (different pattern)
+11. Save to (3,2)
+12. Now I have TWO regions with terrain!
+```
+
+
+---
+
+
+## 🚀 Next Steps
+
+
+Once comfortable with basic save/load:
+
+
+### Advanced: Multi-Region Design
+- Create 9 connected regions (3×3 grid)
+- Design transitions between regions
+- Build coherent landscape
+
+
+### Advanced: Rotation Control
+- Use 🔍 Front/Right/Back/Left before saving
+- Load regions to see saved rotations
+- Experiment with viewing angles
+
+
+### Advanced: Iterative Refinement
+- Save initial version
+- Close Nexus Lab, check 3D scene
+- Reopen, load region
+- Adjust and save again
+
+
+---
+
+
+## 📊 Quick Reference
+
+
+| Button | Action |
+|--------|--------|
+| 📍 Show/Hide Grid | Toggle region overlay |
+| 💾 Save to Region | Export to target cell |
+| 📂 Load Region | Import from target cell |
+| 🗑️ Clear All | Erase current canvas |
+
+
+| Cell Color | Meaning |
+|------------|---------|
+| 🟦 Cyan | Currently editing |
+| 🟪 Pink | Import target |
+| 🟩 Green | Has saved data |
+| ⬛ Gray | Empty |
+
+
+---
+
+
+**Ready to build multi-region landscapes!** 🌍✨
+
+
+
+
+
+
+
+
+# 🌍 Master Canvas Region System - Complete Guide
+
+
+## Overview
+Successfully implemented a **grid-based workspace management system** that connects the Nexus Lab graph editor with the main 3D scene. Users can now sculpt terrain in Nexus Lab and place it anywhere on the master canvas grid.
+
+
+---
+
+
+## 🎯 System Architecture
+
+
+### Master Canvas Grid
+```
+┌─────────────────────────────────────┐
+│    Master 3D Scene (Main Canvas)    │
+│  ┌───┬───┬───┬───┬───┐              │
+│  │0,0│1,0│2,0│3,0│4,0│              │
+│  ├───┼───┼───┼───┼───┤              │
+│  │0,1│1,1│2,1│3,1│4,1│              │
+│  ├───┼───┼───┼───┼───┤              │
+│  │0,2│1,2│2,2│3,2│4,2│  ← Cube starts here
+│  ├───┼───┼───┼───┼───┤              │
+│  │0,3│1,3│2,3│3,3│4,3│              │
+│  ├───┼───┼───┼───┼───┤              │
+│  │0,4│1,4│2,4│3,4│4,4│              │
+│  └───┴───┴───┴───┴───┘              │
+└─────────────────────────────────────┘
+```
+
+
+**Configuration:**
+- **Grid Size**: 5×5 = 25 regions
+- **Cell Size**: 480 units (10 grid squares × 48 units)
+- **Center Cell**: (2,2) - where the cube spawns by default
+- **Total Area**: 2400×2400 units
+
+
+---
+
+
+## 🎨 Workflow
+
+
+### 1. **Sculpt Terrain in Nexus Lab**
+1. Open **🧬 Nexus Lab** modal
+2. Create your terrain:
+   - **Spawn nodes** (➕) - Place control points
+   - **Connect nodes** (🔗) - Form mesh structure
+   - **Pull mountains** (⛰️) - Drag nodes vertically
+   - **Create boundaries** (📐) - Define regions
+3. Use **isometric view** and **rotation controls** to preview from all angles
+
+
+### 2. **Select Target Region**
+1. Click **📍 Show Region Grid** button (top-right of preview panel)
+2. A **5×5 grid overlay** appears on the preview canvas
+3. **Color coding:**
+   - 🟦 **Cyan cell** = Currently editing region
+   - 🟪 **Pink cell** = Target import region (where terrain will be placed)
+   - 🟩 **Green cell** = Has saved terrain data
+   - ⬛ **Gray cell** = Empty
+4. **Click any cell** to select it as import target
+5. Region coordinates display below preview:
+   - **Editing**: Shows which region you're working on
+   - **Target**: Shows where terrain will be imported
+
+
+### 3. **Save Terrain to Region**
+1. Click **💾 Save to Region** button
+2. Your terrain data is:
+   - ✅ Saved to AppState memory (persistent during session)
+   - ✅ Converted to 3D mesh markers in main scene
+   - ✅ Placed at correct world coordinates
+   - ✅ Marked with region metadata
+3. The preview grid updates to show the cell has data (green)
+
+
+### 4. **Load Existing Region**
+1. Select the cell you want to edit (click on grid)
+2. Click **📂 Load Region** button
+3. The Nexus Lab canvas loads:
+   - ✅ All nodes with positions and heights
+   - ✅ All edges (connections)
+   - ✅ All boundaries (regions)
+   - ✅ Camera rotation (viewing angle)
+4. Continue editing and save again to update
+
+
+---
+
+
+## 🔧 Technical Implementation
+
+
+### AppState Structure
+```javascript
+AppState.masterGrid = {
+    cellSize: 480,              // Each region is 480 world units
+    gridWidth: 5,               // 5×5 grid
+    gridHeight: 5,
+    currentRegion: { x: 2, y: 2 },  // Region being edited
+    targetRegion: { x: 2, y: 2 },   // Region for import
+    regions: {},                // Stored data: { "2,2": graphData }
+    showPreviewGrid: false      // Toggle grid overlay
+}
+```
+
+
+### Saved Graph Data
+```javascript
+{
+    nodes: [
+        { id: "n-0", x: 150, y: 200, height: 80 },
+        { id: "n-1", x: 250, y: 150, height: 120 }
+    ],
+    edges: [
+        { id: "e-0", nodeAId: "n-0", nodeBId: "n-1" }
+    ],
+    boundaries: [
+        { id: "b-0", nodeIds: ["n-0", "n-1", "n-2"] }
+    ],
+    rotation: 45,        // Camera Y-rotation when saved
+    timestamp: 1696204800000
+}
+```
+
+
+### Coordinate Transformation
+```javascript
+// Nexus canvas space → World 3D space
+const cellSize = 480;
+const offsetX = (regionX - 2) * cellSize;  // Center is (2,2)
+const offsetZ = (regionY - 2) * cellSize;
+
+
+const worldX = offsetX + (node.x - W/2) * 0.5;  // Scale canvas to world
+const worldZ = offsetZ + (node.y - H/2) * 0.5;
+const worldY = node.height * 0.1;  // Height scaling
+```
+
+
+---
+
+
+## 🎮 UI Components
+
+
+### Preview Panel (Bottom-Right)
+```
+┌─────────────────────────────────────┐
+│ Composite Preview     [📍 Show Grid]│
+│ ┌─────────────────────────────────┐ │
+│ │                                 │ │
+│ │   Preview Canvas                │ │
+│ │   (with optional grid overlay)  │ │
+│ │                                 │ │
+│ └─────────────────────────────────┘ │
+│ Editing: (2,2) | Target: (3,1)      │
+│ Click grid to select import target  │
+└─────────────────────────────────────┘
+```
+
+
+### Toolbar Buttons
+| Button | Function |
+|--------|----------|
+| 📍 Show Region Grid | Toggle 5×5 grid overlay |
+| 💾 Save to Region | Export terrain to target cell |
+| 📂 Load Region | Import terrain from target cell |
+
+
+### Region Grid Overlay
+- **Transparent canvas layer** over preview
+- **Clickable cells** - Direct selection
+- **Visual feedback** - Highlights editing/target
+- **Live updates** - Reflects data state
+
+
+---
+
+
+## 🔍 Visual Feedback
+
+
+### Grid Cell States
+```javascript
+// Cell colors (RGBA)
+Current (Editing):  rgba(16, 224, 224, 0.3)   // Cyan
+Target (Import):    rgba(255, 58, 165, 0.3)   // Pink
+Has Data:           rgba(100, 200, 100, 0.2)  // Green
+Empty:              rgba(50, 50, 50, 0.4)     // Gray
+```
+
+
+### Cell Labels
+- **Coordinates**: `(x,y)` centered in each cell
+- **Border thickness**: 2px for active cells, 1px for others
+- **Legend**: Top-left corner shows "■ Editing" and "■ Target"
+
+
+### Toast Notifications
+- 🎯 "Target region set to (x, y)" - When clicking grid cell
+- 💾 "Saved to region (x, y)" - After successful save
+- 📂 "Loaded region (x, y)" - After successful load
+- ❌ "No data in region (x, y)" - When loading empty cell
+
+
+---
+
+
+## 🚀 Advanced Features
+
+
+### 1. **Rotation Persistence**
+- The **viewing angle** (Front/Right/Back/Left) is saved with terrain
+- When you load a region, the **camera rotates** to match the saved view
+- Ensures terrain orientation matches your original design intent
+
+
+### 2. **3D Marker Generation**
+- Saved terrain generates **visual markers** in the 3D scene
+- Markers are **cyan glowing cubes** positioned at node locations
+- Height determines marker size (taller nodes = bigger markers)
+- Markers tagged with `userData.isNexusMarker` and `userData.regionCoords`
+
+
+### 3. **Multi-Region Workflow**
+```
+Edit Region A → Save → Select Region B → Edit → Save →
+Select Region A → Load → Modify → Save (Update)
+```
+
+
+### 4. **Non-Destructive Editing**
+- Loading a region **doesn't delete** your current work
+- Use "Clear All" first if you want a fresh start
+- Multiple regions can have data simultaneously
+
+
+---
+
+
+## 📊 Use Cases
+
+
+### Scenario 1: Creating Multiple Biomes
+1. **Region (2,2)**: Sculpt mountain range → Save
+2. **Region (3,2)**: Create valley with rivers → Save
+3. **Region (2,3)**: Build plateau → Save
+4. **Region (3,3)**: Design canyon → Save
+5. Result: **4 connected terrain sections** on master canvas
+
+
+### Scenario 2: Iterative Design
+1. **Initial Draft**: Create rough terrain → Save to (2,2)
+2. **Review**: View in 3D scene, check integration
+3. **Refine**: Load region (2,2) → Adjust heights → Save
+4. **Polish**: Load again → Add details → Save
+5. Result: **Progressively refined** terrain
+
+
+### Scenario 3: Modular Level Design
+1. **Library Approach**: Create 25 different terrain tiles
+2. **Save each** to a different grid cell (0,0 through 4,4)
+3. **Preview all** by toggling region grid
+4. **Mix and match** by loading/editing different regions
+5. Result: **Reusable terrain components**
+
+
+---
+
+
+## 🎯 Integration with Existing Features
+
+
+### Isometric View System
+- **Before Import**: Use Front/Right/Back/Left views to preview orientation
+- **Rotation Angle**: Saved with terrain data
+- **On Load**: Camera rotates to match saved angle
+- **Benefit**: See exactly how terrain will appear in 3D scene
+
+
+### Pull Mountains Mode
+- **Create topology** with vertical node dragging
+- **Height data** saved and exported to 3D markers
+- **Visual feedback** with vector arms showing influence
+- **Result**: Authentic terrain elevation in 3D scene
+
+
+### Boundary System
+- **Define regions** for different terrain types
+- **Saved with graph data** for later editing
+- **Future Use**: Can generate different materials per boundary
+- **Potential**: Biome-specific textures (grass, rock, snow)
+
+
+---
+
+
+## 🔮 Future Enhancements (Ready for Implementation)
+
+
+### Phase 2: Terrain Mesh Generation
+```javascript
+function generateTerrainMesh(graphData, regionCoords) {
+    // Create PlaneGeometry based on node grid
+    // Use height data for vertex displacement
+    // Apply boundaries as texture/material regions
+    // Add to scene at calculated world position
+}
+```
+
+
+### Phase 3: Texture Mapping
+- Assign **materials** based on boundaries
+- Support **multi-material** meshes
+- Integrate with existing terrain texture system
+- **UV mapping** for seamless tiling
+
+
+### Phase 4: Advanced Import Options
+- **Import Dialog**: Preview before commit
+- **Rotation Override**: Adjust orientation on import
+- **Scale Controls**: Resize terrain to fit region
+- **Merge Mode**: Blend with existing terrain vs replace
+
+
+### Phase 5: Region Library
+- **Save/Load** to external files
+- **Share regions** between projects
+- **Template system** for common patterns
+- **Preset library** (mountains, valleys, islands)
+
+
+---
+
+
+## 🐛 Error Handling
+
+
+### Safety Checks
+```javascript
+// Save validation
+if (nodes.length === 0) {
+    showToast('❌ Create some nodes first!', 'error');
+    return;
+}
+
+
+// Load validation
+if (!regionData) {
+    showToast('❌ No data in region (x, y)', 'error');
+    return;
+}
+```
+
+
+### Data Integrity
+- **Deep cloning** prevents reference issues
+- **ID-based reconnection** for edges/boundaries
+- **Null checks** for missing nodes
+- **Fallback values** for optional properties
+
+
+---
+
+
+## 📝 Code Locations
+
+
+### Key Files Modified
+- **index.html** - All implementation in single file
+
+
+### Key Functions
+| Function | Purpose | Line Approx |
+|----------|---------|-------------|
+| `drawRegionGrid()` | Render 5×5 grid overlay | ~5890 |
+| `updateRegionLabels()` | Update region coordinate display | ~5960 |
+| `saveToRegion()` | Export graph to master grid | ~6380 |
+| `loadFromRegion()` | Import graph from master grid | ~6420 |
+| `generateTerrainFromGraph()` | Create 3D markers | ~6470 |
+
+
+### State Properties
+| Property | Description |
+|----------|-------------|
+| `AppState.masterGrid.currentRegion` | Which region is being edited |
+| `AppState.masterGrid.targetRegion` | Where to import terrain |
+| `AppState.masterGrid.regions` | Saved terrain data dictionary |
+| `AppState.masterGrid.showPreviewGrid` | Grid overlay visibility |
+
+
+---
+
+
+## 🎮 Keyboard/Mouse Controls
+
+
+### Region Grid Interaction
+- **Click cell**: Select as target region
+- **Grid toggle button**: Show/hide overlay
+- **Preview canvas**: Still shows terrain preview underneath
+
+
+### Workflow Shortcuts
+1. **📍 Toggle** → Click target → **💾 Save** = Quick export
+2. **📍 Toggle** → Click source → **📂 Load** → Edit → **💾 Save** = Update
+
+
+---
+
+
+## 🌟 Summary
+
+
+✅ **Master canvas** divided into 5×5 grid (25 regions)
+✅ **Preview grid** shows all regions with color-coded states
+✅ **Click-to-select** target region for import
+✅ **Save/Load** terrain data per region
+✅ **3D marker generation** creates visual feedback in scene
+✅ **Rotation persistence** maintains viewing angle
+✅ **Region labels** show editing/target coordinates
+✅ **Non-destructive** workflow supports multiple regions
+
+
+The system creates a clear **separation of concerns**:
+- **Nexus Lab** = Sculpting workspace (design mode)
+- **Master Canvas** = Placement grid (integration mode)
+- **Preview Grid** = Navigation map (overview mode)
+
+
+Users can now:
+1. **Sculpt** terrain with full control in Nexus Lab
+2. **Preview** 3D orientation before committing
+3. **Place** terrain at any grid location
+4. **Edit** existing regions non-destructively
+5. **Build** complex multi-region landscapes
+
+
+**Status**: ✅ Complete - Ready for terrain mesh generation phase
+
+
+
+
+
+
+
+# 🧬 Nexus Lab Isometric View Update
+
+
+## Overview
+Successfully upgraded the Canvas Node Editor from flat 2D to **isometric 3D perspective** with advanced terrain editing capabilities.
+
+
+---
+
+
+## ✅ Completed Features
+
+
+### 1. **Isometric 3D Transformation** ⛰️
+- Converted flat 2D canvas to **isometric perspective** (30° angle)
+- Applied rotation matrix with adjustable Y-axis rotation (default 45°)
+- Projection formula: `x' = x - z*cos(30°), y' = y - z*sin(30°)`
+- **All rendering functions updated:**
+  - `drawNodes()` - Nodes now render in 3D space with depth shadows
+  - `drawEdges()` - Edges show gradient based on height differences
+  - `drawBoundaries()` - Polygons rendered in isometric projection
+  - `findNodeAt()` - Hit detection works in screen space after transformation
+
+
+### 2. **Side Zoom Navigation** 🔍
+- **4 zoom buttons** added to toolbar:
+  - 🔍 **Front** - Rotate to 0° (front view)
+  - 🔍 **Right** - Rotate to 90° (right side)
+  - 🔍 **Back** - Rotate to 180° (back view)
+  - 🔍 **Left** - Rotate to 270° (left side)
+- **🔄 Reset View** button returns to default 45° isometric
+- **Smooth camera transitions** with easeInOutCubic animation
+- **Zoom level** increases to 1.5x when viewing sides
+- Animation duration: 500ms for natural feel
+
+
+### 3. **Vector Influence Arms** 🎯
+- **Visual feedback** when hovering/selecting nodes
+- **Radial gradient** shows influence area (150px radius)
+- **Dashed lines** ("vector arms") connect selected node to all connected neighbors
+- **Influence spheres** appear at connected nodes (cyan glow)
+- **Real-time updates** during node interactions
+
+
+### 4. **Enhanced Pull-Up System** ⛰️
+- **3D height visualization:**
+  - Vertical dashed line from base to peak
+  - Pink peak indicator with stroke outline
+  - Height label with text stroke for readability
+  - Shadow circle at base for depth perception
+- **Height affects edge rendering:**
+  - Gradient colors when nodes have height differences (>5 units)
+  - Cyan → Pink gradient shows terrain slope
+
+
+### 5. **Move Tool** ✋
+- **New "Move" button** in toolbar (between Connect and Select)
+- **Drag nodes in XY plane** while maintaining all connections
+- **Real-time edge updates** during drag
+- **Cursor feedback:**
+  - `grab` on hover
+  - `grabbing` during drag
+- **Preserves all relationships** - edges follow moved nodes
+
+
+### 6. **Hover State System** 👁️
+- Nodes track `hovered` state
+- **Visual changes on hover:**
+  - Color: `#00ddff` (brighter cyan)
+  - Vector arms appear automatically
+  - Cursor changes based on active tool
+- **Performance optimized** - hover updates only on mousemove
+
+
+---
+
+
+## 🎨 Visual Enhancements
+
+
+### Node Rendering
+```javascript
+// Base node: #10e0e0 (cyan)
+// Selected: #00ffff (bright cyan)
+// Hovered: #00ddff (lighter cyan)
+// Peak indicator: #ff3aa5 (pink/magenta)
+```
+
+
+### Depth Cues
+- **Shadows** under nodes with height
+- **Dashed lines** show vertical "strings"
+- **Gradient edges** indicate terrain slope
+- **Influence gradients** fade from 100% to 0% opacity
+
+
+### Camera System
+```javascript
+isometricAngle: 30°     // Vertical tilt
+rotationY: 45°          // Default Y-axis rotation
+zoomLevel: 1.0          // Default scale (1.5x when zoomed)
+```
+
+
+---
+
+
+## 🎮 Updated Controls
+
+
+### Toolbar Buttons
+| Button | Function | Tool Mode |
+|--------|----------|-----------|
+| ➕ Spawn Node | Create new nodes | `spawn` |
+| 🔗 Connect | Link two nodes | `connect` |
+| ✋ Move | Reposition nodes | `move` (NEW) |
+| 🎯 Select | Multi-select for boundaries | `select` |
+| ⭕ Create Boundary | Generate polygon from selection | - |
+| 🔍 Front/Right/Back/Left | Zoom to side view | - (NEW) |
+| 🔄 Reset View | Return to isometric | - (NEW) |
+
+
+### Mouse Interactions
+- **Spawn Mode**: Click to place nodes at cursor
+- **Connect Mode**: Click two nodes to create edge
+- **Move Mode**: Drag nodes while keeping connections
+- **Pull Mode**: Drag nodes vertically to create terrain
+- **Select Mode**: Click nodes to add to boundary selection
+
+
+### Hover Behavior
+- **Automatic vector arms** when hovering any node
+- **Influence visualization** shows deformation area
+- **Cursor changes** indicate available actions
+- **Smooth transitions** for all visual feedback
+
+
+---
+
+
+## 📊 Technical Details
+
+
+### Coordinate Systems
+```javascript
+// World Space (node storage)
+node.x, node.y, node.height
+
+
+// Isometric Space (projection)
+function toIsometric(x, y, z) {
+    const rotRad = rotationY * Math.PI / 180;
+    const xRot = x * Math.cos(rotRad) + z * Math.sin(rotRad);
+    const zRot = -x * Math.sin(rotRad) + z * Math.cos(rotRad);
+
+
+    const angleRad = isometricAngle * Math.PI / 180;
+    const isoX = xRot - zRot * Math.cos(angleRad);
+    const isoY = y - zRot * Math.sin(angleRad);
+
+
+    return { x: isoX, y: isoY };
+}
+
+
+// Screen Space (canvas rendering)
+function isoToScreen(x, y, z) {
+    const iso = toIsometric(x, y, z);
+    return {
+        x: iso.x * zoomLevel + W/2,
+        y: iso.y * zoomLevel + H/2
+    };
+}
+```
+
+
+### Animation System
+- **EaseInOutCubic** easing for smooth camera transitions
+- **RequestAnimationFrame** for 60fps updates
+- **Progress tracking** (0.0 → 1.0) for interpolation
+- **Dual interpolation** for rotation + zoom
+
+
+### Performance
+- **Hover state updates** only when mouse moves
+- **Lazy redraw** - only redraws when state changes
+- **Efficient hit detection** using screen-space distance
+- **No unnecessary re-projections** during static frames
+
+
+---
+
+
+## 🔄 Workflow Improvements
+
+
+### Before (Flat 2D)
+1. Create nodes on flat grid
+2. Connect nodes with straight lines
+3. Pull nodes vertically (no visual depth)
+4. Fixed single viewing angle
+5. No move after connection
+
+
+### After (Isometric 3D)
+1. Create nodes with **depth perception**
+2. Connect nodes with **gradient edges** showing slope
+3. Pull nodes with **vector arms** showing influence
+4. **Rotate camera** to any of 4 sides for detailed editing
+5. **Move nodes** freely while preserving all connections
+6. **Hover feedback** shows relationships instantly
+
+
+---
+
+
+## 🎯 Use Cases
+
+
+### Terrain Editing
+1. **Spawn nodes** in desired pattern
+2. **Connect nodes** to form mesh
+3. **Pull nodes up** to create mountains/hills
+4. **Zoom to side** for precise height adjustment
+5. **Move nodes** to refine layout without breaking connections
+
+
+### Boundary Creation
+1. **Spawn perimeter nodes**
+2. **Move tool** to adjust positions
+3. **Select nodes** in order
+4. **Create boundary** to form region
+5. **View from different angles** to verify shape
+
+
+### Graph Analysis
+1. **Hover nodes** to see connections
+2. **Vector arms** reveal network topology
+3. **Height gradients** show terrain features
+4. **Rotate view** to examine from all sides
+
+
+---
+
+
+## 📁 Modified Functions
+
+
+### Core Rendering
+- `drawNodes()` - Isometric projection + vector arms
+- `drawEdges()` - Height-based gradients
+- `drawBoundaries()` - Isometric polygons
+- `drawSelectionHighlights()` - Isometric selection rings
+- `drawVectorArms()` - NEW: Influence visualization
+
+
+### Coordinate Transforms
+- `toIsometric(x, y, z)` - NEW: 3D → Isometric
+- `isoToScreen(x, y, z)` - NEW: Isometric → Screen
+- `screenToIso(x, y, z)` - NEW: Screen → Isometric
+- `findNodeAt(x, y)` - Updated for screen-space hit detection
+
+
+### Camera Control
+- `animateCameraTo(target)` - NEW: Smooth camera transitions
+- `animateCamera()` - NEW: Animation loop
+
+
+### Event Handlers
+- `mousedown` - Added Move tool support
+- `mousemove` - Added hover state tracking + Move drag
+- Updated all tool buttons + new zoom buttons
+
+
+---
+
+
+## 🎨 Style Additions
+
+
+### New Visual Elements
+```javascript
+// Vector arms
+strokeStyle: 'rgba(0, 255, 255, 0.5)'
+lineDash: [2, 4]
+
+
+// Influence gradient
+radialGradient: 'rgba(0, 255, 255, 0.15)' → 'rgba(0, 255, 255, 0)'
+
+
+// Height gradient (edges)
+linearGradient: 'rgba(16, 224, 224, 0.8)' → 'rgba(255, 58, 165, 0.8)'
+
+
+// Depth shadows
+fillStyle: 'rgba(0, 0, 0, 0.3)'
+```
+
+
+---
+
+
+## 🚀 Future Enhancements (Optional)
+
+
+### Potential Additions
+- **Auto-rotate** - Slowly spin camera when idle
+- **Click-to-focus** - Click node to center camera on it
+- **Terrain mesh preview** - Show triangle mesh in preview panel
+- **Smooth terrain** - Interpolate heights between nodes
+- **Export to 3D scene** - Generate THREE.js terrain from graph
+- **Undo/Redo** - History stack for all operations
+- **Snap to grid** - Align nodes to isometric grid lines
+
+
+---
+
+
+## 📝 Summary
+
+
+Successfully transformed the Nexus Lab Canvas Node Editor from a basic 2D graph into a **fully interactive isometric 3D terrain editor** with:
+
+
+✅ **Isometric perspective** for depth perception
+✅ **4-side zoom navigation** for detailed editing
+✅ **Vector influence visualization** showing node relationships
+✅ **Enhanced height system** with gradients and shadows
+✅ **Move tool** for repositioning connected nodes
+✅ **Hover feedback** with real-time relationship display
+✅ **Smooth animations** for professional feel
+
+
+All features work together seamlessly to create an intuitive, powerful terrain/graph editing experience!
+
+
+---
+
+
+**Status**: ✅ Complete - All requested features implemented
+**Testing**: Ready for user testing
+**Performance**: Optimized with efficient rendering pipeline
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WoW-Lite 3D Prototype</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: rgba(20, 20, 30, 0.95);
+            --accent-gold: #ffd700;
+            --accent-blue: #4a9eff;
+            --accent-purple: #a335ee;
+            --text-primary: #f0e6d2;
+            --text-secondary: #a89968;
+            --border-gold: #c9aa71;
+            --health-red: #ff3333;
+            --mana-blue: #4a9eff;
+            --energy-yellow: #ffd700;
+            --xp-purple: #a335ee;
+        }
+
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+
+        body {
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, var(--bg-dark) 100%);
+            color: var(--text-primary);
+        }
+
+
+        /* Main Game Container */
+        #game-container {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        /* Top Action Bar */
+        #action-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+
+        .action-slot {
+            width: 50px;
+            height: 50px;
+            background: var(--bg-panel);
+            border: 2px solid var(--border-gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+
+        .action-slot:hover {
+            border-color: var(--accent-gold);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+
+        .action-slot .keybind {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+
+        /* 3D Canvas Container */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #0f1419 0%, #1a1f2e 50%, #0a0f17 100%);
+        }
+
+
+        /* Character HUD - Bottom Left */
+        #character-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 280px;
+            background: var(--bg-panel);
+            border: 2px solid var(--border-gold);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+
+        .character-portrait {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 3px solid var(--accent-gold);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+
+        .character-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin-bottom: 8px;
+        }
+
+
+        .character-level {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+
+        /* Resource Bars */
+        .resource-bar {
+            margin-bottom: 8px;
+        }
+
+
+        .resource-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+
+
+        .bar-container {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+
+        .bar-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+
+        .health-bar { background: linear-gradient(90deg, #ff3333 0%, #cc0000 100%); }
+        .mana-bar { background: linear-gradient(90deg, #4a9eff 0%, #0066cc 100%); }
+        .xp-bar { background: linear-gradient(90deg, #a335ee 0%, #7b2abd 100%); }
+
+
+        /* Target Frame - Top Left */
+        #target-frame {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 250px;
+            background: var(--bg-panel);
+            border: 2px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+
+        #target-frame.active {
+            display: block;
+        }
+
+
+        .target-name {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+
+        .target-level {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+
+        /* Mini Map - Top Right */
+        #minimap {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            background: var(--bg-panel);
+            border: 3px solid var(--border-gold);
+            border-radius: 50%;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+
+        .minimap-bg {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #2a3a4a 0%, #1a2a3a 100%);
+            position: relative;
+        }
+
+
+        .minimap-player {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: var(--accent-gold);
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+
+
+        .minimap-coords {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-shadow: 0 0 5px black;
+        }
+
+
+        /* Quest Tracker - Right Side */
+        #quest-tracker {
+            position: absolute;
+            top: 240px;
+            right: 20px;
+            width: 280px;
+            max-height: 400px;
+            background: var(--bg-panel);
+            border: 2px solid var(--border-gold);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+
+        .quest-tracker-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--border-gold);
+            padding-bottom: 8px;
+        }
+
+
+        .quest-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-purple);
+        }
+
+
+        .quest-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+
+        .quest-objective {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+
+
+        .quest-objective.complete {
+            color: var(--accent-gold);
+            text-decoration: line-through;
+        }
+
+
+        /* Chat Box - Bottom Right */
+        #chat-box {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            height: 200px;
+            background: var(--bg-panel);
+            border: 2px solid var(--border-gold);
+            border-radius: 12px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            padding-right: 5px;
+        }
+
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border-gold);
+            border-radius: 3px;
+        }
+
+
+        .chat-message {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+
+        .chat-message .sender {
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+
+        .chat-input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-gold);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(20, 20, 30, 0.98);
+            border: 2px solid var(--accent-purple);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            min-width: 200px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+
+        .tooltip.active {
+            display: block;
+        }
+
+
+        .tooltip-title {
+            color: var(--accent-purple);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+
+        .tooltip-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+
+        /* Casting Bar - Center Bottom */
+        #casting-bar {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            background: var(--bg-panel);
+            border: 2px solid var(--accent-gold);
+            border-radius: 8px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+
+        #casting-bar.active {
+            display: block;
+        }
+
+
+        .casting-spell-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+
+        .casting-bar-container {
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+
+        .casting-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-gold) 0%, var(--accent-blue) 100%);
+            transition: width 0.1s linear;
+        }
+
+
+        /* Settings Menu */
+        #settings-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            max-height: 600px;
+            background: var(--bg-panel);
+            border: 3px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: none;
+            z-index: 2000;
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.8);
+        }
+
+
+        #settings-menu.active {
+            display: block;
+        }
+
+
+        .settings-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+
+        .settings-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+
+        .settings-slider {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            outline: none;
+        }
+
+
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 50, 50, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+
+        .close-button:hover {
+            background: #ff3333;
+            transform: scale(1.1);
+        }
+
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
+        }
+
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+
+        .loading-logo {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+        }
+
+
+        .loading-bar-container {
+            width: 400px;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--border-gold);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-gold) 0%, var(--accent-blue) 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+
+        .loading-text {
+            margin-top: 15px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-logo">⚔️ WoW-Lite</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar-fill" id="loading-bar"></div>
+        </div>
+        <div class="loading-text" id="loading-text">Loading assets...</div>
+    </div>
+
+
+    <!-- Main Game Container -->
+    <div id="game-container">
+        <!-- Top Action Bar -->
+        <div id="action-bar">
+            <div class="action-slot" data-slot="1">
+                <span class="keybind">1</span>
+                ⚔️
+            </div>
+            <div class="action-slot" data-slot="2">
+                <span class="keybind">2</span>
+                🛡️
+            </div>
+            <div class="action-slot" data-slot="3">
+                <span class="keybind">3</span>
+                🔥
+            </div>
+            <div class="action-slot" data-slot="4">
+                <span class="keybind">4</span>
+                ⚡
+            </div>
+            <div class="action-slot" data-slot="5">
+                <span class="keybind">5</span>
+                💊
+            </div>
+            <div class="action-slot" data-slot="6">
+                <span class="keybind">6</span>
+                🧪
+            </div>
+        </div>
+
+
+        <!-- 3D Canvas -->
+        <div id="canvas-container"></div>
+
+
+        <!-- Character HUD -->
+        <div id="character-hud">
+            <div class="character-portrait">🧙</div>
+            <div class="character-name">Hero</div>
+            <div class="character-level">Level 1 Warrior</div>
+
+
+            <div class="resource-bar">
+                <div class="resource-label">
+                    <span>Health</span>
+                    <span id="health-text">100 / 100</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill health-bar" id="health-bar" style="width: 100%"></div>
+                </div>
+            </div>
+
+
+            <div class="resource-bar">
+                <div class="resource-label">
+                    <span>Mana</span>
+                    <span id="mana-text">80 / 80</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill mana-bar" id="mana-bar" style="width: 100%"></div>
+                </div>
+            </div>
+
+
+            <div class="resource-bar">
+                <div class="resource-label">
+                    <span>Experience</span>
+                    <span id="xp-text">350 / 1000</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill xp-bar" id="xp-bar" style="width: 35%"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Target Frame -->
+        <div id="target-frame">
+            <div class="target-name">Target Name</div>
+            <div class="target-level">Level 1 Enemy</div>
+
+
+            <div class="resource-bar">
+                <div class="resource-label">
+                    <span>Health</span>
+                    <span id="target-health-text">50 / 50</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill health-bar" id="target-health-bar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Mini Map -->
+        <div id="minimap">
+            <div class="minimap-bg">
+                <div class="minimap-player"></div>
+                <div class="minimap-coords">X: 0, Y: 0</div>
+            </div>
+        </div>
+
+
+        <!-- Quest Tracker -->
+        <div id="quest-tracker">
+            <div class="quest-tracker-title">📜 Quest Log</div>
+
+
+            <div class="quest-item">
+                <div class="quest-name">The Beginning</div>
+                <div class="quest-objective complete">✓ Talk to the NPC</div>
+                <div class="quest-objective">Defeat 5 enemies (0/5)</div>
+                <div class="quest-objective">Collect 3 items (0/3)</div>
+            </div>
+
+
+            <div class="quest-item">
+                <div class="quest-name">Explore the World</div>
+                <div class="quest-objective">Discover 3 locations (1/3)</div>
+                <div class="quest-objective">Find the hidden treasure</div>
+            </div>
+        </div>
+
+
+        <!-- Chat Box -->
+        <div id="chat-box">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message">
+                    <span class="sender">[System]</span> Welcome to WoW-Lite!
+                </div>
+                <div class="chat-message">
+                    <span class="sender">[Guide]</span> Use WASD to move and mouse to look around.
+                </div>
+                <div class="chat-message">
+                    <span class="sender">[Info]</span> Press ESC to open settings.
+                </div>
+            </div>
+            <input type="text" class="chat-input" placeholder="Type your message..." />
+        </div>
+
+
+        <!-- Casting Bar -->
+        <div id="casting-bar">
+            <div class="casting-spell-name">Fireball</div>
+            <div class="casting-bar-container">
+                <div class="casting-bar-fill" id="casting-bar-fill" style="width: 0%"></div>
+            </div>
+        </div>
+
+
+        <!-- Tooltip -->
+        <div class="tooltip" id="tooltip">
+            <div class="tooltip-title">Item Name</div>
+            <div class="tooltip-description">This is a powerful item that grants +10 strength.</div>
+        </div>
+
+
+        <!-- Settings Menu -->
+        <div id="settings-menu">
+            <button class="close-button">×</button>
+            <div class="settings-title">⚙️ Settings</div>
+
+
+            <div class="settings-section">
+                <div class="settings-label">Graphics Quality</div>
+                <input type="range" class="settings-slider" min="1" max="10" value="7" />
+            </div>
+
+
+            <div class="settings-section">
+                <div class="settings-label">Master Volume</div>
+                <input type="range" class="settings-slider" min="0" max="100" value="70" />
+            </div>
+
+
+            <div class="settings-section">
+                <div class="settings-label">Mouse Sensitivity</div>
+                <input type="range" class="settings-slider" min="1" max="10" value="5" />
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Simulate loading
+        window.addEventListener('load', () => {
+            const loadingBar = document.getElementById('loading-bar');
+            const loadingText = document.getElementById('loading-text');
+            const loadingScreen = document.getElementById('loading-screen');
+
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loadingScreen.classList.add('hidden');
+                    }, 500);
+                }
+                loadingBar.style.width = progress + '%';
+                loadingText.textContent = progress < 100 ? `Loading... ${Math.floor(progress)}%` : 'Ready!';
+            }, 200);
+        });
+
+
+        // Settings menu toggle
+        const settingsMenu = document.getElementById('settings-menu');
+        const closeButton = document.querySelector('.close-button');
+
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                settingsMenu.classList.toggle('active');
+            }
+        });
+
+
+        closeButton.addEventListener('click', () => {
+            settingsMenu.classList.remove('active');
+        });
+
+
+        // Chat input
+        const chatInput = document.querySelector('.chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim()) {
+                const message = document.createElement('div');
+                message.className = 'chat-message';
+                message.innerHTML = `<span class="sender">[You]</span> ${chatInput.value}`;
+                chatMessages.appendChild(message);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                chatInput.value = '';
+            }
+        });
+
+
+        // Target frame demo (click action bar to show)
+        const targetFrame = document.getElementById('target-frame');
+        document.querySelectorAll('.action-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                targetFrame.classList.add('active');
+
+
+                // Simulate casting
+                const castingBar = document.getElementById('casting-bar');
+                const castingFill = document.getElementById('casting-bar-fill');
+                castingBar.classList.add('active');
+
+
+                let castProgress = 0;
+                const castInterval = setInterval(() => {
+                    castProgress += 5;
+                    castingFill.style.width = castProgress + '%';
+                    if (castProgress >= 100) {
+                        clearInterval(castInterval);
+                        setTimeout(() => {
+                            castingBar.classList.remove('active');
+                            castingFill.style.width = '0%';
+                        }, 200);
+                    }
+                }, 50);
+            });
+        });
+
+
+        console.log('🎮 WoW-Lite 3D Prototype initialized! Ready for THREE.js integration.');
+        console.log('📝 TODO: Add THREE.js scene, camera, renderer, and game logic.');
+    </script>
+</body>
+</html>
+
+
+

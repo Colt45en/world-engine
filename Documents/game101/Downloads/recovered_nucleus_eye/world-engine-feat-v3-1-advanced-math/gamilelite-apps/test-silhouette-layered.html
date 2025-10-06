@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Layered Voxel Converter - Enhanced with Grid Math</title>
+    <script src="https://cdn.tailwindcss.com"></script>        // Extract edge pixels for smoother models
+        function extractEdgePixels(mask, w, h) {
+                                  // Apply depth profile with configurable curve
+                        const normalizedDist = Math.min(1, distFromEdge / Math.max(10, maxDist * 0.5));
+                        const depthProfile = Math.pow(normalizedDist, 0.7);
+                        let voxelDepth = Math.max(1, Math.floor(depth * depthProfile * 0.9));
+
+                        // Edge smoothing: reduce depth for edge pixels
+                        if (edgeSmoothing && edgeMap && edgeMap[idx] > 0) {
+                            voxelDepth = Math.max(1, Math.floor(voxelDepth * 0.7));
+                        }
+
+                        // Layer-specific modifications
+                        let layerDepthMod = 1.0;
+                        if (layerMode === 'dual' || layerMode === 'triple') {
+                            layerDepthMod = 1.0 - (layer * 0.15); // Each layer slightly thinner
+                        }
+
+                        const adjustedDepth = Math.floor(voxelDepth * layerDepthMod);s = new Uint8Array(w * h);
+            
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = y * w + x;
+                    if (mask[idx] > 0) {
+                        // Check if this pixel is on the edge (has empty neighbor)
+                        const hasEmptyNeighbor = 
+                            mask[(y-1) * w + x] === 0 ||
+                            mask[(y+1) * w + x] === 0 ||
+                            mask[y * w + (x-1)] === 0 ||
+                            mask[y * w + (x+1)] === 0;
+                        
+                        edges[idx] = hasEmptyNeighbor ? 255 : 0;
+                    }
+                }
+            }
+            
+            return edges;
+        }
+
+        // Enhanced voxel creation with layers
+        function createLayeredVoxelGeometry(mask, w, h, config) {
+            const VOXEL_SIZE = parseFloat(config.voxelSize) || 0.08;
+            const depthFactor = parseFloat(config.depthFactor) || 0.5;
+            const layerMode = config.layerMode || 'standard';
+            const layerOffset = parseInt(config.layerOffset) || 3;
+            const distPattern = config.distPattern || 'uniform';
+            const maxVoxels = parseInt(config.maxVoxels) || 200000;
+            const edgeSmoothing = config.edgeSmoothing || false;
+
+            log(`🌐 Creating layered voxels (mode=${layerMode}, pattern=${distPattern}, max=${maxVoxels})...`);
+
+            // Optional edge detection for smoother results
+            let edgeMap = null;
+            if (edgeSmoothing) {
+                edgeMap = extractEdgePixels(mask, w, h);
+                log('🔍 Edge detection applied for smoother geometry');
+            }
+
+            // Calculate distance field with better edge detection
+            const distField = new Float32Array(w * h);
+            let maxDist = 0;ype="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body class="bg-slate-900 text-white">
+    <div class="p-6 max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2">🌐 Layered Voxel Converter</h1>
+        <p class="text-slate-400 mb-6">Enhanced with multi-layer mathematical grid distribution for better 3D depth</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Upload Section -->
+            <div class="bg-slate-800 rounded-lg p-4">
+                <h2 class="text-xl font-bold mb-4">📤 Upload & Settings</h2>
+                <button id="uploadBtn" class="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold mb-3">
+                    📁 Upload Silhouette PNG
+                </button>
+                
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <label class="block mb-1 font-bold text-cyan-400">🎚️ Layering Mode:</label>
+                        <select id="layerMode" class="w-full bg-slate-700 rounded px-3 py-2">
+                            <option value="standard">Standard (single layer)</option>
+                            <option value="dual">Dual Layer (base + offset)</option>
+                            <option value="triple">Triple Layer (max depth)</option>
+                            <option value="mathematical">Mathematical Grid</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-1 font-bold text-cyan-400">📐 Distribution Pattern:</label>
+                        <select id="distPattern" class="w-full bg-slate-700 rounded px-3 py-2">
+                            <option value="uniform">Uniform (every pixel)</option>
+                            <option value="checkerboard">Checkerboard (50% density)</option>
+                            <option value="sinusoidal">Sinusoidal (wave pattern)</option>
+                            <option value="radial">Radial (center outward)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span>Voxel Size:</span>
+                        <input type="range" id="voxelSize" min="0.05" max="0.3" step="0.01" value="0.08" class="w-32">
+                        <span id="voxelSizeVal" class="font-mono">0.08</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span>Depth Factor:</span>
+                        <input type="range" id="depthFactor" min="0.1" max="0.8" step="0.05" value="0.5" class="w-32">
+                        <span id="depthFactorVal" class="font-mono">0.5</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span>Layer Offset:</span>
+                        <input type="range" id="layerOffset" min="0" max="10" step="1" value="3" class="w-32">
+                        <span id="layerOffsetVal" class="font-mono">3</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span>Max Voxels:</span>
+                        <input type="range" id="maxVoxels" min="50000" max="500000" step="50000" value="200000" class="w-32">
+                        <span id="maxVoxelsVal" class="font-mono">200k</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span>Edge Smoothing:</span>
+                        <input type="checkbox" id="edgeSmoothing" class="w-5 h-5">
+                        <span class="text-xs text-slate-400">(slower)</span>
+                    </div>
+                    
+                    <div class="pt-2 px-2 bg-slate-700/50 rounded text-xs">
+                        <div class="font-bold text-yellow-400 mb-1">⚡ Quick Tips:</div>
+                        <div class="text-slate-300 space-y-1">
+                            <div>• Checkerboard = 50% fewer voxels</div>
+                            <div>• Larger voxel size = faster processing</div>
+                            <div>• Dual layer adds depth perception</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-slate-600 mt-3">
+                        <label class="block mb-2 font-bold text-purple-400">🎯 Quick Presets:</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="presetBalanced" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm">
+                                Balanced
+                            </button>
+                            <button id="presetQuality" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm">
+                                High Quality
+                            </button>
+                            <button id="presetFast" class="px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm">
+                                Fast/Light
+                            </button>
+                            <button id="presetArtistic" class="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm">
+                                Artistic
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="bg-slate-800 rounded-lg p-4 lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4">👁️ 3D Preview</h2>
+                <div id="previewCanvas" class="w-full h-96 bg-black rounded-lg"></div>
+                <div class="mt-3 flex gap-2">
+                    <button id="exportGLB" class="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-bold" disabled>
+                        💾 Export GLB
+                    </button>
+                    <button id="resetView" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg">
+                        🔄 Reset View
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="bg-slate-800 rounded-lg p-4">
+            <h2 class="text-xl font-bold mb-3">ℹ️ Layer Information</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div>
+                    <div class="text-slate-400">Total Layers:</div>
+                    <div id="totalLayers" class="text-xl font-bold text-cyan-400">1</div>
+                </div>
+                <div>
+                    <div class="text-slate-400">Total Voxels:</div>
+                    <div id="totalVoxels" class="text-xl font-bold text-green-400">0</div>
+                </div>
+                <div>
+                    <div class="text-slate-400">Layer Offset:</div>
+                    <div id="offsetInfo" class="text-xl font-bold text-purple-400">0px</div>
+                </div>
+                <div>
+                    <div class="text-slate-400">Pattern:</div>
+                    <div id="patternInfo" class="text-xl font-bold text-orange-400">Uniform</div>
+                </div>
+                <div>
+                    <div class="text-slate-400">Processing Time:</div>
+                    <div id="processTime" class="text-xl font-bold text-yellow-400">-</div>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-700">
+                <div class="text-xs text-slate-400" id="perfTip">
+                    💡 Performance tip: Use Checkerboard pattern or increase voxel size for faster processing
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Section -->
+        <div class="bg-slate-800 rounded-lg p-4 mt-4">
+            <h2 class="text-xl font-bold mb-3">📝 Processing Log</h2>
+            <div id="logOutput" class="bg-black rounded-lg p-3 font-mono text-xs text-green-400 h-32 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+        let scene, camera, renderer, currentMesh;
+        let currentImageData = null;
+
+        // Logging
+        function log(msg) {
+            const logDiv = document.getElementById('logOutput');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${msg}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+
+        // Update UI values
+        function updateUIValues() {
+            document.getElementById('voxelSizeVal').textContent = document.getElementById('voxelSize').value;
+            document.getElementById('depthFactorVal').textContent = document.getElementById('depthFactor').value;
+            document.getElementById('layerOffsetVal').textContent = document.getElementById('layerOffset').value;
+            
+            const maxVoxels = document.getElementById('maxVoxels').value;
+            document.getElementById('maxVoxelsVal').textContent = (maxVoxels / 1000).toFixed(0) + 'k';
+        }
+
+        ['voxelSize', 'depthFactor', 'layerOffset', 'maxVoxels'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateUIValues);
+        });
+
+        // Initialize Three.js scene
+        function initScene() {
+            const container = document.getElementById('previewCanvas');
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
+            camera.position.set(5, 5, 10);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(w, h);
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            scene.add(directionalLight);
+
+            const axesHelper = new THREE.AxesHelper(5);
+            scene.add(axesHelper);
+
+            // Mouse controls
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            renderer.domElement.addEventListener('mousedown', () => isDragging = true);
+            renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+            renderer.domElement.addEventListener('mouseleave', () => isDragging = false);
+
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.offsetX - previousMousePosition.x;
+                const deltaY = e.offsetY - previousMousePosition.y;
+                previousMousePosition = { x: e.offsetX, y: e.offsetY };
+
+                if (currentMesh) {
+                    currentMesh.rotation.y += deltaX * 0.01;
+                    currentMesh.rotation.x += deltaY * 0.01;
+                }
+            });
+
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY * 0.01;
+                camera.position.multiplyScalar(1 + delta);
+                const length = camera.position.length();
+                if (length > 50) camera.position.normalize().multiplyScalar(50);
+                if (length < 5) camera.position.normalize().multiplyScalar(5);
+            });
+
+            animate();
+            log('🎬 Scene initialized');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (currentMesh) {
+                currentMesh.rotation.y += 0.002;
+            }
+            renderer.render(scene, camera);
+        }
+
+        // Distribution pattern functions
+        function shouldPlaceVoxel(x, y, w, h, pattern) {
+            switch (pattern) {
+                case 'uniform':
+                    return true;
+                
+                case 'checkerboard':
+                    return (x + y) % 2 === 0;
+                
+                case 'sinusoidal':
+                    const value = Math.sin(x * 0.3) * Math.cos(y * 0.3);
+                    return Math.abs(value) > 0.3;
+                
+                case 'radial':
+                    const centerX = w / 2;
+                    const centerY = h / 2;
+                    const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
+                    return (dist / maxDist * 10) % 2 < 1; // Rings
+                
+                default:
+                    return true;
+            }
+        }
+
+        // Enhanced voxel creation with layers
+        function createLayeredVoxelGeometry(mask, w, h, config) {
+            const VOXEL_SIZE = parseFloat(config.voxelSize) || 0.08;
+            const depthFactor = parseFloat(config.depthFactor) || 0.5;
+            const layerMode = config.layerMode || 'standard';
+            const layerOffset = parseInt(config.layerOffset) || 3;
+            const distPattern = config.distPattern || 'uniform';
+            const maxVoxels = parseInt(config.maxVoxels) || 200000;
+
+            log(`🌐 Creating layered voxels (mode=${layerMode}, pattern=${distPattern}, max=${maxVoxels})...`);
+
+            // Calculate distance field
+            const distField = new Float32Array(w * h);
+            let maxDist = 0;
+            
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = y * w + x;
+                    if (mask[idx] > 0) {
+                        let minDist = Math.max(w, h);
+                        const searchR = Math.min(30, Math.floor(Math.max(w, h) * 0.2));
+                        
+                        for (let dy = -searchR; dy <= searchR; dy++) {
+                            const sy = y + dy;
+                            if (sy < 0 || sy >= h) continue;
+                            for (let dx = -searchR; dx <= searchR; dx++) {
+                                const sx = x + dx;
+                                if (sx < 0 || sx >= w) continue;
+                                if (mask[sy * w + sx] === 0) {
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+                                    minDist = Math.min(minDist, dist);
+                                }
+                            }
+                        }
+                        distField[idx] = minDist;
+                        maxDist = Math.max(maxDist, minDist);
+                    }
+                }
+            }
+
+            // Determine number of layers
+            let numLayers = 1;
+            switch (layerMode) {
+                case 'dual': numLayers = 2; break;
+                case 'triple': numLayers = 3; break;
+                case 'mathematical': numLayers = 2; break; // Base + mathematical overlay
+            }
+
+            document.getElementById('totalLayers').textContent = numLayers;
+
+            const allGeometries = [];
+            let totalVoxelCount = 0;
+
+            // Create each layer
+            for (let layer = 0; layer < numLayers; layer++) {
+                const layerVoxels = [];
+                const depth = Math.floor(w * depthFactor);
+                const offsetX = layer * layerOffset;
+                const offsetZ = layer * layerOffset;
+
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const idx = y * w + x;
+                        if (mask[idx] === 0) continue;
+
+                        // Apply distribution pattern
+                        if (!shouldPlaceVoxel(x, y, w, h, distPattern)) continue;
+
+                        const distFromEdge = distField[idx];
+                        const normalizedDist = Math.min(1, distFromEdge / Math.max(10, maxDist * 0.5));
+                        const depthProfile = Math.pow(normalizedDist, 0.7);
+                        const voxelDepth = Math.max(1, Math.floor(depth * depthProfile * 0.9));
+
+                        // Layer-specific modifications
+                        let layerDepthMod = 1.0;
+                        if (layerMode === 'dual' || layerMode === 'triple') {
+                            layerDepthMod = 1.0 - (layer * 0.15); // Each layer slightly thinner
+                        }
+
+                        const adjustedDepth = Math.floor(voxelDepth * layerDepthMod);
+
+                        for (let z = 0; z < adjustedDepth; z++) {
+                            layerVoxels.push({
+                                x: (x - w / 2) * VOXEL_SIZE + offsetX * VOXEL_SIZE,
+                                y: (h / 2 - y) * VOXEL_SIZE,
+                                z: (z - adjustedDepth / 2) * VOXEL_SIZE + offsetZ * VOXEL_SIZE,
+                                layer: layer
+                            });
+                            totalVoxelCount++;
+                            if (totalVoxelCount >= maxVoxels) break;
+                        }
+                        if (totalVoxelCount >= maxVoxels) break;
+                    }
+                    if (totalVoxelCount >= maxVoxels) break;
+                }
+
+                // Create geometry for this layer
+                const cubeGeo = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+                
+                for (const v of layerVoxels) {
+                    const clonedGeo = cubeGeo.clone();
+                    clonedGeo.translate(v.x, v.y, v.z);
+                    allGeometries.push(clonedGeo);
+                }
+
+                log(`Layer ${layer + 1}: ${layerVoxels.length} voxels created (offset: ${offsetX}px, ${offsetZ}px)`);
+            }
+
+            // Warn if we hit the limit
+            if (totalVoxelCount >= maxVoxels) {
+                log(`⚠️ WARNING: Hit voxel limit (${maxVoxels.toLocaleString()})! Model truncated.`);
+                log(`💡 TIP: Try Checkerboard pattern or increase voxel size to reduce count`);
+            }
+
+            document.getElementById('totalVoxels').textContent = totalVoxelCount.toLocaleString();
+            document.getElementById('offsetInfo').textContent = `${layerOffset}px`;
+            document.getElementById('patternInfo').textContent = distPattern.charAt(0).toUpperCase() + distPattern.slice(1);
+
+            // Update performance tip based on voxel count
+            const perfTip = document.getElementById('perfTip');
+            if (totalVoxelCount >= maxVoxels * 0.95) {
+                perfTip.innerHTML = '⚠️ Near voxel limit! Try Checkerboard pattern or increase Max Voxels slider';
+                perfTip.style.color = '#fbbf24';
+            } else if (totalVoxelCount > 300000) {
+                perfTip.innerHTML = '💡 High voxel count detected. Processing may take longer but quality is excellent!';
+                perfTip.style.color = '#10b981';
+            } else if (totalVoxelCount < 100000) {
+                perfTip.innerHTML = '⚡ Low voxel count - very fast processing! Increase depth or decrease voxel size for more detail';
+                perfTip.style.color = '#60a5fa';
+            } else {
+                perfTip.innerHTML = '✅ Good balance of quality and performance!';
+                perfTip.style.color = '#4ade80';
+            }
+
+            log(`✅ Total: ${totalVoxelCount} voxels across ${numLayers} layer(s)`);
+
+            // Merge all geometries
+            const mergedGeometry = new THREE.BufferGeometry();
+            const positionArrays = [];
+            const normalArrays = [];
+            const indexArrays = [];
+            let indexOffset = 0;
+
+            for (const geo of allGeometries) {
+                const pos = geo.attributes.position.array;
+                const norm = geo.attributes.normal.array;
+                const idx = geo.index ? geo.index.array : null;
+
+                positionArrays.push(pos);
+                normalArrays.push(norm);
+
+                if (idx) {
+                    const offsetIdx = new Uint16Array(idx.length);
+                    for (let i = 0; i < idx.length; i++) {
+                        offsetIdx[i] = idx[i] + indexOffset;
+                    }
+                    indexArrays.push(offsetIdx);
+                }
+
+                indexOffset += pos.length / 3;
+            }
+
+            const totalPositions = positionArrays.reduce((sum, arr) => sum + arr.length, 0);
+            const totalNormals = normalArrays.reduce((sum, arr) => sum + arr.length, 0);
+            const totalIndices = indexArrays.reduce((sum, arr) => sum + arr.length, 0);
+
+            const positionArray = new Float32Array(totalPositions);
+            const normalArray = new Float32Array(totalNormals);
+            const indexArray = new Uint32Array(totalIndices);
+
+            let posOffset = 0, normOffset = 0, idxOffset = 0;
+
+            for (let i = 0; i < positionArrays.length; i++) {
+                positionArray.set(positionArrays[i], posOffset);
+                normalArray.set(normalArrays[i], normOffset);
+                indexArray.set(indexArrays[i], idxOffset);
+
+                posOffset += positionArrays[i].length;
+                normOffset += normalArrays[i].length;
+                idxOffset += indexArrays[i].length;
+            }
+
+            mergedGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+            mergedGeometry.setAttribute('normal', new THREE.BufferAttribute(normalArray, 3));
+            mergedGeometry.setIndex(new THREE.BufferAttribute(indexArray, 1));
+
+            return mergedGeometry;
+        }
+
+        // Image processing functions
+        function imageToCanvas(img, maxSize = 256) {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            const maxDim = Math.max(w, h);
+            if (maxDim > maxSize) {
+                const scale = maxSize / maxDim;
+                w = Math.floor(w * scale);
+                h = Math.floor(h * scale);
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            return canvas;
+        }
+
+        function canvasToGrayscale(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const a = data[i + 3];
+                const gray = a > 0 ? (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) : 0;
+                data[i] = data[i + 1] = data[i + 2] = gray;
+                data[i + 3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function otsuThreshold(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const hist = new Array(256).fill(0);
+
+            for (let i = 0; i < data.length; i += 4) {
+                hist[data[i]]++;
+            }
+
+            const total = canvas.width * canvas.height;
+            let sum = 0;
+            for (let i = 0; i < 256; i++) sum += i * hist[i];
+
+            let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 0;
+            for (let t = 0; t < 256; t++) {
+                wB += hist[t];
+                if (wB === 0) continue;
+                wF = total - wB;
+                if (wF === 0) break;
+
+                sumB += t * hist[t];
+                const mB = sumB / wB;
+                const mF = (sum - sumB) / wF;
+                const varBetween = wB * wF * (mB - mF) * (mB - mF);
+
+                if (varBetween > maxVar) {
+                    maxVar = varBetween;
+                    threshold = t;
+                }
+            }
+
+            return threshold;
+        }
+
+        function applyThreshold(canvas, threshold) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const v = data[i];
+                const bin = v >= threshold ? 255 : 0;
+                data[i] = data[i + 1] = data[i + 2] = bin;
+                data[i + 3] = 255;
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function readMask(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const mask = new Uint8Array(canvas.width * canvas.height);
+            for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+                mask[i] = data[p];
+            }
+            return mask;
+        }
+
+        // Process uploaded image
+        function processImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    log(`📷 Image loaded: ${img.width}×${img.height}`);
+                    
+                    const canvas = imageToCanvas(img, 256);
+                    log(`📐 Resized to: ${canvas.width}×${canvas.height}`);
+                    
+                    canvasToGrayscale(canvas);
+                    log('🎨 Converted to grayscale');
+                    
+                    const threshold = otsuThreshold(canvas);
+                    log(`🎯 Otsu threshold: ${threshold}`);
+                    
+                    applyThreshold(canvas, threshold);
+                    log('✂️ Binary mask created');
+                    
+                    const mask = readMask(canvas);
+                    currentImageData = { mask, width: canvas.width, height: canvas.height };
+                    
+                    regenerateModel();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Regenerate model with current settings
+        function regenerateModel() {
+            if (!currentImageData) return;
+
+            log('🔨 Generating 3D model...');
+            const startTime = performance.now();
+            
+            const config = {
+                voxelSize: document.getElementById('voxelSize').value,
+                depthFactor: document.getElementById('depthFactor').value,
+                layerMode: document.getElementById('layerMode').value,
+                layerOffset: document.getElementById('layerOffset').value,
+                distPattern: document.getElementById('distPattern').value,
+                maxVoxels: document.getElementById('maxVoxels').value,
+                edgeSmoothing: document.getElementById('edgeSmoothing').checked
+            };
+
+            const geometry = createLayeredVoxelGeometry(
+                currentImageData.mask,
+                currentImageData.width,
+                currentImageData.height,
+                config
+            );
+
+            if (currentMesh) {
+                scene.remove(currentMesh);
+                currentMesh.geometry.dispose();
+                currentMesh.material.dispose();
+            }
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x3b82f6,
+                roughness: 0.7,
+                metalness: 0.3,
+                flatShading: false
+            });
+
+            currentMesh = new THREE.Mesh(geometry, material);
+            scene.add(currentMesh);
+
+            const endTime = performance.now();
+            const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+            document.getElementById('processTime').textContent = `${processingTime}s`;
+            log(`⏱️ Processing completed in ${processingTime}s`);
+
+            document.getElementById('exportGLB').disabled = false;
+            log('✅ Model ready!');
+        }
+
+        // Export GLB
+        document.getElementById('exportGLB').addEventListener('click', () => {
+            if (!currentMesh) return;
+
+            log('💾 Exporting GLB...');
+            const exporter = new GLTFExporter();
+
+            exporter.parse(
+                currentMesh,
+                (result) => {
+                    const blob = new Blob([result], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'layered_voxel_model.glb';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    log('✅ GLB exported!');
+                },
+                (error) => {
+                    console.error('Export error:', error);
+                    log('❌ Export failed!');
+                },
+                { binary: true }
+            );
+        });
+
+        // Upload button
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/png,image/jpeg';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) processImage(file);
+            };
+            input.click();
+        });
+
+        // Reset view
+        document.getElementById('resetView').addEventListener('click', () => {
+            camera.position.set(5, 5, 10);
+            camera.lookAt(0, 0, 0);
+            if (currentMesh) {
+                currentMesh.rotation.set(0, 0, 0);
+            }
+            log('🔄 View reset');
+        });
+
+        // Regenerate on settings change
+        ['layerMode', 'distPattern', 'voxelSize', 'depthFactor', 'layerOffset', 'maxVoxels', 'edgeSmoothing'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                if (currentImageData) regenerateModel();
+            });
+        });
+
+        // Preset configurations
+        const presets = {
+            balanced: {
+                layerMode: 'standard',
+                distPattern: 'checkerboard',
+                voxelSize: 0.10,
+                depthFactor: 0.5,
+                layerOffset: 3,
+                maxVoxels: 300000
+            },
+            quality: {
+                layerMode: 'dual',
+                distPattern: 'uniform',
+                voxelSize: 0.08,
+                depthFactor: 0.6,
+                layerOffset: 4,
+                maxVoxels: 400000
+            },
+            fast: {
+                layerMode: 'standard',
+                distPattern: 'checkerboard',
+                voxelSize: 0.15,
+                depthFactor: 0.4,
+                layerOffset: 2,
+                maxVoxels: 150000
+            },
+            artistic: {
+                layerMode: 'dual',
+                distPattern: 'sinusoidal',
+                voxelSize: 0.12,
+                depthFactor: 0.5,
+                layerOffset: 5,
+                maxVoxels: 250000
+            }
+        };
+
+        // Apply preset
+        function applyPreset(presetName) {
+            const preset = presets[presetName];
+            if (!preset) return;
+
+            log(`🎯 Applying "${presetName}" preset...`);
+
+            document.getElementById('layerMode').value = preset.layerMode;
+            document.getElementById('distPattern').value = preset.distPattern;
+            document.getElementById('voxelSize').value = preset.voxelSize;
+            document.getElementById('depthFactor').value = preset.depthFactor;
+            document.getElementById('layerOffset').value = preset.layerOffset;
+            document.getElementById('maxVoxels').value = preset.maxVoxels;
+
+            updateUIValues();
+
+            if (currentImageData) {
+                regenerateModel();
+            }
+        }
+
+        // Preset button handlers
+        document.getElementById('presetBalanced').addEventListener('click', () => applyPreset('balanced'));
+        document.getElementById('presetQuality').addEventListener('click', () => applyPreset('quality'));
+        document.getElementById('presetFast').addEventListener('click', () => applyPreset('fast'));
+        document.getElementById('presetArtistic').addEventListener('click', () => applyPreset('artistic'));
+
+        // Initialize
+        initScene();
+        log('🚀 Layered Voxel Converter ready!');
+        log('💡 TIP: Click preset buttons for instant optimization!');
+        log('🎯 "Balanced" preset recommended for silhouettes');
+    </script>
+</body>
+</html>

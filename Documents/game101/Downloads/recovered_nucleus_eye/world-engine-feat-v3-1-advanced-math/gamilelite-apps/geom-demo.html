@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometry Micro-Kit Demo - SVG + 3D Hit-Testing</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', system-ui, sans-serif; 
+      background: #0a0a12; 
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #canvas-3d {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #canvas-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    #info-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(20, 20, 30, 0.92);
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      font-size: 13px;
+      line-height: 1.6;
+      z-index: 20;
+      max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .label { color: #00ffff; font-weight: 600; }
+    .value { color: #ffd700; font-family: 'Consolas', monospace; }
+    .section { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .section:last-child { border: none; margin-bottom: 0; }
+    #stats {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(20, 20, 30, 0.9);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'Consolas', monospace;
+      z-index: 20;
+    }
+    .hit-indicator {
+      animation: pulse 0.3s ease-out;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    line.hovered, polyline.hovered {
+      stroke-width: 4 !important;
+      stroke: #ffff00 !important;
+      filter: drop-shadow(0 0 8px #ffff00);
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="canvas-3d"></canvas>
+    <svg id="canvas-svg"></svg>
+    
+    <div id="info-panel">
+      <div class="section">
+        <div><span class="label">Mode:</span> <span class="value">SVG Hit-Testing</span></div>
+        <div><span class="label">Tolerance:</span> <span class="value">8px</span></div>
+      </div>
+      <div class="section">
+        <div><span class="label">Hover:</span> <span class="value" id="hover-info">—</span></div>
+        <div><span class="label">Segment:</span> <span class="value" id="segment-info">—</span></div>
+        <div><span class="label">Distance:</span> <span class="value" id="dist-info">—</span></div>
+      </div>
+      <div class="section">
+        <div style="font-size: 11px; color: #888; line-height: 1.4;">
+          <strong style="color: #0ff;">Controls:</strong><br>
+          • Drag to create selection box<br>
+          • Hover over lines for hit-test<br>
+          • Selected shapes highlighted
+        </div>
+      </div>
+    </div>
+
+    <div id="stats">
+      <div>Lines: <span id="line-count">0</span></div>
+      <div>Selected: <span id="selected-count">0</span></div>
+      <div>BBox ops: <span id="bbox-ops">0</span></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ===== Inline geometry micro-kit (from geom.ts) =====
+    function lengthOfPolyline(points) {
+      let L = 0
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i]
+        L += Math.hypot(b.x - a.x, b.y - a.y)
+      }
+      return L
+    }
+
+    function bboxOfPoints(points) {
+      if (points.length === 0) return null
+      let minX = points[0].x, maxX = points[0].x
+      let minY = points[0].y, maxY = points[0].y
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i]
+        if (p.x < minX) minX = p.x; else if (p.x > maxX) maxX = p.x
+        if (p.y < minY) minY = p.y; else if (p.y > maxY) maxY = p.y
+      }
+      return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+    }
+
+    function bboxIntersects(a, b) {
+      return !(a.x + a.width < b.x || b.x + b.width < a.x || 
+               a.y + a.height < b.y || b.y + b.height < a.y)
+    }
+
+    function segmentClosestPoint(ax, ay, bx, by, px, py) {
+      const vx = bx - ax, vy = by - ay
+      const wx = px - ax, wy = py - ay
+      const vv = vx * vx + vy * vy
+      const t = vv > 0 ? Math.max(0, Math.min(1, (wx * vx + wy * vy) / vv)) : 0
+      const cx = ax + t * vx, cy = ay + t * vy
+      return { x: cx, y: cy, t, dist: Math.hypot(px - cx, py - cy) }
+    }
+
+    function polylineClosestPoint(points, px, py) {
+      if (points.length === 0) return null
+      if (points.length === 1) {
+        const p0 = points[0]
+        return { index: 0, t: 0, x: p0.x, y: p0.y, dist: Math.hypot(px - p0.x, py - p0.y) }
+      }
+      let best = { index: 0, t: 0, x: points[0].x, y: points[0].y, dist: Infinity }
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i], b = points[i + 1]
+        const { x, y, t, dist } = segmentClosestPoint(a.x, a.y, b.x, b.y, px, py)
+        if (dist < best.dist) best = { index: i, t, x, y, dist }
+      }
+      return best
+    }
+
+    function hitTestPolyline(points, px, py, tolPx) {
+      const cp = polylineClosestPoint(points, px, py)
+      if (!cp) return { hit: false }
+      return cp.dist <= tolPx ? { hit: true, ...cp } : { hit: false }
+    }
+
+    // ===== Demo setup =====
+    const svg = document.getElementById('canvas-svg')
+    const hoverInfo = document.getElementById('hover-info')
+    const segmentInfo = document.getElementById('segment-info')
+    const distInfo = document.getElementById('dist-info')
+    const lineCountEl = document.getElementById('line-count')
+    const selectedCountEl = document.getElementById('selected-count')
+    const bboxOpsEl = document.getElementById('bbox-ops')
+
+    let bboxOpCount = 0
+    const lines = []
+    let hoverDot = null
+    let selectionRect = null
+    let selectedShapes = new Set()
+
+    // Generate random polylines
+    function generateRandomPolylines(count = 10) {
+      const w = window.innerWidth
+      const h = window.innerHeight
+      for (let i = 0; i < count; i++) {
+        const numPts = 3 + Math.floor(Math.random() * 8)
+        const points = []
+        for (let j = 0; j < numPts; j++) {
+          points.push({
+            x: Math.random() * w,
+            y: Math.random() * h
+          })
+        }
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
+        polyline.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '))
+        polyline.setAttribute('stroke', `hsl(${Math.random() * 360}, 70%, 60%)`)
+        polyline.setAttribute('stroke-width', '2')
+        polyline.setAttribute('fill', 'none')
+        polyline.setAttribute('data-id', `line-${i}`)
+        polyline._points = points
+        svg.appendChild(polyline)
+        lines.push(polyline)
+      }
+      lineCountEl.textContent = lines.length
+    }
+
+    // Hover indicator
+    function createHoverDot() {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      dot.setAttribute('r', '5')
+      dot.setAttribute('fill', 'yellow')
+      dot.setAttribute('stroke', 'orange')
+      dot.setAttribute('stroke-width', '2')
+      dot.setAttribute('pointer-events', 'none')
+      dot.style.display = 'none'
+      dot.classList.add('hit-indicator')
+      svg.appendChild(dot)
+      return dot
+    }
+    hoverDot = createHoverDot()
+
+    // Selection rect
+    function createSelectionRect() {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+      rect.setAttribute('fill', 'rgba(0, 255, 255, 0.1)')
+      rect.setAttribute('stroke', 'cyan')
+      rect.setAttribute('stroke-width', '1')
+      rect.setAttribute('stroke-dasharray', '4 2')
+      rect.setAttribute('pointer-events', 'none')
+      rect.style.display = 'none'
+      svg.appendChild(rect)
+      return rect
+    }
+    selectionRect = createSelectionRect()
+
+    // Hit testing on mouse move
+    let dragStart = null
+    svg.addEventListener('pointermove', (e) => {
+      const px = e.clientX
+      const py = e.clientY
+
+      // Handle selection drag
+      if (dragStart) {
+        const x = Math.min(dragStart.x, px)
+        const y = Math.min(dragStart.y, py)
+        const w = Math.abs(px - dragStart.x)
+        const h = Math.abs(py - dragStart.y)
+        selectionRect.setAttribute('x', x)
+        selectionRect.setAttribute('y', y)
+        selectionRect.setAttribute('width', w)
+        selectionRect.setAttribute('height', h)
+        selectionRect.style.display = 'block'
+        return
+      }
+
+      // Hit test
+      let found = null
+      for (const line of lines) {
+        const result = hitTestPolyline(line._points, px, py, 8)
+        if (result.hit) {
+          found = { line, result }
+          break
+        }
+      }
+
+      // Update UI
+      lines.forEach(l => l.classList.remove('hovered'))
+      if (found) {
+        found.line.classList.add('hovered')
+        hoverDot.setAttribute('cx', found.result.x)
+        hoverDot.setAttribute('cy', found.result.y)
+        hoverDot.style.display = 'block'
+        hoverInfo.textContent = found.line.getAttribute('data-id')
+        segmentInfo.textContent = `${found.result.index} (t=${found.result.t.toFixed(2)})`
+        distInfo.textContent = `${found.result.dist.toFixed(1)}px`
+      } else {
+        hoverDot.style.display = 'none'
+        hoverInfo.textContent = '—'
+        segmentInfo.textContent = '—'
+        distInfo.textContent = '—'
+      }
+    })
+
+    // Selection drag
+    svg.addEventListener('pointerdown', (e) => {
+      dragStart = { x: e.clientX, y: e.clientY }
+      selectedShapes.clear()
+    })
+
+    svg.addEventListener('pointerup', (e) => {
+      if (!dragStart) return
+      
+      const x = Math.min(dragStart.x, e.clientX)
+      const y = Math.min(dragStart.y, e.clientY)
+      const w = Math.abs(e.clientX - dragStart.x)
+      const h = Math.abs(e.clientY - dragStart.y)
+      const rect = { x, y, width: w, height: h }
+
+      // Find intersecting lines
+      selectedShapes.clear()
+      for (const line of lines) {
+        const bbox = bboxOfPoints(line._points)
+        bboxOpCount++
+        if (bbox && bboxIntersects(bbox, rect)) {
+          selectedShapes.add(line)
+          line.style.filter = 'drop-shadow(0 0 12px #00ffff)'
+        } else {
+          line.style.filter = ''
+        }
+      }
+
+      selectedCountEl.textContent = selectedShapes.size
+      bboxOpsEl.textContent = bboxOpCount
+      dragStart = null
+      selectionRect.style.display = 'none'
+    })
+
+    // Resize handler
+    function resize() {
+      svg.setAttribute('width', window.innerWidth)
+      svg.setAttribute('height', window.innerHeight)
+    }
+    window.addEventListener('resize', resize)
+    resize()
+
+    // Initialize
+    generateRandomPolylines(15)
+
+    console.log('✅ Geometry micro-kit demo loaded!')
+    console.log('📦 Features: hit-testing, bbox selection, hover feedback')
+    console.log('🎯 Zero deps, allocation-free, empty-safe')
+  </script>
+</body>
+</html>

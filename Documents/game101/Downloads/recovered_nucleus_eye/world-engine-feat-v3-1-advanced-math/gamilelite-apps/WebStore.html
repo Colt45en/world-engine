@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameLite WebStore - Asset Marketplace</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            --bg: #0a0f17;
+            --ink: #e9f0ff;
+            --muted: #9fb0d1;
+            --line: rgba(170,220,255,.25);
+            --good: #22c55e;
+            --bad: #ef4444;
+            --mana: #3b82f6;
+            --gold: #eab308;
+            --purple: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font-family: system-ui, 'Segoe UI', Roboto, Inter, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse 800px 600px at 10% 20%, rgba(168,85,247,0.15), transparent),
+                radial-gradient(ellipse 600px 800px at 90% 80%, rgba(59,130,246,0.12), transparent),
+                radial-gradient(ellipse 1000px 700px at 50% 50%, rgba(34,197,94,0.08), transparent);
+            animation: gradientShift 20s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        /* Header */
+        #header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,15,23,0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--line);
+            padding: 1rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--purple), var(--mana), var(--good));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: var(--ink);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        button {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(0,0,0,.4);
+            color: var(--ink);
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-weight: 600;
+        }
+
+        button:hover {
+            border-color: rgba(255,255,255,.35);
+            background: rgba(255,255,255,.1);
+            transform: translateY(-1px);
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, var(--purple), var(--mana));
+            border: none;
+            color: white;
+        }
+
+        button.primary:hover {
+            background: linear-gradient(135deg, #b87dff, #60a5fa);
+        }
+
+        .cart-badge {
+            position: relative;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--bad);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--purple), var(--mana), var(--good), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% auto;
+            animation: gradientSlide 8s linear infinite;
+            line-height: 1.2;
+        }
+
+        @keyframes gradientSlide {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--muted);
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+            margin-top: 3rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--mana), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Search Section */
+        .search-section {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+            padding: 0 2rem;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        input[type="search"] {
+            width: 100%;
+            padding: 1.25rem 4rem 1.25rem 1.5rem;
+            background: rgba(0,0,0,.5);
+            border: 2px solid var(--line);
+            border-radius: 16px;
+            color: var(--ink);
+            font-size: 1.125rem;
+            transition: all 0.3s;
+        }
+
+        input[type="search"]:focus {
+            outline: none;
+            border-color: var(--mana);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.75rem;
+            color: var(--muted);
+        }
+
+        /* Categories */
+        .categories {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 2rem 4rem;
+        }
+
+        .category-chip {
+            padding: 0.75rem 1.75rem;
+            background: rgba(168,85,247,.15);
+            border: 1px solid rgba(168,85,247,.4);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .category-chip:hover {
+            background: rgba(168,85,247,.25);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(168,85,247,0.3);
+        }
+
+        .category-chip.active {
+            background: linear-gradient(135deg, var(--purple), var(--mana));
+            border-color: transparent;
+            color: white;
+        }
+
+        /* Container */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-header h2 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--purple), var(--mana));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Products Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .product-card {
+            background: rgba(0,0,0,.4);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            border-color: var(--mana);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(59,130,246,0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, rgba(168,85,247,0.4), rgba(59,130,246,0.4));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 0.25rem 0.75rem;
+            background: var(--good);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border-radius: 6px;
+        }
+
+        .product-badge.featured {
+            background: var(--gold);
+        }
+
+        .product-info {
+            padding: 1.5rem;
+        }
+
+        .product-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-author {
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+
+        .product-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .price {
+            font-size: 1.75rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--good), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .price-free {
+            background: linear-gradient(135deg, var(--mana), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Footer */
+        footer {
+            position: relative;
+            z-index: 1;
+            background: rgba(0,0,0,.6);
+            border-top: 1px solid var(--line);
+            padding: 3rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            color: var(--mana);
+        }
+
+        .footer-section a {
+            display: block;
+            color: var(--muted);
+            text-decoration: none;
+            margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .footer-section a:hover {
+            color: var(--ink);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <!-- Header -->
+    <header id="header">
+        <div class="header-content">
+            <div class="logo" onclick="window.location.href='index.html'">
+                <span>🎮</span>
+                <span>GameLite WebStore</span>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="#marketplace">Marketplace</a>
+                <a href="#creators">Creators</a>
+                <a href="#learn">Learn</a>
+                <a href="#pricing">Pricing</a>
+            </nav>
+            
+            <div class="nav-actions">
+                <button class="cart-badge">
+                    🛒 Cart
+                    <span class="cart-count" id="cart-count">0</span>
+                </button>
+                <button id="auth-btn" class="primary">Sign In</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1>The Ultimate GameLite Asset Marketplace</h1>
+        <p>Buy, sell, and discover amazing 3D models, textures, and tools from creators worldwide</p>
+        
+        <div>
+            <button class="primary" style="padding: 1rem 2.5rem; font-size: 1rem;">Browse Marketplace</button>
+            <button style="padding: 1rem 2.5rem; font-size: 1rem; margin-left: 1rem;">Start Selling</button>
+        </div>
+
+        <div class="hero-stats">
+            <div class="stat">
+                <div class="stat-number">12,453</div>
+                <div class="stat-label">Assets Available</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">8,921</div>
+                <div class="stat-label">Active Creators</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">156K</div>
+                <div class="stat-label">Downloads</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search -->
+    <section class="search-section">
+        <div class="search-container">
+            <input type="search" placeholder="Search for 3D models, textures, animations..." id="search-input">
+            <span class="search-icon">🔍</span>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories">
+        <div class="category-chip active" data-category="all">All Assets</div>
+        <div class="category-chip" data-category="models">3D Models</div>
+        <div class="category-chip" data-category="textures">Textures</div>
+        <div class="category-chip" data-category="animations">Animations</div>
+        <div class="category-chip" data-category="tools">Tools & Scripts</div>
+        <div class="category-chip" data-category="environments">Environments</div>
+        <div class="category-chip" data-category="audio">Audio</div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Featured Assets -->
+        <div class="section-header">
+            <h2>⭐ Featured Assets</h2>
+            <button>View All →</button>
+        </div>
+        <div class="products-grid" id="featured-grid"></div>
+
+        <!-- New Releases -->
+        <div class="section-header">
+            <h2>🆕 New Releases</h2>
+            <button>View All →</button>
+        </div>
+        <div class="products-grid" id="new-grid"></div>
+
+        <!-- Best Sellers -->
+        <div class="section-header">
+            <h2>🔥 Best Sellers</h2>
+            <button>View All →</button>
+        </div>
+        <div class="products-grid" id="bestsellers-grid"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Marketplace</h3>
+                <a href="#">Browse Assets</a>
+                <a href="#">Featured</a>
+                <a href="#">New Releases</a>
+                <a href="#">Best Sellers</a>
+            </div>
+            <div class="footer-section">
+                <h3>Creators</h3>
+                <a href="#">Start Selling</a>
+                <a href="#">Creator Hub</a>
+                <a href="#">Guidelines</a>
+                <a href="#">Resources</a>
+            </div>
+            <div class="footer-section">
+                <h3>Support</h3>
+                <a href="#">Help Center</a>
+                <a href="#">Documentation</a>
+                <a href="#">Contact Us</a>
+                <a href="#">FAQ</a>
+            </div>
+            <div class="footer-section">
+                <h3>Company</h3>
+                <a href="#">About</a>
+                <a href="#">Blog</a>
+                <a href="#">Careers</a>
+                <a href="#">Press Kit</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 GameLite WebStore. All rights reserved.</p>
+            <p style="margin-top: 0.5rem;">See <strong>SANDBOXSTORE_COMPLETE_VISION.md</strong> for full implementation details</p>
+        </div>
+    </footer>
+
+    <script>
+        // Demo products data
+        const products = {
+            featured: [
+                { title: 'Cyberpunk Character Bundle', author: 'NeonArtist', price: 49.99, downloads: 3421, rating: 4.9, icon: '🤖', badge: 'Featured' },
+                { title: 'Medieval Castle Complete', author: 'CastleBuilder', price: 89.99, downloads: 2156, rating: 4.8, icon: '🏰', badge: 'Featured' },
+                { title: 'Nature Mega Pack', author: 'ForestPro', price: 0, downloads: 12453, rating: 4.9, icon: '🌲', badge: 'Free' },
+                { title: 'Sci-Fi Weapons Arsenal', author: 'WeaponMaster', price: 34.99, downloads: 5678, rating: 4.7, icon: '🔫', badge: 'Featured' }
+            ],
+            new: [
+                { title: 'Modern City Props', author: 'UrbanDesign', price: 29.99, downloads: 856, rating: 4.6, icon: '🏙️', badge: 'New' },
+                { title: 'Fantasy Creatures Vol 2', author: 'MythCreator', price: 59.99, downloads: 1234, rating: 4.8, icon: '🐉', badge: 'New' },
+                { title: 'PBR Texture Library', author: 'TextureLab', price: 19.99, downloads: 2341, rating: 4.7, icon: '🎨', badge: 'New' },
+                { title: 'Character Animation Pack', author: 'AnimPro', price: 0, downloads: 8923, rating: 4.9, icon: '🎬', badge: 'Free' }
+            ],
+            bestsellers: [
+                { title: 'Ultimate FPS Kit', author: 'GameDevStudio', price: 99.99, downloads: 15234, rating: 4.9, icon: '🎮', badge: 'Best' },
+                { title: 'Low Poly Nature', author: 'PolyArt', price: 14.99, downloads: 23567, rating: 4.8, icon: '🌿', badge: 'Best' },
+                { title: 'Modular Dungeon', author: 'DungeonMaster', price: 39.99, downloads: 9876, rating: 4.7, icon: '⚔️', badge: 'Best' },
+                { title: 'Vehicle Pack Pro', author: 'CarBuilder', price: 54.99, downloads: 7654, rating: 4.8, icon: '🚗', badge: 'Best' }
+            ]
+        };
+
+        // Render products
+        function renderProducts(containerId, productList) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = productList.map(product => `
+                <div class="product-card" onclick="showProductDetails('${product.title}')">
+                    <div class="product-image">
+                        ${product.icon}
+                        <span class="product-badge ${product.badge === 'Featured' ? 'featured' : ''}">${product.badge}</span>
+                    </div>
+                    <div class="product-info">
+                        <div class="product-title">${product.title}</div>
+                        <div class="product-author">by ${product.author}</div>
+                        <div class="product-stats">
+                            <span>⭐ ${product.rating}</span>
+                            <span>⬇️ ${product.downloads.toLocaleString()}</span>
+                        </div>
+                        <div class="product-footer">
+                            <span class="price ${product.price === 0 ? 'price-free' : ''}">
+                                ${product.price === 0 ? 'FREE' : '$' + product.price}
+                            </span>
+                            <button class="primary" onclick="addToCart(event, '${product.title}')">
+                                ${product.price === 0 ? 'Download' : 'Add to Cart'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize
+        renderProducts('featured-grid', products.featured);
+        renderProducts('new-grid', products.new);
+        renderProducts('bestsellers-grid', products.bestsellers);
+
+        // Cart functionality
+        let cartCount = 0;
+        function addToCart(event, productTitle) {
+            event.stopPropagation();
+            cartCount++;
+            document.getElementById('cart-count').textContent = cartCount;
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.textContent = '✓ Added to cart!';
+            notification.style.cssText = `
+                position: fixed; top: 100px; right: 20px; z-index: 1000;
+                background: linear-gradient(135deg, #22c55e, #10b981);
+                color: white; padding: 1rem 1.5rem; border-radius: 12px;
+                font-weight: bold; animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+        }
+
+        // Product details
+        function showProductDetails(title) {
+            alert(`${title}\n\nThis is a demo marketplace. Full features coming soon!\nSee SANDBOXSTORE_COMPLETE_VISION.md for details.`);
+        }
+
+        // Search
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            console.log('Searching for:', e.target.value);
+        });
+
+        // Categories
+        document.querySelectorAll('.category-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                console.log('Category:', chip.dataset.category);
+            });
+        });
+
+        // Auth
+        document.getElementById('auth-btn').addEventListener('click', () => {
+            alert('Authentication coming soon!\nSee SANDBOXSTORE_API_SPEC.md for the complete auth system.');
+        });
+
+        console.log('🎮 GameLite WebStore loaded!');
+        console.log('📦 Demo marketplace with featured, new, and bestselling assets');
+        console.log('📄 See SANDBOXSTORE documentation for full implementation');
+    </script>
+</body>
+</html>

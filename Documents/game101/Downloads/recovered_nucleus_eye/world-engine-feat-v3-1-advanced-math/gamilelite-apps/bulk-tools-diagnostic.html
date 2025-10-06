@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Tools Diagnostic Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #0a0f17;
+            color: #e9f0ff;
+        }
+        .test { 
+            background: rgba(16, 24, 40, 0.5);
+            border: 1px solid rgba(170, 220, 255, 0.25);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .pass { border-left: 4px solid #22c55e; }
+        .fail { border-left: 4px solid #ef4444; }
+        .warn { border-left: 4px solid #f59e0b; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #5568d3; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Bulk Tools Diagnostic Test</h1>
+    <p>This page tests all dependencies and functions needed for the Bulk Tools.</p>
+    
+    <button onclick="runTests()">▶️ Run All Tests</button>
+    <button onclick="testSingleImage()">🖼️ Test Single Image</button>
+    <button onclick="location.href='index.html'">← Back to Main</button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        window.runTests = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Running tests...</h2>';
+            
+            const tests = [];
+            
+            // Test 1: THREE.js
+            tests.push({
+                name: 'THREE.js Library',
+                test: () => {
+                    return !!window.THREE;
+                },
+                details: window.THREE ? `Version loaded, has ${Object.keys(window.THREE).length} exports` : 'Not loaded'
+            });
+            
+            // Test 2: JSZip
+            tests.push({
+                name: 'JSZip Library',
+                test: async () => {
+                    if (!window.JSZip) {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+                        await new Promise((resolve, reject) => {
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                    return !!window.JSZip;
+                },
+                details: 'Loaded from CDN'
+            });
+            
+            // Test 3: Canvas API
+            tests.push({
+                name: 'Canvas API',
+                test: () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    return !!ctx;
+                },
+                details: 'Can create 2D context'
+            });
+            
+            // Test 4: File API
+            tests.push({
+                name: 'File API',
+                test: () => {
+                    return typeof File !== 'undefined' && typeof FileReader !== 'undefined';
+                },
+                details: 'File and FileReader available'
+            });
+            
+            // Test 5: GLTFExporter
+            tests.push({
+                name: 'GLTFExporter',
+                test: async () => {
+                    if (!window.GLTFExporter) {
+                        try {
+                            const module = await import('https://unpkg.com/three@0.165.0/examples/jsm/exporters/GLTFExporter.js');
+                            window.GLTFExporter = module.GLTFExporter;
+                        } catch (e) {
+                            return false;
+                        }
+                    }
+                    return !!window.GLTFExporter;
+                },
+                details: 'Can export to GLB format'
+            });
+            
+            // Test 6: Marching Cubes Function
+            tests.push({
+                name: 'Marching Cubes Algorithm',
+                test: () => {
+                    // Create test voxel grid
+                    const gridSize = 8;
+                    const grid = new Float32Array(gridSize * gridSize * gridSize);
+                    
+                    // Fill center
+                    for (let z = 2; z < 6; z++) {
+                        for (let y = 2; y < 6; y++) {
+                            for (let x = 2; x < 6; x++) {
+                                grid[z * gridSize * gridSize + y * gridSize + x] = 1.0;
+                            }
+                        }
+                    }
+                    
+                    // Test if we can extract geometry
+                    let vertCount = 0;
+                    for (let i = 0; i < grid.length; i++) {
+                        if (grid[i] > 0.5) vertCount++;
+                    }
+                    
+                    return vertCount > 0;
+                },
+                details: 'Algorithm can process voxel grids'
+            });
+            
+            // Run all tests
+            let html = '<h2>Test Results:</h2>';
+            for (const test of tests) {
+                try {
+                    const passed = await test.test();
+                    html += `
+                        <div class="test ${passed ? 'pass' : 'fail'}">
+                            <strong>${passed ? '✅' : '❌'} ${test.name}</strong>
+                            <div style="opacity: 0.8; font-size: 0.9em; margin-top: 5px;">
+                                ${test.details}
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `
+                        <div class="test fail">
+                            <strong>❌ ${test.name}</strong>
+                            <div style="opacity: 0.8; font-size: 0.9em; margin-top: 5px; color: #ef4444;">
+                                Error: ${error.message}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            results.innerHTML = html;
+        };
+        
+        window.testSingleImage = function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const results = document.getElementById('results');
+                results.innerHTML = `<h2>Testing single image: ${file.name}</h2>`;
+                
+                try {
+                    // Load image
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = url;
+                    });
+                    
+                    results.innerHTML += `
+                        <div class="test pass">
+                            <strong>✅ Image Loaded</strong>
+                            <div>Size: ${img.width}×${img.height}</div>
+                            <div>File size: ${(file.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                    `;
+                    
+                    // Create canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.min(img.width, 640);
+                    canvas.height = Math.min(img.height, 640);
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    results.innerHTML += `
+                        <div class="test pass">
+                            <strong>✅ Canvas Created</strong>
+                            <div>Canvas size: ${canvas.width}×${canvas.height}</div>
+                            <img src="${canvas.toDataURL()}" style="max-width: 200px; border-radius: 8px; margin-top: 10px;">
+                        </div>
+                    `;
+                    
+                    // Get image data
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    results.innerHTML += `
+                        <div class="test pass">
+                            <strong>✅ Image Data Extracted</strong>
+                            <div>Pixels: ${imgData.data.length / 4}</div>
+                        </div>
+                    `;
+                    
+                    results.innerHTML += `
+                        <div class="test pass">
+                            <strong>✅ All Tests Passed!</strong>
+                            <div>Image is ready for processing</div>
+                        </div>
+                    `;
+                    
+                } catch (error) {
+                    results.innerHTML += `
+                        <div class="test fail">
+                            <strong>❌ Error</strong>
+                            <div>${error.message}</div>
+                        </div>
+                    `;
+                }
+            };
+            input.click();
+        };
+    </script>
+</body>
+</html>

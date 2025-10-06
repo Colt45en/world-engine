@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced SVG + Three.js Canvas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            color: white;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Three.js Canvas Container */
+        #canvas-3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* SVG Overlay Layer */
+        #svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        #svg-overlay > * {
+            pointer-events: auto;
+        }
+
+        /* SVG UI Elements */
+        .svg-button {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .svg-button:hover {
+            filter: brightness(1.2);
+        }
+
+        .svg-button:active {
+            transform: scale(0.95);
+        }
+
+        /* HUD Container */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        #hud > * {
+            pointer-events: auto;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: linear-gradient(180deg, rgba(10,10,26,0.95) 0%, rgba(10,10,26,0) 100%);
+        }
+
+        /* Side Panel */
+        #side-panel {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(20,20,30,0.9);
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Mini Map */
+        #minimap {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            width: 200px;
+            height: 200px;
+            background: rgba(20,20,30,0.9);
+            border-radius: 12px;
+            border: 2px solid rgba(100,150,255,0.3);
+            overflow: hidden;
+        }
+
+        /* Stats Panel */
+        #stats {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(20,20,30,0.9);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            backdrop-filter: blur(10px);
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: 0.25rem 0;
+        }
+
+        .stat-label {
+            color: #999;
+        }
+
+        .stat-value {
+            color: #4af;
+            font-weight: bold;
+        }
+
+        /* Tool Palette */
+        #tool-palette {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
+        }
+
+        .tool-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.5rem;
+        }
+
+        .tool-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(100,150,255,0.5);
+            transform: scale(1.1);
+        }
+
+        .tool-btn.active {
+            background: rgba(100,150,255,0.3);
+            border-color: rgba(100,150,255,0.8);
+            box-shadow: 0 0 20px rgba(100,150,255,0.5);
+        }
+
+        /* Connection Lines (SVG) */
+        .connection-line {
+            stroke: rgba(100,150,255,0.5);
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+            fill: none;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+
+        /* Node Markers (SVG) */
+        .node-marker {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .node-marker:hover {
+            transform: scale(1.2);
+        }
+
+        /* Grid Overlay (SVG) */
+        .grid-line {
+            stroke: rgba(100,150,255,0.1);
+            stroke-width: 1;
+        }
+
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+        }
+
+        .crosshair-line {
+            stroke: rgba(255,255,255,0.5);
+            stroke-width: 2;
+        }
+
+        /* Tooltip */
+        #tooltip {
+            position: absolute;
+            background: rgba(20,20,30,0.95);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+
+        #tooltip.show {
+            opacity: 1;
+        }
+
+        /* Radial Menu */
+        #radial-menu {
+            position: absolute;
+            display: none;
+            width: 200px;
+            height: 200px;
+            transform: translate(-50%, -50%);
+        }
+
+        #radial-menu.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Three.js Canvas -->
+        <div id="canvas-3d"></div>
+
+        <!-- SVG Overlay for UI and Annotations -->
+        <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- Gradient Definitions -->
+                <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:rgb(100,150,255);stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:rgb(150,100,255);stop-opacity:1" />
+                </linearGradient>
+                
+                <!-- Glow Filter -->
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+
+                <!-- Arrow Marker -->
+                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"
+                        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(100,150,255,0.8)" />
+                </marker>
+            </defs>
+
+            <!-- Grid Overlay Group -->
+            <g id="svg-grid"></g>
+
+            <!-- Connection Lines Group -->
+            <g id="svg-connections"></g>
+
+            <!-- Node Markers Group -->
+            <g id="svg-nodes"></g>
+
+            <!-- Annotations Group -->
+            <g id="svg-annotations"></g>
+
+            <!-- Crosshair -->
+            <g id="crosshair">
+                <line class="crosshair-line" x1="-20" y1="0" x2="-5" y2="0" />
+                <line class="crosshair-line" x1="5" y1="0" x2="20" y2="0" />
+                <line class="crosshair-line" x1="0" y1="-20" x2="0" y2="-5" />
+                <line class="crosshair-line" x1="0" y1="5" x2="0" y2="20" />
+                <circle cx="0" cy="0" r="3" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+            </g>
+        </svg>
+
+        <!-- HUD Elements -->
+        <div id="hud">
+            <!-- Stats Panel -->
+            <div id="stats">
+                <div style="font-weight: bold; margin-bottom: 0.5rem; color: #4af;">STATS</div>
+                <div class="stat-line">
+                    <span class="stat-label">FPS:</span>
+                    <span class="stat-value" id="stat-fps">60</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Objects:</span>
+                    <span class="stat-value" id="stat-objects">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Vertices:</span>
+                    <span class="stat-value" id="stat-vertices">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Camera:</span>
+                    <span class="stat-value" id="stat-camera">0,0,0</span>
+                </div>
+            </div>
+
+            <!-- Top Bar -->
+            <div id="top-bar">
+                <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">
+                    🎨 Advanced SVG + Three.js Canvas - 360° View
+                </h1>
+                <div style="font-size: 0.875rem; color: #999;">
+                    Interactive 3D workspace with SVG overlay system
+                </div>
+                <div style="font-size: 0.75rem; color: #4af; margin-top: 0.5rem;">
+                    🖱️ <strong>Right-Click + Drag:</strong> Look Around | <strong>Middle-Click + Drag:</strong> Pan Camera | <strong>Mouse Wheel:</strong> Fly Up/Down
+                </div>
+                <div style="font-size: 0.7rem; color: #4af; margin-top: 0.25rem;">
+                    ⌨️ <strong>WASD/Arrows:</strong> Move | <strong>Space/Q:</strong> Fly Up | <strong>E/Ctrl/Z:</strong> Fly Down | <strong>Shift:</strong> Sprint (3x speed)
+                </div>
+                <div style="font-size: 0.7rem; color: #999; margin-top: 0.25rem;">
+                    🎨 <strong>P Key:</strong> Toggle Placement Mode | <strong>Right Panel:</strong> Click colored buttons (C,S,C,C,T,P) to select shapes
+                </div>
+            </div>
+
+            <!-- Side Panel -->
+            <div id="side-panel">
+                <div style="font-weight: bold; margin-bottom: 0.75rem; color: #4af;">LAYERS</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="toggle-grid">
+                        <span>SVG Grid</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="toggle-connections" checked>
+                        <span>Connections</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="toggle-nodes" checked>
+                        <span>Nodes</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="toggle-crosshair" checked>
+                        <span>Crosshair</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Mini Map -->
+            <div id="minimap">
+                <svg width="200" height="200" id="minimap-svg">
+                    <rect width="200" height="200" fill="rgba(10,10,26,0.5)"/>
+                    <g id="minimap-content"></g>
+                </svg>
+            </div>
+
+            <!-- Tool Palette -->
+            <div id="tool-palette">
+                <div class="tool-btn active" data-tool="select" title="Select">🎯</div>
+                <div class="tool-btn" data-tool="move" title="Move">✋</div>
+                <div class="tool-btn" data-tool="rotate" title="Rotate">🔄</div>
+                <div class="tool-btn" data-tool="scale" title="Scale">📏</div>
+                <div class="tool-btn" data-tool="add" title="Add Object">➕</div>
+                <div class="tool-btn" data-tool="delete" title="Delete">🗑️</div>
+            </div>
+
+            <!-- Tooltip -->
+            <div id="tooltip"></div>
+
+            <!-- Radial Menu -->
+            <svg id="radial-menu">
+                <!-- Radial menu items will be added dynamically -->
+            </svg>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        const container = document.getElementById('canvas-3d');
+        const svgOverlay = document.getElementById('svg-overlay');
+        const statsElements = {
+            fps: document.getElementById('stat-fps'),
+            objects: document.getElementById('stat-objects'),
+            vertices: document.getElementById('stat-vertices'),
+            camera: document.getElementById('stat-camera')
+        };
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.Fog(0x0a0a1a, 60, 150);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            500
+        );
+        camera.position.set(0, 5, 0); // Start on the grid at eye level
+        camera.lookAt(0, 5, -10); // Look forward
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            alpha: true 
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // ============================================
+        // LIGHTING
+        // ============================================
+        
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(30, 50, 20);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const hemisphereLight = new THREE.HemisphereLight(0x8080ff, 0x404040, 0.4);
+        scene.add(hemisphereLight);
+
+        // ============================================
+        // GRID AND GROUND
+        // ============================================
+        
+        const gridSize = 200;
+        const gridHelper = new THREE.GridHelper(gridSize, 100, 0x4a6fa5, 0x1a2a3a);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(gridSize, gridSize),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x1a2a3a, 
+                roughness: 0.9, 
+                metalness: 0.1 
+            })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // ============================================
+        // OBJECT PLACEMENT SYSTEM
+        // ============================================
+        
+        let selectedPrefab = 'cube';
+        const placedObjects = [];
+        let previewMesh = null;
+
+        // Prefab creation functions
+        function createPrefabGeometry(type) {
+            switch(type) {
+                case 'cube':
+                    return new THREE.BoxGeometry(3, 3, 3);
+                case 'sphere':
+                    return new THREE.SphereGeometry(1.8, 32, 32);
+                case 'cylinder':
+                    return new THREE.CylinderGeometry(1.5, 1.5, 4, 32);
+                case 'cone':
+                    return new THREE.ConeGeometry(1.8, 4, 32);
+                case 'torus':
+                    return new THREE.TorusGeometry(1.5, 0.6, 24, 48);
+                case 'pyramid':
+                    return new THREE.ConeGeometry(2, 4, 4);
+                default:
+                    return new THREE.BoxGeometry(3, 3, 3);
+            }
+        }
+
+        function getObjectHeight(type) {
+            switch(type) {
+                case 'cube': return 1.5;
+                case 'sphere': return 1.8;
+                case 'cylinder': return 2;
+                case 'cone': return 2;
+                case 'torus': return 1.5;
+                case 'pyramid': return 2;
+                default: return 1.5;
+            }
+        }
+
+        const materials = {
+            cube: new THREE.MeshStandardMaterial({ color: 0xff4757, roughness: 0.4, metalness: 0.3 }),
+            sphere: new THREE.MeshStandardMaterial({ color: 0x5352ed, roughness: 0.2, metalness: 0.7 }),
+            cylinder: new THREE.MeshStandardMaterial({ color: 0x2ed573, roughness: 0.5, metalness: 0.2 }),
+            cone: new THREE.MeshStandardMaterial({ color: 0xffa502, roughness: 0.4, metalness: 0.4 }),
+            torus: new THREE.MeshStandardMaterial({ color: 0xa55eea, roughness: 0.3, metalness: 0.6 }),
+            pyramid: new THREE.MeshStandardMaterial({ color: 0xfd79a8, roughness: 0.6, metalness: 0.2 })
+        };
+
+        // Create preview mesh
+        function createPreviewMesh(type) {
+            if (previewMesh) {
+                scene.remove(previewMesh);
+                previewMesh.geometry.dispose();
+                previewMesh.material.dispose();
+            }
+            
+            const geometry = createPrefabGeometry(type);
+            const material = materials[type].clone();
+            material.transparent = true;
+            material.opacity = 0.6;
+            material.emissive = new THREE.Color(0x444444);
+            
+            previewMesh = new THREE.Mesh(geometry, material);
+            previewMesh.castShadow = false;
+            previewMesh.visible = false;
+            scene.add(previewMesh);
+        }
+
+        createPreviewMesh(selectedPrefab);
+
+        // Raycaster for object placement
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Place object function
+        function placeObject(intersectionPoint) {
+            const snapSize = 2;
+            const x = Math.round(intersectionPoint.x / snapSize) * snapSize;
+            const z = Math.round(intersectionPoint.z / snapSize) * snapSize;
+            const y = getObjectHeight(selectedPrefab);
+            
+            const geometry = createPrefabGeometry(selectedPrefab);
+            const mesh = new THREE.Mesh(geometry, materials[selectedPrefab].clone());
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData.type = selectedPrefab;
+            scene.add(mesh);
+            
+            placedObjects.push(mesh);
+            
+            // Update stats
+            document.getElementById('stat-objects').textContent = placedObjects.length;
+        }
+
+        // ============================================
+        // SVG OVERLAY FUNCTIONS
+        // ============================================
+        
+        function createSVGGrid() {
+            const svgGrid = document.getElementById('svg-grid');
+            svgGrid.innerHTML = '';
+            
+            const gridSpacing = 50;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            // Vertical lines
+            for (let x = 0; x < width; x += gridSpacing) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'grid-line');
+                line.setAttribute('x1', x);
+                line.setAttribute('y1', 0);
+                line.setAttribute('x2', x);
+                line.setAttribute('y2', height);
+                svgGrid.appendChild(line);
+            }
+
+            // Horizontal lines
+            for (let y = 0; y < height; y += gridSpacing) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'grid-line');
+                line.setAttribute('x1', 0);
+                line.setAttribute('y1', y);
+                line.setAttribute('x2', width);
+                line.setAttribute('y2', y);
+                svgGrid.appendChild(line);
+            }
+        }
+
+        function projectTo2D(vector3) {
+            const vector = vector3.clone();
+            vector.project(camera);
+            
+            const x = (vector.x + 1) * window.innerWidth / 2;
+            const y = (-vector.y + 1) * window.innerHeight / 2;
+            
+            return { x, y, z: vector.z };
+        }
+
+        function addConnectionLine(pos1, pos2) {
+            const p1 = projectTo2D(pos1);
+            const p2 = projectTo2D(pos2);
+
+            if (p1.z > 1 || p2.z > 1) return; // Behind camera
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('class', 'connection-line');
+            line.setAttribute('x1', p1.x);
+            line.setAttribute('y1', p1.y);
+            line.setAttribute('x2', p2.x);
+            line.setAttribute('y2', p2.y);
+            line.setAttribute('marker-end', 'url(#arrow)');
+            
+            document.getElementById('svg-connections').appendChild(line);
+        }
+
+        function addNodeMarker(position, color = '#4af', label = '') {
+            const p = projectTo2D(position);
+            if (p.z > 1) return; // Behind camera
+
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'node-marker');
+            g.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', 0);
+            circle.setAttribute('cy', 0);
+            circle.setAttribute('r', 8);
+            circle.setAttribute('fill', color);
+            circle.setAttribute('filter', 'url(#glow)');
+            
+            g.appendChild(circle);
+
+            if (label) {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', 15);
+                text.setAttribute('y', 5);
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '12');
+                text.textContent = label;
+                g.appendChild(text);
+            }
+
+            document.getElementById('svg-nodes').appendChild(g);
+        }
+
+        function updateSVGOverlay() {
+            // Clear previous frame
+            document.getElementById('svg-connections').innerHTML = '';
+            document.getElementById('svg-nodes').innerHTML = '';
+
+            // Update node markers for each object
+            scene.traverse((obj) => {
+                if (obj.isMesh && obj !== ground) {
+                    addNodeMarker(obj.position, '#4af', `Object`);
+                }
+            });
+        }
+
+        // ============================================
+        // CAMERA CONTROLS - 360 First Person View
+        // ============================================
+        
+        const cameraControls = {
+            isDragging: false,
+            isMiddleDragging: false,
+            previousMouse: { x: 0, y: 0 },
+            yaw: 0, // Horizontal rotation (360 degrees)
+            pitch: 0, // Vertical rotation
+            position: { x: 0, y: 15, z: 0 }, // Camera position - start higher for editor view
+            velocity: { x: 0, y: 0, z: 0 }, // Current velocity
+            moveSpeed: 0.5,
+            flySpeed: 0.8,
+            sprintMultiplier: 3.0,
+            lookSpeed: 0.003,
+            panSpeed: 0.05,
+            friction: 0.88, // Smooth stopping
+            acceleration: 0.2, // Smooth starting
+            isFlying: true // Always in fly mode for editor
+        };
+
+        // Mouse look and pan controls
+        document.addEventListener('mousedown', (e) => {
+            // Right-click for look around
+            if (e.button === 2) {
+                cameraControls.isDragging = true;
+                cameraControls.previousMouse = { x: e.clientX, y: e.clientY };
+            }
+            // Middle mouse button for pan (move camera position)
+            else if (e.button === 1) {
+                e.preventDefault();
+                cameraControls.isMiddleDragging = true;
+                cameraControls.previousMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            // Right-click drag: Look around
+            if (cameraControls.isDragging) {
+                const deltaX = e.clientX - cameraControls.previousMouse.x;
+                const deltaY = e.clientY - cameraControls.previousMouse.y;
+
+                // 360-degree horizontal rotation
+                cameraControls.yaw -= deltaX * cameraControls.lookSpeed;
+                
+                // Vertical look (with limits to prevent flipping)
+                cameraControls.pitch -= deltaY * cameraControls.lookSpeed;
+                cameraControls.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, cameraControls.pitch));
+
+                cameraControls.previousMouse = { x: e.clientX, y: e.clientY };
+            }
+            // Middle mouse drag: Pan camera (move up/down/left/right)
+            else if (cameraControls.isMiddleDragging) {
+                const deltaX = e.clientX - cameraControls.previousMouse.x;
+                const deltaY = e.clientY - cameraControls.previousMouse.y;
+
+                // Calculate right and up vectors
+                const right = {
+                    x: Math.cos(cameraControls.yaw),
+                    z: -Math.sin(cameraControls.yaw)
+                };
+
+                // Pan left/right
+                cameraControls.position.x -= right.x * deltaX * cameraControls.panSpeed;
+                cameraControls.position.z -= right.z * deltaX * cameraControls.panSpeed;
+
+                // Pan up/down (world Y-axis)
+                cameraControls.position.y += deltaY * cameraControls.panSpeed;
+
+                cameraControls.previousMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 2) {
+                cameraControls.isDragging = false;
+            } else if (e.button === 1) {
+                cameraControls.isMiddleDragging = false;
+            }
+        });
+
+        // WASD + Arrow Keys movement
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function updateCameraMovement() {
+            const controls = cameraControls;
+            
+            // Calculate forward/right/up vectors based on yaw and pitch
+            const forward = {
+                x: Math.sin(controls.yaw),
+                z: Math.cos(controls.yaw)
+            };
+            const right = {
+                x: Math.cos(controls.yaw),
+                z: -Math.sin(controls.yaw)
+            };
+
+            // Check if sprinting (Shift key)
+            const isSprinting = keys['shift'];
+            const baseSpeed = controls.isFlying ? controls.flySpeed : controls.moveSpeed;
+            const currentSpeed = baseSpeed * (isSprinting ? controls.sprintMultiplier : 1);
+
+            // Target velocity based on input
+            let targetVelX = 0;
+            let targetVelY = 0;
+            let targetVelZ = 0;
+
+            // WASD + Arrow keys (horizontal movement)
+            if (keys['w'] || keys['arrowup']) {
+                targetVelX += forward.x * currentSpeed;
+                targetVelZ += forward.z * currentSpeed;
+            }
+            if (keys['s'] || keys['arrowdown']) {
+                targetVelX -= forward.x * currentSpeed;
+                targetVelZ -= forward.z * currentSpeed;
+            }
+            if (keys['a'] || keys['arrowleft']) {
+                targetVelX -= right.x * currentSpeed;
+                targetVelZ -= right.z * currentSpeed;
+            }
+            if (keys['d'] || keys['arrowright']) {
+                targetVelX += right.x * currentSpeed;
+                targetVelZ += right.z * currentSpeed;
+            }
+            
+            // Vertical movement (Space up, E/Ctrl down for smooth flying)
+            if (keys[' ']) {
+                targetVelY += currentSpeed;
+            }
+            if (keys['e'] || keys['control']) {
+                targetVelY -= currentSpeed;
+            }
+
+            // Q/Z for additional up/down controls (editor-style)
+            if (keys['q']) {
+                targetVelY += currentSpeed;
+            }
+            if (keys['z']) {
+                targetVelY -= currentSpeed;
+            }
+
+            // Smooth acceleration towards target velocity
+            controls.velocity.x += (targetVelX - controls.velocity.x) * controls.acceleration;
+            controls.velocity.y += (targetVelY - controls.velocity.y) * controls.acceleration;
+            controls.velocity.z += (targetVelZ - controls.velocity.z) * controls.acceleration;
+
+            // Apply friction for smooth stopping
+            controls.velocity.x *= controls.friction;
+            controls.velocity.y *= controls.friction;
+            controls.velocity.z *= controls.friction;
+
+            // Update position with velocity
+            controls.position.x += controls.velocity.x;
+            controls.position.y += controls.velocity.y;
+            controls.position.z += controls.velocity.z;
+
+            // Optional: Remove boundaries for TRUE free movement
+            // Or keep soft boundaries
+            // controls.position.x = Math.max(-95, Math.min(95, controls.position.x));
+            // controls.position.z = Math.max(-95, Math.min(95, controls.position.z));
+            // controls.position.y = Math.max(1, Math.min(50, controls.position.y));
+        }
+
+        // Mouse wheel for vertical movement (fly up/down)
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const controls = cameraControls;
+            
+            // Scroll to fly up/down
+            controls.position.y -= e.deltaY * 0.01;
+            
+            // Optional: keep some limits
+            // controls.position.y = Math.max(1, Math.min(100, controls.position.y));
+        }, { passive: false });
+
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // ============================================
+        // MOUSE INTERACTIONS - Object Placement
+        // ============================================
+        
+        let isPlacementMode = false;
+
+        // Update mouse position and preview
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        });
+
+        // Click to place object (only when not dragging camera)
+        renderer.domElement.addEventListener('click', (event) => {
+            if (cameraControls.isDragging || !isPlacementMode) return;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(ground);
+
+            if (intersects.length > 0) {
+                placeObject(intersects[0].point);
+            }
+        });
+
+        // Press P to toggle placement mode
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'p') {
+                isPlacementMode = !isPlacementMode;
+                console.log('Placement mode:', isPlacementMode ? 'ON' : 'OFF');
+                
+                // Show notification
+                const tooltip = document.getElementById('tooltip');
+                tooltip.textContent = `Placement Mode: ${isPlacementMode ? 'ON' : 'OFF'}`;
+                tooltip.style.left = '50%';
+                tooltip.style.top = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+                tooltip.classList.add('show');
+                setTimeout(() => tooltip.classList.remove('show'), 2000);
+            }
+        });
+
+        // ============================================
+        // UI INTERACTIONS
+        // ============================================
+        
+        // Toggle layers
+        document.getElementById('toggle-grid').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                createSVGGrid();
+                document.getElementById('svg-grid').style.display = 'block';
+            } else {
+                document.getElementById('svg-grid').style.display = 'none';
+            }
+        });
+
+        document.getElementById('toggle-connections').addEventListener('change', (e) => {
+            document.getElementById('svg-connections').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('toggle-nodes').addEventListener('change', (e) => {
+            document.getElementById('svg-nodes').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('toggle-crosshair').addEventListener('change', (e) => {
+            document.getElementById('crosshair').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Tool palette - Updated for prefab selection
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tool = btn.dataset.tool;
+                
+                // Handle different tools
+                if (tool === 'add') {
+                    isPlacementMode = !isPlacementMode;
+                    if (isPlacementMode) {
+                        btn.classList.add('active');
+                        console.log('Placement mode: ON');
+                    } else {
+                        btn.classList.remove('active');
+                        console.log('Placement mode: OFF');
+                    }
+                } else if (tool === 'delete') {
+                    // Clear all objects
+                    placedObjects.forEach(mesh => {
+                        scene.remove(mesh);
+                        mesh.geometry.dispose();
+                        mesh.material.dispose();
+                    });
+                    placedObjects.length = 0;
+                    document.getElementById('stat-objects').textContent = '0';
+                } else {
+                    // Other tools
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                }
+            });
+        });
+
+        // Add prefab selector buttons
+        const prefabs = ['cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid'];
+        const prefabColors = {
+            cube: '#ff4757',
+            sphere: '#5352ed',
+            cylinder: '#2ed573',
+            cone: '#ffa502',
+            torus: '#a55eea',
+            pyramid: '#fd79a8'
+        };
+
+        const toolPalette = document.getElementById('tool-palette');
+        const separator = document.createElement('div');
+        separator.style.height = '2px';
+        separator.style.background = 'rgba(255,255,255,0.2)';
+        separator.style.margin = '0.5rem 0';
+        toolPalette.appendChild(separator);
+
+        prefabs.forEach(prefab => {
+            const btn = document.createElement('div');
+            btn.className = 'tool-btn';
+            btn.dataset.prefab = prefab;
+            btn.title = prefab.charAt(0).toUpperCase() + prefab.slice(1);
+            btn.style.background = prefabColors[prefab];
+            btn.style.fontSize = '0.75rem';
+            btn.style.fontWeight = 'bold';
+            btn.textContent = prefab.charAt(0).toUpperCase();
+            
+            if (prefab === selectedPrefab) {
+                btn.style.boxShadow = '0 0 20px ' + prefabColors[prefab];
+            }
+            
+            btn.addEventListener('click', () => {
+                selectedPrefab = prefab;
+                createPreviewMesh(prefab);
+                
+                // Update visual feedback
+                document.querySelectorAll('[data-prefab]').forEach(b => {
+                    b.style.boxShadow = 'none';
+                });
+                btn.style.boxShadow = '0 0 20px ' + prefabColors[prefab];
+            });
+            
+            toolPalette.appendChild(btn);
+        });
+
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        
+        let lastTime = performance.now();
+        let frameCount = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const controls = cameraControls;
+            
+            // Update movement
+            updateCameraMovement();
+
+            // Update camera position (first-person)
+            camera.position.set(
+                controls.position.x,
+                controls.position.y,
+                controls.position.z
+            );
+
+            // Update camera look direction (360-degree view)
+            const lookX = controls.position.x + Math.sin(controls.yaw) * Math.cos(controls.pitch);
+            const lookY = controls.position.y + Math.sin(controls.pitch);
+            const lookZ = controls.position.z + Math.cos(controls.yaw) * Math.cos(controls.pitch);
+            
+            camera.lookAt(lookX, lookY, lookZ);
+
+            // Update preview mesh position when in placement mode
+            if (previewMesh && isPlacementMode && !controls.isDragging) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(ground);
+                
+                if (intersects.length > 0) {
+                    const point = intersects[0].point;
+                    const snapSize = 2;
+                    previewMesh.position.set(
+                        Math.round(point.x / snapSize) * snapSize,
+                        getObjectHeight(selectedPrefab),
+                        Math.round(point.z / snapSize) * snapSize
+                    );
+                    previewMesh.visible = true;
+                } else {
+                    previewMesh.visible = false;
+                }
+            } else if (previewMesh) {
+                previewMesh.visible = false;
+            }
+
+            // Update stats
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                statsElements.fps.textContent = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+
+            let objectCount = 0;
+            let vertexCount = 0;
+            scene.traverse((obj) => {
+                if (obj.isMesh && obj !== ground && obj !== previewMesh) {
+                    objectCount++;
+                    vertexCount += obj.geometry.attributes.position.count;
+                }
+            });
+
+            statsElements.objects.textContent = placedObjects.length;
+            statsElements.vertices.textContent = vertexCount.toLocaleString();
+            statsElements.camera.textContent = `${Math.round(controls.position.x)},${Math.round(controls.position.y)},${Math.round(controls.position.z)}`;
+
+            // Update SVG overlay
+            updateSVGOverlay();
+
+            renderer.render(scene, camera);
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        // Don't create SVG grid by default - can be toggled on
+        // createSVGGrid();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // createSVGGrid(); // Disabled by default
+        });
+
+        animate();
+        
+        console.log('🎨 Advanced SVG + Three.js Canvas initialized');
+    </script>
+</body>
+</html>

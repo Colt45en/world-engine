@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js — Enhanced Interactive Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      background: #0a0a12;
+      color: #e0e0e0;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100vh;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(20, 20, 30, 0.95);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      width: 200px;
+      z-index: 10;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    h3 {
+      color: #00ffff;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .control-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      font-size: 10px;
+      color: #888;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      border: none;
+    }
+    select {
+      width: 100%;
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+      color: #e0e0e0;
+      font-size: 11px;
+    }
+    button {
+      width: 100%;
+      padding: 6px;
+      border-radius: 4px;
+      border: none;
+      background: linear-gradient(135deg, #00ffff, #0088ff);
+      color: #0a0a12;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 11px;
+      margin-top: 3px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 255, 255, 0.4);
+    }
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #00ffff;
+    }
+    .value-display {
+      float: right;
+      color: #ffd700;
+      font-family: 'Consolas', monospace;
+      font-size: 9px;
+    }
+    #stats {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(20, 20, 30, 0.92);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-family: 'Consolas', monospace;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+    }
+    .stat-line {
+      margin: 2px 0;
+    }
+    .stat-label {
+      color: #888;
+      margin-right: 6px;
+    }
+    .stat-value {
+      color: #ffd700;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <h3>⚙️ Scene Controls</h3>
+    
+    <div class="control-group">
+      <label>
+        Geometry Type
+      </label>
+      <select id="geometry-select">
+        <option value="box">Box</option>
+        <option value="sphere">Sphere</option>
+        <option value="torus">Torus</option>
+        <option value="cone">Cone</option>
+        <option value="cylinder">Cylinder</option>
+        <option value="dodecahedron">Dodecahedron</option>
+        <option value="icosahedron">Icosahedron</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>
+        Material Type
+      </label>
+      <select id="material-select">
+        <option value="normal">Normal</option>
+        <option value="basic">Basic</option>
+        <option value="standard">Standard (PBR)</option>
+        <option value="phong">Phong</option>
+        <option value="wireframe">Wireframe</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>
+        Rotation Speed X <span class="value-display" id="speed-x-val">1.0</span>
+      </label>
+      <input type="range" id="speed-x" min="-5" max="5" step="0.1" value="1">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Rotation Speed Y <span class="value-display" id="speed-y-val">2.0</span>
+      </label>
+      <input type="range" id="speed-y" min="-5" max="5" step="0.1" value="2">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Scale <span class="value-display" id="scale-val">1.0</span>
+      </label>
+      <input type="range" id="scale" min="0.1" max="3" step="0.1" value="1">
+    </div>
+
+    <button id="reset-btn">Reset Camera</button>
+    <button id="pause-btn" class="secondary">Pause Animation</button>
+  </div>
+
+  <div id="stats">
+    <div class="stat-line">
+      <span class="stat-label">FPS:</span>
+      <span class="stat-value" id="fps">60</span>
+    </div>
+    <div class="stat-line">
+      <span class="stat-label">Triangles:</span>
+      <span class="stat-value" id="triangles">12</span>
+    </div>
+    <div class="stat-line">
+      <span class="stat-label">Rotation:</span>
+      <span class="stat-value" id="rotation">0.00, 0.00</span>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ===== Scene Setup =====
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10);
+    camera.position.z = 1;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a12);
+
+    // ===== Lighting for PBR materials =====
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    // ===== Initial Mesh =====
+    let geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    let material = new THREE.MeshNormalMaterial();
+    let mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    // ===== Renderer =====
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setAnimationLoop(animate);
+    document.body.appendChild(renderer.domElement);
+
+    // ===== Animation State =====
+    let speedX = 1.0;
+    let speedY = 2.0;
+    let paused = false;
+    let lastTime = 0;
+    let frameCount = 0;
+    let fps = 60;
+
+    // ===== Animation Loop =====
+    function animate(time) {
+      if (!paused) {
+        mesh.rotation.x = time / (2000 / speedX);
+        mesh.rotation.y = time / (1000 / speedY);
+      }
+
+      renderer.render(scene, camera);
+
+      // Update stats
+      frameCount++;
+      if (time - lastTime > 1000) {
+        fps = Math.round((frameCount * 1000) / (time - lastTime));
+        document.getElementById('fps').textContent = fps;
+        frameCount = 0;
+        lastTime = time;
+      }
+
+      document.getElementById('rotation').textContent = 
+        `${mesh.rotation.x.toFixed(2)}, ${mesh.rotation.y.toFixed(2)}`;
+    }
+
+    // ===== Geometry Factory =====
+    function createGeometry(type) {
+      const size = 0.2;
+      switch (type) {
+        case 'box':
+          return new THREE.BoxGeometry(size, size, size);
+        case 'sphere':
+          return new THREE.SphereGeometry(size, 32, 32);
+        case 'torus':
+          return new THREE.TorusGeometry(size * 0.7, size * 0.3, 16, 100);
+        case 'cone':
+          return new THREE.ConeGeometry(size, size * 1.5, 32);
+        case 'cylinder':
+          return new THREE.CylinderGeometry(size, size, size * 1.5, 32);
+        case 'dodecahedron':
+          return new THREE.DodecahedronGeometry(size);
+        case 'icosahedron':
+          return new THREE.IcosahedronGeometry(size);
+        default:
+          return new THREE.BoxGeometry(size, size, size);
+      }
+    }
+
+    // ===== Material Factory =====
+    function createMaterial(type) {
+      switch (type) {
+        case 'normal':
+          return new THREE.MeshNormalMaterial();
+        case 'basic':
+          return new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        case 'standard':
+          return new THREE.MeshStandardMaterial({ 
+            color: 0x0088ff, 
+            roughness: 0.5, 
+            metalness: 0.5 
+          });
+        case 'phong':
+          return new THREE.MeshPhongMaterial({ color: 0x00ffff });
+        case 'wireframe':
+          return new THREE.MeshBasicMaterial({ 
+            color: 0x00ffff, 
+            wireframe: true 
+          });
+        default:
+          return new THREE.MeshNormalMaterial();
+      }
+    }
+
+    // ===== Update Geometry =====
+    function updateGeometry(type) {
+      scene.remove(mesh);
+      geometry.dispose();
+      
+      geometry = createGeometry(type);
+      mesh = new THREE.Mesh(geometry, material);
+      mesh.scale.copy(new THREE.Vector3().setScalar(parseFloat(document.getElementById('scale').value)));
+      scene.add(mesh);
+      
+      // Update triangle count
+      const triangles = geometry.index 
+        ? geometry.index.count / 3 
+        : geometry.attributes.position.count / 3;
+      document.getElementById('triangles').textContent = Math.floor(triangles);
+    }
+
+    // ===== Update Material =====
+    function updateMaterial(type) {
+      const oldMaterial = material;
+      material = createMaterial(type);
+      mesh.material = material;
+      oldMaterial.dispose();
+    }
+
+    // ===== Event Listeners =====
+    document.getElementById('geometry-select').addEventListener('change', (e) => {
+      updateGeometry(e.target.value);
+    });
+
+    document.getElementById('material-select').addEventListener('change', (e) => {
+      updateMaterial(e.target.value);
+    });
+
+    document.getElementById('speed-x').addEventListener('input', (e) => {
+      speedX = parseFloat(e.target.value);
+      document.getElementById('speed-x-val').textContent = speedX.toFixed(1);
+    });
+
+    document.getElementById('speed-y').addEventListener('input', (e) => {
+      speedY = parseFloat(e.target.value);
+      document.getElementById('speed-y-val').textContent = speedY.toFixed(1);
+    });
+
+    document.getElementById('scale').addEventListener('input', (e) => {
+      const scale = parseFloat(e.target.value);
+      mesh.scale.setScalar(scale);
+      document.getElementById('scale-val').textContent = scale.toFixed(1);
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      camera.position.set(0, 0, 1);
+      camera.rotation.set(0, 0, 0);
+      mesh.rotation.set(0, 0, 0);
+      mesh.scale.setScalar(1);
+      document.getElementById('scale').value = 1;
+      document.getElementById('scale-val').textContent = '1.0';
+    });
+
+    document.getElementById('pause-btn').addEventListener('click', (e) => {
+      paused = !paused;
+      e.target.textContent = paused ? 'Resume Animation' : 'Pause Animation';
+    });
+
+    // ===== Window Resize =====
+    window.addEventListener('resize', () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(w, h);
+    });
+
+    // ===== Mouse Interaction =====
+    let isDragging = false;
+    let previousMouseX = 0;
+    let previousMouseY = 0;
+
+    renderer.domElement.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - previousMouseX;
+      const deltaY = e.clientY - previousMouseY;
+
+      mesh.rotation.y += deltaX * 0.01;
+      mesh.rotation.x += deltaY * 0.01;
+
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // ===== Mouse Wheel Zoom =====
+    renderer.domElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      camera.position.z += e.deltaY * 0.001;
+      camera.position.z = Math.max(0.1, Math.min(5, camera.position.z));
+    });
+
+    // Initialize triangle count
+    document.getElementById('triangles').textContent = '12';
+
+    console.log('✅ Three.js enhanced demo initialized');
+    console.log('🎮 Drag to rotate, scroll to zoom');
+    console.log('⚙️ Use controls panel to customize');
+  </script>
+</body>
+</html>

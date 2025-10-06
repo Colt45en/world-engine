@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 4: Particle Wave Evolution</title>
+    <style>
+        :root {
+            --bg: #0b0b0f;
+            --panel: #0f121f;
+            --accent: #72f6d1;
+            --text: #eaf1ff;
+            --muted: #9fb3ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(180deg, #11182c, #0b1030);
+            border-bottom: 1px solid #1c2a54;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .nav-links a {
+            padding: 0.5rem 1rem;
+            background: #1c2a54;
+            border: 1px solid #72f6d1;
+            color: #72f6d1;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: #72f6d1;
+            color: #0b0b0f;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 12px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: #000;
+            border: 1px solid #20325f;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay-info {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(15, 18, 31, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid #213261;
+            border-radius: 8px;
+            padding: 0.75rem;
+            pointer-events: none;
+        }
+
+        .overlay-info h3 {
+            font-size: 0.875rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .overlay-info .stat {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .overlay-info .stat strong {
+            color: var(--text);
+        }
+
+        .controls {
+            background: var(--panel);
+            border: 1px solid #213261;
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .control-section {
+            background: #0b0e1a;
+            border: 1px solid #1a2447;
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .control-section h3 {
+            font-size: 0.875rem;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button {
+            width: 100%;
+            background: #13254d;
+            color: #dbe6ff;
+            border: 1px solid #29427c;
+            padding: 0.625rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #183064;
+            border-color: var(--accent);
+        }
+
+        button.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        label span {
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        label span .value {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #1c2746;
+            border-radius: 2px;
+            outline: none;
+            accent-color: var(--accent);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .color-display {
+            width: 100%;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid #213261;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .preset-grid button {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <h1>🌊 Lab 4: Particle Wave Evolution</h1>
+            <div class="subtitle">Color transformation through wave interference</div>
+        </div>
+        <div class="nav-links">
+            <a href="math-lab-3.html">← Lab 3</a>
+            <a href="index.html">🏠 Hub</a>
+            <a href="math-lab-5.html">Lab 5 →</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="canvas-wrapper">
+            <canvas id="canvas"></canvas>
+            <div class="overlay-info">
+                <h3>🎨 Current Color</h3>
+                <div class="stat">Base Hue: <strong id="baseHue">180°</strong></div>
+                <div class="stat">Lab 4 Shift: <strong id="lab4Shift">+0°</strong></div>
+                <div class="stat">Final Hue: <strong id="finalHue">180°</strong></div>
+                <div class="stat">Particles: <strong id="particleCount">0</strong></div>
+            </div>
+        </div>
+
+        <aside class="controls">
+            <div class="control-section">
+                <h3>🎨 Color Evolution</h3>
+                <div class="color-display" id="colorDisplay">
+                    <span id="colorHex">#72f6d1</span>
+                </div>
+                <label>
+                    <span>
+                        <span>Hue Shift</span>
+                        <span class="value" id="hueShiftValue">0°</span>
+                    </span>
+                    <input type="range" id="hueShift" min="-180" max="180" value="0" step="1">
+                </label>
+                <label>
+                    <span>
+                        <span>Evolution Speed</span>
+                        <span class="value" id="evolutionSpeedValue">0.5</span>
+                    </span>
+                    <input type="range" id="evolutionSpeed" min="0" max="2" value="0.5" step="0.1">
+                </label>
+            </div>
+
+            <div class="control-section">
+                <h3>🌊 Wave Patterns</h3>
+                <button class="active" data-pattern="sine">Sin Wave</button>
+                <button data-pattern="circular">Circular Ripples</button>
+                <button data-pattern="spiral">Spiral Flow</button>
+                <button data-pattern="interference">Interference</button>
+            </div>
+
+            <div class="control-section">
+                <h3>⚙️ Wave Parameters</h3>
+                <label>
+                    <span>
+                        <span>Amplitude</span>
+                        <span class="value" id="amplitudeValue">50</span>
+                    </span>
+                    <input type="range" id="amplitude" min="10" max="150" value="50" step="5">
+                </label>
+                <label>
+                    <span>
+                        <span>Frequency</span>
+                        <span class="value" id="frequencyValue">0.02</span>
+                    </span>
+                    <input type="range" id="frequency" min="0.005" max="0.05" value="0.02" step="0.005">
+                </label>
+                <label>
+                    <span>
+                        <span>Particle Density</span>
+                        <span class="value" id="densityValue">100</span>
+                    </span>
+                    <input type="range" id="density" min="50" max="500" value="100" step="10">
+                </label>
+            </div>
+
+            <div class="control-section">
+                <h3>🎭 Quick Presets</h3>
+                <div class="preset-grid">
+                    <button onclick="loadPreset('calm')">Calm</button>
+                    <button onclick="loadPreset('energetic')">Energetic</button>
+                    <button onclick="loadPreset('chaotic')">Chaotic</button>
+                    <button onclick="loadPreset('harmonic')">Harmonic</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🎬 Actions</h3>
+                <button onclick="resetWave()">🔄 Reset Wave</button>
+                <button onclick="randomizeColors()">🎲 Randomize Colors</button>
+            </div>
+        </aside>
+    </main>
+
+    <script src="./lens-tunnel-state.js"></script>
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Particle system
+        let particles = [];
+        let currentPattern = 'sine';
+        let time = 0;
+
+        // Wave parameters
+        let amplitude = 50;
+        let frequency = 0.02;
+        let density = 100;
+        let hueShift = 0;
+        let evolutionSpeed = 0.5;
+
+        // Color state
+        let baseHue = 180;
+        let currentColor = { r: 114, g: 246, b: 209 };
+
+        // Initialize from lens tunnel
+        function initFromLensTunnel() {
+            const state = LensTunnel.getState();
+            baseHue = state.spotlightHue || 180;
+            hueShift = state.hueShifts.lab4 || 0;
+            
+            document.getElementById('hueShift').value = hueShift;
+            updateColorDisplay();
+            initParticles();
+        }
+
+        // Update color display
+        function updateColorDisplay() {
+            const finalHue = (baseHue + hueShift + 360) % 360;
+            currentColor = LensTunnel.hueToRgb(finalHue, 80, 60);
+            
+            document.getElementById('baseHue').textContent = `${Math.round(baseHue)}°`;
+            document.getElementById('lab4Shift').textContent = `${hueShift >= 0 ? '+' : ''}${hueShift}°`;
+            document.getElementById('finalHue').textContent = `${Math.round(finalHue)}°`;
+            document.getElementById('colorHex').textContent = currentColor.hex;
+            document.getElementById('colorDisplay').style.background = `linear-gradient(135deg, ${currentColor.hex}, ${LensTunnel.hueToRgb((finalHue + 30) % 360, 80, 60).hex})`;
+            
+            // Save to lens tunnel
+            LensTunnel.setLabHueShift(4, hueShift);
+        }
+
+        // Particle class
+        class Particle {
+            constructor(x, y, index) {
+                this.baseX = x;
+                this.baseY = y;
+                this.x = x;
+                this.y = y;
+                this.index = index;
+                this.phase = Math.random() * Math.PI * 2;
+                this.size = 2 + Math.random() * 2;
+                this.alpha = 0.6 + Math.random() * 0.4;
+            }
+
+            update() {
+                const t = time * evolutionSpeed;
+                
+                switch(currentPattern) {
+                    case 'sine':
+                        this.x = this.baseX;
+                        this.y = this.baseY + Math.sin((this.baseX * frequency) + t + this.phase) * amplitude;
+                        break;
+                        
+                    case 'circular':
+                        const dx = this.baseX - canvas.width / 2;
+                        const dy = this.baseY - canvas.height / 2;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const ripple = Math.sin((dist * frequency) - t + this.phase) * amplitude;
+                        this.x = this.baseX + (dx / (dist || 1)) * ripple * 0.5;
+                        this.y = this.baseY + (dy / (dist || 1)) * ripple * 0.5;
+                        break;
+                        
+                    case 'spiral':
+                        const angle = Math.atan2(this.baseY - canvas.height / 2, this.baseX - canvas.width / 2);
+                        const radius = Math.sqrt(Math.pow(this.baseX - canvas.width / 2, 2) + Math.pow(this.baseY - canvas.height / 2, 2));
+                        const spiralOffset = Math.sin((angle * 3) + (radius * frequency) - t + this.phase) * amplitude;
+                        this.x = this.baseX + Math.cos(angle) * spiralOffset * 0.5;
+                        this.y = this.baseY + Math.sin(angle) * spiralOffset * 0.5;
+                        break;
+                        
+                    case 'interference':
+                        const wave1 = Math.sin((this.baseX * frequency) + t) * amplitude;
+                        const wave2 = Math.sin((this.baseY * frequency) - t + this.phase) * amplitude;
+                        this.x = this.baseX + wave2 * 0.3;
+                        this.y = this.baseY + wave1 * 0.3;
+                        break;
+                }
+            }
+
+            draw() {
+                // Color shifts based on position
+                const positionHue = (baseHue + hueShift + (this.index / particles.length) * 60) % 360;
+                const particleColor = LensTunnel.hueToRgb(positionHue, 80, 60);
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${particleColor.r}, ${particleColor.g}, ${particleColor.b}, ${this.alpha})`;
+                ctx.fill();
+                
+                // Glow effect
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = particleColor.hex;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Initialize particles
+        function initParticles() {
+            particles = [];
+            const gridSize = Math.ceil(Math.sqrt(density));
+            const spacingX = canvas.width / (gridSize + 1);
+            const spacingY = canvas.height / (gridSize + 1);
+            
+            let index = 0;
+            for (let i = 1; i <= gridSize; i++) {
+                for (let j = 1; j <= gridSize; j++) {
+                    const x = i * spacingX + (Math.random() - 0.5) * spacingX * 0.5;
+                    const y = j * spacingY + (Math.random() - 0.5) * spacingY * 0.5;
+                    particles.push(new Particle(x, y, index++));
+                }
+            }
+            
+            document.getElementById('particleCount').textContent = particles.length;
+        }
+
+        // Animation loop
+        function animate() {
+            // Clear with trail effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and draw particles
+            time += 0.05;
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Control handlers
+        document.getElementById('hueShift').addEventListener('input', (e) => {
+            hueShift = parseFloat(e.target.value);
+            document.getElementById('hueShiftValue').textContent = `${hueShift >= 0 ? '+' : ''}${hueShift}°`;
+            updateColorDisplay();
+        });
+
+        document.getElementById('evolutionSpeed').addEventListener('input', (e) => {
+            evolutionSpeed = parseFloat(e.target.value);
+            document.getElementById('evolutionSpeedValue').textContent = evolutionSpeed.toFixed(1);
+        });
+
+        document.getElementById('amplitude').addEventListener('input', (e) => {
+            amplitude = parseFloat(e.target.value);
+            document.getElementById('amplitudeValue').textContent = amplitude;
+        });
+
+        document.getElementById('frequency').addEventListener('input', (e) => {
+            frequency = parseFloat(e.target.value);
+            document.getElementById('frequencyValue').textContent = frequency.toFixed(3);
+        });
+
+        document.getElementById('density').addEventListener('input', (e) => {
+            density = parseFloat(e.target.value);
+            document.getElementById('densityValue').textContent = density;
+            initParticles();
+        });
+
+        // Pattern buttons
+        document.querySelectorAll('[data-pattern]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-pattern]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPattern = btn.dataset.pattern;
+            });
+        });
+
+        // Presets
+        function loadPreset(type) {
+            switch(type) {
+                case 'calm':
+                    amplitude = 30;
+                    frequency = 0.01;
+                    evolutionSpeed = 0.3;
+                    currentPattern = 'sine';
+                    break;
+                case 'energetic':
+                    amplitude = 80;
+                    frequency = 0.03;
+                    evolutionSpeed = 1.2;
+                    currentPattern = 'circular';
+                    break;
+                case 'chaotic':
+                    amplitude = 120;
+                    frequency = 0.04;
+                    evolutionSpeed = 1.8;
+                    currentPattern = 'interference';
+                    break;
+                case 'harmonic':
+                    amplitude = 50;
+                    frequency = 0.02;
+                    evolutionSpeed = 0.5;
+                    currentPattern = 'spiral';
+                    break;
+            }
+            
+            document.getElementById('amplitude').value = amplitude;
+            document.getElementById('frequency').value = frequency;
+            document.getElementById('evolutionSpeed').value = evolutionSpeed;
+            document.getElementById('amplitudeValue').textContent = amplitude;
+            document.getElementById('frequencyValue').textContent = frequency.toFixed(3);
+            document.getElementById('evolutionSpeedValue').textContent = evolutionSpeed.toFixed(1);
+            
+            document.querySelectorAll('[data-pattern]').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-pattern="${currentPattern}"]`).classList.add('active');
+        }
+
+        function resetWave() {
+            time = 0;
+            particles.forEach(p => {
+                p.x = p.baseX;
+                p.y = p.baseY;
+                p.phase = Math.random() * Math.PI * 2;
+            });
+        }
+
+        function randomizeColors() {
+            hueShift = Math.floor(Math.random() * 360) - 180;
+            document.getElementById('hueShift').value = hueShift;
+            document.getElementById('hueShiftValue').textContent = `${hueShift >= 0 ? '+' : ''}${hueShift}°`;
+            updateColorDisplay();
+        }
+
+        // Listen for lens tunnel updates
+        window.addEventListener('lensTunnelUpdate', (e) => {
+            baseHue = e.detail.spotlightHue || 180;
+            updateColorDisplay();
+        });
+
+        // Initialize
+        initFromLensTunnel();
+        animate();
+    </script>
+</body>
+</html>

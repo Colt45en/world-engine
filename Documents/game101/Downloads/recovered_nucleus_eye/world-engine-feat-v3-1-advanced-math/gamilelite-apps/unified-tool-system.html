@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified Tool System — Grid → Voxel → Morph → Ray → Avatar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --grid-size: 40px;
+      --offset: calc(var(--grid-size) / 2);
+      --panel-bg: rgba(0,0,0,0.8);
+      --panel-border: rgba(255,255,255,0.15);
+      --stage-locked: rgba(255,100,100,0.3);
+      --stage-active: rgba(59,130,246,0.4);
+      --stage-complete: rgba(34,197,94,0.3);
+    }
+
+    body { font-family: system-ui, -apple-system, sans-serif; }
+
+    /* Grid layers */
+    .grid-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #baseGrid   { z-index: 1; }
+    #offsetGrid { z-index: 2; }
+    #voxelLayer { z-index: 3; }
+    #morphLayer { z-index: 4; }
+    canvas.grid-layer { pointer-events: auto; z-index: 10; }
+
+    .math-grid-base {
+      background-image:
+        linear-gradient(to right, rgba(59, 130, 246, 0) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(59, 130, 246, 0) 1px, transparent 1px);
+      background-size: var(--grid-size) var(--grid-size);
+    }
+
+    .math-grid-offset {
+      background-image:
+        linear-gradient(to right, rgba(16, 185, 129, 0) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(16, 185, 129, 0) 1px, transparent 1px);
+      background-size: var(--grid-size) var(--grid-size);
+      background-position: var(--offset) var(--offset);
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .panel-body { padding: 1rem; }
+    .panel-title { font-weight: 700; font-size: 1rem; }
+
+    /* Stage System */
+    .stage-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .stage-tab {
+      flex: 1;
+      min-width: 120px;
+      padding: 0.6rem 1rem;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      position: relative;
+    }
+    .stage-tab.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: var(--stage-locked);
+    }
+    .stage-tab.active {
+      background: var(--stage-active);
+      border-color: #3b82f6;
+      box-shadow: 0 0 20px rgba(59,130,246,0.3);
+    }
+    .stage-tab.complete {
+      border-color: var(--stage-complete);
+    }
+    .stage-tab .stage-icon {
+      font-size: 1.5rem;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    .stage-tab .stage-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stage-content {
+      display: none;
+    }
+    .stage-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tool sections */
+    .tool-section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .tool-section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #60a5fa;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.08);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.875rem;
+    }
+    .btn:hover { background: rgba(255,255,255,0.15); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      border-color: #60a5fa;
+    }
+    .btn-primary:hover { background: #2563eb; }
+    
+    .btn-success {
+      background: #10b981;
+      border-color: #34d399;
+    }
+    .btn-success:hover { background: #059669; }
+
+    .preset-btn {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #3b82f6;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+      font-size: 0.875rem;
+    }
+    .stat-label { color: #9ca3af; }
+    .stat-value { color: #fff; font-weight: 600; }
+
+    /* Status bar */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.9);
+      border-top: 1px solid rgba(255,255,255,0.2);
+      padding: 0.5rem 1rem;
+      display: flex;
+      gap: 2rem;
+      font-size: 0.875rem;
+      z-index: 100;
+    }
+    .status-item { display: flex; gap: 0.5rem; }
+    .status-label { color: #9ca3af; }
+    .status-value { color: #fff; font-weight: 600; }
+
+    /* Log */
+    .log-container {
+      max-height: 150px;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 0.5rem;
+      font-size: 0.75rem;
+      font-family: monospace;
+    }
+    .log-entry {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .log-time { color: #60a5fa; }
+    .log-msg { color: #d1d5db; }
+
+    #uploadPreview {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen overflow-hidden">
+  <div class="relative w-full h-screen">
+    <!-- WebGL Canvas -->
+    <canvas id="webgl" class="grid-layer"></canvas>
+
+    <!-- Grid Layers -->
+    <div class="grid-layer math-grid-base" id="baseGrid"></div>
+    <div class="grid-layer math-grid-offset" id="offsetGrid"></div>
+    <div class="grid-layer" id="voxelLayer"></div>
+    <div class="grid-layer" id="morphLayer"></div>
+
+    <!-- Main Tool Panel (Left) -->
+    <div class="panel absolute top-4 left-4 w-[25%] max-w-[380px] min-w-[280px] z-50">
+      <div class="panel-header">
+        <h1 class="panel-title">🧊 Unified Tool System</h1>
+        <button id="togglePanel" class="btn preset-btn">−</button>
+      </div>
+      <div class="panel-body" id="mainPanelBody">
+        <!-- Stage Tabs -->
+        <div class="stage-tabs">
+          <div class="stage-tab active" data-stage="1">
+            <span class="stage-icon">🧩</span>
+            <span class="stage-name">Voxel</span>
+          </div>
+          <div class="stage-tab locked" data-stage="2">
+            <span class="stage-icon">✨</span>
+            <span class="stage-name">Morph</span>
+          </div>
+          <div class="stage-tab locked" data-stage="3">
+            <span class="stage-icon">🎯</span>
+            <span class="stage-name">Ray</span>
+          </div>
+          <div class="stage-tab locked" data-stage="4">
+            <span class="stage-icon">🧍</span>
+            <span class="stage-name">Avatar</span>
+          </div>
+        </div>
+
+        <!-- STAGE 1: VOXEL GENERATION -->
+        <div class="stage-content active" data-stage="1">
+          <div class="tool-section">
+            <div class="tool-section-title">📤 Image Upload</div>
+            <input type="file" id="imageUpload" accept="image/*" class="hidden">
+            <button onclick="document.getElementById('imageUpload').click()" class="btn btn-primary w-full">
+              Upload PNG/JPG
+            </button>
+            <img id="uploadPreview" class="hidden" alt="Preview">
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">⚡ Quick Presets</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button class="btn preset-btn" data-preset="balanced">Balanced</button>
+              <button class="btn preset-btn" data-preset="quality">Quality</button>
+              <button class="btn preset-btn" data-preset="fast">Fast</button>
+              <button class="btn preset-btn" data-preset="artistic">Artistic</button>
+            </div>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">🎛️ Voxel Parameters</div>
+            <label class="block mb-2 text-xs">
+              Layer Mode:
+              <select id="layerMode" class="text-black w-full px-2 py-1 rounded">
+                <option value="standard">Standard (single)</option>
+                <option value="dual">Dual Layer</option>
+                <option value="triple">Triple Layer</option>
+                <option value="mathematical">Mathematical Grid</option>
+              </select>
+            </label>
+            <label class="block mb-2 text-xs">
+              Distribution Pattern:
+              <select id="distPattern" class="text-black w-full px-2 py-1 rounded">
+                <option value="uniform">Uniform</option>
+                <option value="checkerboard">Checkerboard</option>
+                <option value="sinusoidal">Sinusoidal</option>
+                <option value="radial">Radial Rings</option>
+              </select>
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Voxel Size: <span id="voxelSizeVal">0.08</span></span>
+              <input type="range" id="voxelSize" min="0.04" max="0.2" step="0.01" value="0.08">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Depth Factor: <span id="depthFactorVal">0.45</span></span>
+              <input type="range" id="depthFactor" min="0.1" max="1.0" step="0.05" value="0.45">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Layer Offset: <span id="layerOffsetVal">3</span></span>
+              <input type="range" id="layerOffset" min="1" max="10" step="1" value="3">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Height Scale: <span id="heightScaleVal">1.8</span></span>
+              <input type="range" id="heightScale" min="0.5" max="3.0" step="0.1" value="1.8">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Max Voxels: <span id="maxVoxelsVal">300k</span></span>
+              <input type="range" id="maxVoxels" min="50" max="500" step="50" value="300">
+            </label>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">🔢 Layer & Pattern</div>
+            <label class="block mb-2 text-xs">
+              Layer Mode:
+              <select id="layerMode" class="text-black w-full px-2 py-1 rounded">
+                <option value="standard">Standard</option>
+                <option value="dual">Dual Layer</option>
+                <option value="triple">Triple Layer</option>
+                <option value="mathematical">Mathematical</option>
+              </select>
+            </label>
+            <label class="block mb-2 text-xs">
+              Distribution:
+              <select id="distribution" class="text-black w-full px-2 py-1 rounded">
+                <option value="uniform">Uniform</option>
+                <option value="checkerboard">Checkerboard (50% reduction)</option>
+                <option value="sinusoidal">Sinusoidal</option>
+                <option value="radial">Radial</option>
+              </select>
+            </label>
+            <label class="flex items-center gap-2 text-xs">
+              <input type="checkbox" id="edgeSmoothing">
+              Edge Smoothing
+            </label>
+          </div>
+
+          <button id="generateVoxels" class="btn btn-success w-full">
+            🎨 Generate Voxel Model
+          </button>
+        </div>
+
+        <!-- STAGE 2: MORPH & SCULPT -->
+        <div class="stage-content" data-stage="2">
+          <div class="tool-section">
+            <div class="tool-section-title">🎭 Transform Controls</div>
+            <div class="grid grid-cols-4 gap-2">
+              <button class="btn preset-btn" data-transform="translate">Move</button>
+              <button class="btn preset-btn" data-transform="rotate">Rotate</button>
+              <button class="btn preset-btn" data-transform="scale">Scale</button>
+              <button class="btn preset-btn" data-transform="none">Select</button>
+            </div>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">✨ Morphing Operations</div>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <button class="btn preset-btn" data-morph="spherify">Spherify</button>
+              <button class="btn preset-btn" data-morph="cubeify">Cubeify</button>
+              <button class="btn preset-btn" data-morph="twist">Twist</button>
+              <button class="btn preset-btn" data-morph="bend">Bend</button>
+            </div>
+            <label class="block mb-2">
+              <span class="text-xs">Morph Amount: <span id="morphAmountVal">0.5</span></span>
+              <input type="range" id="morphAmount" min="0" max="1" step="0.05" value="0.5">
+            </label>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">🖌️ Sculpting Tools</div>
+            <label class="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="sculptMode">
+              <span class="text-sm font-semibold">Enable Sculpting</span>
+            </label>
+            <div class="grid grid-cols-4 gap-2 mb-3">
+              <button class="btn preset-btn" data-sculpt="push">Push</button>
+              <button class="btn preset-btn" data-sculpt="pull">Pull</button>
+              <button class="btn preset-btn" data-sculpt="smooth">Smooth</button>
+              <button class="btn preset-btn" data-sculpt="pinch">Pinch</button>
+            </div>
+            <label class="block mb-2">
+              <span class="text-xs">Brush Size: <span id="brushSizeVal">1.5</span></span>
+              <input type="range" id="brushSize" min="0.5" max="5" step="0.1" value="1.5">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Strength: <span id="brushStrengthVal">0.1</span></span>
+              <input type="range" id="brushStrength" min="0.01" max="0.5" step="0.01" value="0.1">
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button id="resetMesh" class="btn">↺ Reset</button>
+            <button id="smoothMesh" class="btn">⚡ Smooth</button>
+          </div>
+        </div>
+
+        <!-- STAGE 3: RAY & RENDER -->
+        <div class="stage-content" data-stage="3">
+          <div class="tool-section">
+            <div class="tool-section-title">🎯 Raycasting Tools</div>
+            <label class="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="rayHelpers" checked>
+              Show Ray Helpers
+            </label>
+            <label class="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="normalHelpers">
+              Show Normal Helpers
+            </label>
+            <button class="btn w-full mb-2">🔍 Analyze Mesh</button>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">🎨 Materials & Textures</div>
+            <label class="block mb-2 text-xs">
+              Material Type:
+              <select id="materialType" class="text-black w-full px-2 py-1 rounded">
+                <option value="standard">Standard</option>
+                <option value="phong">Phong</option>
+                <option value="toon">Toon</option>
+                <option value="basic">Basic</option>
+              </select>
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Roughness: <span id="roughnessVal">0.6</span></span>
+              <input type="range" id="roughness" min="0" max="1" step="0.05" value="0.6">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Metalness: <span id="metalnessVal">0.1</span></span>
+              <input type="range" id="metalness" min="0" max="1" step="0.05" value="0.1">
+            </label>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">💡 Lighting</div>
+            <label class="block mb-2">
+              <span class="text-xs">Ambient: <span id="ambientVal">0.6</span></span>
+              <input type="range" id="ambient" min="0" max="2" step="0.1" value="0.6">
+            </label>
+            <label class="block mb-2">
+              <span class="text-xs">Directional: <span id="directionalVal">0.85</span></span>
+              <input type="range" id="directional" min="0" max="2" step="0.05" value="0.85">
+            </label>
+          </div>
+
+          <button id="exportGLB" class="btn btn-success w-full">
+            📦 Export GLB
+          </button>
+        </div>
+
+        <!-- STAGE 4: AVATAR BUILDER -->
+        <div class="stage-content" data-stage="4">
+          <div class="tool-section">
+            <div class="tool-section-title">🧍 Avatar Assembly</div>
+            <p class="text-xs text-gray-400 mb-3">
+              Combine multiple voxel models into a rigged avatar system.
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+              <button class="btn preset-btn">+ Head</button>
+              <button class="btn preset-btn">+ Torso</button>
+              <button class="btn preset-btn">+ Arms</button>
+              <button class="btn preset-btn">+ Legs</button>
+            </div>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">🦴 Rigging & Animation</div>
+            <button class="btn w-full mb-2">Create Skeleton</button>
+            <button class="btn w-full mb-2">Auto-Weight Paint</button>
+            <button class="btn w-full">Test Animation</button>
+          </div>
+
+          <div class="tool-section">
+            <div class="tool-section-title">📦 Avatar Export</div>
+            <button class="btn btn-success w-full">Export Rigged Avatar</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Info Panel (Right) -->
+    <div class="panel absolute top-4 right-4 w-[22%] max-w-[320px] min-w-[260px] z-50">
+      <div class="panel-header">
+        <h3 class="panel-title">📊 System Info</h3>
+        <button id="toggleInfoPanel" class="btn preset-btn">−</button>
+      </div>
+      <div class="panel-body">
+        <div class="tool-section">
+          <div class="stat-row">
+            <span class="stat-label">Current Stage:</span>
+            <span class="stat-value" id="currentStage">Stage 1 (Voxel)</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Grid Cells:</span>
+            <span class="stat-value" id="gridCells">–</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Voxel Count:</span>
+            <span class="stat-value" id="voxelCount">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Vertices:</span>
+            <span class="stat-value" id="vertexCount">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Processing Time:</span>
+            <span class="stat-value" id="processTime">–</span>
+          </div>
+        </div>
+
+        <div class="tool-section">
+          <div class="tool-section-title">📜 Activity Log</div>
+          <div class="log-container" id="logContainer">
+            <div class="log-entry">
+              <span class="log-time">[00:00:00]</span>
+              <span class="log-msg">System initialized</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-section">
+          <div class="tool-section-title">⚙️ Grid Settings</div>
+          <label class="block mb-2">
+            <span class="text-xs">Grid Density: <span id="gridDensityVal">40px</span></span>
+            <input type="range" id="gridDensity" min="20" max="80" value="40">
+          </label>
+          <label class="flex items-center gap-2 text-xs">
+            <input type="checkbox" id="showGrid" checked>
+            Show Grid Overlay
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">Mode:</span>
+        <span class="status-value" id="statusMode">Voxel Generation</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Tool:</span>
+        <span class="status-value" id="statusTool">None</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Progress:</span>
+        <span class="status-value" id="statusProgress">Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three@0.160.0';
+    import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    import { TransformControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TransformControls.js';
+    import { GLTFExporter } from 'https://esm.sh/three@0.160.0/examples/jsm/exporters/GLTFExporter.js';
+
+    // ====== STATE MANAGEMENT ======
+    const state = {
+      currentStage: 1,
+      completedStages: [],
+      scene: null,
+      camera: null,
+      renderer: null,
+      controls: null,
+      transformControls: null,
+      currentMesh: null,
+      originalGeometry: null,
+      uploadedImage: null,
+      voxelCount: 0,
+      sculptMode: false,
+      sculptTool: 'push',
+      transformMode: 'none',
+      morphType: null
+    };
+
+    const presets = {
+      balanced: { voxelSize: 0.08, depthFactor: 0.45, heightScale: 1.8, depthCurve: 0.7 },
+      quality: { voxelSize: 0.06, depthFactor: 0.55, heightScale: 2.2, depthCurve: 0.8 },
+      fast: { voxelSize: 0.12, depthFactor: 0.35, heightScale: 1.5, depthCurve: 0.6 },
+      artistic: { voxelSize: 0.10, depthFactor: 0.70, heightScale: 2.5, depthCurve: 0.9 }
+    };
+
+    // ====== LOGGING ======
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-msg">${message}</span>`;
+      const container = document.getElementById('logContainer');
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+      console.log(`[${time}] ${message}`);
+    }
+
+    // ====== STAGE MANAGEMENT ======
+    function switchStage(stageNum) {
+      // Check if stage is locked
+      const tab = document.querySelector(`.stage-tab[data-stage="${stageNum}"]`);
+      if (tab.classList.contains('locked')) {
+        log(`Stage ${stageNum} is locked. Complete previous stages first.`, 'warn');
+        return;
+      }
+
+      state.currentStage = stageNum;
+      
+      // Update tabs
+      document.querySelectorAll('.stage-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // Update content
+      document.querySelectorAll('.stage-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`.stage-content[data-stage="${stageNum}"]`).classList.add('active');
+
+      // Update status
+      const stageNames = ['', 'Voxel Generation', 'Morph & Sculpt', 'Ray & Render', 'Avatar Building'];
+      document.getElementById('currentStage').textContent = `Stage ${stageNum} (${stageNames[stageNum]})`;
+      document.getElementById('statusMode').textContent = stageNames[stageNum];
+
+      log(`Switched to Stage ${stageNum}: ${stageNames[stageNum]}`);
+    }
+
+    function unlockStage(stageNum) {
+      const tab = document.querySelector(`.stage-tab[data-stage="${stageNum}"]`);
+      tab.classList.remove('locked');
+      state.completedStages.push(stageNum - 1);
+      
+      // Mark previous stage as complete
+      const prevTab = document.querySelector(`.stage-tab[data-stage="${stageNum - 1}"]`);
+      if (prevTab) prevTab.classList.add('complete');
+      
+      log(`Stage ${stageNum} unlocked!`, 'success');
+    }
+
+    // ====== THREE.JS INITIALIZATION ======
+    function initThree() {
+      const canvas = document.getElementById('webgl');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 0, 50); // Front view - looking straight at the grid plane
+      camera.lookAt(0, 0, 0); // Look at center of grid
+
+      const controls = new OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      
+      // Keep camera above Y=0 plane (grid level)
+      controls.minPolarAngle = 0; // Can look from any top angle
+      controls.maxPolarAngle = Math.PI / 2 - 0.1; // Stop just before going under (89.4°)
+      controls.target.set(0, 0, 0); // Always orbit around grid center
+      controls.minDistance = 10; // Minimum zoom distance
+      controls.maxDistance = 150; // Maximum zoom distance
+      controls.screenSpacePanning = true; // Allow free panning
+
+      // Lighting
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      dirLight.position.set(5, 10, 7);
+      scene.add(dirLight);
+
+      // Liquid metal/concrete floor with displacement
+      function createTerrainFloor(size, divisions) {
+        const group = new THREE.Group();
+        
+        // High-res geometry for smooth displacement
+        const geometry = new THREE.PlaneGeometry(size, size, divisions * 2, divisions * 2);
+        const vertices = geometry.attributes.position.array;
+        
+        // Subtle displacement - like liquid settling into grid cells
+        for (let i = 0; i < vertices.length; i += 3) {
+          const x = vertices[i];
+          const y = vertices[i + 1];
+          
+          // Very subtle ripple effect (like liquid surface tension)
+          const gridX = Math.floor(x / (size / divisions) + divisions / 2);
+          const gridY = Math.floor(y / (size / divisions) + divisions / 2);
+          const cellCenterX = (gridX - divisions / 2) * (size / divisions) + (size / divisions) / 2;
+          const cellCenterY = (gridY - divisions / 2) * (size / divisions) + (size / divisions) / 2;
+          const distToCenter = Math.sqrt((x - cellCenterX) ** 2 + (y - cellCenterY) ** 2);
+          
+          // Subtle meniscus effect (liquid pools slightly in center of each cell)
+          const displacement = Math.max(0, 0.15 - distToCenter * 0.05);
+          vertices[i + 2] = -displacement;
+        }
+        
+        geometry.computeVertexNormals();
+        
+        // Liquid metal material - smooth, reflective, metallic
+        const metalMat = new THREE.MeshStandardMaterial({ 
+          color: 0x10b981,
+          metalness: 0.9,
+          roughness: 0.1,
+          opacity: 0.95,
+          transparent: true,
+          side: THREE.DoubleSide,
+          envMapIntensity: 1.0
+        });
+        const metalFloor = new THREE.Mesh(geometry, metalMat);
+        metalFloor.rotation.x = -Math.PI / 2;
+        metalFloor.position.y = -0.1;
+        metalFloor.receiveShadow = true;
+        group.add(metalFloor);
+        
+        // Subtle wireframe showing grid cells (embedded in concrete)
+        const gridGeo = geometry.clone();
+        const wireframeMat = new THREE.MeshBasicMaterial({ 
+          color: 0x3b82f6, 
+          wireframe: true,
+          opacity: 0.25,
+          transparent: true
+        });
+        const wireframe = new THREE.Mesh(gridGeo, wireframeMat);
+        wireframe.rotation.x = -Math.PI / 2;
+        wireframe.position.y = -0.08; // Embedded slightly above metal
+        group.add(wireframe);
+        
+        // Overlay grid (like grid lines on concrete)
+        const gridHelper = new THREE.GridHelper(size, divisions, 0x3b82f6, 0x10b981);
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        gridHelper.position.y = 0;
+        group.add(gridHelper);
+        
+        return group;
+      }
+      
+      const gridHelper = createTerrainFloor(60, 60);
+      scene.add(gridHelper);
+
+      // TransformControls
+      const transformControls = new TransformControls(camera, canvas);
+      transformControls.addEventListener('dragging-changed', (event) => {
+        controls.enabled = !event.value;
+      });
+      scene.add(transformControls);
+
+      Object.assign(state, { scene, camera, renderer, controls, transformControls, gridHelper });
+
+      // Render loop
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Resize handler
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      log('3D scene initialized');
+    }
+
+    // ====== VOXEL GENERATION HELPERS ======
+    function shouldPlaceVoxel(x, y, w, h, pattern) {
+      switch (pattern) {
+        case 'uniform':
+          return true;
+        case 'checkerboard':
+          return (x + y) % 2 === 0;
+        case 'sinusoidal':
+          const value = Math.sin(x * 0.3) * Math.cos(y * 0.3);
+          return Math.abs(value) > 0.3;
+        case 'radial':
+          const centerX = w / 2;
+          const centerY = h / 2;
+          const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+          const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
+          return (dist / maxDist * 10) % 2 < 1;
+        default:
+          return true;
+      }
+    }
+
+    function createLayeredVoxelGeometry(imageData, w, h, config) {
+      const VOXEL_SIZE = parseFloat(config.voxelSize) || 0.08;
+      const depthFactor = parseFloat(config.depthFactor) || 0.5;
+      const layerMode = config.layerMode || 'standard';
+      const layerOffset = parseInt(config.layerOffset) || 3;
+      const distPattern = config.distPattern || 'uniform';
+      const maxVoxels = parseInt(config.maxVoxels) || 200000;
+
+      log(`🌐 Creating layered voxels (mode=${layerMode}, pattern=${distPattern}, max=${maxVoxels.toLocaleString()})...`);
+
+      // Extract alpha mask
+      const mask = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          mask[y * w + x] = imageData[idx + 3] > 128 ? 255 : 0;
+        }
+      }
+
+      // Calculate distance field
+      const distField = new Float32Array(w * h);
+      let maxDist = 0;
+      
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = y * w + x;
+          if (mask[idx] > 0) {
+            let minDist = Math.max(w, h);
+            const searchR = Math.min(30, Math.floor(Math.max(w, h) * 0.2));
+            
+            for (let dy = -searchR; dy <= searchR; dy++) {
+              const sy = y + dy;
+              if (sy < 0 || sy >= h) continue;
+              for (let dx = -searchR; dx <= searchR; dx++) {
+                const sx = x + dx;
+                if (sx < 0 || sx >= w) continue;
+                if (mask[sy * w + sx] === 0) {
+                  const dist = Math.sqrt(dx * dx + dy * dy);
+                  minDist = Math.min(minDist, dist);
+                }
+              }
+            }
+            distField[idx] = minDist;
+            maxDist = Math.max(maxDist, minDist);
+          }
+        }
+      }
+
+      // Determine number of layers
+      let numLayers = 1;
+      switch (layerMode) {
+        case 'dual': numLayers = 2; break;
+        case 'triple': numLayers = 3; break;
+        case 'mathematical': numLayers = 2; break;
+      }
+
+      const allGeometries = [];
+      let totalVoxelCount = 0;
+
+      // Create each layer
+      for (let layer = 0; layer < numLayers; layer++) {
+        const layerVoxels = [];
+        const depth = Math.floor(w * depthFactor);
+        const offsetX = layer * layerOffset;
+        const offsetZ = layer * layerOffset;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = y * w + x;
+            if (mask[idx] === 0) continue;
+
+            // Apply distribution pattern
+            if (!shouldPlaceVoxel(x, y, w, h, distPattern)) continue;
+
+            const distFromEdge = distField[idx];
+            const normalizedDist = Math.min(1, distFromEdge / Math.max(10, maxDist * 0.5));
+            const depthProfile = Math.pow(normalizedDist, 0.7);
+            const voxelDepth = Math.max(1, Math.floor(depth * depthProfile * 0.9));
+
+            // Layer-specific modifications
+            let layerDepthMod = 1.0;
+            if (layerMode === 'dual' || layerMode === 'triple') {
+              layerDepthMod = 1.0 - (layer * 0.15);
+            }
+
+            const adjustedDepth = Math.floor(voxelDepth * layerDepthMod);
+
+            for (let z = 0; z < adjustedDepth; z++) {
+              layerVoxels.push({
+                x: (x - w / 2) * VOXEL_SIZE + offsetX * VOXEL_SIZE,
+                y: (h / 2 - y) * VOXEL_SIZE,
+                z: (z - adjustedDepth / 2) * VOXEL_SIZE + offsetZ * VOXEL_SIZE,
+                layer: layer
+              });
+              totalVoxelCount++;
+              if (totalVoxelCount >= maxVoxels) break;
+            }
+            if (totalVoxelCount >= maxVoxels) break;
+          }
+          if (totalVoxelCount >= maxVoxels) break;
+        }
+
+        // Create geometry for this layer
+        const cubeGeo = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+        
+        for (const v of layerVoxels) {
+          const clonedGeo = cubeGeo.clone();
+          clonedGeo.translate(v.x, v.y, v.z);
+          allGeometries.push(clonedGeo);
+        }
+
+        log(`Layer ${layer + 1}: ${layerVoxels.length.toLocaleString()} voxels`);
+      }
+
+      if (totalVoxelCount >= maxVoxels) {
+        log(`⚠️ Hit voxel limit (${maxVoxels.toLocaleString()})! Try Checkerboard pattern`, 'warn');
+      }
+
+      log(`✅ Total: ${totalVoxelCount.toLocaleString()} voxels across ${numLayers} layer(s)`);
+
+      // Merge all geometries
+      const mergedGeometry = new THREE.BufferGeometry();
+      const positionArrays = [];
+      const normalArrays = [];
+      const indexArrays = [];
+      let indexOffset = 0;
+
+      for (const geo of allGeometries) {
+        const pos = geo.attributes.position.array;
+        const norm = geo.attributes.normal.array;
+        const idx = geo.index ? geo.index.array : null;
+
+        positionArrays.push(pos);
+        normalArrays.push(norm);
+
+        if (idx) {
+          const offsetIdx = new Uint16Array(idx.length);
+          for (let i = 0; i < idx.length; i++) {
+            offsetIdx[i] = idx[i] + indexOffset;
+          }
+          indexArrays.push(offsetIdx);
+        }
+
+        indexOffset += pos.length / 3;
+      }
+
+      const totalPositions = positionArrays.reduce((sum, arr) => sum + arr.length, 0);
+      const totalNormals = normalArrays.reduce((sum, arr) => sum + arr.length, 0);
+      const totalIndices = indexArrays.reduce((sum, arr) => sum + arr.length, 0);
+
+      const positionArray = new Float32Array(totalPositions);
+      const normalArray = new Float32Array(totalNormals);
+      const indexArray = new Uint32Array(totalIndices);
+
+      let posOffset = 0, normOffset = 0, idxOffset = 0;
+
+      for (let i = 0; i < positionArrays.length; i++) {
+        positionArray.set(positionArrays[i], posOffset);
+        normalArray.set(normalArrays[i], normOffset);
+        indexArray.set(indexArrays[i], idxOffset);
+
+        posOffset += positionArrays[i].length;
+        normOffset += normalArrays[i].length;
+        idxOffset += indexArrays[i].length;
+      }
+
+      mergedGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+      mergedGeometry.setAttribute('normal', new THREE.BufferAttribute(normalArray, 3));
+      mergedGeometry.setIndex(new THREE.BufferAttribute(indexArray, 1));
+
+      return { geometry: mergedGeometry, voxelCount: totalVoxelCount };
+    }
+
+    // ====== VOXEL GENERATION ======
+    async function generateVoxelModel() {
+      if (!state.uploadedImage) {
+        log('Please upload an image first!', 'error');
+        return;
+      }
+
+      const startTime = performance.now();
+      log('Starting voxel generation...');
+      document.getElementById('statusProgress').textContent = 'Processing...';
+
+      // Get parameters
+      const voxelSize = parseFloat(document.getElementById('voxelSize').value);
+      const depthFactor = parseFloat(document.getElementById('depthFactor').value);
+      const maxVoxels = parseInt(document.getElementById('maxVoxels').value) * 1000;
+      const layerMode = document.getElementById('layerMode').value;
+      const distPattern = document.getElementById('distPattern').value;
+      const layerOffset = parseInt(document.getElementById('layerOffset').value);
+
+      // Create canvas for image processing
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Resize large images for performance
+      let w = state.uploadedImage.width;
+      let h = state.uploadedImage.height;
+      const maxSize = 256;
+      if (Math.max(w, h) > maxSize) {
+        const scale = maxSize / Math.max(w, h);
+        w = Math.floor(w * scale);
+        h = Math.floor(h * scale);
+      }
+      
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(state.uploadedImage, 0, 0, w, h);
+      
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+
+      // Use enhanced layered voxel generation
+      const config = {
+        voxelSize,
+        depthFactor,
+        layerMode,
+        layerOffset,
+        distPattern,
+        maxVoxels
+      };
+
+      const result = createLayeredVoxelGeometry(data, w, h, config);
+      const mergedGeometry = result.geometry;
+      const voxelCount = result.voxelCount;
+
+      // Create mesh
+      const material = new THREE.MeshStandardMaterial({ 
+        color: 0x3b82f6,
+        roughness: 0.6,
+        metalness: 0.1
+      });
+      
+      if (state.currentMesh) {
+        state.scene.remove(state.currentMesh);
+      }
+      
+      const mesh = new THREE.Mesh(mergedGeometry, material);
+      state.scene.add(mesh);
+      state.currentMesh = mesh;
+      state.originalGeometry = mergedGeometry.clone();
+      state.voxelCount = voxelCount;
+
+      // Update stats
+      const endTime = performance.now();
+      const processTime = ((endTime - startTime) / 1000).toFixed(2);
+      
+      document.getElementById('voxelCount').textContent = voxelCount.toLocaleString();
+      document.getElementById('vertexCount').textContent = (positions.length / 3).toLocaleString();
+      document.getElementById('processTime').textContent = `${processTime}s`;
+      document.getElementById('statusProgress').textContent = 'Complete';
+
+      log(`Voxel generation complete: ${voxelCount} voxels in ${processTime}s`);
+      
+      // Unlock Stage 2
+      unlockStage(2);
+    }
+
+    // ====== MORPH OPERATIONS ======
+    function applyMorph(type) {
+      if (!state.currentMesh || !state.originalGeometry) {
+        log('No mesh to morph!', 'error');
+        return;
+      }
+
+      const amount = parseFloat(document.getElementById('morphAmount').value);
+      const positions = state.currentMesh.geometry.attributes.position.array;
+      const origPositions = state.originalGeometry.attributes.position.array;
+
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = origPositions[i];
+        const y = origPositions[i + 1];
+        const z = origPositions[i + 2];
+
+        let targetX = x, targetY = y, targetZ = z;
+
+        switch(type) {
+          case 'spherify':
+            const len = Math.sqrt(x*x + y*y + z*z) || 1;
+            targetX = (x / len) * 0.8;
+            targetY = (y / len) * 0.8;
+            targetZ = (z / len) * 0.8;
+            break;
+          case 'cubeify':
+            targetX = Math.sign(x) * 0.8;
+            targetY = Math.sign(y) * 0.8;
+            targetZ = Math.sign(z) * 0.8;
+            break;
+          case 'twist':
+            const angle = y * Math.PI * 0.5;
+            targetX = x * Math.cos(angle) - z * Math.sin(angle);
+            targetZ = x * Math.sin(angle) + z * Math.cos(angle);
+            break;
+          case 'bend':
+            targetX = x + Math.sin(y * Math.PI) * 0.5;
+            break;
+        }
+
+        positions[i] = x + (targetX - x) * amount;
+        positions[i + 1] = y + (targetY - y) * amount;
+        positions[i + 2] = z + (targetZ - z) * amount;
+      }
+
+      state.currentMesh.geometry.attributes.position.needsUpdate = true;
+      state.currentMesh.geometry.computeVertexNormals();
+      
+      log(`Applied ${type} morph at ${(amount * 100).toFixed(0)}%`);
+    }
+
+    // ====== SCULPTING SYSTEM ======
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isMouseDown = false;
+
+    function setupSculpting() {
+      const canvas = state.renderer.domElement;
+
+      canvas.addEventListener('pointermove', (e) => {
+        if (!state.sculptMode || !state.currentMesh || !isMouseDown) return;
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        applySculpting();
+      });
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (!state.sculptMode) return;
+        isMouseDown = true;
+      });
+
+      canvas.addEventListener('pointerup', () => {
+        isMouseDown = false;
+      });
+    }
+
+    function applySculpting() {
+      if (!state.currentMesh) return;
+
+      raycaster.setFromCamera(mouse, state.camera);
+      const intersects = raycaster.intersectObject(state.currentMesh);
+      
+      if (intersects.length === 0) return;
+
+      const intersect = intersects[0];
+      const point = intersect.point;
+      const normal = intersect.face.normal.clone();
+      normal.transformDirection(state.currentMesh.matrixWorld);
+
+      const positions = state.currentMesh.geometry.attributes.position;
+      const brushSize = parseFloat(document.getElementById('brushSize').value);
+      const strength = parseFloat(document.getElementById('brushStrength').value);
+
+      for (let i = 0; i < positions.count; i++) {
+        const vertex = new THREE.Vector3();
+        vertex.fromBufferAttribute(positions, i);
+        vertex.applyMatrix4(state.currentMesh.matrixWorld);
+
+        const distance = vertex.distanceTo(point);
+        
+        if (distance < brushSize) {
+          const falloff = 1 - (distance / brushSize);
+          const displacement = strength * falloff;
+
+          vertex.applyMatrix4(state.currentMesh.matrixWorld.clone().invert());
+
+          switch(state.sculptTool) {
+            case 'push':
+              vertex.add(normal.multiplyScalar(displacement));
+              break;
+            case 'pull':
+              vertex.add(normal.multiplyScalar(-displacement));
+              break;
+            case 'smooth':
+              // Average with neighbors
+              const avgX = positions.getX(Math.max(0, i - 1)) + positions.getX(Math.min(positions.count - 1, i + 1));
+              const avgY = positions.getY(Math.max(0, i - 1)) + positions.getY(Math.min(positions.count - 1, i + 1));
+              const avgZ = positions.getZ(Math.max(0, i - 1)) + positions.getZ(Math.min(positions.count - 1, i + 1));
+              vertex.x += (avgX / 2 - vertex.x) * displacement;
+              vertex.y += (avgY / 2 - vertex.y) * displacement;
+              vertex.z += (avgZ / 2 - vertex.z) * displacement;
+              break;
+            case 'pinch':
+              const toCenter = new THREE.Vector3().subVectors(point, vertex).normalize();
+              vertex.add(toCenter.multiplyScalar(displacement));
+              break;
+          }
+
+          positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+        }
+      }
+
+      positions.needsUpdate = true;
+      state.currentMesh.geometry.computeVertexNormals();
+    }
+
+    function resetMesh() {
+      if (!state.currentMesh || !state.originalGeometry) {
+        log('No mesh to reset!', 'error');
+        return;
+      }
+
+      const positions = state.currentMesh.geometry.attributes.position;
+      const origPositions = state.originalGeometry.attributes.position.array;
+      
+      for (let i = 0; i < origPositions.length; i++) {
+        positions.array[i] = origPositions[i];
+      }
+
+      positions.needsUpdate = true;
+      state.currentMesh.geometry.computeVertexNormals();
+      log('Mesh reset to original');
+    }
+
+    function smoothMesh() {
+      if (!state.currentMesh) {
+        log('No mesh to smooth!', 'error');
+        return;
+      }
+
+      const positions = state.currentMesh.geometry.attributes.position;
+      const temp = new Float32Array(positions.array.length);
+
+      // Simple Laplacian smoothing
+      for (let i = 0; i < positions.count; i++) {
+        const prev = Math.max(0, i - 1);
+        const next = Math.min(positions.count - 1, i + 1);
+
+        temp[i * 3] = (positions.getX(prev) + positions.getX(i) + positions.getX(next)) / 3;
+        temp[i * 3 + 1] = (positions.getY(prev) + positions.getY(i) + positions.getY(next)) / 3;
+        temp[i * 3 + 2] = (positions.getZ(prev) + positions.getZ(i) + positions.getZ(next)) / 3;
+      }
+
+      for (let i = 0; i < temp.length; i++) {
+        positions.array[i] = temp[i];
+      }
+
+      positions.needsUpdate = true;
+      state.currentMesh.geometry.computeVertexNormals();
+      log('Mesh smoothed');
+    }
+
+    // ====== EVENT LISTENERS ======
+    function setupEventListeners() {
+      // Stage tabs
+      document.querySelectorAll('.stage-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const stage = parseInt(tab.dataset.stage);
+          switchStage(stage);
+        });
+      });
+
+      // Image upload
+      document.getElementById('imageUpload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            state.uploadedImage = img;
+            const preview = document.getElementById('uploadPreview');
+            preview.src = event.target.result;
+            preview.classList.remove('hidden');
+            log(`Image loaded: ${img.width}×${img.height}px`);
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Presets
+      document.querySelectorAll('[data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const preset = presets[btn.dataset.preset];
+          document.getElementById('voxelSize').value = preset.voxelSize;
+          document.getElementById('depthFactor').value = preset.depthFactor;
+          document.getElementById('heightScale').value = preset.heightScale;
+          updateSliderValues();
+          log(`Applied ${btn.dataset.preset} preset`);
+        });
+      });
+
+      // Sliders
+      const sliders = ['voxelSize', 'depthFactor', 'layerOffset', 'heightScale', 'maxVoxels', 'morphAmount', 'brushSize', 'brushStrength', 'roughness', 'metalness', 'ambient', 'directional', 'gridDensity'];
+      sliders.forEach(id => {
+        const slider = document.getElementById(id);
+        const valSpan = document.getElementById(id + 'Val');
+        slider?.addEventListener('input', () => {
+          let val = slider.value;
+          if (id === 'maxVoxels') val = val + 'k';
+          else if (id === 'gridDensity') val = val + 'px';
+          if (valSpan) valSpan.textContent = val;
+        });
+      });
+
+      // Generate button
+      document.getElementById('generateVoxels').addEventListener('click', generateVoxelModel);
+
+      // Transform controls
+      document.querySelectorAll('[data-transform]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.transform;
+          state.transformControls.setMode(mode === 'none' ? 'translate' : mode);
+          if (mode === 'none') {
+            state.transformControls.detach();
+          } else if (state.currentMesh) {
+            state.transformControls.attach(state.currentMesh);
+          }
+          document.getElementById('statusTool').textContent = mode;
+          log(`Transform mode: ${mode}`);
+        });
+      });
+
+      // Morph buttons
+      document.querySelectorAll('[data-morph]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          applyMorph(btn.dataset.morph);
+          unlockStage(3);
+        });
+      });
+
+      // Sculpt mode toggle
+      document.getElementById('sculptMode').addEventListener('change', (e) => {
+        state.sculptMode = e.target.checked;
+        document.getElementById('statusTool').textContent = state.sculptMode ? state.sculptTool : 'None';
+        log(`Sculpting ${state.sculptMode ? 'enabled' : 'disabled'}`);
+      });
+
+      // Sculpt tools
+      document.querySelectorAll('[data-sculpt]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.sculptTool = btn.dataset.sculpt;
+          document.getElementById('statusTool').textContent = state.sculptTool;
+          log(`Sculpt tool: ${state.sculptTool}`);
+        });
+      });
+
+      // Reset and smooth
+      document.getElementById('resetMesh').addEventListener('click', resetMesh);
+      document.getElementById('smoothMesh').addEventListener('click', smoothMesh);
+
+      // Material controls
+      document.getElementById('materialType').addEventListener('change', (e) => {
+        if (!state.currentMesh) return;
+        
+        const type = e.target.value;
+        const roughness = parseFloat(document.getElementById('roughness').value);
+        const metalness = parseFloat(document.getElementById('metalness').value);
+        
+        let material;
+        switch(type) {
+          case 'standard':
+            material = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness, metalness });
+            break;
+          case 'phong':
+            material = new THREE.MeshPhongMaterial({ color: 0x3b82f6, shininess: 30 });
+            break;
+          case 'toon':
+            material = new THREE.MeshToonMaterial({ color: 0x3b82f6 });
+            break;
+          case 'basic':
+            material = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+            break;
+        }
+        
+        state.currentMesh.material = material;
+        log(`Material changed to ${type}`);
+      });
+
+      // Roughness and metalness
+      document.getElementById('roughness').addEventListener('input', (e) => {
+        if (!state.currentMesh || !(state.currentMesh.material instanceof THREE.MeshStandardMaterial)) return;
+        state.currentMesh.material.roughness = parseFloat(e.target.value);
+      });
+
+      document.getElementById('metalness').addEventListener('input', (e) => {
+        if (!state.currentMesh || !(state.currentMesh.material instanceof THREE.MeshStandardMaterial)) return;
+        state.currentMesh.material.metalness = parseFloat(e.target.value);
+      });
+
+      // Lighting controls
+      let ambientLight = state.scene.children.find(c => c instanceof THREE.AmbientLight);
+      let dirLight = state.scene.children.find(c => c instanceof THREE.DirectionalLight);
+
+      document.getElementById('ambient').addEventListener('input', (e) => {
+        if (ambientLight) ambientLight.intensity = parseFloat(e.target.value);
+      });
+
+      document.getElementById('directional').addEventListener('input', (e) => {
+        if (dirLight) dirLight.intensity = parseFloat(e.target.value);
+      });
+
+      // Ray helpers
+      document.getElementById('rayHelpers').addEventListener('change', (e) => {
+        // Would add visual ray helpers here
+        log(`Ray helpers ${e.target.checked ? 'enabled' : 'disabled'}`);
+      });
+
+      document.getElementById('normalHelpers').addEventListener('change', (e) => {
+        if (!state.currentMesh) return;
+        
+        // Remove existing helpers
+        const helpers = state.scene.children.filter(c => c.name === 'normalHelper');
+        helpers.forEach(h => state.scene.remove(h));
+        
+        if (e.target.checked) {
+          const helper = new THREE.VertexNormalsHelper(state.currentMesh, 0.5, 0x00ff00);
+          helper.name = 'normalHelper';
+          state.scene.add(helper);
+          log('Normal helpers enabled');
+        } else {
+          log('Normal helpers disabled');
+        }
+      });
+
+      // Export
+      document.getElementById('exportGLB').addEventListener('click', () => {
+        if (!state.currentMesh) {
+          log('No mesh to export!', 'error');
+          return;
+        }
+
+        log('Preparing GLB export...');
+        document.getElementById('statusProgress').textContent = 'Exporting...';
+
+        const exporter = new GLTFExporter();
+        exporter.parse(
+          state.currentMesh,
+          (result) => {
+            const blob = new Blob([result], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `voxel-model-${Date.now()}.glb`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log(`GLB exported successfully! (${(blob.size / 1024).toFixed(2)} KB)`);
+            document.getElementById('statusProgress').textContent = 'Exported';
+            unlockStage(4);
+          },
+          (error) => {
+            log(`Export error: ${error}`, 'error');
+            document.getElementById('statusProgress').textContent = 'Export failed';
+          },
+          { binary: true }
+        );
+      });
+
+      // Grid density - controls 3D terrain floor
+      document.getElementById('gridDensity').addEventListener('input', (e) => {
+        const size = parseInt(e.target.value);
+        
+        // Update CSS background grid (transparent but still there)
+        document.documentElement.style.setProperty('--grid-size', size + 'px');
+        document.documentElement.style.setProperty('--offset', (size / 2) + 'px');
+        
+        // Update 3D Terrain Floor
+        if (state.gridHelper) {
+          state.scene.remove(state.gridHelper);
+          const gridSize = size * 1.5; // Scale up for 3D space
+          const divisions = Math.max(20, Math.floor(gridSize / 2));
+          
+          // Recreate liquid metal floor
+          function createTerrainFloor(size, divisions) {
+            const group = new THREE.Group();
+            
+            const geometry = new THREE.PlaneGeometry(size, size, divisions * 2, divisions * 2);
+            const vertices = geometry.attributes.position.array;
+            
+            for (let i = 0; i < vertices.length; i += 3) {
+              const x = vertices[i];
+              const y = vertices[i + 1];
+              
+              const gridX = Math.floor(x / (size / divisions) + divisions / 2);
+              const gridY = Math.floor(y / (size / divisions) + divisions / 2);
+              const cellCenterX = (gridX - divisions / 2) * (size / divisions) + (size / divisions) / 2;
+              const cellCenterY = (gridY - divisions / 2) * (size / divisions) + (size / divisions) / 2;
+              const distToCenter = Math.sqrt((x - cellCenterX) ** 2 + (y - cellCenterY) ** 2);
+              
+              const displacement = Math.max(0, 0.15 - distToCenter * 0.05);
+              vertices[i + 2] = -displacement;
+            }
+            
+            geometry.computeVertexNormals();
+            
+            const metalMat = new THREE.MeshStandardMaterial({ 
+              color: 0x10b981, metalness: 0.9, roughness: 0.1, opacity: 0.95, 
+              transparent: true, side: THREE.DoubleSide, envMapIntensity: 1.0
+            });
+            const metalFloor = new THREE.Mesh(geometry, metalMat);
+            metalFloor.rotation.x = -Math.PI / 2;
+            metalFloor.position.y = -0.1;
+            metalFloor.receiveShadow = true;
+            group.add(metalFloor);
+            
+            const gridGeo = geometry.clone();
+            const wireframeMat = new THREE.MeshBasicMaterial({ 
+              color: 0x3b82f6, wireframe: true, opacity: 0.25, transparent: true
+            });
+            const wireframe = new THREE.Mesh(gridGeo, wireframeMat);
+            wireframe.rotation.x = -Math.PI / 2;
+            wireframe.position.y = -0.08;
+            group.add(wireframe);
+            
+            const gridHelper = new THREE.GridHelper(size, divisions, 0x3b82f6, 0x10b981);
+            gridHelper.material.opacity = 0.3;
+            gridHelper.material.transparent = true;
+            gridHelper.position.y = 0;
+            group.add(gridHelper);
+            
+            return group;
+          }
+          
+          state.gridHelper = createTerrainFloor(gridSize, divisions);
+          state.scene.add(state.gridHelper);
+        }
+      });
+
+      // Grid toggle
+      document.getElementById('showGrid').addEventListener('change', (e) => {
+        document.getElementById('baseGrid').style.display = e.target.checked ? 'block' : 'none';
+        document.getElementById('offsetGrid').style.display = e.target.checked ? 'block' : 'none';
+      });
+
+      // Panel toggle button
+      document.getElementById('togglePanel').addEventListener('click', () => {
+        const panel = document.getElementById('mainPanelBody');
+        const btn = document.getElementById('togglePanel');
+        if (panel.style.display === 'none') {
+          panel.style.display = 'block';
+          btn.textContent = '−';
+        } else {
+          panel.style.display = 'none';
+          btn.textContent = '+';
+        }
+      });
+
+      // Info panel toggle button
+      const infoPanelBody = document.querySelector('.panel.absolute.top-4.right-4 .panel-body');
+      document.getElementById('toggleInfoPanel').addEventListener('click', () => {
+        const btn = document.getElementById('toggleInfoPanel');
+        if (infoPanelBody.style.display === 'none') {
+          infoPanelBody.style.display = 'block';
+          btn.textContent = '−';
+        } else {
+          infoPanelBody.style.display = 'none';
+          btn.textContent = '+';
+        }
+      });
+    }
+
+    function updateSliderValues() {
+      document.getElementById('voxelSizeVal').textContent = document.getElementById('voxelSize').value;
+      document.getElementById('depthFactorVal').textContent = document.getElementById('depthFactor').value;
+      document.getElementById('layerOffsetVal').textContent = document.getElementById('layerOffset').value;
+      const heightScaleEl = document.getElementById('heightScale');
+      if (heightScaleEl) {
+        document.getElementById('heightScaleVal').textContent = heightScaleEl.value;
+      }
+    }
+
+    // ====== INITIALIZATION ======
+    function init() {
+      log('Unified Tool System starting...');
+      initThree();
+      setupSculpting();
+      setupEventListeners();
+      updateSliderValues();
+      
+      // Calculate grid stats
+      const gridSize = parseInt(document.getElementById('gridDensity').value);
+      const cols = Math.floor(window.innerWidth / gridSize);
+      const rows = Math.floor(window.innerHeight / gridSize);
+      document.getElementById('gridCells').textContent = `${cols}×${rows}`;
+      
+      log('System ready! Upload an image to begin.');
+      log('Stage 1: Upload image and generate voxels');
+      log('Stage 2: Unlocked after generation - transform/morph/sculpt');
+      log('Stage 3: Unlocked after morphing - raytracing/export');
+      log('Stage 4: Unlocked after export - avatar building');
+    }
+
+    init();
+  </script>
+</body>
+</html>

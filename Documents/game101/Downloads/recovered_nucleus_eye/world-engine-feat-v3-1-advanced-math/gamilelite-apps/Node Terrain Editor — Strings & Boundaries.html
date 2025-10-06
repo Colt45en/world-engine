@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Node Terrain Editor — Strings & Boundaries</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  :root{ --bg:#0c111b; --ink:#e8eef6; --mut:#9db3ca; --line:#243349; --accent:#58c4ff; --blue:#2c84ff; }
+  html,body{ height:100%; margin:0; background:var(--bg); color:var(--ink); font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto }
+  .wrap{ max-width:1100px; margin:0 auto; padding:12px }
+  .top{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px }
+  .top .pill{ padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#0f1726; color:var(--mut) }
+  .btn{ border:1px solid var(--line); background:#132035; color:var(--ink); border-radius:10px; padding:8px 10px; cursor:pointer }
+  .btn:hover{ filter:brightness(1.08) }
+  .panel{ border:1px solid var(--line); border-radius:12px; background:#0f1626; padding:10px; margin-top:10px }
+  .grid{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; align-items:center }
+  .grid label{ color:var(--mut) }
+  input[type="range"]{ width:100% }
+  canvas{ width:100%; height:600px; display:block; border:1px solid var(--line); border-radius:12px; background:#0a0f1a }
+  .legend{ color:var(--mut); display:flex; gap:10px; flex-wrap:wrap; margin-top:6px }
+  .legend .sw{ display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:4px; vertical-align:-2px }
+  .mut{ color:var(--mut) }
+  .kbd{ padding:1px 6px; border:1px solid var(--line); border-radius:6px; background:#0b1322; color:#b9d0e8; font-family:ui-monospace,Consolas,Menlo }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="btn" id="toolRaise">Raise/Lower</button>
+    <button class="btn" id="toolCut">Cut Mode</button>
+    <button class="btn" id="toolPin">Pin Mode</button>
+    <button class="btn" id="undoBtn">Undo</button>
+    <button class="btn" id="clearBtn">Clear</button>
+    <button class="btn" id="exportBtn">Export JSON</button>
+    <button class="btn" id="importBtn">Import JSON</button>
+    <span class="pill" id="status">Ready.</span>
+  </div>
+
+  <canvas id="view" width="1000" height="600"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="background:#1b2a41"></span> low</span>
+    <span><span class="sw" style="background:#2c84ff"></span> median</span>
+    <span><span class="sw" style="background:#8af3ff"></span> high</span>
+    <span class="mut">• Spokes show falloff influence while dragging • Blue lines: region boundaries • Orange: pins</span>
+  </div>
+
+  <div class="panel">
+    <div class="grid">
+      <label>Grid W×H</label>
+      <div>
+        <input type="number" id="cols" value="28" min="6" max="120" style="width:70px"> ×
+        <input type="number" id="rows" value="18" min="6" max="120" style="width:70px">
+        <button class="btn" id="resizeBtn" style="margin-left:6px">Rebuild Grid</button>
+      </div>
+      <span></span>
+
+      <label>Brush Radius</label>
+      <input type="range" id="radius" min="1" max="10" value="4">
+      <span class="mut" id="radiusV">4 rings</span>
+
+      <label>Strength</label>
+      <input type="range" id="strength" min="0.1" max="2.5" step="0.1" value="1.0">
+      <span class="mut" id="strengthV">1.0</span>
+
+      <label>Smoothing (auto)</label>
+      <input type="range" id="smooth" min="0" max="8" value="2">
+      <span class="mut" id="smoothV">2 iters</span>
+
+      <label>Spoke Depth</label>
+      <input type="range" id="rings" min="1" max="10" value="5">
+      <span class="mut" id="ringsV">5 rings</span>
+
+      <label>Cut Thickness</label>
+      <input type="range" id="cutW" min="1" max="4" value="2">
+      <span class="mut" id="cutWV">2 px</span>
+    </div>
+    <div class="mut" style="margin-top:8px">
+      <b>Shortcuts:</b> <span class="kbd">1</span> Raise • <span class="kbd">2</span> Cut • <span class="kbd">3</span> Pin •
+      <span class="kbd">Ctrl+Z</span> Undo • <span class="kbd">Shift</span> while drag = stronger pull • Mouse wheel while dragging = adjust height fast
+    </div>
+  </div>
+</div>
+
+<script>
+/* -------------------- core data -------------------- */
+const canvas = document.getElementById('view');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+
+let COLS = 28, ROWS = 18;
+let cellW, cellH, nodes, walls, pins, history;
+const idx = (c,r)=> r*COLS + c;
+
+function initGrid(cols, rows){
+  COLS = cols; ROWS = rows;
+  cellW = canvas.width/(COLS-1);
+  cellH = canvas.height/(ROWS-1);
+  // nodes: {x,y,h}
+  nodes = new Array(COLS*ROWS);
+  for (let r=0;r<ROWS;r++){
+    for (let c=0;c<COLS;c++){
+      nodes[idx(c,r)] = { x:c*cellW, y:r*cellH, h:0 };
+    }
+  }
+  // walls between node pairs: key "a-b" with a<b
+  walls = new Set();
+  pins = new Set(); // store indices “pinned”
+  history = [];
+  pushHistory();
+  computeRegions();
+}
+initGrid(COLS, ROWS);
+
+/* -------------------- UI state -------------------- */
+const UI = {
+  tool: 'raise', // 'raise' | 'cut' | 'pin'
+  radius: 4,
+  rings: 5,
+  strength: 1.0,
+  smoothIters: 2,
+  cutW: 2
+};
+document.getElementById('radius').oninput = e=>{ UI.radius=+e.target.value; document.getElementById('radiusV').textContent=`${UI.radius} rings`; };
+document.getElementById('rings').oninput = e=>{ UI.rings=+e.target.value; document.getElementById('ringsV').textContent=`${UI.rings} rings`; };
+document.getElementById('strength').oninput = e=>{ UI.strength=+e.target.value; document.getElementById('strengthV').textContent=UI.strength.toFixed(1); };
+document.getElementById('smooth').oninput = e=>{ UI.smoothIters=+e.target.value; document.getElementById('smoothV').textContent=`${UI.smoothIters} iters`; };
+document.getElementById('cutW').oninput = e=>{ UI.cutW=+e.target.value; document.getElementById('cutWV').textContent=`${UI.cutW} px`; };
+
+document.getElementById('toolRaise').onclick = ()=>setTool('raise');
+document.getElementById('toolCut').onclick   = ()=>setTool('cut');
+document.getElementById('toolPin').onclick   = ()=>setTool('pin');
+
+document.getElementById('resizeBtn').onclick = ()=>{
+  const c = Math.max(6, Math.min(120, +document.getElementById('cols').value||28));
+  const r = Math.max(6, Math.min(120, +document.getElementById('rows').value||18));
+  initGrid(c,r);
+  document.getElementById('armCount')?.textContent;
+  setStatus(`Rebuilt ${c}×${r}`);
+  draw();
+};
+
+document.getElementById('undoBtn').onclick = undo;
+document.getElementById('clearBtn').onclick = ()=>{
+  pushHistory();
+  nodes.forEach(n=>n.h=0);
+  walls.clear(); pins.clear(); computeRegions(); draw();
+};
+document.getElementById('exportBtn').onclick = ()=>{
+  const data = JSON.stringify({ COLS, ROWS, nodes:nodes.map(n=>n.h), walls:[...walls], pins:[...pins] }, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='terrain.json'; a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.getElementById('importBtn').onclick = async ()=>{
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+  inp.onchange=async (e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    const j = JSON.parse(await f.text());
+    initGrid(j.COLS, j.ROWS);
+    j.nodes.forEach((h,i)=> nodes[i].h=h);
+    walls = new Set(j.walls||[]);
+    pins = new Set(j.pins||[]);
+    pushHistory(); computeRegions(); draw();
+  };
+  inp.click();
+};
+
+window.addEventListener('keydown', (e)=>{
+  if (e.ctrlKey && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); return; }
+  if (e.key==='1') setTool('raise');
+  if (e.key==='2') setTool('cut');
+  if (e.key==='3') setTool('pin');
+});
+
+function setTool(t){
+  UI.tool = t;
+  setStatus(`Tool: ${t}`);
+}
+
+/* -------------------- interaction -------------------- */
+let mouse = { x:0, y:0, over:-1, down:false, dragging:false, baseH:0, picked:-1 };
+canvas.addEventListener('mousemove', e=>{
+  const r=canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) * (canvas.width / r.width);
+  mouse.y = (e.clientY - r.top)  * (canvas.height/ r.height);
+  mouse.over = pickNode(mouse.x, mouse.y, Math.max(cellW,cellH)*0.35);
+  if (mouse.dragging && UI.tool==='raise'){
+    // apply delta based on vertical move or wheel memory
+    const targetH = screenDeltaToHeight(mouse.y);
+    applyRaise(mouse.picked, targetH);
+    smooth(UI.smoothIters);
+    computeRegions();
+  }
+  draw();
+});
+canvas.addEventListener('mousedown', e=>{
+  mouse.down = true;
+  if (UI.tool==='raise'){
+    mouse.picked = pickNode(mouse.x, mouse.y, Math.max(cellW,cellH)*0.45);
+    if (mouse.picked>=0){
+      pushHistory();
+      mouse.dragging = true;
+      mouse.baseY = mouse.y;
+      mouse.baseH = nodes[mouse.picked].h;
+      setStatus(`Raising node ${mouse.picked}`);
+    }
+  } else if (UI.tool==='cut'){
+    pushHistory();
+    toggleCutNear(mouse.x, mouse.y);
+    computeRegions();
+    draw();
+  } else if (UI.tool==='pin'){
+    const i = pickNode(mouse.x, mouse.y, Math.max(cellW,cellH)*0.45);
+    if (i>=0){
+      pushHistory();
+      if (pins.has(i)) pins.delete(i); else pins.add(i);
+      setStatus(pins.has(i)?`Pinned ${i}`:`Unpinned ${i}`);
+      draw();
+    }
+  }
+});
+canvas.addEventListener('mouseup', ()=>{ mouse.down=false; mouse.dragging=false; mouse.picked=-1; });
+canvas.addEventListener('wheel', (e)=>{
+  if (mouse.dragging && UI.tool==='raise'){
+    e.preventDefault();
+    const s = (e.deltaY<0 ? 1 : -1) * 0.5 * UI.strength;
+    applyRaise(mouse.picked, nodes[mouse.picked].h + s);
+    smooth(UI.smoothIters);
+    computeRegions();
+    draw();
+  }
+},{passive:false});
+
+function pickNode(x,y, rad){
+  let best=-1, bd=1e9;
+  for (let i=0;i<nodes.length;i++){
+    const n=nodes[i];
+    const d = Math.hypot(n.x-x, n.y-y);
+    if (d<bd && d<=rad){ bd=d; best=i; }
+  }
+  return best;
+}
+
+function screenDeltaToHeight(curY){
+  const dy = (mouse.baseY - curY); // up = positive
+  const scale = 0.01 * UI.strength * (window.event?.shiftKey? 3:1);
+  return mouse.baseH + dy * scale;
+}
+
+/* -------------------- raise/rounding -------------------- */
+function applyRaise(centerIdx, targetH){
+  const baseH = nodes[centerIdx].h;
+  const delta = targetH - baseH;
+  const [cc, rr] = [centerIdx%COLS, Math.floor(centerIdx/COLS)];
+  const maxRing = UI.radius;
+
+  // BFS rings for geodesic-ish falloff (respecting grid distances, not walls)
+  const visited=new Set([centerIdx]);
+  let frontier=[centerIdx]; let ring=0;
+  const toApply=[];
+  while(frontier.length && ring<=maxRing){
+    const next=[];
+    for (const i of frontier){
+      const w = falloff(ring, maxRing); // weight 0..1
+      if (!pins.has(i)) toApply.push([i, w]);
+      const c=i%COLS, r=(i/ COLS)|0;
+      const neigh = neighbors(i);
+      for(const j of neigh){
+        if (visited.has(j)) continue;
+        visited.add(j); next.push(j);
+      }
+    }
+    frontier=next; ring++;
+  }
+  for (const [i,w] of toApply){
+    nodes[i].h += delta * w;
+  }
+}
+
+function falloff(ring, maxRing){
+  // smooth radial falloff, zero at ring>max
+  const t = Math.max(0, Math.min(1, 1 - ring/(maxRing+0.0001)));
+  // cosine smooth
+  return 0.5*(1 - Math.cos(Math.PI*t));
+}
+
+function neighbors(i){
+  const c=i%COLS, r=(i/ COLS)|0;
+  const out=[];
+  // up
+  if (r>0 && !hasWall(idx(c,r-1), i)) out.push(idx(c,r-1));
+  // down
+  if (r<ROWS-1 && !hasWall(idx(c,r+1), i)) out.push(idx(c,r+1));
+  // left
+  if (c>0 && !hasWall(idx(c-1,r), i)) out.push(idx(c-1,r));
+  // right
+  if (c<COLS-1 && !hasWall(idx(c+1,r), i)) out.push(idx(c+1,r));
+  return out;
+}
+
+/* Laplacian smoothing over heights (ignores pinned nodes) */
+function smooth(iters=1){
+  for (let k=0;k<iters;k++){
+    const nextH = new Float32Array(nodes.length);
+    for (let i=0;i<nodes.length;i++){
+      if (pins.has(i)){ nextH[i]=nodes[i].h; continue; }
+      const ns=neighborsAll(i);
+      let s=nodes[i].h, cnt=1;
+      for (const j of ns){ s+=nodes[j].h; cnt++; }
+      nextH[i] = s/cnt;
+    }
+    for (let i=0;i<nodes.length;i++) nodes[i].h = nextH[i];
+  }
+}
+function neighborsAll(i){
+  const c=i%COLS, r=(i/ COLS)|0;
+  const out=[];
+  if (r>0) out.push(idx(c,r-1));
+  if (r<ROWS-1) out.push(idx(c,r+1));
+  if (c>0) out.push(idx(c-1,r));
+  if (c<COLS-1) out.push(idx(c+1,r));
+  return out;
+}
+
+/* -------------------- cuts & boundaries -------------------- */
+function keyEdge(a,b){ return (a<b)? `${a}-${b}` : `${b}-${a}`; }
+function hasWall(a,b){ return walls.has(keyEdge(a,b)); }
+
+/* Toggle a cut on the nearest inter-node segment under the cursor */
+function toggleCutNear(x,y){
+  // find closest grid edge (horizontal or vertical)
+  let best=null, bd=1e9;
+  // check all primary edges (it’s fine for moderate grids)
+  for (let r=0;r<ROWS;r++){
+    for (let c=0;c<COLS;c++){
+      const i=idx(c,r);
+      if (c<COLS-1){
+        const j=idx(c+1,r);
+        const d = pointToSegDist(x,y, nodes[i], nodes[j]);
+        if (d<bd){ bd=d; best=[i,j]; }
+      }
+      if (r<ROWS-1){
+        const j=idx(c,r+1);
+        const d = pointToSegDist(x,y, nodes[i], nodes[j]);
+        if (d<bd){ bd=d; best=[i,j]; }
+      }
+    }
+  }
+  if (best && bd < Math.min(cellW,cellH)*0.4){
+    const k=keyEdge(best[0],best[1]);
+    if (walls.has(k)) walls.delete(k); else walls.add(k);
+    setStatus(walls.has(k)?'Cut added':'Cut removed');
+  }
+}
+
+function pointToSegDist(x,y, a,b){
+  const vx=b.x-a.x, vy=b.y-a.y;
+  const wx=x-a.x, wy=y-a.y;
+  const L2 = vx*vx+vy*vy || 1;
+  let t = (vx*wx + vy*wy)/L2;
+  t = Math.max(0, Math.min(1,t));
+  const px=a.x + t*vx, py=a.y + t*vy;
+  return Math.hypot(x-px, y-py);
+}
+
+/* Regions by connectivity (respecting walls). We’ll outline each region in blue. */
+let regions = []; // array of arrays of indices
+function computeRegions(){
+  const seen=new Array(nodes.length).fill(false);
+  regions = [];
+  for (let i=0;i<nodes.length;i++){
+    if (seen[i]) continue;
+    const comp=[];
+    const q=[i]; seen[i]=true;
+    while(q.length){
+      const v=q.pop(); comp.push(v);
+      for (const w of neighbors(v)){
+        if (!seen[w]){ seen[w]=true; q.push(w); }
+      }
+    }
+    regions.push(comp);
+  }
+}
+
+/* -------------------- history -------------------- */
+function pushHistory(){
+  history.push({
+    h: nodes.map(n=>n.h),
+    walls: new Set(walls),
+    pins: new Set(pins)
+  });
+  if (history.length>40) history.shift();
+}
+function undo(){
+  if (!history.length) return;
+  const prev = history.pop();
+  if (!prev) return;
+  nodes.forEach((n,i)=> n.h = prev.h[i]);
+  walls = prev.walls;
+  pins = prev.pins;
+  computeRegions();
+  draw();
+}
+
+/* -------------------- draw -------------------- */
+function draw(){
+  // height background
+  const minH = -2, maxH = 2;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for (let r=0;r<ROWS-1;r++){
+    for (let c=0;c<COLS-1;c++){
+      const i0=idx(c,r), i1=idx(c+1,r), i2=idx(c+1,r+1), i3=idx(c,r+1);
+      const avg=(nodes[i0].h+nodes[i1].h+nodes[i2].h+nodes[i3].h)/4;
+      const t = (avg - minH)/(maxH-minH); // 0..1
+      const col = heightColor(t);
+      ctx.fillStyle = col;
+      ctx.fillRect(nodes[i0].x, nodes[i0].y, cellW, cellH);
+    }
+  }
+
+  // region boundaries (blue)
+  ctx.lineWidth = UI.cutW;
+  ctx.strokeStyle = 'rgba(44,132,255,0.85)';
+  ctx.beginPath();
+  for (let r=0;r<ROWS;r++){
+    for (let c=0;c<COLS;c++){
+      const i=idx(c,r);
+      if (c<COLS-1){ const j=idx(c+1,r); if (hasWall(i,j)) line(nodes[i],nodes[j]); }
+      if (r<ROWS-1){ const j=idx(c,r+1); if (hasWall(i,j)) line(nodes[i],nodes[j]); }
+    }
+  }
+  ctx.stroke();
+
+  // pins
+  for (const i of pins){
+    const n=nodes[i];
+    ctx.fillStyle='#ffb46a';
+    ctx.beginPath(); ctx.arc(n.x,n.y,4,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#351e00'; ctx.lineWidth=1.5;
+    ctx.stroke();
+  }
+
+  // grid wires (light)
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath();
+  for (let r=0;r<ROWS;r++){ line({x:0,y:r*cellH},{x:(COLS-1)*cellW,y:r*cellH}); }
+  for (let c=0;c<COLS;c++){ line({x:c*cellW,y:0},{x:c*cellW,y:(ROWS-1)*cellH}); }
+  ctx.stroke();
+
+  // hovered or dragged node + spokes
+  const showIdx = mouse.dragging ? mouse.picked : mouse.over;
+  if (showIdx>=0){
+    drawSpokes(showIdx, UI.rings);
+    const n=nodes[showIdx];
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(n.x,n.y,5,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function line(a,b){ ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); }
+function heightColor(t){
+  const clamp = (v)=> Math.max(0, Math.min(1, v));
+  t = clamp(t);
+  // deep blue → bright aqua
+  const r = Math.floor(20 + 120*t);
+  const g = Math.floor(40 + 200*t);
+  const b = Math.floor(80 + 175*t);
+  return `rgb(${r},${g},${b})`;
+}
+
+/* Draw spokes out to N rings with width ~ weight */
+function drawSpokes(centerIdx, rings){
+  const visited=new Set([centerIdx]);
+  let frontier=[centerIdx]; let ring=0;
+  while(frontier.length && ring<rings){
+    const next=[];
+    for (const i of frontier){
+      const a=nodes[i];
+      for (const j of neighborsAll(i)){ // visualize full grid adjacency, not blocked by walls for preview
+        if (visited.has(j)) continue;
+        visited.add(j); next.push(j);
+        const b=nodes[j];
+        const w = 2 + 3 * falloff(ring+1, rings);
+        ctx.lineWidth = w;
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath(); line(a,b); ctx.stroke();
+      }
+    }
+    frontier=next; ring++;
+  }
+}
+
+/* -------------------- helpers -------------------- */
+function setStatus(t){ statusEl.textContent = t; }
+draw();
+</script>
+</body>
+</html>

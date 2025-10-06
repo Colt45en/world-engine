@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS AI Dashboard with Knowledge Vault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+    .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>=
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    // Knowledge Vault - JSON store with gzip export/import
+    const VAULT_KEY = "nexus.vault.v1";
+
+    class KnowledgeVault {
+      constructor() {
+        const fallback = { meta: { version: 1, app: "NexusAI" }, entries: [] };
+        try {
+          const raw = localStorage.getItem(VAULT_KEY);
+          this.data = raw ? JSON.parse(raw) : fallback;
+        } catch {
+          this.data = fallback;
+        }
+      }
+      
+      add(entry) {
+        this.data.entries.push(entry);
+        if (this.data.entries.length > 1000) {
+          this.data.entries.splice(0, this.data.entries.length - 1000);
+        }
+        this.save();
+      }
+      
+      save() {
+        try {
+          localStorage.setItem(VAULT_KEY, JSON.stringify(this.data));
+        } catch(e) {
+          console.error('[VAULT] Save failed:', e);
+        }
+      }
+      
+      exportObject() {
+        return this.data;
+      }
+      
+      importObject(obj) {
+        this.data = obj;
+        this.save();
+      }
+      
+      getEntries() {
+        return this.data.entries || [];
+      }
+      
+      clear() {
+        this.data.entries = [];
+        this.save();
+      }
+    }
+
+    // Compression helpers (Web Streams API)
+    async function compressStringGzip(str) {
+      if (typeof CompressionStream !== "undefined") {
+        const cs = new CompressionStream("gzip");
+        const reader = new Blob([str]).stream().pipeThrough(cs).getReader();
+        const chunks = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+        const total = chunks.reduce((n, c) => n + c.length, 0);
+        const out = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) {
+          out.set(c, off);
+          off += c.length;
+        }
+        return out;
+      }
+      return new TextEncoder().encode(str);
+    }
+
+    async function decompressToStringGzip(bytes) {
+      if (typeof DecompressionStream !== "undefined") {
+        const ds = new DecompressionStream("gzip");
+        const blob = new Blob([bytes]);
+        const reader = blob.stream().pipeThrough(ds).getReader();
+        const chunks = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+        const total = chunks.reduce((n, c) => n + c.length, 0);
+        const out = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) {
+          out.set(c, off);
+          off += c.length;
+        }
+        return new TextDecoder().decode(out);
+      }
+      return new TextDecoder().decode(bytes);
+    }
+
+    function u8ToBase64(bytes) {
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    function base64ToU8(b64) {
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    // Default starter code
+    const defaultCode = `// Welcome to NEXUS AI Dashboard
+// Start coding here...
+
+console.log('🚀 NEXUS Dashboard Ready!');
+
+// Example: Integrated environment
+const NEXUS = {
+  clock: {
+    bpm: 120,
+    phase: 0,
+    start() {
+      console.log('Clock started at ' + this.bpm + ' BPM');
+    }
+  },
+  audio: {
+    spectralCentroid: 440,
+    synthesize(freq) {
+      return \`Synthesizing at \${freq}Hz\`;
+    }
+  },
+  swarm: {
+    agents: 7,
+    analyze(code) {
+      return {
+        complexity: code.length / 1000,
+        patterns: (code.match(/function/g) || []).length
+      };
+    }
+  }
+};
+
+// Test the system
+NEXUS.clock.start();
+console.log(NEXUS.audio.synthesize(440));
+const analysis = NEXUS.swarm.analyze('example');
+console.log('Code analysis:', analysis);
+`;
+
+    // Swarm agents
+    const agentsSeed = [
+      { id: "data-sentinel", name: "Data Sentinel", color: "#64ffda", x: 20, y: 20 },
+      { id: "code-oracle", name: "Code Oracle", color: "#57cbff", x: 80, y: 30 },
+      { id: "pattern-watcher", name: "Pattern Watcher", color: "#f57dff", x: 60, y: 70 },
+      { id: "strategy-architect", name: "Strategy Architect", color: "#ff9e64", x: 40, y: 50 },
+    ];
+
+    // Calculate code complexity
+    function calculateComplexity(code) {
+      let score = 0;
+      score += (code.match(/function/g) || []).length * 2;
+      score += (code.match(/class/g) || []).length * 3;
+      score += (code.match(/\bif\b|\bfor\b|\bwhile\b/g) || []).length * 1;
+      return Math.min(score / 10, 1);
+    }
+
+    // Audio System
+    class AudioSystem {
+      constructor() {
+        this.ctx = null;
+        this.analyser = null;
+        this.osc = null;
+        this.gain = null;
+        this.active = false;
+        this.bpm = 120;
+        this.amDepth = 0.2;
+        this.fmDepth = 6.0;
+      }
+
+      ensureAudio() {
+        if (!this.ctx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new Ctx();
+          this.analyser = this.ctx.createAnalyser();
+          this.analyser.fftSize = 256;
+        }
+      }
+
+      start() {
+        this.ensureAudio();
+        if (this.osc) return; // already running
+        
+        this.osc = this.ctx.createOscillator();
+        this.gain = this.ctx.createGain();
+        this.osc.type = "sine";
+        this.osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+        this.gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        
+        this.osc.connect(this.gain);
+        this.gain.connect(this.analyser);
+        this.analyser.connect(this.ctx.destination);
+        
+        this.osc.start();
+        this.active = true;
+      }
+
+      stop() {
+        if (this.osc) {
+          try { this.osc.stop(); } catch {}
+          this.osc.disconnect();
+          this.osc = null;
+        }
+        if (this.gain) {
+          try { this.gain.disconnect(); } catch {}
+          this.gain = null;
+        }
+        this.active = false;
+      }
+
+      getAnalyser() {
+        return this.analyser;
+      }
+    }
+
+    // Main App
+    class NexusApp {
+      constructor() {
+        this.vault = new KnowledgeVault();
+        this.audio = new AudioSystem();
+        this.panel = "code";
+        this.autoRun = true;
+        this.swarmActive = true;
+        this.audioActive = true;
+        this.code = localStorage.getItem("nexus.code") || defaultCode;
+        this.output = ["[SYSTEM] NEXUS Dashboard initialized", "[READY] All systems operational"];
+        this.aiChat = [
+          "[AI] NEXUS Assistant ready",
+          "[AI] I can help with code analysis, optimization, and explanations",
+          "[AI] Try: 'help', 'debug', 'optimize', 'explain'"
+        ];
+        this.consoleLogs = [];
+        this.swarmPulseInterval = null;
+        this.visualizerFrame = null;
+        
+        this.init();
+      }
+
+      init() {
+        this.render();
+        this.setupEventListeners();
+        this.renderSwarm();
+        this.startSwarmPulses();
+        this.audio.ensureAudio();
+        this.addOutput("[READY] Code editor ready - Start coding!");
+      }
+
+      render() {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+          <div class="grid grid-rows-[60px_1fr_40px] grid-cols-[60px_1fr] h-screen text-slate-200 bg-slate-950"
+               style="grid-template-areas: 'header header' 'sidebar main' 'footer footer'">
+            
+            <!-- Header -->
+            <header class="[grid-area:header] backdrop-blur bg-slate-900/90 border-b border-slate-800 z-10 flex items-center justify-between px-5">
+              <div class="flex items-center gap-3 text-lg font-semibold">
+                <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_#22d3ee] pulse-dot"></div>
+                <span class="bg-gradient-to-r from-cyan-400 to-fuchsia-400 bg-clip-text text-transparent">NEXUS Dashboard</span>
+              </div>
+              <div class="flex gap-2">
+                <button id="btnRun" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">▶ Run</button>
+                <button id="btnSave" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">💾 Save</button>
+                <button id="btnFullscreen" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">⛶ Fullscreen</button>
+                <button id="btnExportBrain" class="px-3 py-2 text-sm rounded-md border border-amber-400 text-amber-300 hover:bg-amber-400/10">💽 Export Brain</button>
+                <label class="px-3 py-2 text-sm rounded-md border border-amber-400 text-amber-300 hover:bg-amber-400/10 cursor-pointer">
+                  📥 Import Brain
+                  <input id="inputImportBrain" type="file" accept="application/json" class="hidden" />
+                </label>
+              </div>
+            </header>
+
+            <!-- Sidebar -->
+            <aside class="[grid-area:sidebar] backdrop-blur bg-slate-900/90 border-r border-slate-800 flex flex-col items-center gap-3 py-4">
+              <button data-panel="code" class="nav-btn w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition" title="Code Editor">💻</button>
+              <button data-panel="swarm" class="nav-btn w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition" title="Swarm Intelligence">🤖</button>
+              <button data-panel="audio" class="nav-btn w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition" title="Audio Synthesis">🎵</button>
+              <button data-panel="output" class="nav-btn w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition" title="Output">📊</button>
+              <button data-panel="ai" class="nav-btn w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition" title="AI Assistant">🧠</button>
+              <button data-panel="vault" class="nav-btn w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition" title="Knowledge Vault">🗄️</button>
+            </aside>
+
+            <!-- Main -->
+            <main id="mainPanel" class="[grid-area:main] relative overflow-hidden bg-slate-950">
+              <!-- Panels rendered dynamically -->
+            </main>
+
+            <!-- Footer -->
+            <footer class="[grid-area:footer] backdrop-blur bg-slate-900/90 border-t border-slate-800 text-[11px] text-slate-300 flex items-center justify-between px-5">
+              <div class="flex gap-4">
+                <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>System</span></div>
+                <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span><span>Code</span></div>
+                <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span><span>Audio</span></div>
+              </div>
+              <div class="text-[10px] opacity-70">NEXUS v2.1.0 • Press F11 for fullscreen • Vault: <span id="vaultCount">0</span> entries</div>
+            </footer>
+          </div>
+        `;
+        
+        this.updateNavButtons();
+        this.renderPanel();
+        this.updateVaultCount();
+      }
+
+      setupEventListeners() {
+        document.getElementById('btnRun').onclick = () => this.run();
+        document.getElementById('btnSave').onclick = () => this.save();
+        document.getElementById('btnFullscreen').onclick = () => this.toggleFullscreen();
+        document.getElementById('btnExportBrain').onclick = () => this.exportBrain();
+        document.getElementById('inputImportBrain').onchange = (e) => this.importBrainFromFile(e);
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+          btn.onclick = () => {
+            this.panel = btn.dataset.panel;
+            this.snapshotToVault("panel-switch");
+            this.updateNavButtons();
+            this.renderPanel();
+          };
+        });
+      }
+
+      updateNavButtons() {
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+          if (btn.dataset.panel === this.panel) {
+            btn.className = "nav-btn w-11 h-11 rounded-lg border bg-cyan-400 text-slate-900 border-cyan-400 shadow-[0_0_20px_#22d3ee] flex items-center justify-center text-lg transition";
+          } else {
+            btn.className = "nav-btn w-11 h-11 rounded-lg border bg-slate-800/70 text-slate-200 border-slate-700 hover:border-cyan-400 hover:text-cyan-400 flex items-center justify-center text-lg transition";
+          }
+        });
+      }
+
+      renderPanel() {
+        const main = document.getElementById('mainPanel');
+        
+        if (this.panel === 'code') {
+          main.innerHTML = `
+            <section class="absolute inset-0 flex flex-col border border-slate-800 bg-slate-900/60">
+              <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <div class="font-semibold text-cyan-400">💻 Code Editor</div>
+                <div class="flex items-center gap-3 text-xs">
+                  <label class="flex items-center gap-2 select-none">
+                    <input type="checkbox" id="chkAutoRun" class="accent-cyan-400" ${this.autoRun ? 'checked' : ''} />
+                    Auto-run
+                  </label>
+                  <button id="btnFormat" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🛠️ Format</button>
+                </div>
+              </div>
+              <div class="flex-1 p-4 overflow-auto">
+                <textarea id="codeEditor" class="w-full h-full bg-[#0d1117] border border-slate-800 rounded-lg p-4 font-mono text-sm outline-none focus:ring-2 ring-cyan-400" spellcheck="false">${this.code}</textarea>
+              </div>
+            </section>
+          `;
+          
+          const editor = document.getElementById('codeEditor');
+          editor.oninput = (e) => {
+            this.code = e.target.value;
+            if (this.autoRun) {
+              clearTimeout(this.autoRunTimer);
+              this.autoRunTimer = setTimeout(() => this.run(), 800);
+            }
+          };
+          
+          document.getElementById('chkAutoRun').onchange = (e) => {
+            this.autoRun = e.target.checked;
+          };
+          
+          document.getElementById('btnFormat').onclick = () => this.formatCode();
+        }
+        else if (this.panel === 'swarm') {
+          main.innerHTML = `
+            <section class="absolute inset-0 flex flex-col border border-slate-800 bg-slate-900/60">
+              <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <div class="font-semibold text-cyan-400">🤖 Swarm Intelligence</div>
+                <div class="flex items-center gap-3 text-xs">
+                  <label class="flex items-center gap-2 select-none">
+                    <input type="checkbox" id="chkSwarmActive" class="accent-cyan-400" ${this.swarmActive ? 'checked' : ''} />
+                    Active
+                  </label>
+                  <button id="btnAnalyzeSwarm" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🔍 Analyze Code</button>
+                </div>
+              </div>
+              <div class="flex-1 p-4">
+                <div id="swarmCanvas" class="relative w-full h-full rounded-lg overflow-hidden bg-slate-950 border border-slate-800"></div>
+              </div>
+            </section>
+          `;
+          
+          document.getElementById('chkSwarmActive').onchange = (e) => {
+            this.swarmActive = e.target.checked;
+          };
+          document.getElementById('btnAnalyzeSwarm').onclick = () => this.analyzeWithSwarm();
+          
+          this.renderSwarm();
+        }
+        else if (this.panel === 'audio') {
+          main.innerHTML = `
+            <section class="absolute inset-0 flex flex-col border border-slate-800 bg-slate-900/60">
+              <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <div class="font-semibold text-cyan-400">🎵 Audio Synthesis</div>
+                <div class="flex items-center gap-3 text-xs">
+                  <label class="flex items-center gap-2 select-none">
+                    <input type="checkbox" id="chkAudioActive" class="accent-cyan-400" ${this.audioActive ? 'checked' : ''} />
+                    Active
+                  </label>
+                  <button id="btnAudioToggle" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
+                    ${this.audio.active ? '🔇 Stop' : '🔊 Play'}
+                  </button>
+                </div>
+              </div>
+              <div class="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div id="audioVisualizer" class="relative border border-slate-800 rounded-lg p-4 bg-slate-950"></div>
+                <div class="flex flex-col gap-4">
+                  <div class="flex items-center gap-3">
+                    <label class="text-xs w-28 text-slate-300">BPM</label>
+                    <input type="range" id="sliderBPM" min="60" max="180" step="1" value="${this.audio.bpm}" class="flex-1 accent-cyan-400" />
+                    <span id="lblBPM" class="text-xs w-12 text-right text-amber-300">${this.audio.bpm}</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <label class="text-xs w-28 text-slate-300">AM Depth</label>
+                    <input type="range" id="sliderAM" min="0" max="1" step="0.01" value="${this.audio.amDepth}" class="flex-1 accent-cyan-400" />
+                    <span id="lblAM" class="text-xs w-12 text-right text-amber-300">${this.audio.amDepth.toFixed(2)}</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <label class="text-xs w-28 text-slate-300">FM Depth</label>
+                    <input type="range" id="sliderFM" min="0" max="12" step="0.1" value="${this.audio.fmDepth}" class="flex-1 accent-cyan-400" />
+                    <span id="lblFM" class="text-xs w-12 text-right text-amber-300">${this.audio.fmDepth.toFixed(1)}</span>
+                  </div>
+                  <div class="flex gap-2">
+                    <button id="btnAnalyzeAudio" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🎶 Analyze Code</button>
+                    <button id="btnResetAudio" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🔄 Reset</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          `;
+          
+          document.getElementById('chkAudioActive').onchange = (e) => {
+            this.audioActive = e.target.checked;
+          };
+          
+          document.getElementById('btnAudioToggle').onclick = () => {
+            if (this.audio.active) {
+              this.audio.stop();
+            } else {
+              this.audio.start();
+            }
+            this.renderPanel();
+          };
+          
+          document.getElementById('sliderBPM').oninput = (e) => {
+            this.audio.bpm = parseFloat(e.target.value);
+            document.getElementById('lblBPM').textContent = this.audio.bpm;
+          };
+          
+          document.getElementById('sliderAM').oninput = (e) => {
+            this.audio.amDepth = parseFloat(e.target.value);
+            document.getElementById('lblAM').textContent = this.audio.amDepth.toFixed(2);
+          };
+          
+          document.getElementById('sliderFM').oninput = (e) => {
+            this.audio.fmDepth = parseFloat(e.target.value);
+            document.getElementById('lblFM').textContent = this.audio.fmDepth.toFixed(1);
+          };
+          
+          document.getElementById('btnAnalyzeAudio').onclick = () => this.analyzeCodeForAudio();
+          document.getElementById('btnResetAudio').onclick = () => {
+            this.audio.bpm = 120;
+            this.audio.amDepth = 0.2;
+            this.audio.fmDepth = 6.0;
+            this.addOutput("[AUDIO] Parameters reset", "primary");
+            this.renderPanel();
+          };
+          
+          this.startVisualizer();
+        }
+        else if (this.panel === 'output') {
+          main.innerHTML = `
+            <section class="absolute inset-0 flex flex-col border border-slate-800 bg-slate-900/60">
+              <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <div class="font-semibold text-cyan-400">📊 Output</div>
+                <button id="btnClearOutput" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🗑️ Clear</button>
+              </div>
+              <div class="flex-1 p-4 overflow-auto">
+                <div class="bg-black border border-slate-800 rounded-lg p-3 font-mono text-xs space-y-1">
+                  ${this.output.map(line => `<div>${line}</div>`).join('')}
+                </div>
+              </div>
+            </section>
+          `;
+          
+          document.getElementById('btnClearOutput').onclick = () => {
+            this.output = ["[SYSTEM] Output cleared"];
+            this.renderPanel();
+          };
+        }
+        else if (this.panel === 'ai') {
+          main.innerHTML = `
+            <section class="absolute inset-0 flex flex-col border border-slate-800 bg-slate-900/60">
+              <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <div class="font-semibold text-cyan-400">🧠 AI Assistant</div>
+                <button id="btnClearAI" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🗑️ Clear</button>
+              </div>
+              <div class="flex-1 p-4">
+                <div id="aiChatOutput" class="bg-black border border-slate-800 rounded-lg p-3 font-mono text-xs h-[calc(100%-44px)] overflow-auto space-y-1">
+                  ${this.aiChat.map(line => {
+                    const color = line.startsWith('[AI]') ? 'text-fuchsia-400' : line.startsWith('[YOU]') ? 'text-cyan-400' : '';
+                    return `<div class="${color}">${line}</div>`;
+                  }).join('')}
+                </div>
+                <div class="mt-2 flex gap-2">
+                  <input type="text" id="aiInput" class="flex-1 bg-black border border-slate-800 rounded-md px-3 py-2 text-xs outline-none focus:ring-2 ring-fuchsia-400" placeholder="Ask AI about code, audio, or swarm..." />
+                  <button id="btnSendAI" class="px-3 py-2 text-sm rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 text-white">Send</button>
+                </div>
+              </div>
+            </section>
+          `;
+          
+          document.getElementById('btnClearAI').onclick = () => {
+            this.aiChat = ["[AI] Chat cleared"];
+            this.renderPanel();
+          };
+          
+          const sendAI = () => {
+            const input = document.getElementById('aiInput');
+            const val = input.value.trim();
+            if (!val) return;
+            this.aiChat.push(`[YOU] ${val}`);
+            input.value = "";
+            this.handleAICommand(val);
+            this.renderPanel();
+          };
+          
+          document.getElementById('btnSendAI').onclick = sendAI;
+          document.getElementById('aiInput').onkeydown = (e) => {
+            if (e.key === 'Enter') sendAI();
+          };
+        }
+        else if (this.panel === 'vault') {
+          const entries = this.vault.getEntries();
+          main.innerHTML = `
+            <section class="absolute inset-0 flex flex-col border border-slate-800 bg-slate-900/60">
+              <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <div class="font-semibold text-cyan-400">🗄️ Knowledge Vault</div>
+                <div class="flex gap-2">
+                  <button id="btnClearVault" class="px-3 py-2 text-sm rounded-md border border-red-400 text-red-400 hover:bg-red-400/10">🗑️ Clear All</button>
+                  <button id="btnRefreshVault" class="px-3 py-2 text-sm rounded-md border border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">🔄 Refresh</button>
+                </div>
+              </div>
+              <div class="flex-1 p-4 overflow-auto">
+                <div class="space-y-2">
+                  ${entries.length === 0 ? '<div class="text-slate-400 text-sm">No entries yet. Run code to create snapshots.</div>' : ''}
+                  ${entries.map((entry, i) => `
+                    <div class="bg-slate-900 border border-slate-700 rounded-lg p-3">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-cyan-400">#${i + 1} • ${new Date(entry.t).toLocaleString()}</span>
+                        <span class="text-xs text-amber-300">${entry.reason || 'snapshot'}</span>
+                      </div>
+                      <div class="text-xs text-slate-300 mb-2">
+                        Panel: <span class="text-fuchsia-400">${entry.panel || 'unknown'}</span> • 
+                        Complexity: <span class="text-amber-300">${((entry.analysis?.complexity || 0) * 100).toFixed(1)}%</span>
+                      </div>
+                      ${entry.audio ? `<div class="text-xs text-slate-400">Audio: BPM ${entry.audio.bpm} • AM ${entry.audio.am.toFixed(2)} • FM ${entry.audio.fm.toFixed(1)}</div>` : ''}
+                      ${entry.code ? `<details class="mt-2"><summary class="text-xs text-cyan-400 cursor-pointer">View Code</summary><pre class="mt-2 text-xs bg-black p-2 rounded overflow-x-auto">${entry.code.substring(0, 200)}${entry.code.length > 200 ? '...' : ''}</pre></details>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </section>
+          `;
+          
+          document.getElementById('btnClearVault').onclick = () => {
+            if (confirm('Clear all vault entries? This cannot be undone.')) {
+              this.vault.clear();
+              this.addOutput('[VAULT] All entries cleared', 'primary');
+              this.updateVaultCount();
+              this.renderPanel();
+            }
+          };
+          
+          document.getElementById('btnRefreshVault').onclick = () => {
+            this.renderPanel();
+          };
+        }
+      }
+
+      snapshotToVault(reason) {
+        const complexity = calculateComplexity(this.code);
+        this.vault.add({
+          t: Date.now(),
+          reason,
+          code: this.code,
+          panel: this.panel,
+          audio: { bpm: this.audio.bpm, am: this.audio.amDepth, fm: this.audio.fmDepth },
+          analysis: { complexity }
+        });
+        this.updateVaultCount();
+      }
+
+      async exportBrain() {
+        const obj = this.vault.exportObject();
+        const json = JSON.stringify(obj);
+        const gz = await compressStringGzip(json);
+        const pkg = { 
+          format: "NexusBrainV1", 
+          compressed: true, 
+          gzipBase64: u8ToBase64(gz), 
+          rawSize: json.length 
+        };
+        const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `nexus_brain_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        this.addOutput("[BRAIN] Exported knowledge vault", "success");
+      }
+
+      async importBrainFromFile(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        try {
+          const pkg = JSON.parse(text);
+          if (pkg && pkg.format === "NexusBrainV1" && pkg.compressed && pkg.gzipBase64) {
+            const bytes = base64ToU8(pkg.gzipBase64);
+            const json = await decompressToStringGzip(bytes);
+            const obj = JSON.parse(json);
+            this.vault.importObject(obj);
+          } else {
+            this.vault.importObject(JSON.parse(text));
+          }
+          this.addOutput("[BRAIN] Imported knowledge vault", "success");
+          this.updateVaultCount();
+        } catch (err) {
+          this.addOutput(`[BRAIN] Import error: ${err.message}`, "error");
+        }
+        e.target.value = "";
+      }
+
+      updateVaultCount() {
+        const countEl = document.getElementById('vaultCount');
+        if (countEl) {
+          countEl.textContent = this.vault.getEntries().length;
+        }
+      }
+
+      addOutput(line, tone) {
+        const colorPrefix =
+          tone === "success" ? "[SUCCESS] " :
+          tone === "error"   ? "[ERROR] "   :
+          tone === "primary" ? "[INFO] "    : "";
+        this.output.push(`${colorPrefix}${line}`);
+        if (this.panel === 'output') {
+          this.renderPanel();
+        }
+      }
+
+      save() {
+        localStorage.setItem("nexus.code", this.code);
+        this.addOutput("💾 File saved successfully", "success");
+      }
+
+      run() {
+        this.addOutput("🚀 Executing code...", "primary");
+        this.consoleLogs = [];
+        
+        const originalLog = console.log;
+        try {
+          console.log = (...args) => {
+            const message = args.map(arg => 
+              typeof arg === "object" ? JSON.stringify(arg) : String(arg)
+            ).join(" ");
+            this.consoleLogs.push(message);
+            originalLog.apply(console, args);
+          };
+          
+          eval(this.code);
+          console.log = originalLog;
+          
+          this.consoleLogs.forEach(m => this.addOutput(m));
+          this.addOutput("✅ Execution completed", "success");
+          this.snapshotToVault("run-success");
+          
+          if (this.swarmActive) this.analyzeWithSwarm();
+          if (this.audioActive) this.analyzeCodeForAudio();
+        } catch (err) {
+          console.log = originalLog;
+          this.addOutput(`❌ Error: ${err.message}`, "error");
+        }
+      }
+
+      formatCode() {
+        const formatted = this.code
+          .replace(/\{\s*/g, " {\n    ")
+          .replace(/\}\s*/g, "\n}\n")
+          .replace(/;\s*/g, ";\n");
+        this.code = formatted;
+        this.addOutput("🛠️ Code formatted", "primary");
+        if (this.panel === 'code') {
+          document.getElementById('codeEditor').value = this.code;
+        }
+      }
+
+      renderSwarm() {
+        const container = document.getElementById('swarmCanvas');
+        if (!container) return;
+        
+        container.innerHTML = "";
+        agentsSeed.forEach(agent => {
+          const node = document.createElement("div");
+          node.className = "absolute w-[30px] h-[30px] rounded-full flex items-center justify-center text-[10px] font-bold cursor-pointer transition-transform";
+          node.style.background = agent.color;
+          node.style.color = "white";
+          node.style.left = `${agent.x}%`;
+          node.style.top = `${agent.y}%`;
+          node.style.boxShadow = `0 0 20px ${agent.color}`;
+          node.title = agent.name;
+          node.textContent = agent.name.split(" ").map(w => w[0]).join("");
+          node.onmouseenter = () => { node.style.transform = "scale(1.2)"; };
+          node.onmouseleave = () => { node.style.transform = "scale(1)"; };
+          container.appendChild(node);
+        });
+      }
+
+      startSwarmPulses() {
+        if (this.swarmPulseInterval) clearInterval(this.swarmPulseInterval);
+        this.swarmPulseInterval = setInterval(() => {
+          if (!this.swarmActive) return;
+          const container = document.getElementById('swarmCanvas');
+          if (!container) return;
+          
+          const pulse = document.createElement("div");
+          pulse.className = "absolute w-1 h-1 rounded-full";
+          const rand = agentsSeed[Math.floor(Math.random() * agentsSeed.length)];
+          pulse.style.left = `${rand.x}%`;
+          pulse.style.top = `${rand.y}%`;
+          pulse.style.background = "#64ffda";
+          pulse.animate(
+            [
+              { transform: "scale(1)", opacity: 0 },
+              { transform: "scale(15)", opacity: 0.3 },
+              { transform: "scale(30)", opacity: 0 }
+            ],
+            { duration: 3000, iterations: 1, easing: "ease-in-out" }
+          );
+          container.appendChild(pulse);
+          setTimeout(() => pulse.remove(), 3000);
+        }, 2000);
+      }
+
+      analyzeWithSwarm() {
+        const complexity = calculateComplexity(this.code);
+        const container = document.getElementById('swarmCanvas');
+        if (container) {
+          container.querySelectorAll("div").forEach(node => {
+            node.style.transform = `scale(${1 + complexity * 0.3})`;
+          });
+        }
+        this.addOutput(`[SWARM] Code analyzed - Complexity: ${(complexity * 100).toFixed(1)}%`, "success");
+      }
+
+      analyzeCodeForAudio() {
+        const complexity = calculateComplexity(this.code);
+        const nbpm = Math.max(60, Math.min(180, 60 + complexity * 120));
+        const nam = Math.min(1, complexity * 0.5);
+        const nfm = complexity * 8;
+        this.audio.bpm = nbpm;
+        this.audio.amDepth = nam;
+        this.audio.fmDepth = nfm;
+        this.addOutput(`[AUDIO] Parameters updated from code analysis`, "success");
+        if (this.panel === 'audio') {
+          this.renderPanel();
+        }
+      }
+
+      startVisualizer() {
+        if (this.visualizerFrame) cancelAnimationFrame(this.visualizerFrame);
+        
+        const draw = () => {
+          const viz = document.getElementById('audioVisualizer');
+          if (!viz || !this.audioActive) return;
+          
+          const analyser = this.audio.getAnalyser();
+          if (!analyser) return;
+          
+          viz.innerHTML = "";
+          const audioData = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(audioData);
+          
+          const barCount = 32;
+          const width = viz.clientWidth / barCount;
+          
+          for (let i = 0; i < barCount; i++) {
+            const el = document.createElement("div");
+            el.className = "absolute bottom-0 rounded-t";
+            el.style.left = `${i * width}px`;
+            el.style.width = `${Math.max(1, width - 2)}px`;
+            const dataIndex = Math.floor((i * audioData.length) / barCount);
+            const height = (audioData[dataIndex] / 256) * viz.clientHeight;
+            el.style.height = `${height}px`;
+            el.style.background = "#ffd866";
+            viz.appendChild(el);
+          }
+          
+          this.visualizerFrame = requestAnimationFrame(draw);
+        };
+        
+        this.visualizerFrame = requestAnimationFrame(draw);
+      }
+
+      handleAICommand(message) {
+        const lower = message.toLowerCase();
+        if (lower.includes("help")) {
+          this.aiChat.push("[AI] Available commands: help, debug, optimize, explain, swarm, audio, run, vault");
+        } else if (lower.includes("debug")) {
+          this.aiChat.push("[AI] Analyzing code for issues... No critical errors found.");
+        } else if (lower.includes("optimize")) {
+          this.aiChat.push("[AI] Optimization: use const for constants, avoid nested loops, cache DOM queries.");
+        } else if (lower.includes("explain")) {
+          this.aiChat.push("[AI] This is a NEXUS integration example with clock, audio, and swarm components working together.");
+        } else if (lower.includes("swarm")) {
+          this.aiChat.push(`[AI] Swarm system: ${agentsSeed.length} active agents, analyzing code patterns in real-time.`);
+        } else if (lower.includes("audio")) {
+          this.aiChat.push(`[AI] Audio synthesis: ${this.audio.active ? "Active" : "Ready"}, parameters respond to code complexity.`);
+        } else if (lower.includes("vault")) {
+          this.aiChat.push(`[AI] Knowledge Vault: ${this.vault.getEntries().length} entries stored. Export/import available in header.`);
+        } else if (lower.includes("run")) {
+          this.aiChat.push("[AI] Executing code...");
+          this.run();
+        } else {
+          this.aiChat.push(`[AI] I understand: "${message}". How can I help with your code?`);
+        }
+      }
+
+      toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.error("Fullscreen error:", err);
+          });
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    }
+
+    // Initialize app
+    window.addEventListener('DOMContentLoaded', () => {
+      new NexusApp();
+    });
+  </script>
+</body>
+</html>

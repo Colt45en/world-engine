@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculus in Game Physics — Interactive Simulation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', system-ui, sans-serif; 
+      background: linear-gradient(135deg, #0a0a12 0%, #1a1a2e 100%);
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+    }
+    #canvas-container {
+      flex: 1;
+      position: relative;
+    }
+    #main-canvas {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(30, 30, 50, 0.3), transparent);
+    }
+    #graph-overlay {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 400px;
+      height: 300px;
+      background: rgba(20, 20, 30, 0.95);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    #side-panel {
+      width: 380px;
+      background: rgba(20, 20, 30, 0.98);
+      border-left: 1px solid rgba(0, 255, 255, 0.2);
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .section {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .section:last-child { border: none; }
+    h2 {
+      color: #00ffff;
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3 {
+      color: #ffd700;
+      font-size: 14px;
+      margin-bottom: 12px;
+      margin-top: 16px;
+    }
+    .label { 
+      color: #00ffff; 
+      font-weight: 600; 
+      font-size: 12px;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .value { 
+      color: #ffd700; 
+      font-family: 'Consolas', monospace; 
+      font-size: 13px;
+    }
+    .equation {
+      background: rgba(0, 255, 255, 0.05);
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      color: #00ffff;
+      margin: 8px 0;
+      border-left: 3px solid #00ffff;
+    }
+    .slider-group {
+      margin: 12px 0;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      margin-top: 8px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    }
+    button {
+      background: linear-gradient(135deg, #00ffff, #0088ff);
+      color: #0a0a12;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      margin: 4px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 255, 255, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #00ffff;
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .stat-box {
+      background: rgba(0, 255, 255, 0.05);
+      padding: 10px;
+      border-radius: 6px;
+      border-left: 3px solid #00ffff;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffd700;
+      font-family: 'Consolas', monospace;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    canvas#graph-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .integration-method {
+      background: rgba(255, 215, 0, 0.05);
+      padding: 10px;
+      border-radius: 6px;
+      margin: 8px 0;
+      border-left: 3px solid #ffd700;
+    }
+    .vector-display {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+    }
+    .vector-component {
+      background: rgba(0, 255, 255, 0.1);
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+    #force-indicator {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(20, 20, 30, 0.92);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+    }
+    .trail-point {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, 0.5);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="canvas-container">
+      <canvas id="main-canvas"></canvas>
+      
+      <div id="force-indicator">
+        <div><span class="label">Active Forces:</span></div>
+        <div id="force-list" style="margin-top: 8px; font-family: monospace; font-size: 11px;"></div>
+      </div>
+
+      <div id="graph-overlay">
+        <canvas id="graph-canvas"></canvas>
+      </div>
+    </div>
+
+    <div id="side-panel">
+      <div class="section">
+        <h2>⚡ Physics Simulation</h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="pos-display">0.0</div>
+            <div class="stat-label">Position (m)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="vel-display">0.0</div>
+            <div class="stat-label">Velocity (m/s)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="acc-display">0.0</div>
+            <div class="stat-label">Acceleration (m/s²)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="dt-display">16.7</div>
+            <div class="stat-label">Δt (ms)</div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button id="reset-btn">Reset</button>
+          <button id="pause-btn">Pause</button>
+          <button id="impulse-btn" class="secondary">Apply Impulse</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>📐 Calculus Relationships</h2>
+        
+        <h3>Derivatives (Instantaneous Rate of Change)</h3>
+        <div class="equation">
+          v(t) = d/dt s(t)<br>
+          <span style="color: #888; font-size: 11px;">velocity = derivative of position</span>
+        </div>
+        <div class="equation">
+          a(t) = d/dt v(t) = d²/dt² s(t)<br>
+          <span style="color: #888; font-size: 11px;">acceleration = derivative of velocity</span>
+        </div>
+
+        <h3>Integrals (Accumulation Over Time)</h3>
+        <div class="equation">
+          v(t) = ∫ a(t) dt<br>
+          <span style="color: #888; font-size: 11px;">velocity = integral of acceleration</span>
+        </div>
+        <div class="equation">
+          s(t) = ∫ v(t) dt<br>
+          <span style="color: #888; font-size: 11px;">position = integral of velocity</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🔢 Numerical Integration</h2>
+        
+        <div class="integration-method">
+          <strong>Euler Method (Semi-implicit)</strong>
+          <div class="equation" style="background: transparent; padding: 8px 0; border: none; margin: 4px 0;">
+            v_new = v_old + a · Δt<br>
+            s_new = s_old + v_new · Δt
+          </div>
+        </div>
+
+        <div class="slider-group">
+          <label class="label">Integration Method</label>
+          <select id="integration-method" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(0,255,255,0.3); border-radius: 4px;">
+            <option value="euler">Euler</option>
+            <option value="semi-implicit" selected>Semi-Implicit Euler</option>
+            <option value="verlet">Verlet</option>
+            <option value="rk4">Runge-Kutta 4</option>
+          </select>
+        </div>
+
+        <div class="slider-group">
+          <label class="label">Time Step (Δt): <span class="value" id="timestep-value">16.7ms</span></label>
+          <input type="range" id="timestep-slider" min="1" max="100" value="16.7" step="0.1">
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🎯 Forces & Parameters</h2>
+
+        <div class="slider-group">
+          <label class="label">Gravity (m/s²): <span class="value" id="gravity-value">9.8</span></label>
+          <input type="range" id="gravity-slider" min="0" max="20" value="9.8" step="0.1">
+        </div>
+
+        <div class="slider-group">
+          <label class="label">Air Resistance (k): <span class="value" id="drag-value">0.1</span></label>
+          <input type="range" id="drag-slider" min="0" max="1" value="0.1" step="0.01">
+        </div>
+
+        <div class="slider-group">
+          <label class="label">Mass (kg): <span class="value" id="mass-value">1.0</span></label>
+          <input type="range" id="mass-slider" min="0.1" max="5" value="1.0" step="0.1">
+        </div>
+
+        <div class="slider-group">
+          <label class="label">Restitution (bounce): <span class="value" id="bounce-value">0.8</span></label>
+          <input type="range" id="bounce-slider" min="0" max="1" value="0.8" step="0.05">
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>📊 Game Loop Cycle</h2>
+        <div style="font-size: 12px; line-height: 1.6; color: #aaa;">
+          <strong style="color: #00ffff;">1.</strong> Calculate net force (F = ma)<br>
+          <strong style="color: #00ffff;">2.</strong> Determine acceleration (a = F/m)<br>
+          <strong style="color: #00ffff;">3.</strong> Integrate to find velocity<br>
+          <strong style="color: #00ffff;">4.</strong> Integrate to find position<br>
+          <strong style="color: #00ffff;">5.</strong> Repeat every frame
+        </div>
+
+        <div class="vector-display" style="margin-top: 12px;">
+          <div class="vector-component">
+            <strong>Pos:</strong> <span id="vec-pos">0, 0</span>
+          </div>
+          <div class="vector-component">
+            <strong>Vel:</strong> <span id="vec-vel">0, 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Canvas Setup =====
+    const canvas = document.getElementById('main-canvas')
+    const ctx = canvas.getContext('2d')
+    const graphCanvas = document.getElementById('graph-canvas')
+    const graphCtx = graphCanvas.getContext('2d')
+
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth
+      canvas.height = canvas.clientHeight
+      graphCanvas.width = graphCanvas.clientWidth
+      graphCanvas.height = graphCanvas.clientHeight
+    }
+    window.addEventListener('resize', resizeCanvas)
+    resizeCanvas()
+
+    // ===== Physics State =====
+    const state = {
+      position: { x: canvas.width * 0.3, y: 100 },
+      velocity: { x: 50, y: 0 },
+      acceleration: { x: 0, y: 0 },
+      mass: 1.0,
+      gravity: 9.8,
+      dragCoeff: 0.1,
+      restitution: 0.8,
+      deltaTime: 16.7 / 1000, // ms to seconds
+      paused: false,
+      integrationMethod: 'semi-implicit',
+      trail: [],
+      maxTrailLength: 100
+    }
+
+    // History for graphs
+    const history = {
+      time: [],
+      position: [],
+      velocity: [],
+      acceleration: [],
+      maxPoints: 200
+    }
+    let simulationTime = 0
+
+    // ===== Physics Calculations =====
+    
+    // Calculate net force (F = ma)
+    function calculateForces() {
+      const forces = { x: 0, y: 0 }
+      
+      // Gravity force
+      forces.y += state.mass * state.gravity
+      
+      // Air resistance (drag) force: F_drag = -k * v
+      forces.x -= state.dragCoeff * state.velocity.x
+      forces.y -= state.dragCoeff * state.velocity.y
+      
+      return forces
+    }
+
+    // Euler integration (simple but less stable)
+    function integrateEuler(dt) {
+      const forces = calculateForces()
+      
+      // a = F / m (Newton's second law)
+      state.acceleration.x = forces.x / state.mass
+      state.acceleration.y = forces.y / state.mass
+      
+      // v_new = v_old + a · Δt
+      state.velocity.x += state.acceleration.x * dt
+      state.velocity.y += state.acceleration.y * dt
+      
+      // s_new = s_old + v_old · Δt (uses old velocity)
+      state.position.x += (state.velocity.x - state.acceleration.x * dt) * dt
+      state.position.y += (state.velocity.y - state.acceleration.y * dt) * dt
+    }
+
+    // Semi-implicit Euler (more stable, commonly used in games)
+    function integrateSemiImplicit(dt) {
+      const forces = calculateForces()
+      
+      // a = F / m
+      state.acceleration.x = forces.x / state.mass
+      state.acceleration.y = forces.y / state.mass
+      
+      // v_new = v_old + a · Δt (integrate acceleration first)
+      state.velocity.x += state.acceleration.x * dt
+      state.velocity.y += state.acceleration.y * dt
+      
+      // s_new = s_old + v_new · Δt (use NEW velocity)
+      state.position.x += state.velocity.x * dt
+      state.position.y += state.velocity.y * dt
+    }
+
+    // Verlet integration (good for energy conservation)
+    let previousPosition = { ...state.position }
+    function integrateVerlet(dt) {
+      const forces = calculateForces()
+      state.acceleration.x = forces.x / state.mass
+      state.acceleration.y = forces.y / state.mass
+      
+      const newX = 2 * state.position.x - previousPosition.x + state.acceleration.x * dt * dt
+      const newY = 2 * state.position.y - previousPosition.y + state.acceleration.y * dt * dt
+      
+      state.velocity.x = (newX - state.position.x) / dt
+      state.velocity.y = (newY - state.position.y) / dt
+      
+      previousPosition = { ...state.position }
+      state.position.x = newX
+      state.position.y = newY
+    }
+
+    // Runge-Kutta 4th order (most accurate, but more expensive)
+    function integrateRK4(dt) {
+      function derivative(pos, vel) {
+        const forces = calculateForces()
+        return {
+          vel: { ...vel },
+          acc: { x: forces.x / state.mass, y: forces.y / state.mass }
+        }
+      }
+
+      const k1 = derivative(state.position, state.velocity)
+      const k2 = derivative(
+        { x: state.position.x + 0.5 * k1.vel.x * dt, y: state.position.y + 0.5 * k1.vel.y * dt },
+        { x: state.velocity.x + 0.5 * k1.acc.x * dt, y: state.velocity.y + 0.5 * k1.acc.y * dt }
+      )
+      const k3 = derivative(
+        { x: state.position.x + 0.5 * k2.vel.x * dt, y: state.position.y + 0.5 * k2.vel.y * dt },
+        { x: state.velocity.x + 0.5 * k2.acc.x * dt, y: state.velocity.y + 0.5 * k2.acc.y * dt }
+      )
+      const k4 = derivative(
+        { x: state.position.x + k3.vel.x * dt, y: state.position.y + k3.vel.y * dt },
+        { x: state.velocity.x + k3.acc.x * dt, y: state.velocity.y + k3.acc.y * dt }
+      )
+
+      state.velocity.x += (k1.acc.x + 2*k2.acc.x + 2*k3.acc.x + k4.acc.x) * dt / 6
+      state.velocity.y += (k1.acc.y + 2*k2.acc.y + 2*k3.acc.y + k4.acc.y) * dt / 6
+      
+      state.position.x += (k1.vel.x + 2*k2.vel.x + 2*k3.vel.x + k4.vel.x) * dt / 6
+      state.position.y += (k1.vel.y + 2*k2.vel.y + 2*k3.vel.y + k4.vel.y) * dt / 6
+      
+      const forces = calculateForces()
+      state.acceleration.x = forces.x / state.mass
+      state.acceleration.y = forces.y / state.mass
+    }
+
+    function integrate(dt) {
+      switch (state.integrationMethod) {
+        case 'euler': integrateEuler(dt); break
+        case 'semi-implicit': integrateSemiImplicit(dt); break
+        case 'verlet': integrateVerlet(dt); break
+        case 'rk4': integrateRK4(dt); break
+      }
+    }
+
+    // Collision detection and response
+    function handleCollisions() {
+      const radius = 20
+      const ground = canvas.height - 50
+      const leftWall = radius
+      const rightWall = canvas.width - radius
+      const ceiling = radius
+
+      // Ground collision
+      if (state.position.y + radius > ground) {
+        state.position.y = ground - radius
+        state.velocity.y *= -state.restitution // Bounce with energy loss
+      }
+
+      // Ceiling collision
+      if (state.position.y - radius < ceiling) {
+        state.position.y = ceiling + radius
+        state.velocity.y *= -state.restitution
+      }
+
+      // Wall collisions
+      if (state.position.x - radius < leftWall) {
+        state.position.x = leftWall + radius
+        state.velocity.x *= -state.restitution
+      }
+      if (state.position.x + radius > rightWall) {
+        state.position.x = rightWall - radius
+        state.velocity.x *= -state.restitution
+      }
+    }
+
+    // ===== Update Loop =====
+    function update() {
+      if (!state.paused) {
+        integrate(state.deltaTime)
+        handleCollisions()
+        
+        // Update trail
+        state.trail.push({ ...state.position })
+        if (state.trail.length > state.maxTrailLength) {
+          state.trail.shift()
+        }
+
+        // Update history
+        simulationTime += state.deltaTime
+        const speed = Math.hypot(state.velocity.x, state.velocity.y)
+        const accelMag = Math.hypot(state.acceleration.x, state.acceleration.y)
+        
+        history.time.push(simulationTime)
+        history.position.push(state.position.y)
+        history.velocity.push(speed)
+        history.acceleration.push(accelMag)
+        
+        if (history.time.length > history.maxPoints) {
+          history.time.shift()
+          history.position.shift()
+          history.velocity.shift()
+          history.acceleration.shift()
+        }
+      }
+    }
+
+    // ===== Rendering =====
+    function draw() {
+      // Clear canvas
+      ctx.fillStyle = 'rgba(10, 10, 18, 0.1)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Draw ground
+      ctx.fillStyle = 'rgba(100, 100, 120, 0.3)'
+      ctx.fillRect(0, canvas.height - 50, canvas.width, 50)
+
+      // Draw grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
+      ctx.lineWidth = 1
+      for (let x = 0; x < canvas.width; x += 50) {
+        ctx.beginPath()
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
+        ctx.stroke()
+      }
+      for (let y = 0; y < canvas.height; y += 50) {
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(canvas.width, y)
+        ctx.stroke()
+      }
+
+      // Draw trail
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      state.trail.forEach((point, i) => {
+        if (i === 0) ctx.moveTo(point.x, point.y)
+        else ctx.lineTo(point.x, point.y)
+      })
+      ctx.stroke()
+
+      // Draw velocity vector
+      const velScale = 2
+      ctx.strokeStyle = '#ffd700'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(state.position.x, state.position.y)
+      ctx.lineTo(state.position.x + state.velocity.x * velScale, state.position.y + state.velocity.y * velScale)
+      ctx.stroke()
+      
+      // Arrow head
+      const angle = Math.atan2(state.velocity.y, state.velocity.x)
+      const velMag = Math.hypot(state.velocity.x, state.velocity.y) * velScale
+      if (velMag > 5) {
+        ctx.save()
+        ctx.translate(state.position.x + state.velocity.x * velScale, state.position.y + state.velocity.y * velScale)
+        ctx.rotate(angle)
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.lineTo(-10, -5)
+        ctx.lineTo(-10, 5)
+        ctx.closePath()
+        ctx.fillStyle = '#ffd700'
+        ctx.fill()
+        ctx.restore()
+      }
+
+      // Draw acceleration vector
+      const accScale = 10
+      ctx.strokeStyle = '#ff4444'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(state.position.x, state.position.y)
+      ctx.lineTo(state.position.x + state.acceleration.x * accScale, state.position.y + state.acceleration.y * accScale)
+      ctx.stroke()
+
+      // Draw object (ball)
+      const gradient = ctx.createRadialGradient(
+        state.position.x - 5, state.position.y - 5, 5,
+        state.position.x, state.position.y, 25
+      )
+      gradient.addColorStop(0, '#00ffff')
+      gradient.addColorStop(1, '#0088ff')
+      
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.arc(state.position.x, state.position.y, 20, 0, Math.PI * 2)
+      ctx.fill()
+      
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'
+      ctx.lineWidth = 2
+      ctx.stroke()
+
+      // Draw legend
+      ctx.font = '12px Consolas'
+      ctx.fillStyle = '#ffd700'
+      ctx.fillText('Velocity →', 20, 30)
+      ctx.fillStyle = '#ff4444'
+      ctx.fillText('Acceleration →', 20, 50)
+    }
+
+    function drawGraph() {
+      const w = graphCanvas.width
+      const h = graphCanvas.height
+      
+      graphCtx.fillStyle = 'rgba(20, 20, 30, 0.5)'
+      graphCtx.fillRect(0, 0, w, h)
+
+      if (history.time.length < 2) return
+
+      // Grid
+      graphCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
+      graphCtx.lineWidth = 1
+      for (let i = 0; i <= 5; i++) {
+        const y = (h / 5) * i
+        graphCtx.beginPath()
+        graphCtx.moveTo(0, y)
+        graphCtx.lineTo(w, y)
+        graphCtx.stroke()
+      }
+
+      const maxVal = Math.max(...history.velocity, ...history.acceleration, 100)
+      const scaleY = (h * 0.9) / maxVal
+
+      // Draw velocity graph
+      graphCtx.strokeStyle = '#ffd700'
+      graphCtx.lineWidth = 2
+      graphCtx.beginPath()
+      history.velocity.forEach((val, i) => {
+        const x = (i / history.maxPoints) * w
+        const y = h - val * scaleY
+        if (i === 0) graphCtx.moveTo(x, y)
+        else graphCtx.lineTo(x, y)
+      })
+      graphCtx.stroke()
+
+      // Draw acceleration graph
+      graphCtx.strokeStyle = '#ff4444'
+      graphCtx.lineWidth = 2
+      graphCtx.beginPath()
+      history.acceleration.forEach((val, i) => {
+        const x = (i / history.maxPoints) * w
+        const y = h - val * scaleY
+        if (i === 0) graphCtx.moveTo(x, y)
+        else graphCtx.lineTo(x, y)
+      })
+      graphCtx.stroke()
+
+      // Labels
+      graphCtx.font = '11px Consolas'
+      graphCtx.fillStyle = '#ffd700'
+      graphCtx.fillText('Velocity', 10, 20)
+      graphCtx.fillStyle = '#ff4444'
+      graphCtx.fillText('Acceleration', 10, 35)
+      
+      graphCtx.fillStyle = '#888'
+      graphCtx.fillText('Time →', w - 50, h - 10)
+    }
+
+    function updateUI() {
+      const speed = Math.hypot(state.velocity.x, state.velocity.y)
+      const accelMag = Math.hypot(state.acceleration.x, state.acceleration.y)
+      
+      document.getElementById('pos-display').textContent = state.position.y.toFixed(1)
+      document.getElementById('vel-display').textContent = speed.toFixed(2)
+      document.getElementById('acc-display').textContent = accelMag.toFixed(2)
+      document.getElementById('dt-display').textContent = (state.deltaTime * 1000).toFixed(1)
+      
+      document.getElementById('vec-pos').textContent = 
+        `${state.position.x.toFixed(0)}, ${state.position.y.toFixed(0)}`
+      document.getElementById('vec-vel').textContent = 
+        `${state.velocity.x.toFixed(1)}, ${state.velocity.y.toFixed(1)}`
+
+      // Update force list
+      const forces = calculateForces()
+      const forceList = document.getElementById('force-list')
+      forceList.innerHTML = `
+        <div style="color: #0ff;">Gravity: ${(state.mass * state.gravity).toFixed(2)} N ↓</div>
+        <div style="color: #f80;">Drag: ${Math.hypot(forces.x, forces.y).toFixed(2)} N</div>
+        <div style="color: #8f8;">Net: ${Math.hypot(forces.x, forces.y).toFixed(2)} N</div>
+      `
+    }
+
+    // ===== Main Loop =====
+    function loop() {
+      update()
+      draw()
+      drawGraph()
+      updateUI()
+      requestAnimationFrame(loop)
+    }
+
+    // ===== UI Controls =====
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      state.position = { x: canvas.width * 0.3, y: 100 }
+      state.velocity = { x: 50, y: 0 }
+      state.acceleration = { x: 0, y: 0 }
+      state.trail = []
+      history.time = []
+      history.position = []
+      history.velocity = []
+      history.acceleration = []
+      simulationTime = 0
+      previousPosition = { ...state.position }
+    })
+
+    document.getElementById('pause-btn').addEventListener('click', (e) => {
+      state.paused = !state.paused
+      e.target.textContent = state.paused ? 'Resume' : 'Pause'
+    })
+
+    document.getElementById('impulse-btn').addEventListener('click', () => {
+      state.velocity.y -= 150 // Upward impulse
+    })
+
+    document.getElementById('gravity-slider').addEventListener('input', (e) => {
+      state.gravity = parseFloat(e.target.value)
+      document.getElementById('gravity-value').textContent = state.gravity.toFixed(1)
+    })
+
+    document.getElementById('drag-slider').addEventListener('input', (e) => {
+      state.dragCoeff = parseFloat(e.target.value)
+      document.getElementById('drag-value').textContent = state.dragCoeff.toFixed(2)
+    })
+
+    document.getElementById('mass-slider').addEventListener('input', (e) => {
+      state.mass = parseFloat(e.target.value)
+      document.getElementById('mass-value').textContent = state.mass.toFixed(1)
+    })
+
+    document.getElementById('bounce-slider').addEventListener('input', (e) => {
+      state.restitution = parseFloat(e.target.value)
+      document.getElementById('bounce-value').textContent = state.restitution.toFixed(2)
+    })
+
+    document.getElementById('timestep-slider').addEventListener('input', (e) => {
+      state.deltaTime = parseFloat(e.target.value) / 1000
+      document.getElementById('timestep-value').textContent = e.target.value + 'ms'
+    })
+
+    document.getElementById('integration-method').addEventListener('change', (e) => {
+      state.integrationMethod = e.target.value
+      previousPosition = { ...state.position }
+    })
+
+    // Click to apply force
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect()
+      const clickX = e.clientX - rect.left
+      const clickY = e.clientY - rect.top
+      
+      const dx = clickX - state.position.x
+      const dy = clickY - state.position.y
+      const dist = Math.hypot(dx, dy)
+      
+      if (dist > 0) {
+        const force = 100
+        state.velocity.x += (dx / dist) * force / state.mass
+        state.velocity.y += (dy / dist) * force / state.mass
+      }
+    })
+
+    // Start
+    loop()
+    console.log('✅ Calculus physics engine initialized!')
+    console.log('🎯 Click canvas to apply directional force')
+    console.log('📊 Watch real-time graphs of v(t) and a(t)')
+  </script>
+</body>
+</html>

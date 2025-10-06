@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R3F Sandbox - GameLite</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/@react-three/fiber@8.15.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@react-three/drei@9.88.0/dist/index.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a12;
+            overflow: hidden;
+        }
+
+        #root {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Compact Navigation Bar */
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+            z-index: 1000;
+        }
+
+        .nav-title {
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nav-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: rgba(102, 126, 234, 1);
+        }
+
+        .back-btn {
+            background: rgba(255, 59, 59, 0.2);
+            border-color: rgba(255, 59, 59, 0.4);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 59, 59, 0.4);
+        }
+
+        /* Canvas Container */
+        .canvas-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+            max-width: 250px;
+            z-index: 999;
+        }
+
+        .controls-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            color: #aaa;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .shape-btn {
+            padding: 0.5rem;
+            background: rgba(102, 126, 234, 0.3);
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            border-radius: 6px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shape-btn:hover {
+            background: rgba(102, 126, 234, 0.5);
+            transform: scale(1.05);
+        }
+
+        .shape-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: rgba(102, 126, 234, 1);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 0.6rem;
+            background: rgba(255, 59, 59, 0.3);
+            border: 2px solid rgba(255, 59, 59, 0.5);
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 59, 59, 0.5);
+        }
+
+        .object-count {
+            text-align: center;
+            padding: 0.5rem;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #0ff;
+            margin-top: 1rem;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 0.8rem;
+            z-index: 999;
+        }
+
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-label {
+            color: #aaa;
+        }
+
+        .info-value {
+            color: #0ff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+        const { Canvas, useFrame, useThree } = window.R3F;
+        const { OrbitControls } = window.Drei;
+
+        // Prefab Component
+        function Prefab({ type, position, color }) {
+            const meshRef = useRef();
+
+            useFrame(() => {
+                if (meshRef.current) {
+                    meshRef.current.rotation.y += 0.005;
+                }
+            });
+
+            const geometries = {
+                cube: <boxGeometry args={[2, 2, 2]} />,
+                sphere: <sphereGeometry args={[1.2, 32, 32]} />,
+                cylinder: <cylinderGeometry args={[1, 1, 2.5, 32]} />,
+                cone: <coneGeometry args={[1.2, 2.5, 32]} />,
+                torus: <torusGeometry args={[1, 0.4, 24, 48]} />,
+                pyramid: <coneGeometry args={[1.5, 2.5, 4]} />
+            };
+
+            const colors = {
+                cube: 0xff4757,
+                sphere: 0x5352ed,
+                cylinder: 0x2ed573,
+                cone: 0xffa502,
+                torus: 0xa55eea,
+                pyramid: 0xfd79a8
+            };
+
+            return (
+                <mesh ref={meshRef} position={position} castShadow receiveShadow>
+                    {geometries[type]}
+                    <meshStandardMaterial 
+                        color={color || colors[type]} 
+                        roughness={0.4}
+                        metalness={0.3}
+                    />
+                </mesh>
+            );
+        }
+
+        // Ground Plane
+        function GroundPlane({ onClick }) {
+            const meshRef = useRef();
+
+            return (
+                <mesh 
+                    ref={meshRef} 
+                    rotation={[-Math.PI / 2, 0, 0]} 
+                    position={[0, -5, 0]}
+                    receiveShadow
+                    onClick={onClick}
+                >
+                    <planeGeometry args={[100, 100]} />
+                    <meshStandardMaterial color="#1a1a2e" roughness={0.8} />
+                </mesh>
+            );
+        }
+
+        // Scene Component
+        function Scene({ selectedPrefab, placedObjects, onGroundClick }) {
+            return (
+                <>
+                    <ambientLight intensity={0.4} />
+                    <directionalLight 
+                        position={[10, 20, 10]} 
+                        intensity={1}
+                        castShadow
+                        shadow-mapSize-width={2048}
+                        shadow-mapSize-height={2048}
+                    />
+                    <pointLight position={[-10, 10, -10]} intensity={0.5} color="#667eea" />
+                    
+                    <GroundPlane onClick={onGroundClick} />
+                    
+                    {placedObjects.map((obj) => (
+                        <Prefab key={obj.id} type={obj.type} position={obj.position} />
+                    ))}
+                    
+                    <OrbitControls
+                        enableDamping
+                        dampingFactor={0.05}
+                        minDistance={10}
+                        maxDistance={100}
+                        maxPolarAngle={Math.PI / 2 - 0.1}
+                    />
+                </>
+            );
+        }
+
+        // Main R3F Sandbox Component
+        function R3FSandbox() {
+            const [selectedPrefab, setSelectedPrefab] = useState('cube');
+            const [placedObjects, setPlacedObjects] = useState([]);
+            const [mode, setMode] = useState('game-builder');
+
+            const prefabs = [
+                { id: 'cube', icon: '🟦', name: 'Cube' },
+                { id: 'sphere', icon: '🔵', name: 'Sphere' },
+                { id: 'cylinder', icon: '🔶', name: 'Cylinder' },
+                { id: 'cone', icon: '🔺', name: 'Cone' },
+                { id: 'torus', icon: '🍩', name: 'Torus' },
+                { id: 'pyramid', icon: '🔻', name: 'Pyramid' }
+            ];
+
+            const handleGroundClick = (event) => {
+                event.stopPropagation();
+                const point = event.point;
+                
+                const newObject = {
+                    id: Date.now(),
+                    type: selectedPrefab,
+                    position: [point.x, point.y + 1, point.z]
+                };
+                
+                setPlacedObjects([...placedObjects, newObject]);
+            };
+
+            const clearAll = () => {
+                setPlacedObjects([]);
+            };
+
+            if (mode !== 'game-builder') {
+                return (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100vh',
+                        color: 'white',
+                        fontSize: '1.5rem'
+                    }}>
+                        Coming Soon: {mode}
+                    </div>
+                );
+            }
+
+            return (
+                <>
+                    <nav className="nav-bar">
+                        <div className="nav-title">
+                            🎮 React Three Fiber Sandbox
+                        </div>
+                        <div className="nav-buttons">
+                            <button 
+                                className={`nav-btn ${mode === 'game-builder' ? 'active' : ''}`}
+                                onClick={() => setMode('game-builder')}
+                            >
+                                🎮 Game Builder
+                            </button>
+                            <button 
+                                className="nav-btn back-btn"
+                                onClick={() => window.location.href = 'react-hub.html'}
+                            >
+                                ← Hub
+                            </button>
+                        </div>
+                    </nav>
+
+                    <div className="controls-panel">
+                        <div className="controls-title">🎨 Prefabs</div>
+                        
+                        <div className="control-group">
+                            <div className="control-label">Select Shape:</div>
+                            <div className="control-buttons">
+                                {prefabs.map(prefab => (
+                                    <button
+                                        key={prefab.id}
+                                        className={`shape-btn ${selectedPrefab === prefab.id ? 'active' : ''}`}
+                                        onClick={() => setSelectedPrefab(prefab.id)}
+                                        title={prefab.name}
+                                    >
+                                        {prefab.icon}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <button className="action-btn" onClick={clearAll}>
+                            🗑️ Clear All
+                        </button>
+
+                        <div className="object-count">
+                            Objects: {placedObjects.length}
+                        </div>
+                    </div>
+
+                    <div className="info-panel">
+                        <div className="info-line">
+                            <span className="info-label">Click Ground:</span>
+                            <span className="info-value">Place Object</span>
+                        </div>
+                        <div className="info-line">
+                            <span className="info-label">Right Drag:</span>
+                            <span className="info-value">Rotate View</span>
+                        </div>
+                        <div className="info-line">
+                            <span className="info-label">Scroll:</span>
+                            <span className="info-value">Zoom</span>
+                        </div>
+                    </div>
+
+                    <div className="canvas-container">
+                        <Canvas 
+                            shadows 
+                            camera={{ position: [15, 15, 15], fov: 50 }}
+                        >
+                            <Scene 
+                                selectedPrefab={selectedPrefab}
+                                placedObjects={placedObjects}
+                                onGroundClick={handleGroundClick}
+                            />
+                        </Canvas>
+                    </div>
+                </>
+            );
+        }
+
+        ReactDOM.render(<R3FSandbox />, document.getElementById('root'));
+    </script>
+</body>
+</html>

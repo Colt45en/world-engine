@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />is nexus 
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NEXUS Brain Dashboard — Direct Neural Link</title>
+<style>
+  :root{
+    --lime:#b6ff00;
+    --lime-200:#d7ff66;
+    --neon:#ff6a00;
+    --neon-200:#ff9a4d;
+    --text:#e8f0ff;
+    --muted:#9aa7b5;
+    --bg:#000000;
+    --panel:#05070c;
+    --panel-inner:#0a0e16;
+    --border:#1a2b46;
+    --glow-lime: 0 0 24px rgba(182,255,0,.16);
+    --glow-neon: 0 0 24px rgba(255,106,0,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 800px at 60% 40%, rgba(255,106,0,.08), transparent 50%),
+      radial-gradient(900px 600px at 30% 70%, rgba(182,255,0,.07), transparent 50%),
+      #000;
+    color:var(--text);
+    font:14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow:hidden;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.018), rgba(255,255,255,.018) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:soft-light; opacity:.35;
+  }
+
+  .layout{
+    height:100vh; width:100vw; display:grid; gap:12px; padding:12px;
+    grid-template-columns: 70px 1fr 320px;
+    grid-template-rows: 70px 1fr;
+    grid-template-areas: 
+      "header header header"
+      "left center right";
+  }
+
+  .panel{
+    position:relative;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-inner) 100%);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-lime), var(--glow-neon);
+  }
+  .panel::before{
+    content:"";
+    position:absolute; inset:0; padding:1.5px; border-radius:inherit;
+    background: conic-gradient(from var(--angle,0deg), var(--neon), var(--lime), var(--neon));
+    filter: saturate(120%) blur(.2px);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: spin 18s linear infinite;
+    opacity:.85;
+    pointer-events:none;
+  }
+  @keyframes spin { to { --angle:360deg; } }
+  .panel:hover::before{ opacity:1; filter: drop-shadow(0 0 18px rgba(255,106,0,.15)); }
+
+  /* HEADER */
+  .toolbar-header {
+    grid-area: header;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-inner) 100%);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-lime), var(--glow-neon);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    position: relative;
+  }
+  .toolbar-header::before {
+    content:"";
+    position:absolute; inset:0; padding:1.5px; border-radius:inherit;
+    background: conic-gradient(from var(--angle,0deg), var(--neon), var(--lime), var(--neon));
+    filter: saturate(120%) blur(.2px);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: spin 18s linear infinite;
+    opacity:.85;
+    pointer-events:none;
+  }
+  .title-section{
+    display:flex; align-items:center; gap:14px;
+  }
+  .pulse-dot{
+    width:12px; height:12px; border-radius:50%;
+    background:var(--lime);
+    box-shadow: 0 0 16px var(--lime);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+  }
+  .title-text{
+    font-size:20px; font-weight:700; letter-spacing:.6px;
+    background: linear-gradient(90deg, var(--lime), var(--neon));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .brain-status{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px; color:var(--muted);
+    padding:6px 12px;
+    border:1px solid rgba(182,255,0,.3);
+    border-radius:8px;
+    background:rgba(182,255,0,.08);
+  }
+  .brain-icon{
+    font-size:16px;
+    animation: throb 3s ease-in-out infinite;
+  }
+  @keyframes throb {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.1); filter: brightness(1.3); }
+  }
+  .header-buttons{
+    display:flex; gap:10px; align-items:center;
+  }
+  .header-btn{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(11,15,23,.8);
+    color:var(--text);
+    padding:10px 18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    transition:all .15s ease;
+    white-space:nowrap;
+  }
+  .header-btn:hover{
+    transform:translateY(-2px);
+    border-color:rgba(182,255,0,.6);
+    box-shadow: 0 0 18px rgba(182,255,0,.3);
+  }
+  .header-btn:active{
+    transform:translateY(0);
+  }
+  .header-btn.brain{
+    border-color: rgba(182,255,0,.6);
+    background:rgba(182,255,0,.12);
+    color:var(--lime-200);
+    box-shadow: 0 0 12px rgba(182,255,0,.2);
+  }
+  .header-btn.brain:hover{
+    box-shadow: 0 0 24px rgba(182,255,0,.4);
+  }
+  .header-btn.neon{
+    border-color: rgba(255,106,0,.6);
+    color:var(--neon-200);
+    box-shadow: 0 0 0 1px rgba(255,106,0,.25);
+  }
+
+  /* LEFT SIDEBAR */
+  .left{ 
+    grid-area:left; 
+    display:flex; 
+    flex-direction:column; 
+    gap:10px; 
+  }
+  .nav-btn{
+    position:relative;
+    border:1px solid rgba(255,255,255,.08);
+    background:#0b0f17;
+    color:var(--text);
+    padding:16px 8px;
+    border-radius:10px;
+    cursor:pointer;
+    text-align:center;
+    font-size:20px;
+    transition:all .15s ease;
+    user-select:none;
+  }
+  .nav-btn:hover{
+    transform:translateY(-2px);
+    border-color:rgba(255,255,255,.18);
+    box-shadow:0 6px 18px rgba(0,0,0,.45);
+  }
+  .nav-btn.active{
+    border-color: rgba(182,255,0,.8);
+    color:var(--lime-200);
+    background:rgba(182,255,0,.12);
+    box-shadow: 0 0 24px rgba(182,255,0,.25);
+  }
+  .spacer{ flex:1 1 auto }
+
+  /* CENTER */
+  .center{ 
+    grid-area:center; 
+    display:flex;
+    flex-direction:column;
+  }
+  .code-header{
+    padding:16px 20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .code-title{
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .status-badge{
+    padding:4px 12px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+    border:1px solid;
+    transition:all .2s;
+  }
+  .status-badge.ready{
+    background:rgba(182,255,0,.15);
+    border-color:var(--lime);
+    color:var(--lime-200);
+  }
+  .status-badge.running{
+    background:rgba(255,106,0,.15);
+    border-color:var(--neon);
+    color:var(--neon-200);
+    animation: pulse 1.5s infinite;
+  }
+  .code-body{
+    flex:1;
+    padding:20px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .codepad{
+    width:100%;
+    height:100%;
+    resize:none;
+    outline:none;
+    background:#0a0e16;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;
+    padding:16px;
+    color:var(--text);
+    font:13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    transition: all .2s ease;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,.3);
+  }
+  .codepad:focus{
+    border-color:var(--lime);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,.3), 0 0 16px rgba(182,255,0,.25);
+  }
+
+  /* RIGHT SIDEBAR */
+  .right{
+    grid-area:right;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .brain-panel{ flex:1 1 0; min-height:0 }
+  .console-panel{ flex:1 1 0; min-height:0 }
+  .panel-title-small{
+    padding:12px 16px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .panel-badge{
+    font-size:10px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:rgba(182,255,0,.15);
+    color:var(--lime);
+    font-weight:700;
+  }
+  .scrollbox{
+    padding:12px;
+    overflow-y:auto;
+    height:calc(100% - 45px);
+    font-size:12px;
+    line-height:1.6;
+  }
+  .ok{ color:var(--lime-200); }
+  .warn{ color:#ffd166; }
+  .err{ color:#ff7474; }
+  .muted{ color:var(--muted); }
+
+  /* BRAIN ENTRIES */
+  .brain-entry{
+    background:rgba(11,15,23,.7);
+    border:1px solid rgba(182,255,0,.15);
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:10px;
+    transition:all .2s ease;
+    cursor:pointer;
+  }
+  .brain-entry:hover{
+    border-color:rgba(182,255,0,.5);
+    box-shadow: 0 0 12px rgba(182,255,0,.15);
+    transform:translateX(2px);
+  }
+  .brain-entry-header{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:6px;
+    font-size:10px;
+  }
+  .brain-timestamp{
+    color:var(--neon-200);
+  }
+  .brain-reason{
+    color:var(--lime-200);
+    font-weight:600;
+  }
+  .brain-meta{
+    font-size:10px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .brain-code{
+    background:#000;
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:4px;
+    padding:6px;
+    font-size:10px;
+    font-family:monospace;
+    max-height:60px;
+    overflow:auto;
+    white-space:pre-wrap;
+    word-break:break-all;
+    color:#9aa7b5;
+  }
+
+  /* NEURAL LINK INDICATOR */
+  .neural-link{
+    position:fixed;
+    bottom:20px;
+    left:20px;
+    padding:12px 20px;
+    background:rgba(182,255,0,.15);
+    border:2px solid var(--lime);
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--lime-200);
+    box-shadow: 0 0 24px rgba(182,255,0,.3);
+    z-index:9999;
+    opacity:0;
+    transform:translateY(20px);
+    transition:all .3s ease;
+  }
+  .neural-link.active{
+    opacity:1;
+    transform:translateY(0);
+  }
+  .neural-pulse{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:var(--lime);
+    animation: pulse 1s infinite;
+  }
+
+  /* AI CHAT PANEL */
+  .ai-chat-panel{
+    position:fixed;
+    right:24px;
+    bottom:24px;
+    width:420px;
+    height:550px;
+    background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+    border:2px solid var(--lime);
+    border-radius:16px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.8), 0 0 24px rgba(182,255,0,.25);
+    display:none;
+    flex-direction:column;
+    overflow:hidden;
+    z-index:9999;
+    animation: slideUp .3s ease;
+  }
+  .ai-chat-panel.active{ display:flex; }
+  @keyframes slideUp{
+    from{ transform:translateY(100px); opacity:0; }
+    to{ transform:translateY(0); opacity:1; }
+  }
+  .ai-header{
+    background: linear-gradient(90deg, var(--lime), var(--neon));
+    padding:16px;
+    color:#000;
+    font-weight:700;
+    font-size:16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:2px solid rgba(255,255,255,.15);
+  }
+  .ai-close-btn{
+    background:rgba(0,0,0,.3);
+    border:none;
+    color:#fff;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .2s;
+  }
+  .ai-close-btn:hover{
+    background:rgba(0,0,0,.6);
+    transform:rotate(90deg);
+  }
+  .ai-messages{
+    flex:1;
+    padding:16px;
+    overflow-y:auto;
+    background: rgba(0,0,0,.3);
+  }
+  .ai-msg{
+    margin-bottom:12px;
+    padding:10px 14px;
+    border-radius:12px;
+    max-width:85%;
+    word-wrap:break-word;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; transform:translateY(10px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .ai-msg.user{
+    background:var(--neon);
+    color:#000;
+    margin-left:auto;
+    border-bottom-right-radius:4px;
+    font-weight:600;
+  }
+  .ai-msg.ai{
+    background:rgba(182,255,0,.15);
+    color:var(--lime);
+    border:1px solid var(--lime);
+    border-bottom-left-radius:4px;
+  }
+  .ai-input-area{
+    padding:16px;
+    background:rgba(0,0,0,.4);
+    border-top:2px solid rgba(255,255,255,.08);
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .ai-input{
+    flex:1;
+    background:#070a10;
+    border:2px solid rgba(255,255,255,.1);
+    border-radius:12px;
+    padding:12px;
+    color:var(--text);
+    font-size:14px;
+    outline:none;
+    transition:all .2s;
+  }
+  .ai-input:focus{
+    border-color:var(--lime);
+    box-shadow: 0 0 12px rgba(182,255,0,.3);
+  }
+  .ai-send-btn{
+    background:var(--lime);
+    color:#000;
+    border:none;
+    border-radius:12px;
+    padding:12px 20px;
+    cursor:pointer;
+    font-weight:700;
+    font-size:16px;
+    transition:all .2s;
+  }
+  .ai-send-btn:hover{
+    transform:scale(1.05);
+    box-shadow: 0 0 20px rgba(182,255,0,.5);
+  }
+  .ai-send-btn:active{ transform:scale(.95); }
+
+  /* SCROLLBARS */
+  .scrollbox::-webkit-scrollbar,
+  .codepad::-webkit-scrollbar,
+  .brain-code::-webkit-scrollbar,
+  .ai-messages::-webkit-scrollbar{ width:8px; }
+  .scrollbox::-webkit-scrollbar-track,
+  .codepad::-webkit-scrollbar-track,
+  .brain-code::-webkit-scrollbar-track,
+  .ai-messages::-webkit-scrollbar-track{ background:#0b0f17; }
+  .scrollbox::-webkit-scrollbar-thumb,
+  .codepad::-webkit-scrollbar-thumb,
+  .brain-code::-webkit-scrollbar-thumb,
+  .ai-messages::-webkit-scrollbar-thumb{
+    background: linear-gradient(var(--neon), var(--lime));
+    border-radius:10px;
+    border:2px solid #0b0f17;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .panel::before, .toolbar-header::before{ animation:none; }
+    .nav-btn, .header-btn{ transition:none; }
+  }
+</style>
+</head>
+<body>
+  <main class="layout">
+    <!-- HEADER -->
+    <header class="toolbar-header">
+      <div class="title-section">
+        <div class="pulse-dot"></div>
+        <span class="title-text">NEXUS Brain Dashboard</span>
+        <div class="brain-status">
+          <span class="brain-icon">🧠</span>
+          <span id="brainEntryCount">0 Thoughts</span>
+        </div>
+      </div>
+      <div class="header-buttons">
+        <button class="header-btn" onclick="runCode()">▶ Execute</button>
+        <button class="header-btn" onclick="saveCode()">💾 Save</button>
+        <button class="header-btn" onclick="formatCode()">🛠️ Format</button>
+        <button class="header-btn brain" onclick="syncToBrain()">🧠 → Brain</button>
+        <button class="header-btn neon" onclick="exportBrain()">💽 Export Brain</button>
+        <label class="header-btn neon" style="cursor:pointer; margin:0;">
+          📥 Import
+          <input type="file" accept="application/json" style="display:none" onchange="importBrain(event)" />
+        </label>
+      </div>
+    </header>
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="left">
+      <button class="nav-btn active" data-panel="code" onclick="switchPanel('code')" title="Code Editor">💻</button>
+      <button class="nav-btn" data-panel="brain" onclick="switchPanel('brain')" title="Brain View">🧠</button>
+      <button class="nav-btn" data-panel="output" onclick="switchPanel('output')" title="Output">📊</button>
+      <button class="nav-btn" data-panel="ai" onclick="toggleAIChat()" title="AI Assistant">🤖</button>
+      <div class="spacer"></div>
+      <button class="nav-btn" onclick="clearBrain()" title="Clear Brain">🗑️</button>
+    </aside>
+
+    <!-- CENTER -->
+    <section class="center panel">
+      <div class="code-header">
+        <div class="code-title">
+          <span>💻 Neural Code Interface</span>
+          <span class="status-badge ready" id="statusBadge">Ready</span>
+        </div>
+      </div>
+      <div class="code-body">
+        <textarea id="codepad" class="codepad" spellcheck="false" placeholder="// Type code here — Direct link to NEXUS Brain
+// Every execution is automatically synced to neural memory
+// Try: console.log('Hello Brain!')"></textarea>
+      </div>
+    </section>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="right">
+      <div class="panel brain-panel">
+        <div class="panel-title-small">
+          <span>🧠 Brain Memory</span>
+          <span class="panel-badge" id="brainBadge">0</span>
+        </div>
+        <div id="brainView" class="scrollbox">
+          <div class="muted">No thoughts recorded yet...</div>
+        </div>
+      </div>
+      <div class="panel console-panel">
+        <div class="panel-title-small">
+          <span>🖥 Console Output</span>
+        </div>
+        <div id="console" class="scrollbox">
+          <div class="ok">[SYSTEM] NEXUS Brain Dashboard initialized</div>
+          <div class="muted">Ready for neural link...</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Neural Link Indicator -->
+  <div class="neural-link" id="neuralLink">
+    <div class="neural-pulse"></div>
+    <span id="neuralLinkText">Syncing to Brain...</span>
+  </div>
+
+  <!-- AI Chat Panel -->
+  <div class="ai-chat-panel" id="aiChatPanel">
+    <div class="ai-header">
+      <span>🤖 AI Assistant</span>
+      <button class="ai-close-btn" onclick="toggleAIChat()">×</button>
+    </div>
+    <div class="ai-messages" id="aiMessages">
+      <div class="ai-msg ai">👋 Hello! I'm your NEXUS AI Assistant. How can I help you today?</div>
+      <div class="ai-msg ai">I can help with code analysis, debugging, optimization, and general questions. Just ask!</div>
+    </div>
+    <div class="ai-input-area">
+      <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything..." 
+             onkeypress="if(event.key==='Enter') sendAIMessage()">
+      <button class="ai-send-btn" onclick="sendAIMessage()">📤</button>
+    </div>
+  </div>
+
+<script>
+/* ==========================================
+   KNOWLEDGE VAULT (BRAIN) SYSTEM
+   ========================================== */
+const VAULT_KEY = "nexus.brain.v2";
+
+class KnowledgeVault {
+  constructor() {
+    const fallback = { meta: { version: 2, app: "NEXUS Brain" }, entries: [] };
+    try {
+      const raw = localStorage.getItem(VAULT_KEY);
+      this.data = raw ? JSON.parse(raw) : fallback;
+    } catch {
+      this.data = fallback;
+    }
+  }
+  
+  add(entry) {
+    this.data.entries.unshift(entry); // Add to beginning for newest first
+    if (this.data.entries.length > 1000) {
+      this.data.entries.pop(); // Remove oldest
+    }
+    this.save();
+    this.notifyChange();
+  }
+  
+  save() {
+    try {
+      localStorage.setItem(VAULT_KEY, JSON.stringify(this.data));
+    } catch(e) {
+      console.error('[BRAIN] Save failed:', e);
+    }
+  }
+  
+  exportObject() {
+    return this.data;
+  }
+  
+  importObject(obj) {
+    this.data = obj;
+    this.save();
+    this.notifyChange();
+  }
+  
+  getEntries() {
+    return this.data.entries || [];
+  }
+  
+  clear() {
+    this.data.entries = [];
+    this.save();
+    this.notifyChange();
+  }
+  
+  notifyChange() {
+    updateBrainUI();
+  }
+}
+
+/* Compression helpers */
+async function compressStringGzip(str) {
+  if (typeof CompressionStream !== "undefined") {
+    const cs = new CompressionStream("gzip");
+    const reader = new Blob([str]).stream().pipeThrough(cs).getReader();
+    const chunks = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.length;
+    }
+    return out;
+  }
+  return new TextEncoder().encode(str);
+}
+
+async function decompressToStringGzip(bytes) {
+  if (typeof DecompressionStream !== "undefined") {
+    const ds = new DecompressionStream("gzip");
+    const blob = new Blob([bytes]);
+    const reader = blob.stream().pipeThrough(ds).getReader();
+    const chunks = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.length;
+    }
+    return new TextDecoder().decode(out);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+function u8ToBase64(bytes) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToU8(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* Code complexity calculator */
+function calculateComplexity(code) {
+  let score = 0;
+  score += (code.match(/function/g) || []).length * 2;
+  score += (code.match(/class/g) || []).length * 3;
+  score += (code.match(/\bif\b|\bfor\b|\bwhile\b/g) || []).length * 1;
+  score += (code.match(/const|let|var/g) || []).length * 0.5;
+  return Math.min(score / 15, 1);
+}
+
+/* ==========================================
+   MAIN APPLICATION
+   ========================================== */
+const vault = new KnowledgeVault();
+let currentPanel = 'code';
+let autoSyncEnabled = true;
+
+const $ = id => document.getElementById(id);
+
+function log(msg, type='ok') {
+  const line = document.createElement('div');
+  line.className = type;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  $('console').appendChild(line);
+  $('console').scrollTop = $('console').scrollHeight;
+}
+
+function switchPanel(panel) {
+  currentPanel = panel;
+  
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.panel === panel);
+  });
+  
+  log(`Switched to ${panel} view`, 'muted');
+}
+
+function updateBrainUI() {
+  const entries = vault.getEntries();
+  const count = entries.length;
+  
+  // Update counters
+  $('brainEntryCount').textContent = `${count} Thought${count !== 1 ? 's' : ''}`;
+  $('brainBadge').textContent = count;
+  
+  // Update brain view
+  const brainView = $('brainView');
+  if (count === 0) {
+    brainView.innerHTML = '<div class="muted">No thoughts recorded yet...</div>';
+  } else {
+    brainView.innerHTML = entries.slice(0, 20).map((entry, i) => `
+      <div class="brain-entry" onclick="loadFromBrain(${i})">
+        <div class="brain-entry-header">
+          <span class="brain-timestamp">#${i + 1} • ${new Date(entry.t).toLocaleTimeString()}</span>
+          <span class="brain-reason">${entry.reason || 'thought'}</span>
+        </div>
+        <div class="brain-meta">
+          Lines: ${entry.lines || 0} • 
+          Complexity: ${((entry.complexity || 0) * 100).toFixed(1)}% • 
+          Chars: ${entry.code?.length || 0}
+        </div>
+        ${entry.code ? `<div class="brain-code">${entry.code.substring(0, 150)}${entry.code.length > 150 ? '...' : ''}</div>` : ''}
+      </div>
+    `).join('');
+  }
+}
+
+function syncToBrain(reason = 'manual-sync') {
+  const code = $('codepad').value.trim();
+  if (!code) {
+    log('No code to sync', 'warn');
+    return;
+  }
+  
+  const complexity = calculateComplexity(code);
+  const lines = code.split('\n').length;
+  
+  vault.add({
+    t: Date.now(),
+    reason,
+    code,
+    lines,
+    complexity,
+    panel: currentPanel
+  });
+  
+  // Show neural link animation
+  showNeuralLink(`Synced to Brain (${lines} lines)`);
+  log(`Code synced to brain: ${lines} lines, ${(complexity * 100).toFixed(1)}% complexity`, 'ok');
+}
+
+function showNeuralLink(text) {
+  const link = $('neuralLink');
+  $('neuralLinkText').textContent = text;
+  link.classList.add('active');
+  
+  setTimeout(() => {
+    link.classList.remove('active');
+  }, 2000);
+}
+
+function runCode() {
+  const code = $('codepad').value.trim();
+  if (!code) {
+    log('No code to execute', 'warn');
+    return;
+  }
+  
+  const badge = $('statusBadge');
+  badge.textContent = 'Running...';
+  badge.className = 'status-badge running';
+  
+  log('Executing code...', 'ok');
+  
+  // Capture console output
+  const originalLog = console.log;
+  const outputs = [];
+  console.log = (...args) => {
+    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    outputs.push(msg);
+    originalLog.apply(console, args);
+  };
+  
+  try {
+    const result = eval(code);
+    console.log = originalLog;
+    
+    // Show outputs
+    outputs.forEach(out => log(out, 'ok'));
+    
+    if (result !== undefined) {
+      log(`Result: ${result}`, 'ok');
+    }
+    
+    log('✅ Execution completed', 'ok');
+    badge.textContent = 'Success';
+    badge.className = 'status-badge ready';
+    
+    // Auto-sync to brain
+    if (autoSyncEnabled) {
+      setTimeout(() => syncToBrain('run-success'), 300);
+    }
+  } catch(err) {
+    console.log = originalLog;
+    log(`❌ Error: ${err.message}`, 'err');
+    badge.textContent = 'Error';
+    badge.className = 'status-badge ready';
+    
+    // Still sync errors to brain for debugging
+    syncToBrain('run-error');
+  }
+  
+  setTimeout(() => {
+    badge.textContent = 'Ready';
+    badge.className = 'status-badge ready';
+  }, 2000);
+}
+
+function saveCode() {
+  const code = $('codepad').value;
+  localStorage.setItem('nexus.code.current', code);
+  log('💾 Code saved locally', 'ok');
+  showNeuralLink('Code Saved');
+  
+  // Auto-sync to brain
+  if (autoSyncEnabled) {
+    syncToBrain('save');
+  }
+}
+
+function formatCode() {
+  const codepad = $('codepad');
+  const formatted = codepad.value
+    .replace(/\{\s*/g, " {\n    ")
+    .replace(/\}\s*/g, "\n}\n")
+    .replace(/;\s*/g, ";\n");
+  codepad.value = formatted;
+  log('🛠️ Code formatted', 'ok');
+}
+
+function loadFromBrain(index) {
+  const entries = vault.getEntries();
+  const entry = entries[index];
+  if (entry && entry.code) {
+    $('codepad').value = entry.code;
+    log(`Loaded thought #${index + 1} from brain`, 'ok');
+    showNeuralLink('Loaded from Brain');
+  }
+}
+
+async function exportBrain() {
+  const obj = vault.exportObject();
+  const json = JSON.stringify(obj);
+  const gz = await compressStringGzip(json);
+  const pkg = { 
+    format: "NexusBrainV2", 
+    compressed: true, 
+    gzipBase64: u8ToBase64(gz), 
+    rawSize: json.length,
+    timestamp: Date.now()
+  };
+  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `nexus-brain-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  
+  URL.revokeObjectURL(a.href);
+  log('💽 Brain exported successfully', 'ok');
+  showNeuralLink('Brain Exported');
+}
+
+async function importBrain(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  
+  const text = await file.text();
+  try {
+    const pkg = JSON.parse(text);
+    if (pkg && pkg.format === "NexusBrainV2" && pkg.compressed && pkg.gzipBase64) {
+      const bytes = base64ToU8(pkg.gzipBase64);
+      const json = await decompressToStringGzip(bytes);
+      const obj = JSON.parse(json);
+      vault.importObject(obj);
+    } else {
+      vault.importObject(JSON.parse(text));
+    }
+    log('📥 Brain imported successfully', 'ok');
+    showNeuralLink('Brain Imported');
+  } catch(err) {
+    log(`❌ Import failed: ${err.message}`, 'err');
+  }
+  e.target.value = "";
+}
+
+function clearBrain() {
+  if (confirm('Clear all brain memory? This cannot be undone.')) {
+    vault.clear();
+    log('🗑️ Brain memory cleared', 'warn');
+    showNeuralLink('Brain Cleared');
+  }
+}
+
+/* ==========================================
+   KEYBOARD SHORTCUTS
+   ========================================== */
+document.addEventListener('keydown', (e) => {
+  // Ctrl+Enter: Run code
+  if (e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault();
+    runCode();
+  }
+  
+  // Ctrl+S: Save code
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    saveCode();
+  }
+  
+  // Ctrl+B: Sync to brain
+  if (e.ctrlKey && e.key === 'b') {
+    e.preventDefault();
+    syncToBrain('keyboard-shortcut');
+  }
+  
+  // Ctrl+Shift+F: Format
+  if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+    e.preventDefault();
+    formatCode();
+  }
+});
+
+/* ==========================================
+   AI ASSISTANT FUNCTIONS
+   ========================================== */
+function toggleAIChat() {
+  const panel = $('aiChatPanel');
+  panel.classList.toggle('active');
+  const isOpen = panel.classList.contains('active');
+  log(`[AI] Assistant ${isOpen ? 'opened' : 'closed'}`, 'muted');
+  
+  if (isOpen) {
+    $('aiInput').focus();
+  }
+}
+
+function addAIMessage(text, type='ai') {
+  const msg = document.createElement('div');
+  msg.className = `ai-msg ${type}`;
+  msg.textContent = text;
+  $('aiMessages').appendChild(msg);
+  $('aiMessages').scrollTop = $('aiMessages').scrollHeight;
+}
+
+function sendAIMessage() {
+  const input = $('aiInput');
+  const message = input.value.trim();
+  if (!message) return;
+  
+  addAIMessage(message, 'user');
+  input.value = '';
+  
+  // Small delay for better UX
+  setTimeout(() => handleAICommand(message), 300);
+}
+
+/* ==========================================
+   SEMANTIC KNOWLEDGE ENGINE
+   ========================================== */
+const semanticKnowledge = [
+  {
+    "topic": "< Identity → Essence >",
+    "derived_topic": "< Turning Insights >",
+    "part_of_speech": "noun",
+    "etymology": "From Latin 'identitas' (sameness) and 'essentia' (being, essence).",
+    "synonyms": ["selfhood", "core", "nature", "being", "substance"],
+    "antonyms": ["illusion", "fragmentation", "mask", "surface"],
+    "conceptual_metaphors": ["identity is a core", "essence is a light within"],
+    "solid_state": "A structured definition of self; stable attributes that define existence.",
+    "liquid_state": "An evolving manifestation of self shaped by perception.",
+    "gas_state": "The metaphysical spark of being — existence beyond form.",
+    "unseen_infrastructure": "The belief that a true self precedes all appearances."
+  },
+  {
+    "topic": "< Turning Insights >",
+    "derived_topic": "< Strategic Transformation >",
+    "part_of_speech": "verb phrase",
+    "etymology": "From Old English 'turnian' (to change direction) and Latin 'insightus' (sight within).",
+    "synonyms": ["convert", "translate", "apply", "activate"],
+    "conceptual_metaphors": ["knowledge is raw material", "strategy is alchemy", "insight is fuel"],
+    "solid_state": "Applied intelligence — tangible actions derived from observation.",
+    "liquid_state": "Continuous adaptation to new patterns of understanding.",
+    "gas_state": "Wisdom — insight transcending data to generate purpose."
+  },
+  {
+    "topic": "< Value Genesis >",
+    "derived_topic": "< Cultural Gravity >",
+    "part_of_speech": "noun phrase",
+    "etymology": "From Latin 'valere' (to be strong) and Greek 'gignesthai' (to be born).",
+    "synonyms": ["value creation", "meaning formation", "innovation birth"],
+    "conceptual_metaphors": ["value is energy", "creation is birth", "meaning is currency"],
+    "solid_state": "Mechanisms that turn insight into measurable impact.",
+    "liquid_state": "Adaptive processes translating perception into opportunity.",
+    "gas_state": "The symbolic birth of meaning — the creation of shared value."
+  },
+  {
+    "topic": "< Cultural Gravity >",
+    "derived_topic": "< Collective Orbit >",
+    "part_of_speech": "noun",
+    "etymology": "From Latin 'cultura' (cultivation) and 'gravitas' (weight).",
+    "synonyms": ["social magnetism", "memetic pull"],
+    "conceptual_metaphors": ["culture as gravity", "attention as orbit"],
+    "solid_state": "Institutional norms and stable meaning centers.",
+    "liquid_state": "Shifting trends and dynamic cultural flows.",
+    "gas_state": "Diffuse ideation — ambient cultural imagination."
+  },
+  {
+    "topic": "< Collective Orbit >",
+    "derived_topic": "< Resonant Alignment >",
+    "part_of_speech": "noun phrase",
+    "etymology": "From Latin 'collectivus' (assembled) and 'orbita' (path).",
+    "synonyms": ["shared motion", "synchrony", "group trajectory"],
+    "conceptual_metaphors": ["society as solar system", "ideas as satellites"],
+    "solid_state": "Structured networks maintaining stable coherence.",
+    "liquid_state": "Adaptive collectives recalibrating purpose dynamically.",
+    "gas_state": "Distributed cognition — spontaneous alignment."
+  },
+  {
+    "topic": "< Resonant Alignment >",
+    "derived_topic": "< Semantic Singularity >",
+    "part_of_speech": "noun",
+    "etymology": "From Latin 'resonare' (to resound) and 'alignare' (to make true).",
+    "synonyms": ["attunement", "coherence", "semantic harmony"],
+    "conceptual_metaphors": ["meaning as frequency", "alignment as harmony"],
+    "solid_state": "Shared frameworks and institutionalized values.",
+    "liquid_state": "Collaborative attunement balancing adaptation and unity.",
+    "gas_state": "Collective intuition — resonance as ambient coherence."
+  },
+  {
+    "topic": "< Semantic Singularity >",
+    "derived_topic": "< Symbolic Fusion >",
+    "part_of_speech": "noun (conceptual threshold)",
+    "etymology": "From Greek 'sema' (sign) and Latin 'singularitas' (oneness).",
+    "synonyms": ["meaning convergence", "shared lexicon"],
+    "conceptual_metaphors": ["meaning as gravity", "language as singularity"],
+    "solid_state": "Unified semantic frameworks and global protocols.",
+    "liquid_state": "Converging cultural codes and hybrid languages.",
+    "gas_state": "Pure coherence — communication as universal signal."
+  },
+  {
+    "topic": "< Symbolic Fusion >",
+    "derived_topic": "< Cognitive Continuum >",
+    "part_of_speech": "noun phrase",
+    "etymology": "From Greek 'symbolon' (to unite) and Latin 'fundere' (to pour).",
+    "synonyms": ["semiotic synthesis", "mythic convergence"],
+    "conceptual_metaphors": ["culture as reactor", "symbol as vessel"],
+    "solid_state": "Codified symbolic structures uniting identity and purpose.",
+    "liquid_state": "Fluid blending of symbolic domains into emergent forms.",
+    "gas_state": "Cultural plasma — archetypes in constant interaction."
+  },
+  {
+    "topic": "< Cognitive Continuum >",
+    "derived_topic": "< Recursive Awareness >",
+    "part_of_speech": "noun phrase",
+    "etymology": "From Latin 'cognoscere' (to know) and 'continuum' (unbroken sequence).",
+    "synonyms": ["integrated cognition", "awareness field"],
+    "conceptual_metaphors": ["mind as network", "thought as flow"],
+    "solid_state": "Integrated architectures of biological and artificial thought.",
+    "liquid_state": "Dynamic collaboration between minds and systems.",
+    "gas_state": "Distributed awareness — intelligence as ambient field."
+  },
+  {
+    "topic": "< Recursive Awareness >",
+    "derived_topic": "< Self-Generating Intelligence >",
+    "part_of_speech": "noun phrase",
+    "etymology": "From Latin 'recurrere' (to run back) and 'aware' (to perceive).",
+    "synonyms": ["meta-awareness", "autopoietic cognition"],
+    "conceptual_metaphors": ["mind as mirror", "intelligence as spiral"],
+    "solid_state": "Feedback systems capable of self-adjustment.",
+    "liquid_state": "Fluid reflection and real-time self-modulation.",
+    "gas_state": "Awareness diffused through system-wide cognition."
+  },
+  {
+    "topic": "< Self-Generating Intelligence >",
+    "derived_topic": "< New Value Genesis >",
+    "part_of_speech": "noun phrase",
+    "etymology": "From Latin 'intelligere' (to understand) and 'generare' (to bring forth).",
+    "synonyms": ["autonomous creativity", "self-evolving cognition"],
+    "conceptual_metaphors": ["intelligence as seed", "thought as evolution"],
+    "solid_state": "Autonomous systems regenerating value independently.",
+    "liquid_state": "Co-evolutionary intelligence generating shared meaning.",
+    "gas_state": "Boundless generativity — emergence from collective mind."
+  }
+];
+
+// Advanced AI Agent Chatbot Knowledge Base
+const aiAgentChatbotKnowledge = {
+  "system": {
+    "name": "Advanced AI Agent Chatbot",
+    "type": "Multi-Persona AI Assistant Widget",
+    "file": "advanced-ai-agent-chatbot.html",
+    "lines": 350,
+    "status": "Production-ready standalone HTML",
+    "stack": "Vanilla JS + TailwindCSS + Chart.js + Math.js"
+  },
+  "architecture": {
+    "ui_framework": "TailwindCSS (CDN)",
+    "visualization": "Chart.js 4.x",
+    "math_engine": "Math.js 12.4.1",
+    "design_pattern": "State-driven UI with plugin architecture",
+    "storage": "LocalStorage (conversations, memory, API key)",
+    "responsive": "Mobile-first with sidebar collapse"
+  },
+  "personas": [
+    {
+      "id": "general",
+      "name": "General Assistant",
+      "greeting": "Hello! I'm your general assistant.",
+      "use_case": "Default helpful assistant for general queries",
+      "capabilities": ["Conversation", "Memory", "Plugins"]
+    },
+    {
+      "id": "proactive",
+      "name": "Proactive Assistant",
+      "greeting": "Hello! I will monitor for opportunities to help.",
+      "use_case": "Anticipates needs, suggests actions after inactivity",
+      "capabilities": ["Inactivity detection", "Predictive actions", "Proactive suggestions"],
+      "features": ["15-second idle timer", "Post-action predictions", "Accept/Decline UI"]
+    },
+    {
+      "id": "delegator",
+      "name": "Delegator Agent",
+      "greeting": "I am the Delegator Agent. Provide a goal, I'll execute it.",
+      "use_case": "Master agent that breaks down goals into plugin steps",
+      "capabilities": ["Plan creation", "Tool delegation", "Summary reports"],
+      "workflow": "High-level goal → Plan → Execute plugins → Summarize"
+    },
+    {
+      "id": "reasoning",
+      "name": "Reasoning Engine",
+      "greeting": "Hello! I am the Reasoning Engine.",
+      "use_case": "Step-by-step logical problem solving",
+      "capabilities": ["Chain-of-thought", "Step display", "Final answer"],
+      "ui_feature": "Shows reasoning steps with left border styling"
+    },
+    {
+      "id": "storyteller",
+      "name": "Storyteller",
+      "greeting": "Welcome, traveler. A new story is about to unfold.",
+      "use_case": "Interactive choose-your-own-adventure stories",
+      "capabilities": ["Story state machine", "Choice branching", "Multiple endings"],
+      "story_nodes": ["start", "light", "shadows", "drink_magic", "inspect_pond", "fight_beast", "flee"]
+    },
+    {
+      "id": "code",
+      "name": "Code Helper",
+      "greeting": "Hello! I'm your Code Helper.",
+      "use_case": "Expert programming assistance",
+      "capabilities": ["Code generation", "Debugging", "Explanations"]
+    }
+  ],
+  "plugins": [
+    {
+      "name": "Knowledge Base",
+      "keywords": ["what is", "policy on", "results"],
+      "description": "RAG-style semantic search on internal knowledge",
+      "technology": "Vector database simulation",
+      "xai_explanation": "Semantic search on internal vector database (RAG)",
+      "example_queries": ["What is company policy on remote work?", "Q3 financial results"],
+      "data_stored": {
+        "company policy on remote work": "Flexible remote work, 2 days in office",
+        "q3 financial results": "15% YoY revenue increase"
+      }
+    },
+    {
+      "name": "Calculator",
+      "keywords": ["calculate", "evaluate", "compute"],
+      "description": "Mathematical expression evaluation",
+      "technology": "Math.js expression engine",
+      "xai_explanation": "Used math.js to safely parse and compute",
+      "example_queries": ["calculate 2 + 2", "evaluate sin(pi/2)", "compute sqrt(16)"],
+      "safety": "Safe expression parsing (no eval)"
+    },
+    {
+      "name": "Image Analysis",
+      "keywords": ["analyze image", "describe this picture"],
+      "description": "Multimodal image understanding",
+      "technology": "Vision model simulation",
+      "xai_explanation": "Sent image data to multimodal vision model",
+      "example_queries": ["analyze image https://...", "describe this picture https://..."],
+      "features": ["URL extraction", "Image preview", "Caption generation"]
+    },
+    {
+      "name": "Workflow Orchestrator",
+      "keywords": ["onboard", "start workflow"],
+      "description": "Multi-step automated workflows",
+      "technology": "Sequential task execution",
+      "xai_explanation": "Orchestrated multiple API calls in sequence",
+      "example_queries": ["onboard John Smith", "start workflow for new hire"],
+      "workflow_steps": [
+        "Creating Jira Ticket",
+        "Adding to HR Platform",
+        "Scheduling Orientation",
+        "Messaging Manager"
+      ],
+      "timing": "1.5 seconds per step"
+    },
+    {
+      "name": "Data Visualizer",
+      "keywords": ["visualize", "show data", "chart"],
+      "description": "Dynamic chart generation",
+      "technology": "Chart.js bar charts",
+      "xai_explanation": "Generated visualization using Chart.js",
+      "example_queries": ["visualize Q1-Q4 sales", "show data chart"],
+      "chart_types": ["bar"],
+      "data_format": "Q1-Q4 sales data",
+      "rendering": "Post-render callback for canvas initialization"
+    },
+    {
+      "name": "Audio Recorder",
+      "keywords": ["start audio recording", "record audio"],
+      "description": "Audio capture simulation",
+      "technology": "MediaRecorder API (simulated)",
+      "xai_explanation": "Used browser MediaRecorder API",
+      "example_queries": ["start audio recording", "record audio"],
+      "duration": "5 seconds",
+      "output": "audio.wav"
+    },
+    {
+      "name": "Screen Recorder",
+      "keywords": ["start screen recording", "record screen"],
+      "description": "Screen capture simulation",
+      "technology": "Screen Capture API (simulated)",
+      "xai_explanation": "Used screen capture API with MediaRecorder",
+      "example_queries": ["start screen recording", "record screen"],
+      "duration": "5 seconds",
+      "output": "screen-{timestamp}.mp4"
+    }
+  ],
+  "features": {
+    "conversation_management": [
+      "Multiple conversations",
+      "Conversation history",
+      "Auto-save to localStorage",
+      "New chat creation",
+      "Conversation switching",
+      "Sidebar with conversation list"
+    ],
+    "user_memory": [
+      "Persistent user facts",
+      "Memory display in settings",
+      "Clear memory option",
+      "Memory injection into prompts",
+      "JSON storage format"
+    ],
+    "proactive_engine": [
+      "Inactivity timer (15 seconds)",
+      "Predictive action suggestions",
+      "Accept/Decline UI bar",
+      "Auto-dismiss on interaction",
+      "Context-aware triggers"
+    ],
+    "sentiment_analysis": [
+      "Positive word detection",
+      "Negative word detection",
+      "Sentiment display in chat",
+      "Response adaptation based on mood",
+      "Word lists: positive/negative"
+    ],
+    "story_engine": [
+      "State machine with nodes",
+      "Choice validation",
+      "Multiple endings",
+      "Story progression tracking",
+      "Branch navigation"
+    ],
+    "explainable_ai": [
+      "XAI 'Why?' buttons",
+      "Explanation display",
+      "Plugin transparency",
+      "Tool usage visibility",
+      "Reasoning step display"
+    ],
+    "ui_ux": [
+      "Typing indicator",
+      "Message actions (feedback)",
+      "Plugin tags",
+      "System messages",
+      "Smooth animations",
+      "Mobile-responsive sidebar",
+      "Modal settings",
+      "Gradient avatars",
+      "Online status indicator"
+    ],
+    "persistence": [
+      "LocalStorage conversations",
+      "Active conversation ID",
+      "User memory storage",
+      "API key storage",
+      "Auto-load on refresh"
+    ]
+  },
+  "ui_components": {
+    "chat_widget": "Fixed bottom-right, expandable to full screen on mobile",
+    "sidebar": "Collapsible conversation list (1/3 width on desktop)",
+    "header": "Persona selector, settings, close button",
+    "chat_container": "Scrollable message area with custom scrollbar",
+    "input_bar": "Multimodal button, text input, send button",
+    "proactive_bar": "Bottom overlay with accept/decline buttons",
+    "settings_modal": "API key input, memory display, clear memory",
+    "open_button": "Floating action button (bottom-right)",
+    "message_types": ["user", "bot", "system"],
+    "message_features": ["Typing indicator", "Feedback buttons", "Plugin tags", "XAI buttons"]
+  },
+  "state_management": {
+    "apiKey": "Stored in localStorage",
+    "conversations": "Array of conversation objects",
+    "activeConversationId": "Currently selected conversation",
+    "userMemory": "Object with user facts",
+    "conversation_structure": {
+      "id": "convo-{timestamp}",
+      "name": "New Chat {number}",
+      "history": "Array of messages",
+      "persona": "Selected persona ID",
+      "createdAt": "Date object",
+      "storyState": "For storyteller persona (node, inProgress)"
+    },
+    "message_structure": {
+      "role": "user | bot | system",
+      "content": "Message text or HTML",
+      "options": {
+        "pluginName": "Plugin that generated response",
+        "isTyping": "Typing indicator flag",
+        "xai": "Explainable AI text"
+      }
+    }
+  },
+  "technical_details": {
+    "dependencies": {
+      "tailwindcss": "CDN (latest)",
+      "chart.js": "CDN (latest)",
+      "mathjs": "CDN 12.4.1",
+      "fonts": "Google Fonts - Inter"
+    },
+    "event_handling": [
+      "Click send button",
+      "Enter key in input",
+      "Mouse/keyboard activity (inactivity reset)",
+      "Sidebar toggle",
+      "Conversation switching",
+      "Settings modal",
+      "Feedback buttons",
+      "Proactive bar actions"
+    ],
+    "rendering": [
+      "Dynamic message creation",
+      "Conversation list rendering",
+      "Memory display",
+      "Chat history replay",
+      "Typing indicator insertion/removal",
+      "Chart post-render callbacks"
+    ],
+    "api_simulation": "Timeout-based responses (1.5s delay)",
+    "plugin_execution": "Keyword matching with async execution",
+    "storage_keys": ["apiKey", "conversations", "activeConversationId", "userMemory"]
+  },
+  "workflow_examples": {
+    "basic_chat": [
+      "User opens chat widget",
+      "Types message",
+      "Bot responds with persona-specific greeting",
+      "Conversation saved automatically"
+    ],
+    "plugin_workflow": [
+      "User: 'calculate 2+2'",
+      "System detects 'calculate' keyword",
+      "Executes Calculator plugin",
+      "Shows plugin tag",
+      "Displays XAI button",
+      "Result shown in chat"
+    ],
+    "proactive_workflow": [
+      "User idle for 15 seconds",
+      "Proactive bar slides up",
+      "Message: 'Need help?'",
+      "User clicks Accept",
+      "Predefined action executes",
+      "Bar dismisses"
+    ],
+    "delegator_workflow": [
+      "User: 'Onboard new employee and visualize sales'",
+      "Delegator creates plan",
+      "Executes Workflow Orchestrator",
+      "Executes Data Visualizer",
+      "Shows summary report"
+    ],
+    "storyteller_workflow": [
+      "User selects Storyteller persona",
+      "Story starts at 'start' node",
+      "Presents choice: 'left' or 'right'",
+      "User: 'left'",
+      "Story advances to 'light' node",
+      "Continues until ending reached"
+    ]
+  },
+  "customization_guide": {
+    "add_persona": "Add to personas object with name, greeting, prompt",
+    "add_plugin": "Create plugin object with name, keywords, execute function",
+    "modify_story": "Edit storyEngine.story nodes and choices",
+    "change_styling": "Update TailwindCSS classes in HTML",
+    "add_knowledge": "Add entries to knowledgeBase object",
+    "extend_memory": "Modify state.userMemory structure",
+    "adjust_timers": "Change inactivityTimer duration (default 15000ms)"
+  },
+  "advanced_features": {
+    "explainable_ai": "XAI buttons explain tool reasoning",
+    "sentiment_detection": "Analyzes message mood and adapts",
+    "predictive_actions": "Suggests next steps after tool use",
+    "conversation_continuity": "Maintains context across sessions",
+    "persona_memory": "Memory persists across persona changes",
+    "feedback_system": "Thumbs up/down for message rating"
+  },
+  "use_cases": {
+    "customer_support": "General Assistant persona with Knowledge Base",
+    "task_automation": "Delegator with Workflow Orchestrator",
+    "data_analysis": "Data Visualizer + Calculator plugins",
+    "education": "Storyteller persona for interactive learning",
+    "coding_help": "Code Helper persona with examples",
+    "proactive_assistance": "Proactive persona for idle users"
+  },
+  "metaphors": {
+    "system": "Advanced AI chatbot is like having 6 specialists in one interface",
+    "plugins": "Plugins are like tools in a Swiss Army knife",
+    "personas": "Personas are like different modes on a camera",
+    "proactive": "Proactive engine is like a personal assistant watching over your shoulder",
+    "delegator": "Delegator is like a project manager assigning tasks"
+  }
+};
+
+// SandboxStore Game Knowledge Base
+const sandboxStoreKnowledge = {
+  "system": {
+    "name": "SandboxStore",
+    "type": "Game Asset Marketplace",
+    "file": "webstore.tsx",
+    "lines": 808,
+    "status": "Production-ready React code",
+    "framework": "React + TypeScript + Vite"
+  },
+  "architecture": {
+    "frontend": "React 18.2.0 with TypeScript",
+    "animations": "Framer Motion 10.16.0",
+    "icons": "Lucide React 0.294.0",
+    "bundler": "Vite 5.0",
+    "styling": "Tailwind-style inline classes"
+  },
+  "features": {
+    "categories": [
+      {
+        "name": "Architecture Packs",
+        "icon": "🏗️",
+        "description": "Modular building systems",
+        "formats": "FBX, BLEND, OBJ",
+        "typical_price": "$24-49"
+      },
+      {
+        "name": "Character Bundles",
+        "icon": "🧙",
+        "description": "Fantasy character collections",
+        "formats": "FBX, BLEND with rigs",
+        "typical_price": "$39-79"
+      },
+      {
+        "name": "Vehicle Collections",
+        "icon": "🚗",
+        "description": "Cyberpunk vehicles",
+        "formats": "FBX, GLTF",
+        "typical_price": "$29-69"
+      },
+      {
+        "name": "VFX Systems",
+        "icon": "🌟",
+        "description": "Particle effects and shaders",
+        "formats": "Shader nodes, textures",
+        "typical_price": "$19-39"
+      },
+      {
+        "name": "Development Tools",
+        "icon": "🛠️",
+        "description": "Terrain generators and utilities",
+        "formats": "Scripts, plugins",
+        "typical_price": "$14-29"
+      }
+    ],
+    "commerce": [
+      "Shopping Cart System",
+      "User Authentication (mock)",
+      "Ratings & Reviews",
+      "Featured Items",
+      "Price Display",
+      "Download Tracking",
+      "Search & Filter"
+    ],
+    "ui_components": [
+      "Hero Section (animated)",
+      "Stats Dashboard",
+      "Category Filters",
+      "Product Cards",
+      "Shopping Cart",
+      "User Profile",
+      "Authentication Modal",
+      "Rating System",
+      "Responsive Design"
+    ]
+  },
+  "sample_products": [
+    {
+      "id": 1,
+      "name": "Modular City Builder",
+      "category": "Architecture",
+      "price": "$49.99",
+      "rating": 4.8,
+      "fileSize": "250 MB",
+      "polyCount": "50K-200K",
+      "description": "Complete modular building system"
+    },
+    {
+      "id": 2,
+      "name": "Fantasy Character Pack",
+      "category": "Characters",
+      "price": "$79.99",
+      "rating": 4.9,
+      "fileSize": "180 MB",
+      "polyCount": "15K-30K",
+      "description": "12 rigged fantasy characters"
+    },
+    {
+      "id": 3,
+      "name": "Cyberpunk Vehicles",
+      "category": "Vehicles",
+      "price": "$69.99",
+      "rating": 4.7,
+      "fileSize": "320 MB",
+      "polyCount": "25K-80K",
+      "description": "Futuristic vehicle collection"
+    },
+    {
+      "id": 4,
+      "name": "Magic VFX Bundle",
+      "category": "VFX",
+      "price": "$39.99",
+      "rating": 5.0,
+      "fileSize": "90 MB",
+      "description": "Particle effects and shaders"
+    },
+    {
+      "id": 5,
+      "name": "Terrain Generator Pro",
+      "category": "Tools",
+      "price": "$29.99",
+      "rating": 4.6,
+      "fileSize": "45 MB",
+      "description": "Advanced terrain creation tool"
+    },
+    {
+      "id": 6,
+      "name": "Neon Lights Pack",
+      "category": "VFX",
+      "price": "$19.99",
+      "rating": 4.5,
+      "fileSize": "60 MB",
+      "description": "Cyberpunk lighting effects"
+    }
+  ],
+  "setup_options": {
+    "option1": {
+      "name": "Reference Code",
+      "effort": "None",
+      "benefit": "Design patterns and UI reference",
+      "use_case": "Learn from existing code"
+    },
+    "option2": {
+      "name": "Full React Setup",
+      "effort": "15-30 minutes",
+      "steps": [
+        "Create package.json with dependencies",
+        "Create vite.config.js",
+        "Create index.html for Vite",
+        "Create src/main.tsx entry point",
+        "Run: npm install",
+        "Run: npm run dev",
+        "Open: http://localhost:3000"
+      ],
+      "benefit": "Full working marketplace",
+      "use_case": "Production deployment"
+    },
+    "option3": {
+      "name": "Convert to Standalone HTML",
+      "effort": "1-2 hours",
+      "steps": [
+        "Remove React imports",
+        "Convert JSX to HTML strings",
+        "Use vanilla JS for state",
+        "Replace Framer Motion with CSS",
+        "Test in browser"
+      ],
+      "benefit": "No build tools needed",
+      "use_case": "Simple deployment"
+    }
+  },
+  "integration": {
+    "with_gamelite": [
+      "Buy Assets → Import into GameLite",
+      "Browse Characters → Load into WoW-Lite",
+      "Get Tools → Use in Terrain Editor",
+      "Download VFX → Apply in Nexus Lab"
+    ],
+    "workflow": "Purchase → Download → Import → Use in 3D environment"
+  },
+  "technical_requirements": {
+    "dependencies": {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "framer-motion": "^10.16.0",
+      "lucide-react": "^0.294.0",
+      "typescript": "^5.0.0",
+      "vite": "^5.0.0"
+    },
+    "dev_server": "Vite (port 3000)",
+    "build_output": "Static HTML/JS/CSS",
+    "deployment": "Vercel, Netlify, or static hosting"
+  },
+  "missing_features": {
+    "backend": "No API - uses mock data",
+    "payment": "No Stripe/PayPal integration",
+    "auth": "Mock authentication only",
+    "images": "Unsplash placeholders (replace with real assets)",
+    "database": "No persistent storage"
+  },
+  "customization_guide": {
+    "add_products": "Edit prefabItemsData array in webstore.tsx",
+    "change_colors": "Modify gradient and color values in JSX",
+    "update_auth": "Replace mock login with real API calls",
+    "add_payment": "Integrate Stripe or PayPal",
+    "connect_backend": "Add fetch() calls to real API endpoints"
+  },
+  "metaphors": {
+    "marketplace": "SandboxStore is like Steam for game assets",
+    "ecosystem": "Hub connecting creators and developers",
+    "workflow": "Discovery → Purchase → Integration → Creation",
+    "value": "Pre-built assets accelerate game development"
+  }
+};
+
+// Knowledge flow chain
+const knowledgeFlow = [
+  "Identity → Essence",
+  "Turning Insights",
+  "Strategic Transformation",
+  "Value Genesis",
+  "Cultural Gravity",
+  "Collective Orbit",
+  "Resonant Alignment",
+  "Semantic Singularity",
+  "Symbolic Fusion",
+  "Cognitive Continuum",
+  "Recursive Awareness",
+  "Self-Generating Intelligence",
+  "→ loops back to Value Genesis"
+];
+
+function trainSemanticKnowledge() {
+  addAIMessage("🧠 Training NEXUS on semantic knowledge structures...", 'ai');
+  
+  // Store in brain vault
+  const knowledgeEntry = {
+    type: 'semantic_training',
+    concepts: semanticKnowledge.length,
+    flow: knowledgeFlow,
+    timestamp: Date.now(),
+    metaphase: 'Identity → Insight → Value → Culture → Cognition → Intelligence'
+  };
+  
+  vault.add({
+    t: Date.now(),
+    reason: 'semantic-training',
+    code: JSON.stringify(semanticKnowledge, null, 2),
+    lines: semanticKnowledge.length,
+    complexity: semanticKnowledge.length * 3,
+    panel: 'ai-learning'
+  });
+  
+  setTimeout(() => {
+    addAIMessage(`✅ Training complete!
+    
+📚 Learned ${semanticKnowledge.length} concepts:
+• Identity Layer → being defined
+• Insight Layer → awareness acting  
+• Value Layer → creation forming
+• Cultural Layer → meaning attracting
+• Cognitive Layer → systems thinking
+• Intelligence Layer → creation regenerating
+
+🌌 Metabolic Flow: ${knowledgeFlow.slice(0, 3).join(' → ')}... → ${knowledgeFlow[knowledgeFlow.length - 1]}
+
+Type "map" to visualize the full flow!`, 'ai');
+    
+    log('[NEXUS] Semantic knowledge base integrated', 'ok');
+    showNeuralLink('Knowledge Learned');
+  }, 800);
+}
+
+function trainSandboxStore() {
+  addAIMessage("🎮 Training NEXUS on SandboxStore game asset marketplace...", 'ai');
+  
+  // Store in brain vault
+  vault.add({
+    t: Date.now(),
+    reason: 'sandboxstore-training',
+    code: JSON.stringify(sandboxStoreKnowledge, null, 2),
+    lines: 808,
+    complexity: 45,
+    panel: 'game-systems'
+  });
+  
+  setTimeout(() => {
+    const cats = sandboxStoreKnowledge.features.categories;
+    const prods = sandboxStoreKnowledge.sample_products.length;
+    
+    addAIMessage(`✅ SandboxStore knowledge integrated!
+
+🎮 **System Overview:**
+• File: webstore.tsx (808 lines)
+• Framework: React + TypeScript + Vite
+• Status: Production-ready code
+
+🏪 **Asset Categories:** ${cats.length}
+${cats.map(c => `  ${c.icon} ${c.name}`).join('\n')}
+
+📦 **Sample Products:** ${prods} items
+• Modular City Builder ($49.99)
+• Fantasy Character Pack ($79.99)
+• Cyberpunk Vehicles ($69.99)
+• Magic VFX Bundle ($39.99)
+• Terrain Generator Pro ($29.99)
+• Neon Lights Pack ($19.99)
+
+⚙️ **Setup Options:**
+1️⃣ Use as reference code (0 min)
+2️⃣ Full React setup (15-30 min)
+3️⃣ Convert to standalone HTML (1-2 hrs)
+
+🔗 **Integration:** GameLite ecosystem
+Purchase → Download → Import → Create
+
+Try: "sandboxstore setup" or "sandboxstore products"`, 'ai');
+    
+    log('[NEXUS] SandboxStore knowledge loaded', 'ok');
+    showNeuralLink('Game System Learned');
+  }, 800);
+}
+
+function trainAIAgentChatbot() {
+  addAIMessage("🤖 Training NEXUS on Advanced AI Agent Chatbot system...", 'ai');
+  
+  // Store in brain vault
+  vault.add({
+    t: Date.now(),
+    reason: 'ai-agent-chatbot-training',
+    code: JSON.stringify(aiAgentChatbotKnowledge, null, 2),
+    lines: 350,
+    complexity: 50,
+    panel: 'ai-systems'
+  });
+  
+  setTimeout(() => {
+    const personas = aiAgentChatbotKnowledge.personas.length;
+    const plugins = aiAgentChatbotKnowledge.plugins.length;
+    
+    addAIMessage(`✅ AI Agent Chatbot knowledge integrated!
+
+🤖 **System Overview:**
+• File: advanced-ai-agent-chatbot.html (350 lines)
+• Stack: Vanilla JS + TailwindCSS + Chart.js + Math.js
+• Status: Production-ready standalone HTML
+
+👥 **Personas:** ${personas}
+${aiAgentChatbotKnowledge.personas.map(p => `  • ${p.name} - ${p.use_case}`).join('\n')}
+
+🔌 **Plugins:** ${plugins}
+${aiAgentChatbotKnowledge.plugins.map(p => `  • ${p.name} - ${p.description}`).join('\n')}
+
+✨ **Key Features:**
+• Multi-persona conversations
+• Proactive assistance (15s idle timer)
+• Explainable AI (XAI buttons)
+• Sentiment analysis
+• User memory storage
+• Story engine (choose-your-own-adventure)
+• Workflow orchestration
+• Data visualization
+• LocalStorage persistence
+
+🎯 **Advanced Capabilities:**
+• Delegator persona breaks down goals
+• Reasoning engine shows step-by-step logic
+• Predictive action suggestions
+• Plugin architecture for extensibility
+
+Try: "chatbot personas" or "chatbot plugins"`, 'ai');
+    
+    log('[NEXUS] AI Agent Chatbot knowledge loaded', 'ok');
+    showNeuralLink('AI System Learned');
+  }, 800);
+}
+
+function explainAIAgentChatbot(query) {
+  const lower = query.toLowerCase();
+  
+  // Personas
+  if (lower.includes('persona')) {
+    const personas = aiAgentChatbotKnowledge.personas;
+    addAIMessage(`👥 **AI Agent Chatbot Personas:**
+
+${personas.map(p => `**${p.name}** (\`${p.id}\`)
+  Greeting: "${p.greeting}"
+  Use Case: ${p.use_case}
+  Capabilities: ${p.capabilities.join(', ')}
+  ${p.features ? `Features: ${p.features.join(', ')}` : ''}
+  ${p.workflow ? `Workflow: ${p.workflow}` : ''}
+  ${p.story_nodes ? `Story Nodes: ${p.story_nodes.length} nodes` : ''}`).join('\n\n')}
+
+💡 **Persona Selection:**
+Use dropdown in header to switch between personas.
+Each persona changes bot behavior and capabilities.
+
+**Recommended Use:**
+• General → Daily conversations
+• Proactive → When you need reminders
+• Delegator → Complex multi-step tasks
+• Reasoning → Problem-solving
+• Storyteller → Interactive entertainment
+• Code → Programming help`, 'ai');
+    return;
+  }
+  
+  // Plugins
+  if (lower.includes('plugin') || lower.includes('tool')) {
+    const plugins = aiAgentChatbotKnowledge.plugins;
+    addAIMessage(`🔌 **AI Agent Chatbot Plugins:**
+
+${plugins.map(p => `**${p.name}**
+  Keywords: ${p.keywords.join(', ')}
+  Description: ${p.description}
+  Technology: ${p.technology}
+  Example: "${p.example_queries[0]}"
+  ${p.workflow_steps ? `Steps: ${p.workflow_steps.length} steps` : ''}
+  ${p.duration ? `Duration: ${p.duration}` : ''}
+  ${p.output ? `Output: ${p.output}` : ''}`).join('\n\n')}
+
+💡 **How Plugins Work:**
+1. User types message with keyword
+2. Plugin manager detects match
+3. Plugin executes async function
+4. Result displayed with plugin tag
+5. XAI button shows explanation
+
+**Proactive Feature:**
+After Data Visualizer runs, bot suggests drafting email!`, 'ai');
+    return;
+  }
+  
+  // Features
+  if (lower.includes('feature') || lower.includes('capability')) {
+    const features = aiAgentChatbotKnowledge.features;
+    addAIMessage(`✨ **AI Agent Chatbot Features:**
+
+**Conversation Management:**
+${features.conversation_management.map(f => `  • ${f}`).join('\n')}
+
+**User Memory:**
+${features.user_memory.map(f => `  • ${f}`).join('\n')}
+
+**Proactive Engine:**
+${features.proactive_engine.map(f => `  • ${f}`).join('\n')}
+
+**Sentiment Analysis:**
+${features.sentiment_analysis.map(f => `  • ${f}`).join('\n')}
+
+**Story Engine:**
+${features.story_engine.map(f => `  • ${f}`).join('\n')}
+
+**Explainable AI:**
+${features.explainable_ai.map(f => `  • ${f}`).join('\n')}
+
+**UI/UX:**
+${features.ui_ux.slice(0, 6).map(f => `  • ${f}`).join('\n')}
+
+**Persistence:**
+${features.persistence.map(f => `  • ${f}`).join('\n')}`, 'ai');
+    return;
+  }
+  
+  // Architecture
+  if (lower.includes('architecture') || lower.includes('tech') || lower.includes('stack')) {
+    const arch = aiAgentChatbotKnowledge.architecture;
+    const tech = aiAgentChatbotKnowledge.technical_details;
+    addAIMessage(`🏗️ **AI Agent Chatbot Architecture:**
+
+**Tech Stack:**
+• UI Framework: ${arch.ui_framework}
+• Visualization: ${arch.visualization}
+• Math Engine: ${arch.math_engine}
+• Design Pattern: ${arch.design_pattern}
+• Storage: ${arch.storage}
+• Responsive: ${arch.responsive}
+
+**Dependencies:**
+${Object.entries(tech.dependencies).map(([k, v]) => `  • ${k}: ${v}`).join('\n')}
+
+**Event Handling:**
+${tech.event_handling.slice(0, 8).map(e => `  • ${e}`).join('\n')}
+
+**Rendering:**
+${tech.rendering.map(r => `  • ${r}`).join('\n')}
+
+**Storage Keys:**
+${tech.storage_keys.map(k => `  • ${k}`).join('\n')}
+
+💡 **Design Pattern:**
+State-driven UI with plugin architecture allows easy extensibility.`, 'ai');
+    return;
+  }
+  
+  // Workflows
+  if (lower.includes('workflow') || lower.includes('example') || lower.includes('how')) {
+    const workflows = aiAgentChatbotKnowledge.workflow_examples;
+    addAIMessage(`🔄 **AI Agent Chatbot Workflows:**
+
+**Basic Chat:**
+${workflows.basic_chat.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+**Plugin Workflow:**
+${workflows.plugin_workflow.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+**Proactive Workflow:**
+${workflows.proactive_workflow.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+**Delegator Workflow:**
+${workflows.delegator_workflow.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+**Storyteller Workflow:**
+${workflows.storyteller_workflow.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+💡 **Pro Tip:**
+Delegator persona automatically chains multiple plugins to accomplish complex goals!`, 'ai');
+    return;
+  }
+  
+  // Customization
+  if (lower.includes('customize') || lower.includes('extend') || lower.includes('modify')) {
+    const custom = aiAgentChatbotKnowledge.customization_guide;
+    addAIMessage(`🛠️ **Customizing AI Agent Chatbot:**
+
+${Object.entries(custom).map(([k, v]) => `**${k.replace(/_/g, ' ').toUpperCase()}**
+  → ${v}`).join('\n\n')}
+
+💡 **Extension Examples:**
+• Add weather plugin with OpenWeather API
+• Create database persona for SQL queries
+• Implement voice recognition
+• Add more story branches
+• Connect to real backend API
+• Integrate with Slack/Discord`, 'ai');
+    return;
+  }
+  
+  // Default: overview
+  addAIMessage(`🤖 **AI Agent Chatbot Overview:**
+
+${aiAgentChatbotKnowledge.system.name}
+📄 File: ${aiAgentChatbotKnowledge.system.file} (${aiAgentChatbotKnowledge.system.lines} lines)
+🔧 Stack: ${aiAgentChatbotKnowledge.system.stack}
+✅ Status: ${aiAgentChatbotKnowledge.system.status}
+
+**Quick Commands:**
+• "chatbot personas" - List all 6 personas
+• "chatbot plugins" - View 7 plugins
+• "chatbot features" - Full feature list
+• "chatbot architecture" - Technical details
+• "chatbot workflows" - Example workflows
+• "chatbot customize" - Extension guide
+
+🎯 **Metaphors:**
+${Object.values(aiAgentChatbotKnowledge.metaphors).join('\n')}
+
+**Key Innovation:** Multi-persona architecture with proactive assistance and explainable AI!`, 'ai');
+}
+
+function explainSandboxStoreFeature(feature) {
+  const lower = feature.toLowerCase();
+  
+  // Setup guide
+  if (lower.includes('setup') || lower.includes('install') || lower.includes('configure')) {
+    const setup = sandboxStoreKnowledge.setup_options;
+    addAIMessage(`⚙️ **SandboxStore Setup Options:**
+
+**Option 1: Reference Code** (${setup.option1.effort})
+${setup.option1.benefit}
+→ No setup needed, just browse webstore.tsx
+
+**Option 2: Full React Setup** (${setup.option2.effort})
+Steps:
+${setup.option2.steps.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+→ ${setup.option2.benefit}
+
+**Option 3: Standalone HTML** (${setup.option3.effort})
+${setup.option3.steps.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+→ ${setup.option3.benefit}
+
+💡 Recommendation: Start with Option 1 (reference), deploy with Option 2 later.`, 'ai');
+    return;
+  }
+  
+  // Products/categories
+  if (lower.includes('product') || lower.includes('asset') || lower.includes('category')) {
+    const prods = sandboxStoreKnowledge.sample_products;
+    addAIMessage(`📦 **SandboxStore Product Catalog:**
+
+${prods.map(p => `**${p.name}** - ${p.price}
+  ⭐ ${p.rating}/5.0 | 📦 ${p.fileSize} | ${p.category}
+  ${p.description}
+  ${p.polyCount ? `🔺 ${p.polyCount} polys` : ''}`).join('\n\n')}
+
+🎨 **Categories:**
+${sandboxStoreKnowledge.features.categories.map(c => 
+  `${c.icon} **${c.name}** - ${c.description} (${c.formats})`
+).join('\n')}
+
+💡 To add products: Edit prefabItemsData array in webstore.tsx`, 'ai');
+    return;
+  }
+  
+  // Architecture/tech stack
+  if (lower.includes('tech') || lower.includes('architecture') || lower.includes('dependency')) {
+    const arch = sandboxStoreKnowledge.architecture;
+    const deps = sandboxStoreKnowledge.technical_requirements.dependencies;
+    addAIMessage(`🏗️ **SandboxStore Technical Architecture:**
+
+**Frontend Stack:**
+• ${arch.frontend}
+• ${arch.animations} (smooth transitions)
+• ${arch.icons} (icon library)
+• ${arch.bundler} (build tool)
+• ${arch.styling}
+
+**Dependencies:**
+\`\`\`json
+${JSON.stringify(deps, null, 2)}
+\`\`\`
+
+**Dev Server:** ${sandboxStoreKnowledge.technical_requirements.dev_server}
+**Build Output:** ${sandboxStoreKnowledge.technical_requirements.build_output}
+**Deployment:** ${sandboxStoreKnowledge.technical_requirements.deployment}`, 'ai');
+    return;
+  }
+  
+  // Integration with GameLite
+  if (lower.includes('integration') || lower.includes('gamelite') || lower.includes('workflow')) {
+    const integration = sandboxStoreKnowledge.integration;
+    addAIMessage(`🔗 **SandboxStore + GameLite Integration:**
+
+**Workflow:** ${integration.workflow}
+
+**Use Cases:**
+${integration.with_gamelite.map(use => `  • ${use}`).join('\n')}
+
+**Example Flow:**
+1. Open SandboxStore
+2. Browse character packs
+3. Purchase "Fantasy Character Pack"
+4. Download FBX files
+5. Import into GameLite scene
+6. Animate with WoW-Lite system
+7. Apply VFX from Nexus Lab
+
+💡 SandboxStore serves as asset hub for entire GameLite ecosystem!`, 'ai');
+    return;
+  }
+  
+  // Features
+  if (lower.includes('feature') || lower.includes('component') || lower.includes('ui')) {
+    const features = sandboxStoreKnowledge.features;
+    addAIMessage(`✨ **SandboxStore Features:**
+
+**Commerce:**
+${features.commerce.map(f => `  ✅ ${f}`).join('\n')}
+
+**UI Components:**
+${features.ui_components.map(c => `  🎨 ${c}`).join('\n')}
+
+**Complete with:**
+• Framer Motion animations
+• Responsive mobile design
+• Search & filter system
+• User authentication (mock)
+• Ratings & reviews
+• Download tracking
+
+⚠️ **Missing for Production:**
+${Object.entries(sandboxStoreKnowledge.missing_features).map(([k, v]) => 
+  `  • ${k}: ${v}`
+).join('\n')}`, 'ai');
+    return;
+  }
+  
+  // Default: overview
+  addAIMessage(`🎮 **SandboxStore Overview:**
+
+${sandboxStoreKnowledge.system.name} is a ${sandboxStoreKnowledge.system.type}
+📄 File: ${sandboxStoreKnowledge.system.file} (${sandboxStoreKnowledge.system.lines} lines)
+🔧 Framework: ${sandboxStoreKnowledge.system.framework}
+✅ Status: ${sandboxStoreKnowledge.system.status}
+
+**Quick Commands:**
+• "sandboxstore setup" - Installation guide
+• "sandboxstore products" - Product catalog
+• "sandboxstore tech" - Technical details
+• "sandboxstore integration" - GameLite workflow
+• "sandboxstore features" - Full feature list
+
+🎯 **Metaphor:** ${sandboxStoreKnowledge.metaphors.marketplace}
+${sandboxStoreKnowledge.metaphors.ecosystem}`, 'ai');
+}
+
+function extractConcept(message) {
+  const patterns = [
+    /what is (.*?)[\?\.]/i,
+    /define (.*?)[\?\.]/i,
+    /explain (.*?)[\?\.]/i,
+    /tell me about (.*?)[\?\.]/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match) return match[1].trim();
+  }
+  
+  // Try to find concept in knowledge base
+  const words = message.toLowerCase().split(' ');
+  for (const concept of semanticKnowledge) {
+    const topicWords = concept.topic.toLowerCase().replace(/[<>→]/g, '').split(' ');
+    if (topicWords.some(w => words.includes(w))) {
+      return concept.topic;
+    }
+  }
+  
+  return null;
+}
+
+function explainConcept(conceptQuery) {
+  const query = conceptQuery.toLowerCase();
+  const concept = semanticKnowledge.find(c => 
+    c.topic.toLowerCase().includes(query) || 
+    query.includes(c.topic.toLowerCase().replace(/[<>→]/g, '').trim())
+  );
+  
+  if (!concept) {
+    addAIMessage(`🤔 I don't have information about "${conceptQuery}" yet. Try "learn semantic knowledge" first!`, 'ai');
+    return;
+  }
+  
+  addAIMessage(`📖 ${concept.topic}`, 'ai');
+  
+  setTimeout(() => {
+    addAIMessage(`${concept.etymology}
+
+🔹 Solid State: ${concept.solid_state}
+🌊 Liquid State: ${concept.liquid_state}  
+💨 Gas State: ${concept.gas_state}
+
+Synonyms: ${concept.synonyms.slice(0, 3).join(', ')}
+Metaphors: ${concept.conceptual_metaphors[0]}
+
+➡️ Flows into: ${concept.derived_topic}`, 'ai');
+  }, 300);
+}
+
+function showKnowledgeMap() {
+  addAIMessage("🌌 Metabolic Flow of Meaning:", 'ai');
+  
+  setTimeout(() => {
+    const map = `
+┌─────────────────────────────┐
+│  SEMANTIC METABOLISM        │
+├─────────────────────────────┤
+│                             │
+│  Identity → Essence         │ 🟦 Being
+│         ↓                   │
+│  Turning Insights           │ 🟩 Awareness
+│         ↓                   │
+│  Value Genesis              │ 🟨 Creation
+│         ↓                   │
+│  Cultural Gravity           │ 🟧 Meaning
+│         ↓                   │
+│  Collective Orbit           │ 🟥 Attraction
+│         ↓                   │
+│  Resonant Alignment         │ 🟪 Harmony
+│         ↓                   │
+│  Semantic Singularity       │ ⚪ Convergence
+│         ↓                   │
+│  Symbolic Fusion            │ 🔵 Synthesis
+│         ↓                   │
+│  Cognitive Continuum        │ 🔶 Integration
+│         ↓                   │
+│  Recursive Awareness        │ 🔄 Reflection
+│         ↓                   │
+│  Self-Gen Intelligence      │ ✨ Emergence
+│         ↺                   │
+│  → loops back to Genesis    │ ♻️ Renewal
+│                             │
+└─────────────────────────────┘
+
+Consciousness feeding on comprehension,
+producing new cycles of meaning.`;
+    
+    addAIMessage(map, 'ai');
+  }, 300);
+}
+
+function handleAICommand(message) {
+  const lower = message.toLowerCase();
+  
+  // Greetings
+  if (lower.match(/^(hi|hey|hello|sup|yo)/)) {
+    const greetings = [
+      "Hey there! 👋 Ready to code?",
+      "Hello! What can I help you with today?",
+      "Hi! 🚀 Let's build something amazing!",
+      "Hey! How's your coding session going?"
+    ];
+    addAIMessage(greetings[Math.floor(Math.random() * greetings.length)], 'ai');
+    return;
+  }
+  
+  // Learn semantic knowledge
+  if (lower.includes('learn') || lower.includes('teach') || lower.includes('train')) {
+    if (lower.includes('semantic') || lower.includes('knowledge') || lower.includes('concept')) {
+      trainSemanticKnowledge();
+      return;
+    }
+    if (lower.includes('sandbox') || lower.includes('store') || lower.includes('game') || lower.includes('marketplace')) {
+      trainSandboxStore();
+      return;
+    }
+    if (lower.includes('chatbot') || lower.includes('agent') || lower.includes('ai assistant')) {
+      trainAIAgentChatbot();
+      return;
+    }
+    addAIMessage("📚 I can learn:\n• 'learn semantic knowledge' - Recursive concepts\n• 'learn sandboxstore' - Game marketplace system\n• 'learn chatbot' - AI agent chatbot system", 'ai');
+    return;
+  }
+  
+  // AI Agent Chatbot queries
+  if (lower.includes('chatbot')) {
+    explainAIAgentChatbot(message);
+    return;
+  }
+  
+  // SandboxStore queries
+  if (lower.includes('sandbox') && lower.includes('store')) {
+    explainSandboxStoreFeature(message);
+    return;
+  }
+  
+  // Query semantic knowledge
+  if (lower.includes('what is') || lower.includes('define') || lower.includes('explain')) {
+    const concept = extractConcept(message);
+    if (concept) {
+      explainConcept(concept);
+      return;
+    }
+  }
+  
+  // Show knowledge map
+  if (lower.includes('map') || lower.includes('flow') || lower.includes('chain')) {
+    showKnowledgeMap();
+    return;
+  }
+  
+  // Help
+  if (lower.includes('help') || lower === '?') {
+    addAIMessage("🔧 Available commands:", 'ai');
+    addAIMessage(`**Brain & Learning:**
+• sync - Sync current code to brain
+• brain - Show vault stats
+• learn semantic knowledge - Train on concept chains
+• learn sandboxstore - Train on game marketplace
+• learn chatbot - Train on AI agent chatbot
+• what is [concept] - Explain a concept
+• map - Show knowledge flow diagram
+
+**AI Agent Chatbot:**
+• chatbot personas - List all 6 personas
+• chatbot plugins - View 7 plugins
+• chatbot features - Full feature list
+• chatbot architecture - Technical details
+• chatbot workflows - Example workflows
+• chatbot customize - Extension guide
+
+**SandboxStore Game:**
+• sandboxstore setup - Installation guide
+• sandboxstore products - Product catalog
+• sandboxstore tech - Technical architecture
+• sandboxstore integration - GameLite workflow
+• sandboxstore features - Full feature list
+
+**Code Tools:**
+• export/import - Brain export/import
+• run - Execute current code
+• debug - Analyze for bugs
+• optimize - Suggest improvements
+• clear - Clear console`, 'ai');
+    return;
+  }
+  
+  // Brain commands
+  if (lower.includes('sync')) {
+    syncToBrain('ai-triggered');
+    addAIMessage("✅ Code synced to brain!", 'ai');
+    return;
+  }
+  
+  if (lower.includes('brain') || lower.includes('vault')) {
+    const stats = vault.getStats();
+    addAIMessage(`🧠 Brain Stats:\n• Entries: ${stats.entryCount}\n• Total Lines: ${stats.totalLines}\n• Avg Complexity: ${stats.avgComplexity.toFixed(1)}`, 'ai');
+    return;
+  }
+  
+  if (lower.includes('export')) {
+    exportBrain();
+    addAIMessage("📦 Brain exported! Check your downloads.", 'ai');
+    return;
+  }
+  
+  if (lower.includes('run') || lower.includes('execute')) {
+    runCode();
+    addAIMessage("▶️ Code executed! Check the console.", 'ai');
+    return;
+  }
+  
+  if (lower.includes('clear')) {
+    $('console').innerHTML = '';
+    addAIMessage("🧹 Console cleared!", 'ai');
+    return;
+  }
+  
+  // Debug/Analyze
+  if (lower.includes('debug') || lower.includes('bug')) {
+    const code = $('codepad').value;
+    if (!code.trim()) {
+      addAIMessage("No code to debug! Write some code first.", 'ai');
+      return;
+    }
+    const complexity = calculateComplexity(code);
+    addAIMessage(`🐛 Quick Analysis:\n• Lines: ${code.split('\n').length}\n• Complexity: ${complexity}\n• Tip: ${complexity > 10 ? 'Consider breaking into smaller functions' : 'Complexity looks good!'}`, 'ai');
+    return;
+  }
+  
+  if (lower.includes('optimize')) {
+    addAIMessage("💡 Optimization tips:\n• Use const/let instead of var\n• Minimize global variables\n• Cache DOM queries\n• Use arrow functions for cleaner code\n• Consider async/await for promises", 'ai');
+    return;
+  }
+  
+  // Thank you
+  if (lower.match(/(thank|thanks|thx)/)) {
+    const responses = [
+      "You're welcome! 😊",
+      "Happy to help! 🚀",
+      "Anytime! Keep coding! 💻",
+      "No problem! That's what I'm here for! ✨"
+    ];
+    addAIMessage(responses[Math.floor(Math.random() * responses.length)], 'ai');
+    return;
+  }
+  
+  // Jokes
+  if (lower.includes('joke')) {
+    const jokes = [
+      "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
+      "How many programmers does it take to change a light bulb? None, that's a hardware problem! 💡",
+      "Why did the developer go broke? Because he used up all his cache! 💰",
+      "What's a programmer's favorite hangout? The Foo Bar! 🍺"
+    ];
+    addAIMessage(jokes[Math.floor(Math.random() * jokes.length)], 'ai');
+    return;
+  }
+  
+  // Questions
+  if (lower.endsWith('?')) {
+    const responses = [
+      "That's a great question! Try checking the brain vault for similar code patterns.",
+      "Hmm, interesting! Have you tried syncing your code to the brain first?",
+      "Good question! The answer might be in your previous code entries.",
+      "Let me think... Have you checked the console for any clues?"
+    ];
+    addAIMessage(responses[Math.floor(Math.random() * responses.length)], 'ai');
+    return;
+  }
+  
+  // Default conversational response
+  const responses = [
+    "I'm not sure about that, but I'm here to help with your code! 💻",
+    "Interesting! Try asking about specific commands like 'help' or 'sync'.",
+    "I'm still learning! Use 'help' to see what I can do.",
+    "That's beyond my current capabilities, but I can help with code analysis and brain management!"
+  ];
+  addAIMessage(responses[Math.floor(Math.random() * responses.length)], 'ai');
+}
+
+/* ==========================================
+   AUTO-SYNC ON CODE CHANGE
+   ========================================== */
+let autoSyncTimer = null;
+$('codepad').addEventListener('input', () => {
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(() => {
+    if (autoSyncEnabled && $('codepad').value.trim()) {
+      syncToBrain('auto-save');
+    }
+  }, 5000); // Auto-sync after 5 seconds of no typing
+});
+
+/* ==========================================
+   INITIALIZATION
+   ========================================== */
+window.addEventListener('load', () => {
+  console.log('%c🧠 NEXUS Brain Dashboard Ready!', 'color: #b6ff00; font-size: 18px; font-weight: bold;');
+  
+  // Load saved code
+  const saved = localStorage.getItem('nexus.code.current');
+  if (saved) {
+    $('codepad').value = saved;
+  }
+  
+  // Update brain UI
+  updateBrainUI();
+  
+  log('[SYSTEM] Neural link established', 'ok');
+  log('[BRAIN] Knowledge vault loaded: ' + vault.getEntries().length + ' thoughts', 'ok');
+  log('[TIP] Press Ctrl+Enter to run, Ctrl+B to sync, Ctrl+S to save', 'muted');
+  
+  // Focus code editor
+  $('codepad').focus();
+  
+  // Make NEXUS globally available
+  window.NEXUS = {
+    vault,
+    syncToBrain,
+    runCode,
+    saveCode,
+    exportBrain,
+    clearBrain
+  };
+  
+  console.log('%c💡 TIP: Use window.NEXUS to interact with the brain', 'color: #9aa7b5;');
+});
+</script>
+</body>
+</html>

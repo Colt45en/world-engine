@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Intersection Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #canvas {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            cursor: crosshair;
+        }
+
+        #panel {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #4fc3f7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: rgba(79, 195, 247, 0.2);
+            border: 1px solid rgba(79, 195, 247, 0.4);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(79, 195, 247, 0.3);
+            border-color: #4fc3f7;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+        }
+
+        .intersection-item {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 3px solid #4caf50;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .no-intersections {
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+            font-size: 12px;
+            text-align: center;
+            padding: 16px;
+        }
+
+        .instructions {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #ffd54f;
+        }
+
+        .status {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Consolas', monospace;
+            pointer-events: none;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+            }
+            #panel {
+                width: 100%;
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container">
+            <canvas id="canvas" width="800" height="600"></canvas>
+            <div class="status" id="status">Click to add line segments</div>
+        </div>
+
+        <div id="panel">
+            <h1>Line Intersection</h1>
+            <div class="subtitle">Interactive geometry demo</div>
+
+            <div class="section">
+                <div class="section-title">Instructions</div>
+                <div class="instructions">
+                    Click twice to create a line segment. Lines are tested for intersections in real-time using orientation-based geometric algorithms.
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Actions</div>
+                <div class="button-grid">
+                    <button onclick="clearLines()">Clear All</button>
+                    <button onclick="addRandomLines(5)">Random Lines</button>
+                    <button onclick="addTestPattern('x')" class="full-width">X Pattern</button>
+                    <button onclick="addTestPattern('grid')" class="full-width">Grid Pattern</button>
+                    <button onclick="addTestPattern('star')" class="full-width">Star Pattern</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Legend</div>
+                <div class="legend">
+                    <div class="legend-color" style="background: #2196f3;"></div>
+                    <div>Line segments</div>
+                    <div class="legend-color" style="background: #4caf50;"></div>
+                    <div>Intersecting lines</div>
+                    <div class="legend-color" style="background: #ff5722;"></div>
+                    <div>Intersection points</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Statistics</div>
+                <div class="info-box">
+                    <div class="info-label">Total Lines</div>
+                    <div class="info-value" id="line-count">0</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Intersections Found</div>
+                    <div class="info-value" id="intersection-count">0</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Intersections</div>
+                <div id="intersection-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Geometry Classes =====
+        class Point {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            toString() {
+                return `(${this.x.toFixed(1)}, ${this.y.toFixed(1)})`;
+            }
+
+            static isFinite(p) {
+                return Number.isFinite(p.x) && Number.isFinite(p.y);
+            }
+
+            static infinite() {
+                return new Point(Infinity, Infinity);
+            }
+        }
+
+        class Line {
+            constructor(p, q) {
+                this.p = p;
+                this.q = q;
+            }
+
+            get midpoint() {
+                return new Point(
+                    (this.p.x + this.q.x) / 2,
+                    (this.p.y + this.q.y) / 2
+                );
+            }
+        }
+
+        // ===== Intersection Algorithms =====
+        function orientation(p, q, r) {
+            const val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+            if (Math.abs(val) < 1e-10) return 0;
+            return val > 0 ? 1 : 2;
+        }
+
+        function onSegment(p, q, r) {
+            return q.x <= Math.max(p.x, r.x) && 
+                   q.x >= Math.min(p.x, r.x) &&
+                   q.y <= Math.max(p.y, r.y) && 
+                   q.y >= Math.min(p.y, r.y);
+        }
+
+        function doIntersect(l1, l2) {
+            const p1 = l1.p, q1 = l1.q;
+            const p2 = l2.p, q2 = l2.q;
+
+            const o1 = orientation(p1, q1, p2);
+            const o2 = orientation(p1, q1, q2);
+            const o3 = orientation(p2, q2, p1);
+            const o4 = orientation(p2, q2, q1);
+
+            if (o1 !== o2 && o3 !== o4) return true;
+            if (o1 === 0 && onSegment(p1, p2, q1)) return true;
+            if (o2 === 0 && onSegment(p1, q2, q1)) return true;
+            if (o3 === 0 && onSegment(p2, p1, q2)) return true;
+            if (o4 === 0 && onSegment(p2, q1, q2)) return true;
+
+            return false;
+        }
+
+        function computeIntersection(l1, l2) {
+            const x1 = l1.p.x, y1 = l1.p.y;
+            const x2 = l1.q.x, y2 = l1.q.y;
+            const x3 = l2.p.x, y3 = l2.p.y;
+            const x4 = l2.q.x, y4 = l2.q.y;
+
+            const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+            const num1 = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+            const num2 = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+
+            if (Math.abs(denom) < 1e-10) {
+                return Point.infinite();
+            }
+
+            const ua = num1 / denom;
+            const ub = num2 / denom;
+
+            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+                const x = x1 + ua * (x2 - x1);
+                const y = y1 + ua * (y2 - y1);
+                return new Point(x, y);
+            }
+
+            return Point.infinite();
+        }
+
+        function findAllIntersections(lines) {
+            const intersections = [];
+            const intersectingLines = new Set();
+            
+            for (let i = 0; i < lines.length; i++) {
+                for (let j = i + 1; j < lines.length; j++) {
+                    if (doIntersect(lines[i], lines[j])) {
+                        const p = computeIntersection(lines[i], lines[j]);
+                        if (Point.isFinite(p)) {
+                            intersections.push({ line1: i, line2: j, point: p });
+                            intersectingLines.add(i);
+                            intersectingLines.add(j);
+                        }
+                    }
+                }
+            }
+            
+            return { intersections, intersectingLines };
+        }
+
+        // ===== Canvas Setup =====
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let lines = [];
+        let currentPoint = null;
+        let intersections = [];
+        let intersectingLines = new Set();
+
+        // ===== Drawing Functions =====
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw lines
+            lines.forEach((line, i) => {
+                const isIntersecting = intersectingLines.has(i);
+                
+                ctx.strokeStyle = isIntersecting ? '#4caf50' : '#2196f3';
+                ctx.lineWidth = isIntersecting ? 3 : 2;
+                ctx.beginPath();
+                ctx.moveTo(line.p.x, line.p.y);
+                ctx.lineTo(line.q.x, line.q.y);
+                ctx.stroke();
+
+                // Draw endpoints
+                ctx.fillStyle = isIntersecting ? '#4caf50' : '#2196f3';
+                ctx.beginPath();
+                ctx.arc(line.p.x, line.p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(line.q.x, line.q.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw intersection points
+            intersections.forEach(({ point }) => {
+                ctx.fillStyle = '#ff5722';
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Draw current line being drawn
+            if (currentPoint) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(currentPoint.x, currentPoint.y);
+                ctx.lineTo(mouseX, mouseY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(currentPoint.x, currentPoint.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateIntersections() {
+            const result = findAllIntersections(lines);
+            intersections = result.intersections;
+            intersectingLines = result.intersectingLines;
+            updateUI();
+            render();
+        }
+
+        function updateUI() {
+            document.getElementById('line-count').textContent = lines.length;
+            document.getElementById('intersection-count').textContent = intersections.length;
+
+            const list = document.getElementById('intersection-list');
+            if (intersections.length === 0) {
+                list.innerHTML = '<div class="no-intersections">No intersections</div>';
+            } else {
+                list.innerHTML = intersections.map(({ line1, line2, point }) => 
+                    `<div class="intersection-item">
+                        Line ${line1 + 1} ∩ Line ${line2 + 1}<br>
+                        ${point.toString()}
+                    </div>`
+                ).join('');
+            }
+        }
+
+        // ===== Mouse Handling =====
+        let mouseX = 0, mouseY = 0;
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            if (currentPoint) {
+                render();
+            }
+
+            document.getElementById('status').textContent = 
+                `(${mouseX.toFixed(0)}, ${mouseY.toFixed(0)})`;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (!currentPoint) {
+                currentPoint = new Point(x, y);
+                document.getElementById('status').textContent = 'Click to complete line';
+            } else {
+                lines.push(new Line(currentPoint, new Point(x, y)));
+                currentPoint = null;
+                updateIntersections();
+                document.getElementById('status').textContent = 'Click to add line';
+            }
+        });
+
+        // ===== Utility Functions =====
+        function clearLines() {
+            lines = [];
+            currentPoint = null;
+            updateIntersections();
+        }
+
+        function addRandomLines(count) {
+            for (let i = 0; i < count; i++) {
+                const p = new Point(
+                    Math.random() * (canvas.width - 100) + 50,
+                    Math.random() * (canvas.height - 100) + 50
+                );
+                const q = new Point(
+                    Math.random() * (canvas.width - 100) + 50,
+                    Math.random() * (canvas.height - 100) + 50
+                );
+                lines.push(new Line(p, q));
+            }
+            updateIntersections();
+        }
+
+        function addTestPattern(type) {
+            clearLines();
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const r = 200;
+
+            if (type === 'x') {
+                lines.push(new Line(
+                    new Point(cx - r, cy - r),
+                    new Point(cx + r, cy + r)
+                ));
+                lines.push(new Line(
+                    new Point(cx - r, cy + r),
+                    new Point(cx + r, cy - r)
+                ));
+            } else if (type === 'grid') {
+                for (let i = -1; i <= 1; i++) {
+                    lines.push(new Line(
+                        new Point(cx - r, cy + i * r / 2),
+                        new Point(cx + r, cy + i * r / 2)
+                    ));
+                    lines.push(new Line(
+                        new Point(cx + i * r / 2, cy - r),
+                        new Point(cx + i * r / 2, cy + r)
+                    ));
+                }
+            } else if (type === 'star') {
+                const points = 5;
+                for (let i = 0; i < points; i++) {
+                    const angle1 = (i * 2 * Math.PI) / points - Math.PI / 2;
+                    const angle2 = ((i + 2) * 2 * Math.PI) / points - Math.PI / 2;
+                    lines.push(new Line(
+                        new Point(cx + r * Math.cos(angle1), cy + r * Math.sin(angle1)),
+                        new Point(cx + r * Math.cos(angle2), cy + r * Math.sin(angle2))
+                    ));
+                }
+            }
+
+            updateIntersections();
+        }
+
+        // ===== Initialize =====
+        updateUI();
+        render();
+    </script>
+</body>
+</html>

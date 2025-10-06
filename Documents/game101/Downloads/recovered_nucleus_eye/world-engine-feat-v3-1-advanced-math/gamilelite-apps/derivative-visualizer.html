@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Derivatives — From Definition to Algorithm</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', system-ui, sans-serif; 
+      background: linear-gradient(135deg, #0a0a12 0%, #1a1a2e 100%);
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 32px 20px;
+      background: rgba(20, 20, 30, 0.95);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    
+    h1 {
+      color: #00ffff;
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.8;
+      line-height: 1.6;
+    }
+    
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .canvas-section {
+      background: rgba(20, 20, 30, 0.95);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    
+    canvas {
+      width: 100%;
+      height: 600px;
+      border-radius: 8px;
+      background: #0a0a12;
+      cursor: crosshair;
+    }
+    
+    .controls-panel {
+      background: rgba(20, 20, 30, 0.95);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    h2 {
+      color: #00ffff;
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .section:last-child { border: none; }
+    
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    }
+    
+    select, input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+      color: #e0e0e0;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .value-display {
+      float: right;
+      color: #ffd700;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+    }
+    
+    .equation-box {
+      background: rgba(0, 255, 255, 0.05);
+      padding: 14px;
+      border-radius: 8px;
+      border-left: 3px solid #00ffff;
+      margin: 12px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    
+    .result-box {
+      background: rgba(255, 215, 0, 0.1);
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid #ffd700;
+      margin: 12px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+    }
+    
+    .result-label {
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    
+    .result-value {
+      color: #ffd700;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .error-display {
+      color: #ff4444;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #00ffff, #0088ff);
+      color: #0a0a12;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 255, 255, 0.4);
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    
+    .info-card {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    
+    .info-value {
+      font-size: 18px;
+      color: #ffd700;
+      font-family: 'Consolas', monospace;
+      font-weight: 600;
+    }
+    
+    .info-label {
+      font-size: 10px;
+      color: #888;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    
+    .theory-section {
+      background: rgba(20, 20, 30, 0.95);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    
+    .theory-section h3 {
+      color: #ffd700;
+      font-size: 16px;
+      margin-bottom: 12px;
+      margin-top: 20px;
+    }
+    
+    .theory-section h3:first-of-type {
+      margin-top: 0;
+    }
+    
+    .code-block {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 14px;
+      border-radius: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .legend-color {
+      width: 24px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 255, 255, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📐 Derivatives: From Definition to Algorithm</h1>
+      <div class="subtitle">
+        Interactive visualization of f'(a) = lim<sub>h→0</sub> [f(a+h) - f(a)] / h<br>
+        Explore analytical vs. numerical differentiation with real-time feedback
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="canvas-section">
+        <canvas id="graph-canvas"></canvas>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #00ffff;"></div>
+            <span>Function f(x)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ffd700;"></div>
+            <span>Tangent Line</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ff4444;"></div>
+            <span>Secant Line (h)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-panel">
+        <h2>⚙️ Controls</h2>
+
+        <div class="section">
+          <label>Function Type</label>
+          <select id="function-select">
+            <option value="square">f(x) = x²</option>
+            <option value="cubic">f(x) = x³</option>
+            <option value="sin">f(x) = sin(x)</option>
+            <option value="exp">f(x) = eˣ</option>
+            <option value="sqrt">f(x) = √x</option>
+            <option value="poly">f(x) = x³ - 2x² + x</option>
+          </select>
+        </div>
+
+        <div class="section">
+          <label>
+            Point a <span class="value-display" id="point-display">3.00</span>
+          </label>
+          <input type="range" id="point-slider" min="-5" max="5" step="0.1" value="3">
+        </div>
+
+        <div class="section">
+          <label>
+            Step Size h <span class="value-display" id="step-display">1.00</span>
+          </label>
+          <input type="range" id="step-slider" min="-3" max="0" step="0.01" value="-1">
+          <div style="font-size: 11px; color: #888; margin-top: 4px;">
+            h = 10^<span id="step-exp">-1</span> (logarithmic scale)
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>📊 Results</h2>
+
+          <div class="result-box">
+            <div class="result-label">Analytical Derivative f'(a)</div>
+            <div class="result-value" id="analytical-result">6.000</div>
+          </div>
+
+          <div class="result-box">
+            <div class="result-label">Numerical (Central Difference)</div>
+            <div class="result-value" id="numerical-result">6.000</div>
+            <div class="error-display" id="error-display">Error: 0.000000e+00</div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-value" id="f-a-display">9.000</div>
+              <div class="info-label">f(a)</div>
+            </div>
+            <div class="info-card">
+              <div class="info-value" id="f-prime-display">6.000</div>
+              <div class="info-label">f'(a)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>📐 Tangent Line</h2>
+          <div class="equation-box">
+            y = f'(a)·(x - a) + f(a)<br>
+            <span style="color: #ffd700;" id="tangent-eq">y = 6(x - 3) + 9</span>
+          </div>
+        </div>
+
+        <button id="optimal-h-btn">Set Optimal h (√ε)</button>
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>📚 Theory & Implementation</h2>
+
+      <h3>1. Definition (First Principles)</h3>
+      <div class="equation-box">
+        f'(a) = lim<sub>h→0</sub> [f(a+h) - f(a)] / h
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        The derivative is the slope of the tangent line, defined as the limit of secant slopes as h approaches zero.
+      </p>
+
+      <h3>2. Analytical Derivation (x² example)</h3>
+      <div class="equation-box">
+        f'(a) = lim<sub>h→0</sub> [(a+h)² - a²] / h<br>
+        &nbsp;&nbsp;&nbsp;&nbsp; = lim<sub>h→0</sub> [a² + 2ah + h² - a²] / h<br>
+        &nbsp;&nbsp;&nbsp;&nbsp; = lim<sub>h→0</sub> (2a + h)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp; = 2a
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        For f(x) = x², the derivative is f'(x) = 2x. At x=3: f'(3) = 6.
+      </p>
+
+      <h3>3. Symbolic Algorithm (Polynomial)</h3>
+      <div class="equation-box">
+        For f(x) = Σ c<sub>k</sub>x<sup>k</sup>:<br>
+        d/dx(c<sub>k</sub>x<sup>k</sup>) = k·c<sub>k</sub>·x<sup>k-1</sup>
+      </div>
+      <div class="code-block">
+<span style="color: #ff79c6;">function</span> <span style="color: #50fa7b;">symbolic_derivative</span>(coeffs, x) {
+  <span style="color: #6272a4;">// coeffs = [c₀, c₁, c₂, ...] for c₀ + c₁x + c₂x² + ...</span>
+  <span style="color: #ff79c6;">let</span> result = <span style="color: #bd93f9;">0</span>;
+  <span style="color: #ff79c6;">for</span> (<span style="color: #ff79c6;">let</span> k = <span style="color: #bd93f9;">1</span>; k < coeffs.length; k++) {
+    result += k * coeffs[k] * Math.pow(x, k - <span style="color: #bd93f9;">1</span>);
+  }
+  <span style="color: #ff79c6;">return</span> result;
+}
+      </div>
+
+      <h3>4. Numerical Algorithm (Black-Box)</h3>
+      <div class="equation-box">
+        <strong>Central Difference (O(h²) accuracy):</strong><br>
+        f'(a) ≈ [f(a+h) - f(a-h)] / (2h)
+      </div>
+      <div class="code-block">
+<span style="color: #ff79c6;">function</span> <span style="color: #50fa7b;">numeric_derivative</span>(f, a) {
+  <span style="color: #ff79c6;">const</span> eps = <span style="color: #bd93f9;">2.220446049250313e-16</span>; <span style="color: #6272a4;">// machine epsilon</span>
+  <span style="color: #ff79c6;">const</span> h = Math.sqrt(eps) * Math.max(<span style="color: #bd93f9;">1.0</span>, Math.abs(a));
+  <span style="color: #ff79c6;">return</span> (f(a + h) - f(a - h)) / (<span style="color: #bd93f9;">2</span> * h);
+}
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        <strong>Optimal step size:</strong> h = √ε · max(1, |a|) balances truncation error (O(h²)) and round-off error (O(ε/h)).
+      </p>
+
+      <h3>5. Tangent Line Construction</h3>
+      <div class="equation-box">
+        y = m(x - a) + f(a)<br>
+        where m = f'(a)
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        For f(x) = x² at a = 3: slope m = 6, point (3, 9), so y = 6(x - 3) + 9.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // ===== Canvas Setup =====
+    const canvas = document.getElementById('graph-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // ===== State =====
+    const state = {
+      functionType: 'square',
+      point: 3.0,
+      stepSize: 0.1,
+      analyticalDerivative: 6.0,
+      numericalDerivative: 6.0,
+      fAtA: 9.0
+    };
+
+    // ===== Function Definitions =====
+    const functions = {
+      square: {
+        f: (x) => x * x,
+        df: (x) => 2 * x,
+        label: 'f(x) = x²',
+        domain: [-5, 5]
+      },
+      cubic: {
+        f: (x) => x * x * x,
+        df: (x) => 3 * x * x,
+        label: 'f(x) = x³',
+        domain: [-3, 3]
+      },
+      sin: {
+        f: (x) => Math.sin(x),
+        df: (x) => Math.cos(x),
+        label: 'f(x) = sin(x)',
+        domain: [-Math.PI * 2, Math.PI * 2]
+      },
+      exp: {
+        f: (x) => Math.exp(x),
+        df: (x) => Math.exp(x),
+        label: 'f(x) = eˣ',
+        domain: [-2, 2]
+      },
+      sqrt: {
+        f: (x) => Math.sqrt(Math.max(0, x)),
+        df: (x) => x > 0 ? 0.5 / Math.sqrt(x) : 0,
+        label: 'f(x) = √x',
+        domain: [0, 10]
+      },
+      poly: {
+        f: (x) => x * x * x - 2 * x * x + x,
+        df: (x) => 3 * x * x - 4 * x + 1,
+        label: 'f(x) = x³ - 2x² + x',
+        domain: [-2, 3]
+      }
+    };
+
+    // ===== Numerical Derivative =====
+    function numericalDerivative(f, a, h) {
+      // Central difference
+      return (f(a + h) - f(a - h)) / (2 * h);
+    }
+
+    function optimalStepSize(a) {
+      const eps = 2.220446049250313e-16; // machine epsilon for float64
+      return Math.sqrt(eps) * Math.max(1.0, Math.abs(a));
+    }
+
+    // ===== Update Calculations =====
+    function updateCalculations() {
+      const fn = functions[state.functionType];
+      const { f, df } = fn;
+      const { point, stepSize } = state;
+
+      state.fAtA = f(point);
+      state.analyticalDerivative = df(point);
+      state.numericalDerivative = numericalDerivative(f, point, stepSize);
+
+      // Update displays
+      document.getElementById('analytical-result').textContent = state.analyticalDerivative.toFixed(6);
+      document.getElementById('numerical-result').textContent = state.numericalDerivative.toFixed(6);
+      
+      const error = Math.abs(state.numericalDerivative - state.analyticalDerivative);
+      document.getElementById('error-display').textContent = 
+        `Error: ${error.toExponential(6)}`;
+
+      document.getElementById('f-a-display').textContent = state.fAtA.toFixed(3);
+      document.getElementById('f-prime-display').textContent = state.analyticalDerivative.toFixed(3);
+
+      // Tangent line equation
+      const m = state.analyticalDerivative;
+      const a = state.point;
+      const fa = state.fAtA;
+      const sign = fa >= 0 ? '+' : '';
+      document.getElementById('tangent-eq').textContent = 
+        `y = ${m.toFixed(2)}(x - ${a.toFixed(2)}) ${sign} ${fa.toFixed(2)}`;
+    }
+
+    // ===== Drawing Functions =====
+    function worldToScreen(x, y, bounds) {
+      const { xMin, xMax, yMin, yMax } = bounds;
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      const padding = 50;
+
+      const sx = padding + (x - xMin) / (xMax - xMin) * (w - 2 * padding);
+      const sy = h - padding - (y - yMin) / (yMax - yMin) * (h - 2 * padding);
+      return { x: sx, y: sy };
+    }
+
+    function drawAxes(bounds) {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+
+      // Y-axis
+      const origin = worldToScreen(0, 0, bounds);
+      ctx.beginPath();
+      ctx.moveTo(origin.x, 0);
+      ctx.lineTo(origin.x, h);
+      ctx.stroke();
+
+      // X-axis
+      ctx.beginPath();
+      ctx.moveTo(0, origin.y);
+      ctx.lineTo(w, origin.y);
+      ctx.stroke();
+
+      // Grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      for (let x = Math.ceil(bounds.xMin); x <= bounds.xMax; x++) {
+        const p = worldToScreen(x, 0, bounds);
+        ctx.beginPath();
+        ctx.moveTo(p.x, 0);
+        ctx.lineTo(p.x, h);
+        ctx.stroke();
+      }
+    }
+
+    function drawFunction(fn, bounds, color, lineWidth = 2) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+
+      const steps = 500;
+      const { xMin, xMax } = bounds;
+      for (let i = 0; i <= steps; i++) {
+        const x = xMin + (xMax - xMin) * (i / steps);
+        const y = fn(x);
+        const p = worldToScreen(x, y, bounds);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+
+    function drawTangentLine(a, m, fa, bounds, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+
+      const { xMin, xMax } = bounds;
+      const y1 = m * (xMin - a) + fa;
+      const y2 = m * (xMax - a) + fa;
+
+      const p1 = worldToScreen(xMin, y1, bounds);
+      const p2 = worldToScreen(xMax, y2, bounds);
+
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+
+    function drawSecantLine(f, a, h, bounds, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+
+      const x1 = a - h;
+      const x2 = a + h;
+      const y1 = f(x1);
+      const y2 = f(x2);
+
+      const p1 = worldToScreen(x1, y1, bounds);
+      const p2 = worldToScreen(x2, y2, bounds);
+
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw points
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawPoint(x, y, bounds, color, size = 6) {
+      const p = worldToScreen(x, y, bounds);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Highlight ring
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, size + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function draw() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      // Clear
+      ctx.fillStyle = '#0a0a12';
+      ctx.fillRect(0, 0, w, h);
+
+      const fn = functions[state.functionType];
+      const domain = fn.domain;
+      
+      // Calculate bounds
+      const xMin = domain[0];
+      const xMax = domain[1];
+      const samples = 100;
+      let yMin = Infinity, yMax = -Infinity;
+      for (let i = 0; i <= samples; i++) {
+        const x = xMin + (xMax - xMin) * (i / samples);
+        const y = fn.f(x);
+        if (isFinite(y)) {
+          yMin = Math.min(yMin, y);
+          yMax = Math.max(yMax, y);
+        }
+      }
+      const yPadding = (yMax - yMin) * 0.2;
+      yMin -= yPadding;
+      yMax += yPadding;
+
+      const bounds = { xMin, xMax, yMin, yMax };
+
+      // Draw axes and grid
+      drawAxes(bounds);
+
+      // Draw function
+      drawFunction(fn.f, bounds, '#00ffff', 3);
+
+      // Draw secant line (if h is visible)
+      if (state.stepSize > 0.001) {
+        drawSecantLine(fn.f, state.point, state.stepSize, bounds, '#ff4444');
+      }
+
+      // Draw tangent line
+      drawTangentLine(state.point, state.analyticalDerivative, state.fAtA, bounds, '#ffd700');
+
+      // Draw point
+      drawPoint(state.point, state.fAtA, bounds, '#00ffff', 7);
+
+      // Draw labels
+      ctx.fillStyle = '#00ffff';
+      ctx.font = '14px Consolas';
+      ctx.fillText(fn.label, 60, 30);
+
+      ctx.fillStyle = '#ffd700';
+      ctx.fillText(`f'(${state.point.toFixed(2)}) = ${state.analyticalDerivative.toFixed(3)}`, 60, 50);
+    }
+
+    // ===== Event Listeners =====
+    document.getElementById('function-select').addEventListener('change', (e) => {
+      state.functionType = e.target.value;
+      updateCalculations();
+      draw();
+    });
+
+    document.getElementById('point-slider').addEventListener('input', (e) => {
+      state.point = parseFloat(e.target.value);
+      document.getElementById('point-display').textContent = state.point.toFixed(2);
+      updateCalculations();
+      draw();
+    });
+
+    document.getElementById('step-slider').addEventListener('input', (e) => {
+      const exp = parseFloat(e.target.value);
+      state.stepSize = Math.pow(10, exp);
+      document.getElementById('step-display').textContent = state.stepSize.toExponential(2);
+      document.getElementById('step-exp').textContent = exp.toFixed(2);
+      updateCalculations();
+      draw();
+    });
+
+    document.getElementById('optimal-h-btn').addEventListener('click', () => {
+      const optimalH = optimalStepSize(state.point);
+      state.stepSize = optimalH;
+      const exp = Math.log10(optimalH);
+      document.getElementById('step-slider').value = exp;
+      document.getElementById('step-display').textContent = optimalH.toExponential(2);
+      document.getElementById('step-exp').textContent = exp.toFixed(2);
+      updateCalculations();
+      draw();
+    });
+
+    // ===== Initialize =====
+    updateCalculations();
+    draw();
+
+    console.log('✅ Derivative visualizer initialized');
+    console.log('📊 Try different functions and step sizes');
+    console.log('🎯 Optimal h ≈ √ε · max(1, |a|) for numerical stability');
+  </script>
+</body>
+</html>

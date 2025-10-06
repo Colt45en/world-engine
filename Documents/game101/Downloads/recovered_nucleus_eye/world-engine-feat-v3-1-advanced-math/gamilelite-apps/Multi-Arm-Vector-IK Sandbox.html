@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>3D CANVAS IK Sandbox - multiple arms chasing a puck with CCD IK solver
+<head>   
+    <META> <TITLE>3D CANVAS IK Sandbox - multiple arms chasing a puck with CCD IK solver</TITLE>    
+    <META>  <DESCRIPTION>Interactive 3D canvas demonstrating inverse kinematics with multiple arms</DESCRIPTION>
+    <STYLE>  
+        .panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #1b2237;
+            border-bottom: 1px solid #2a3c57;
+            }
+            GRID { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+            BUTTON { padding: 8px 12px; background: #14203a; border: 1px solid #2a3c57; border-radius: 8px; color: #e9f2ff; cursor: pointer; }
+            BUTTON:hover { background: #1a2d47; }
+            .pill { padding: 4px 12px; background: #0f1b33; border: 1px solid #2a3c57; border-radius: 300px; color: #9bd1ff; font-size: 13px; }
+            ORBITAL VIEW { width: 90%; height: 30%; border-radius: 30px; background: #0b1325; border: 1px solid #243452; }
+            CANVAS { width: 65%; height: 100%; display: block; }
+        </STYLE>
+     <div class="panel">
+    <button onclick="disc.location.href='index.html'">🏠 Return to Hub</button>
+    <button id="faster">Speed ×2</button>
+    <button id="slower">Speed ÷2</button>
+    <span class="pill">Time Scale: <b id="scaleVal">1.0</b>×</span>
+    <span class="pill">Arms: <b id="armCount">0</b></span>
+    <span class="pill">Tip: move mouse to "pull" the puck; arms chase the puck.</span>
+  </div>
+</head>
+  <meta charset="utf-8"/>
+  <title>Multi-Arm Vector/IK Sandbox</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { --w: 900px; --h: 600px; } body  { margin: 40; font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto; background:#0e1220; color:#e9f2ff; display:flex; flex-direction:column; align-items:center }
+    .panel { width:var(--w); max-width:95vw; margin:14px auto 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    .panel button { border:1px solid #2a3c57; background:#14203a; color:#e9f2ff; padding:6px 10px; border-radius:8px; cursor:pointer }
+    .panel button:hover { filter:brightness(1.08) }
+    .panel .pill { padding:2px 8px; border:1px solid #2a3c57; border-radius:300px; background:#0f1b33; color:#9bd1ff }
+    .scene { width:var(--w); height:var(--h); max-width:95vw; aspect-ratio: 3/2; background:#0b1325; border:1px solid #243452; border-radius:12px; position:relative; overflow:hidden }
+    canvas { width:65%; height:100%; display:block }
+    .puck { position:absolute; width:50px; height:50px; transform:translate(-25px,-25px);
+            background:#ffb26b; border-radius:100%; box-shadow:0 0 0 2px #1b2237, 0 0 16px #ff9c4a77 }
+    .hud { position:absolute; inset:auto 8px 8px auto; background:#0f1a2b; border:1px solid #2a3c57; color:#9bd1ff; padding:6px 8px; border-radius:8px; font-size:12px }
+    .hud div { margin-bottom:100px; }
+    </style>
+  </head>
+<body>
+   
+    
+
+  <div class="panel">
+    <button id="faster">Speed +2</button>
+    <button id="slower">Speed -2</button>
+    <span class="pill">Time Scale: <b id="scaleVal">1.0</b>×</span>
+    <span class="pill">Arms: <b id="armCount">0</b></span>
+    <span class="pill">Tip: move mouse to “pull” the puck; arms chase the puck.</span>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="puck" id="puck"></div>
+    <canvas id="view" width="900" height="600"></canvas>
+    <div class="hud">
+      <div>Left click: tug puck</div>
+      <div>Shift + drag: fling puck</div>
+      <div>R: reset</div>
+    </div>
+  </div>
+
+  <script>
+  // ---------- Vector ----------
+  class Vec2 {
+    constructor(x=0, y=0){ this.x=x; this.y=y; }
+    clone(){ return new Vec2(this.x,this.y); }
+    set(x,y){ this.x=x; this.y=y; return this; }
+    add(v){ return new Vec2(this.x+v.x, this.y+v.y); }
+    sub(v){ return new Vec2(this.x-v.x, this.y-v.y); }
+    scale(s){ return new Vec2(this.x*s, this.y*s); }
+    dot(v){ return this.x*v.x + this.y*v.y; }
+    cross(v){ return this.x*v.y - this.y*v.x; }
+    len(){ return Math.hypot(this.x, this.y); }
+    norm(){ const m=this.len()||1; return new Vec2(this.x/m, this.y/m); }
+    rot(a){ const c=Math.cos(a), s=Math.sin(a); return new Vec2(this.x*c - this.y*s, this.x*s + this.y*c); }
+    dist(v){ return Math.hypot(this.x-v.x, this.y-v.y); }
+  }
+
+  // ---------- Limb Segment & Arm (CCD IK) ----------
+  class Segment {
+    constructor(length){
+      this.length = length;
+      this.pos = new Vec2(0,0); // base
+      this.end = new Vec2(length,0); // tip
+      this.angle = 0;
+    }
+    setBase(p){ this.pos = p.clone(); this.end = this.pos.add(new Vec2(this.length,0).rot(this.angle)); }
+  }
+
+  class ArmSystem {
+    /**
+     * @param {number} nSegments
+     * @param {number} segmentLen
+     * @param {Vec2} origin
+     */
+    constructor(nSegments, segmentLen, origin){
+      this.segments = Array.from({length:nSegments}, _=> new Segment(segmentLen));
+      this.origin = origin.clone();
+      // initialize straight chain
+      let cur = this.origin.clone();
+      for (const s of this.segments){ s.angle=0; s.setBase(cur); cur = s.end.clone(); }
+    }
+
+    /**
+     * Solve IK with CCD and then forward-propagate from origin to keep chain coherent.
+     * @param {Vec2} target
+     * @param {number} iters
+     */
+    solve(target, iters=8){
+      const segs = this.segments;
+      for (let k=0;k<iters;k++){
+        // backward: rotate each joint so its tip points to target
+        for (let i=segs.length-1; i>=0; i--){
+          const s = segs[i];
+          const base = s.pos;
+          const tip  = s.end;
+          const vTip = tip.sub(base);
+          const vTar = target.sub(base);
+          const a1 = Math.atan2(vTip.y, vTip.x);
+          const a2 = Math.atan2(vTar.y, vTar.x);
+          const dA = a2 - a1;
+          s.angle += dA;
+          // recompute this segment's end
+          s.end = s.pos.add(new Vec2(s.length,0).rot(s.angle));
+          // propagate base of following segment (forward pass later will fix)
+          if (i < segs.length-1){
+            segs[i+1].pos = s.end.clone();
+            segs[i+1].end = segs[i+1].pos.add(new Vec2(segs[i+1].length,0).rot(segs[i+1].angle));
+          }
+        }
+        // forward: lock first base to origin, rebuild chain top down
+        // forward: lock first base to origin, rebuild chain outward
+        segs[0].setBase(this.origin);
+        for (let i=1;i<segs.length;i++){
+          segs[i].setBase(segs[i-1].end);
+        }
+      }
+    }
+
+    draw(ctx, colorHue=200){
+      const n = this.segments.length;
+      for (let i=0;i<n;i++){
+        const s = this.segments[i];
+        const w = Math.max(2, 10 - i*1.5);
+        ctx.lineWidth = w;
+        ctx.strokeStyle = `hsl(${(colorHue + i*22)%360}, 80%, 60%)`;
+        ctx.beginPath();
+        ctx.moveTo(s.pos.x, s.pos.y);
+        ctx.lineTo(s.end.x, s.end.y);
+        ctx.stroke();
+        // joints
+        ctx.fillStyle = '#0af';
+        ctx.beginPath(); ctx.arc(s.pos.x, s.pos.y, Math.max(2,w*0.25), 0, Math.PI*2); ctx.fill();
+      }
+      const tip = this.segments[n-1].end;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(tip.x, tip.y, 3.5, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // ---------- Scene / Physics ----------
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const puckEl = document.getElementById('puck');
+  const W = canvas.width, H = canvas.height; // fixed aspect ratio
+    ctx.lineCap = 'round';
+  // time
+  let timeScale = 1.0;
+  let tPrev = performance.now();
+  let dt = 0;
+
+  // puck physics
+  let pos = new Vec2(W*0.5, H*0.5);
+  let vel = new Vec2(0, 0);
+  const gravity = new Vec2(0, 400); // px/s^2 - reduced from 900 for less falling
+  const damping = 0.98; // More damping for stability
+  const bounds = { left:25, right:W-25, top:25, bottom:H-25 };
+
+  // mouse interaction
+  const mouse = { x: W*0.5, y: H*0.5, down:false, shift:false };
+  const sceneDiv = document.getElementById('scene');
+  sceneDiv.addEventListener('mousemove', (e)=>{
+    const r = canvas.getBoundingClientRect();
+    mouse.x = (e.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (e.clientY - r.top)  * (canvas.height / r.height);
+  });
+  sceneDiv.addEventListener('mousedown', (e)=>{ mouse.down = true; mouse.shift = e.shiftKey; });
+  window.addEventListener('mouseup', ()=>{ mouse.down = false; mouse.shift = false; });
+  window.addEventListener('keydown', e=>{
+    if (e.key === 'r' || e.key === 'R'){
+      pos.set(W*0.5, H*0.5); vel.set(0,0);
+    }
+  });
+
+  // arms — create multiple
+  const arms = [
+    new ArmSystem(4, 65, new Vec2(140, 130)),
+    new ArmSystem(5, 55, new Vec2(W-160, 120)),
+    new ArmSystem(3, 80, new Vec2(160, H-140)),
+    new ArmSystem(6, 45, new Vec2(W-180, H-160)),
+  ];
+  document.getElementById('armCount').textContent = String(arms.length);
+
+  // controls
+  document.getElementById('faster').onclick = ()=>{ timeScale *= 2; updateScale(); };
+  document.getElementById('slower').onclick = ()=>{ timeScale /= 2; updateScale(); };
+  function updateScale(){ timeScale = Math.max(0.125, Math.min(8, timeScale)); document.getElementById('scaleVal').textContent = timeScale.toFixed(2); }
+  updateScale();
+
+  function integratePhysics(rawDt){
+    // scaled
+    dt = rawDt * timeScale;
+    // mouse tug
+    if (mouse.down){
+      const target = new Vec2(mouse.x, mouse.y);
+      const toT = target.sub(pos);
+      const dist = toT.len();
+      // springy pull; stronger if Shift
+      const k = mouse.shift ? 40 : 18;
+      const accel = toT.norm().scale(k * Math.min(dist, 400));
+      vel = vel.add(accel.scale(dt));
+    }
+
+    // gravity
+    vel = vel.add(gravity.scale(dt));
+    // damping
+    vel = vel.scale(damping);
+
+    // integrate
+    pos = pos.add(vel.scale(dt));
+
+    // bounce bounds
+    if (pos.x < bounds.left){ pos.x=bounds.left; vel.x *= -0.85; }
+    if (pos.x > bounds.right){ pos.x=bounds.right; vel.x *= -0.85; }
+    if (pos.y < bounds.top){ pos.y=bounds.top; vel.y *= -0.85; }
+    if (pos.y > bounds.bottom){ pos.y=bounds.bottom; vel.y *= -0.85; }
+  }
+
+  function drawBackground(){
+    // grid - more visible
+    ctx.fillStyle = '#0b1325';
+    ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = '#1a2d47';  // Brighter grid lines
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x=0;x<=W;x+=30){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+    for (let y=0;y<=H;y+=30){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+    ctx.stroke();
+    
+    // Center crosshair for reference
+    ctx.strokeStyle = '#2a4563';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W/2 - 20, H/2); ctx.lineTo(W/2 + 20, H/2);
+    ctx.moveTo(W/2, H/2 - 20); ctx.lineTo(W/2, H/2 + 20);
+    ctx.stroke();
+  }
+
+  function render(){
+    // puck element position (CSS)
+    puckEl.style.left = pos.x + 'px';
+    puckEl.style.top  = pos.y + 'px';
+    puckEl.style.transform = `translate(-25px,-25px) rotate(${vel.x*0.04}rad)`;
+  }
+
+  function tick(now){
+    const rawDt = Math.min(0.033, (now - tPrev) * 0.001); // clamp for stability
+    tPrev = now;
+
+    integratePhysics(rawDt);
+
+    // IK solve for each arm towards the puck
+    const target = pos.clone();
+    for (let i=0;i<arms.length;i++){
+      arms[i].solve(target, 6);
+    }
+
+    // draw
+    drawBackground();
+
+    // arms
+    for (let i=0;i<arms.length;i++){
+      arms[i].draw(ctx, 200 + i*40);
+    }
+
+    // target marker
+    ctx.fillStyle = '#ffcf66';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffe4a8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    render();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 1: Node/Electron Cubes</title>
+    <style>
+        :root {
+            --bg: #0b0b0f;
+            --panel: #0f121f;
+            --accent: #72f6d1;
+            --text: #eaf1ff;
+            --muted: #9fb3ff;
+            --grid: #1c2746;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(180deg, #11182c, #0b1030);
+            border-bottom: 1px solid #1c2a54;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 12px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .canvas-area {
+            background: #060a18;
+            border: 1px solid #20325f;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            background: var(--panel);
+            border: 1px solid #213261;
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .control-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-section h3 {
+            font-size: 0.875rem;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button {
+            width: 100%;
+            background: #13254d;
+            color: #dbe6ff;
+            border: 1px solid #29427c;
+            padding: 0.625rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #183064;
+            border-color: var(--accent);
+        }
+
+        button.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        label span {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #1c2746;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .node-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0a0f1f;
+            border: 1px solid #1c2a54;
+            border-radius: 6px;
+            padding: 0.5rem;
+        }
+
+        .node-item {
+            padding: 0.375rem 0.5rem;
+            margin-bottom: 0.25rem;
+            background: #13254d;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-item .node-id {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .stat-box {
+            background: #0a0f1f;
+            border: 1px solid #1c2a54;
+            border-radius: 6px;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.25rem;
+        }
+
+        .info {
+            background: rgba(114, 246, 209, 0.1);
+            border: 1px solid rgba(114, 246, 209, 0.3);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Lab 1: Node/Electron Cubes</h1>
+                <div class="subtitle">Create and manipulate 3D nodes with orbiting electrons</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="math-lab-7.html" style="padding: 0.5rem 1rem; background: var(--surface); border: 1px solid var(--primary); color: var(--primary); border-radius: 4px; text-decoration: none; font-size: 1rem;">← Lab 7</a>
+                <a href="math-lab-2.html" style="padding: 0.5rem 1rem; background: var(--surface); border: 1px solid var(--primary); color: var(--primary); border-radius: 4px; text-decoration: none; font-size: 1rem;">Lab 2 →</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="canvas-area">
+            <canvas id="nodeCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>🎲 Node Management</h3>
+                <button id="btnAddNode">+ Add Node Cube</button>
+                <button id="btnClearNodes">Clear All</button>
+                <button id="btnRandomize">Randomize Positions</button>
+            </div>
+
+            <div class="control-section">
+                <h3>⚡ Electron Settings</h3>
+                <label>
+                    <span>Electrons per Node: <b id="electronCount">4</b></span>
+                    <input type="range" id="electronSlider" min="1" max="12" value="4">
+                </label>
+                <label>
+                    <span>Orbit Speed: <b id="speedValue">1.0</b>x</span>
+                    <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+                </label>
+                <label>
+                    <span>Orbit Radius: <b id="radiusValue">40</b>px</span>
+                    <input type="range" id="radiusSlider" min="20" max="100" value="40">
+                </label>
+            </div>
+
+            <div class="control-section">
+                <h3>🎨 Visual Options</h3>
+                <button id="btnToggleWires">Show Wire Connections</button>
+                <button id="btnToggleRotation">Auto Rotate Cubes</button>
+                <button id="btnTogglePulse">Pulse Effect</button>
+                <button id="btnToggleGrid">Show Grid Overlay</button>
+            </div>
+
+            <div class="control-section">
+                <h3>📐 Grid Settings</h3>
+                <label>
+                    <span>Grid Size: <b id="gridSizeValue">50</b>px</span>
+                    <input type="range" id="gridSizeSlider" min="20" max="100" value="50">
+                </label>
+                <button id="btnSnapToGrid">Snap Nodes to Grid</button>
+            </div>
+
+            <div class="control-section">
+                <h3>📊 Stats</h3>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statNodes">0</div>
+                        <div class="stat-label">Nodes</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statElectrons">0</div>
+                        <div class="stat-label">Electrons</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>⚙️ Structural Forces</h3>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="avgPressure">0.0</div>
+                        <div class="stat-label">Avg Pressure</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="maxTension">0.0</div>
+                        <div class="stat-label">Max Tension</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="equilibrium">100%</div>
+                        <div class="stat-label">Equilibrium</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--muted); margin-top: 0.75rem; line-height: 1.4;">
+                    <div style="margin-bottom: 0.25rem;"><span style="color: #72f6d1; font-size: 1rem;">●</span> Cyan = Tension (pulling)</div>
+                    <div><span style="color: #ff6464; font-size: 1rem;">●</span> Red = Compression (pushing)</div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>📋 Active Nodes</h3>
+                <div class="node-list" id="nodeList">
+                    <div style="text-align: center; color: var(--muted); font-size: 0.75rem; padding: 1rem;">
+                        No nodes yet. Click "Add Node Cube" to start.
+                    </div>
+                </div>
+            </div>
+
+            <div class="info">
+                <strong>💡 Instructions:</strong><br>
+                • Click canvas to add nodes<br>
+                • Drag nodes to move them<br>
+                • Right-click to delete<br>
+                • Scroll to zoom in/out
+            </div>
+        </div>
+    </main>
+
+    <script src="./math-lab-1.js"></script>
+</body>
+</html>

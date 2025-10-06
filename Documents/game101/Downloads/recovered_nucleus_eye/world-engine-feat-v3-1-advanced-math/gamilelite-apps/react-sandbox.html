@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Sandbox - GameLite</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* Compact Navigation Bar */
+        .nav-bar {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-title {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: rgba(102, 126, 234, 1);
+        }
+
+        .back-btn {
+            background: rgba(255, 59, 59, 0.2);
+            border-color: rgba(255, 59, 59, 0.4);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 59, 59, 0.4);
+            border-color: rgba(255, 59, 59, 0.6);
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 1rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Menu Grid */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+        }
+
+        .menu-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            color: #667eea;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-desc {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* App Container */
+        .app-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            min-height: 600px;
+        }
+
+        .app-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .app-title {
+            color: #667eea;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        /* Iframe for R3F */
+        .r3f-container {
+            width: 100%;
+            height: 800px;
+            border: none;
+            border-radius: 12px;
+            background: #000;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .nav-buttons {
+                justify-content: center;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .app-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function ReactSandbox() {
+            const [mode, setMode] = useState('menu');
+
+            const apps = [
+                {
+                    id: 'game-builder',
+                    icon: '🎮',
+                    title: 'Game Builder',
+                    desc: '3D game creation with React Three Fiber',
+                    type: 'r3f'
+                },
+                {
+                    id: 'png-to-glb',
+                    icon: '🖼️',
+                    title: 'PNG to GLB',
+                    desc: 'Convert images to 3D models',
+                    type: 'component'
+                },
+                {
+                    id: 'svg-canvas',
+                    icon: '🎨',
+                    title: 'SVG Line Canvas',
+                    desc: 'Interactive line drawing and editing',
+                    type: 'component'
+                },
+                {
+                    id: 'webstore',
+                    icon: '🛒',
+                    title: 'WebStore',
+                    desc: 'E-commerce platform for digital assets',
+                    type: 'external'
+                }
+            ];
+
+            const renderApp = () => {
+                const app = apps.find(a => a.id === mode);
+                
+                if (!app) return renderMenu();
+
+                return (
+                    <div className="app-container">
+                        <div className="app-header">
+                            <h1 className="app-title">{app.icon} {app.title}</h1>
+                            <p className="app-subtitle">{app.desc}</p>
+                        </div>
+                        
+                        {app.type === 'r3f' && (
+                            <iframe 
+                                src="draw/GameBuilderR3F.jsx"
+                                className="r3f-container"
+                                title={app.title}
+                            />
+                        )}
+                        
+                        {app.type === 'component' && (
+                            <div className="loading">
+                                Component loading... (Integration in progress)
+                            </div>
+                        )}
+                        
+                        {app.type === 'external' && (
+                            <iframe 
+                                src="WebStore.html"
+                                className="r3f-container"
+                                title={app.title}
+                            />
+                        )}
+                    </div>
+                );
+            };
+
+            const renderMenu = () => (
+                <div className="menu-grid">
+                    {apps.map(app => (
+                        <div 
+                            key={app.id}
+                            className="menu-card"
+                            onClick={() => setMode(app.id)}
+                        >
+                            <div className="card-icon">{app.icon}</div>
+                            <h2 className="card-title">{app.title}</h2>
+                            <p className="card-desc">{app.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            return (
+                <>
+                    <nav className="nav-bar">
+                        <div className="nav-title">
+                            ⚛️ React Sandbox
+                        </div>
+                        <div className="nav-buttons">
+                            <button 
+                                className={`nav-btn ${mode === 'menu' ? 'active' : ''}`}
+                                onClick={() => setMode('menu')}
+                            >
+                                🏠 Menu
+                            </button>
+                            {apps.map(app => (
+                                <button 
+                                    key={app.id}
+                                    className={`nav-btn ${mode === app.id ? 'active' : ''}`}
+                                    onClick={() => setMode(app.id)}
+                                >
+                                    {app.icon} {app.title}
+                                </button>
+                            ))}
+                            <button 
+                                className="nav-btn back-btn"
+                                onClick={() => window.location.href = 'react-hub.html'}
+                            >
+                                ← Hub
+                            </button>
+                        </div>
+                    </nav>
+                    
+                    <div className="content-area">
+                        {renderApp()}
+                    </div>
+                </>
+            );
+        }
+
+        ReactDOM.render(<ReactSandbox />, document.getElementById('root'));
+    </script>
+</body>
+</html>

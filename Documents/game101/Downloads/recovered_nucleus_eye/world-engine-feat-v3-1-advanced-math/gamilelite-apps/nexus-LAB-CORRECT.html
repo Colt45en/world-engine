@@ -1,0 +1,1910 @@
+<!-- 
+  * Integrated RNES-Nexus-Visualizer.html
+  * Integrated with <codeoptimizerAI class="js"></codeoptimizerAI>
+  * Integrated with ResourceEngineCore.js
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NEXUS Code Pad — Neon Focus</title>
+<link rel="icon" href="data:,">
+<style>
+  :root{
+    --lime:#b6ff00;           /* lime green */
+    --lime-200:#d7ff66;
+    --neon:#ff6a00;           /* neon orange */
+    --neon-200:#ff9a4d;
+    --text:#e8f0ff;
+    --muted:#9aa7b5;
+    --bg:#000000;             /* deep black */
+    --panel:#05070c;          /* very dark blue-black */
+    --panel-inner:#0a0e16;    /* inner fill */
+    --border:#1a2b46;
+    --glow-lime: 0 0 24px rgba(182,255,0,.16);
+    --glow-neon: 0 0 24px rgba(255,106,0,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 800px at 60% 40%, rgba(255,106,0,.08), transparent 50%),
+      radial-gradient(900px 600px at 30% 70%, rgba(182,255,0,.07), transparent 50%),
+      #000;
+    color:var(--text);
+    font:14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow:hidden;
+  }
+
+  /* faint scanlines/noise for pop without fatigue */
+  body::after{
+    content:"";
+    position:fixed; inset:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.018), rgba(255,255,255,.018) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:soft-light; opacity:.35;
+  }
+
+  /* ---------------- GRID LAYOUT ---------------- */
+  .layout{
+    height:100vh; width:100vw; display:grid; gap:12px; padding:12px;
+    grid-template-columns: minmax(70px,5vw) 1fr minmax(260px,20vw);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 
+      "header header header"
+      "left center right";
+    transition: grid-template-rows .3s ease;
+  }
+  
+  .layout.toolbar-hidden{
+    grid-template-rows: 0 1fr;
+  }
+
+  /* ---------------- PANELS -------------------- */
+  .panel{
+    position:relative;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-inner) 100%);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-lime), var(--glow-neon);
+  }
+  /* animated neon border ring */
+  .panel::before{
+    content:"";
+    position:absolute; inset:0; padding:1.5px; border-radius:inherit;
+    background: conic-gradient(from var(--angle,0deg),
+      var(--neon), var(--lime), var(--neon));
+    filter: saturate(120%) blur(.2px);
+    /* create a hollow border using masks */
+    -webkit-mask: 
+      linear-gradient(#000 0 0) content-box, 
+      linear-gradient(#000 0 0);
+    mask: 
+      linear-gradient(#000 0 0) content-box, 
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    animation: spin 18s linear infinite;
+    opacity:.85;
+    pointer-events:none;
+  }
+  @keyframes spin { to { --angle:360deg; } }
+
+  /* hover pulse on panels for interactivity feel */
+  .panel:hover::before{ opacity:1; filter: drop-shadow(0 0 18px rgba(255,106,0,.15)); }
+
+  /* ---------------- LEFT RAIL (≈5%) ----------- */
+  .left{ grid-area:left; display:flex; flex-direction:column; gap:10px; padding:10px }
+  .btn{
+    position:relative;
+    border:1px solid rgba(255,255,255,.08);
+    background:#0b0f17;
+    color:var(--text);
+    padding:10px 8px;
+    border-radius:10px;
+    cursor:pointer;
+    text-align:center;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    user-select:none;
+    outline:none;
+  }
+  .btn:hover{ transform:translateY(-1px); border-color:rgba(255,255,255,.18); box-shadow:0 6px 18px rgba(0,0,0,.45) }
+  .btn:active{ transform:translateY(0) scale(.98) }
+  .btn.lime{
+    border-color: rgba(182,255,0,.6);
+    color:var(--lime-200);
+    box-shadow: 0 0 0 1px rgba(182,255,0,.25), 0 0 16px rgba(182,255,0,.15);
+  }
+  .btn.lime:hover{ box-shadow: 0 0 0 1px rgba(182,255,0,.4), 0 0 24px rgba(182,255,0,.25) }
+  .btn.neon{
+    border-color: rgba(255,106,0,.6);
+    color:var(--neon-200);
+    box-shadow: 0 0 0 1px rgba(255,106,0,.25), 0 0 16px rgba(255,106,0,.15);
+  }
+  .btn.neon:hover{ box-shadow: 0 0 0 1px rgba(255,106,0,.4), 0 0 24px rgba(255,106,0,.25) }
+  .spacer{ flex:1 1 auto }
+
+  /* ---------------- CENTER: CODE PAD ---------- */
+  .center{ grid-area:center; display:flex; }
+  .editor{
+    flex:1 1 auto; display:flex; flex-direction:column; padding:12px; gap:10px;
+  }
+  .title{
+    display:flex; align-items:center; gap:10px;
+    font-weight:700; letter-spacing:.3px;
+    padding-bottom:8px; margin-bottom:2px;
+    border-bottom:1px dashed rgba(255,255,255,.08);
+  }
+  .tag{
+    margin-left:auto; font-size:11px;
+    padding:2px 10px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);
+    color:var(--lime-200);
+    background: linear-gradient(90deg, rgba(182,255,0,.12), rgba(255,106,0,.12));
+    box-shadow: inset 0 0 12px rgba(182,255,0,.15);
+  }
+  .codepad{
+    flex:1 1 auto; width:100%;
+    resize:none; outline:none;
+    background: radial-gradient(120% 120% at 20% 0%, rgba(182,255,0,.06), transparent 40%),
+                radial-gradient(120% 120% at 80% 100%, rgba(255,106,0,.06), transparent 40%),
+                #070a10;
+    color:var(--text);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;
+    padding:14px;
+    font:13.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    caret-color: var(--lime);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.03),
+      0 0 0 2px rgba(182,255,0,.06),
+      0 0 28px rgba(255,106,0,.07);
+  }
+  .codepad:focus{
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.04),
+      0 0 0 2px rgba(0,0,0,1),
+      0 0 0 4px rgba(182,255,0,.35),
+      0 0 40px rgba(255,106,0,.15);
+    border-color: transparent;
+  }
+  /* subtle grid under the code */
+  .codepad::before{
+    content:"";
+    position:absolute; inset:12px; border-radius:10px; pointer-events:none;
+    background:
+      linear-gradient(transparent 31px, rgba(255,255,255,.04) 32px),
+      linear-gradient(90deg, transparent 31px, rgba(255,255,255,.04) 32px);
+    background-size: 32px 32px;
+  }
+
+  /* ---------------- RIGHT STACK -------------- */
+  .right{ grid-area:right; display:flex; flex-direction:column; gap:12px }
+  .analyst, .console{ display:flex; flex-direction:column; }
+  .analyst{ flex:6 1 0 }
+  .console{ flex:4 1 0 }
+  .panel-title{
+    font-weight:700; padding:12px 14px;
+    display:flex; align-items:center; gap:10px;
+    color:var(--text);
+    background: linear-gradient(90deg, rgba(182,255,0,.12), rgba(255,106,0,.12));
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .scrollbox{
+    height:calc(100% - 46px);
+    overflow:auto; padding:12px; font-size:12.5px; background:#000;
+    border-top:1px solid rgba(255,255,255,.03);
+  }
+
+  /* colored lines for outputs */
+  .ok{ color:var(--lime-200) }
+  .warn{ color:#ffd166 }
+  .err{ color:#ff7474 }
+  .muted{ color:var(--muted) }
+  
+  /* AI Chat Styles */
+  .ai-chat{ flex:5 1 0 }
+  .ai-chat.hidden{ display:none }
+  .ai-msg{ margin:4px 0; padding:4px 0 }
+  .ai-msg.user{ color:var(--neon-200) }
+  .ai-msg.ai{ color:var(--lime-200) }
+  .ai-input-box{
+    padding:8px 12px; border-top:1px solid rgba(255,255,255,.08);
+    background: linear-gradient(90deg, rgba(182,255,0,.08), rgba(255,106,0,.08));
+    display:flex; gap:8px;
+  }
+  .ai-input{
+    flex:1; background:#070a10; border:1px solid rgba(255,255,255,.08);
+    border-radius:8px; padding:8px; color:var(--text);
+    font-size:12px; outline:none;
+  }
+  .ai-input:focus{
+    border-color:var(--lime); box-shadow: 0 0 8px rgba(182,255,0,.25);
+  }
+  .ai-send{
+    background:var(--lime); color:#000; border:none; border-radius:8px;
+    padding:8px 16px; cursor:pointer; font-weight:700;
+    transition:transform .12s ease;
+  }
+  .ai-send:hover{ transform:scale(1.05); box-shadow: 0 0 16px rgba(182,255,0,.35) }
+  .ai-send:active{ transform:scale(.95) }
+
+  /* Postcard Chat Window */
+  .postcard-chat{
+    position:fixed; right:24px; bottom:24px; width:380px; height:500px;
+    background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+    border:2px solid var(--lime); border-radius:16px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.8), 0 0 24px rgba(182,255,0,.25);
+    display:none; flex-direction:column; overflow:hidden;
+    z-index:9999; animation: slideUp .3s ease;
+  }
+  .postcard-chat.active{ display:flex }
+  @keyframes slideUp{
+    from{ transform:translateY(100px); opacity:0 }
+    to{ transform:translateY(0); opacity:1 }
+  }
+  .postcard-header{
+    background: linear-gradient(90deg, var(--lime), var(--neon));
+    padding:16px; color:#000; font-weight:700; font-size:16px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:2px solid rgba(255,255,255,.15);
+  }
+  .postcard-close{
+    background:rgba(0,0,0,.3); border:none; color:#fff;
+    width:28px; height:28px; border-radius:50%; cursor:pointer;
+    font-size:18px; display:flex; align-items:center; justify-content:center;
+    transition:all .2s;
+  }
+  .postcard-close:hover{ background:rgba(0,0,0,.6); transform:rotate(90deg) }
+  .postcard-messages{
+    flex:1; padding:16px; overflow-y:auto;
+    background: rgba(0,0,0,.3);
+  }
+  .postcard-msg{
+    margin-bottom:12px; padding:10px 14px; border-radius:12px;
+    max-width:85%; word-wrap:break-word; animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; transform:translateY(10px) }
+    to{ opacity:1; transform:translateY(0) }
+  }
+  .postcard-msg.user{
+    background:var(--neon); color:#000; margin-left:auto;
+    border-bottom-right-radius:4px;
+  }
+  .postcard-msg.ai{
+    background:rgba(182,255,0,.15); color:var(--lime);
+    border:1px solid var(--lime); border-bottom-left-radius:4px;
+  }
+  .postcard-input-area{
+    padding:16px; background:rgba(0,0,0,.4);
+    border-top:2px solid rgba(255,255,255,.08);
+    display:flex; gap:10px; align-items:center;
+  }
+  .postcard-input{
+    flex:1; background:#070a10; border:2px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:12px; color:var(--text);
+    font-size:14px; outline:none; transition:all .2s;
+  }
+  .postcard-input:focus{
+    border-color:var(--lime); box-shadow: 0 0 12px rgba(182,255,0,.3);
+  }
+  .postcard-send{
+    background:var(--lime); color:#000; border:none;
+    border-radius:12px; padding:12px 20px; cursor:pointer;
+    font-weight:700; font-size:16px; transition:all .2s;
+  }
+  .postcard-send:hover{
+    transform:scale(1.05); box-shadow: 0 0 20px rgba(182,255,0,.5);
+  }
+  .postcard-send:active{ transform:scale(.95) }
+
+  /* Audio Visualizer Panel */
+  .visualizer-panel{
+    position:fixed; left:24px; bottom:24px; width:450px; height:550px;
+    background: linear-gradient(135deg, #0a0e1a 0%, #050810 100%);
+    border:2px solid var(--neon); border-radius:16px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.8), 0 0 24px rgba(255,106,0,.25);
+    display:none; flex-direction:column; overflow:hidden;
+    z-index:9999; animation: slideUp .3s ease;
+  }
+  .visualizer-panel.active{ display:flex }
+  .viz-header{
+    background: linear-gradient(90deg, var(--neon), #ff1493);
+    padding:16px; color:#000; font-weight:700; font-size:16px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:2px solid rgba(255,255,255,.15);
+  }
+  .viz-canvas-area{
+    flex:1; position:relative; background:#000;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #vizCanvas{
+    width:100%; height:100%;
+  }
+  .viz-controls{
+    padding:16px; background:rgba(0,0,0,.5);
+    border-top:2px solid rgba(255,255,255,.08);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .viz-control-row{
+    display:flex; gap:10px; align-items:center;
+  }
+  .viz-btn{
+    flex:1; background:var(--neon); color:#000; border:none;
+    border-radius:8px; padding:10px; cursor:pointer;
+    font-weight:700; transition:all .2s;
+  }
+  .viz-btn:hover{
+    transform:scale(1.05); box-shadow: 0 0 16px rgba(255,106,0,.5);
+  }
+  .viz-btn.active{
+    background:var(--lime); box-shadow: 0 0 20px rgba(182,255,0,.6);
+  }
+  .viz-label{
+    color:var(--lime); font-size:12px; font-weight:700;
+    min-width:80px;
+  }
+  .viz-select{
+    flex:1; background:#070a10; border:1px solid rgba(255,255,255,.2);
+    color:var(--text); padding:8px; border-radius:6px;
+  }
+  .pattern-info{
+    background:rgba(182,255,0,.1); border:1px solid var(--lime);
+    border-radius:8px; padding:8px; font-size:11px;
+    color:var(--lime); text-align:center;
+  }
+
+  /* selection + scrollbar for neon vibe */
+  ::selection{ background: rgba(182,255,0,.35); color:#001500 }
+  .scrollbox::-webkit-scrollbar, textarea::-webkit-scrollbar{ width:10px }
+  .scrollbox::-webkit-scrollbar-track, textarea::-webkit-scrollbar-track{ background:#0b0f17 }
+  .scrollbox::-webkit-scrollbar-thumb, textarea::-webkit-scrollbar-thumb{
+    background: linear-gradient(var(--neon), var(--lime));
+    border-radius:10px;
+    border:2px solid #0b0f17;
+  }
+
+  /* reduce motion preference */
+  @media (prefers-reduced-motion: reduce){
+    .panel::before{ animation:none }
+    .btn{ transition:none }
+  }
+
+  /* ---------------- TOOLBAR HEADER ------------ */
+  .toolbar-header {
+    grid-area: header;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-inner) 100%);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-lime), var(--glow-neon);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    gap: 20px;
+    position: relative;
+    transition: all .3s ease;
+    max-height: 70px;
+  }
+  
+  .layout.toolbar-hidden .toolbar-header {
+    max-height: 0;
+    padding: 0 20px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .toolbar-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: conic-gradient(from var(--angle, 0deg), var(--neon), var(--lime), var(--neon));
+    filter: saturate(120%) blur(.2px);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: spin 18s linear infinite;
+    opacity: .85;
+    pointer-events: none;
+  }
+  
+  .toolbar-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  
+  .toolbar-title .logo {
+    font-size: 24px;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  
+  .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .toolbar-btn {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all .2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  
+  .toolbar-btn:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.2);
+    transform: translateY(-1px);
+  }
+  
+  .toolbar-btn.lime {
+    border-color: rgba(182,255,0,.4);
+    color: var(--lime-200);
+  }
+  
+  .toolbar-btn.lime:hover {
+    background: rgba(182,255,0,.15);
+    border-color: var(--lime);
+    box-shadow: 0 0 12px rgba(182,255,0,.3);
+  }
+  
+  .toolbar-btn.neon {
+    border-color: rgba(255,106,0,.4);
+    color: var(--neon-200);
+  }
+  
+  .toolbar-btn.neon:hover {
+    background: rgba(255,106,0,.15);
+    border-color: var(--neon);
+    box-shadow: 0 0 12px rgba(255,106,0,.3);
+  }
+  
+  .toolbar-separator {
+    width: 1px;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,.15), transparent);
+  }
+  
+  .toolbar-toggle {
+    background: linear-gradient(135deg, var(--lime), var(--neon));
+    border: 2px solid rgba(255,255,255,.3);
+    color: #000;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(182,255,0,.3);
+    transition: all .3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  
+  .toolbar-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(182,255,0,.5), 0 0 24px rgba(255,106,0,.3);
+  }
+  
+  .toolbar-toggle .icon {
+    font-size: 16px;
+    transition: transform .3s ease;
+  }
+  
+  .layout.toolbar-hidden .toolbar-toggle .icon {
+    transform: rotate(180deg);
+  }
+
+  /* Hide panels when menus are toggled off */
+  body.menus-hidden .left,
+  body.menus-hidden .right {
+    display: none !important;
+  }
+  body.menus-hidden .center {
+    grid-column: 1 / -1;
+  }
+</style>
+</head>
+<body>
+  <main class="layout">
+    <!-- TOOLBAR HEADER -->
+    <header class="toolbar-header">
+      <div class="toolbar-title">
+        <span class="logo">⚡</span>
+        <span>NEXUS Dashboard</span>
+      </div>
+      
+      <div class="toolbar-actions">
+        <button class="toolbar-btn lime" onclick="runCode()">
+          <span>▶</span> Run
+        </button>
+        <button class="toolbar-btn neon" onclick="saveFile()">
+          <span>💾</span> Save
+        </button>
+        <button class="toolbar-btn lime" onclick="formatCode()">
+          <span>✨</span> Format
+        </button>
+        
+        <div class="toolbar-separator"></div>
+        
+        <button class="toolbar-btn neon" onclick="newFile()">
+          <span>＋</span> New
+        </button>
+        <button class="toolbar-btn lime" onclick="openFile()">
+          <span>📂</span> Open
+        </button>
+        <button class="toolbar-btn neon" onclick="exportFile()">
+          <span>⬇</span> Export
+        </button>
+        
+        <div class="toolbar-separator"></div>
+        
+        <button class="toolbar-btn neon" onclick="toggleAI()" id="aiToggleToolbar">
+          <span>🤖</span> AI Chat
+        </button>
+        <button class="toolbar-btn lime" onclick="toggleVisualizer()" id="vizToggleToolbar">
+          <span>🎵</span> Visualizer
+        </button>
+      </div>
+      
+      <button class="toolbar-toggle" onclick="toggleToolbar()" id="toolbarToggleBtn" title="Toggle Toolbar (Ctrl+T)">
+        <span class="icon">▲</span>
+        <span id="toolbarToggleText">Hide</span>
+      </button>
+    </header>
+
+    <!-- LEFT: BUTTONS (≈5%) -->
+    <aside class="panel left">
+      <button class="btn lime"  onclick="runCode()">▶ Run</button>
+      <button class="btn neon"  onclick="saveFile()">💾 Save</button>
+      <button class="btn lime"  onclick="formatCode()">✨ Format</button>
+      <button class="btn neon"  onclick="newFile()">＋ New</button>
+      <button class="btn lime"  onclick="openFile()">📂 Open</button>
+      <div class="spacer"></div>
+      <button class="btn neon"  onclick="exportFile()">⬇ Export</button>
+      <button class="btn neon"  onclick="toggleAI()" id="aiToggle">🤖 AI</button>
+      <button class="btn lime"  onclick="toggleVisualizer()" id="vizToggle">🎵 Audio</button>
+      <button class="btn lime"  onclick="toggleTheme()">🌓</button>
+    </aside>
+
+    <!-- CENTER: CODE PAD -->
+    <section class="panel center">
+      <div class="editor">
+        <div class="title">
+          <span>💻 Nexus Code Pad</span>
+          <span class="tag" id="status">Ready</span>
+        </div>
+        <textarea id="codepad" class="codepad" spellcheck="false"
+          placeholder="// Type here — neon lime & orange on black. The code pad owns the middle."></textarea>
+      </div>
+    </section>
+
+    <!-- RIGHT: ANALYST (top) + AI CHAT (middle) + SYSTEM CONSOLE (bottom) -->
+    <aside class="right">
+      <div class="panel analyst">
+        <div class="panel-title">📊 Analyst Output</div>
+        <div id="analyst" class="scrollbox">
+          <div class="ok">[Analyst] Online</div>
+          <div class="muted">Waiting for execution…</div>
+        </div>
+      </div>
+      
+      <!-- AI CHAT BOX (Hidden by default) -->
+      <div class="panel ai-chat hidden" id="aiChat">
+        <div class="panel-title">🤖 AI Assistant</div>
+        <div id="aiMessages" class="scrollbox">
+          <div class="ai-msg ai">[AI] NEXUS Assistant ready!</div>
+          <div class="ai-msg ai">[AI] I can help with code analysis, debugging, and optimization.</div>
+          <div class="ai-msg muted">Type 'help' for available commands</div>
+        </div>
+        <div class="ai-input-box">
+          <input type="text" id="aiInput" class="ai-input" placeholder="Ask AI about your code..." 
+                 onkeypress="if(event.key==='Enter') sendAIMessage()">
+          <button class="ai-send" onclick="sendAIMessage()">Send</button>
+        </div>
+      </div>
+      
+      <div class="panel console">
+        <div class="panel-title">🖥 System Console</div>
+        <div id="console" class="scrollbox">
+          <div class="muted">NEXUS console initialized.</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Audio Visualizer Panel -->
+  <div class="visualizer-panel" id="visualizerPanel">
+    <div class="viz-header">
+      <span>🎵 Audio Visualizer & Pattern Recognition</span>
+      <button class="postcard-close" onclick="toggleVisualizer()">×</button>
+    </div>
+    <div class="viz-canvas-area">
+      <canvas id="vizCanvas"></canvas>
+    </div>
+    <div class="viz-controls">
+      <div class="viz-control-row">
+        <button class="viz-btn" id="startAudioBtn" onclick="startAudio()">🎤 Start Audio</button>
+        <button class="viz-btn" id="autoplayBtn" onclick="toggleAutoplay()">▶️ Autoplay</button>
+        <button class="viz-btn" onclick="toggleVoiceRecognition()">🗣️ Voice</button>
+      </div>
+      <div class="viz-control-row">
+        <span class="viz-label">Shape:</span>
+        <select class="viz-select" id="shapeSelect" onchange="changeShape()">
+          <option value="bars">Bars</option>
+          <option value="circle">Circle</option>
+          <option value="wave">Wave</option>
+          <option value="spiral">Spiral</option>
+          <option value="particles">Particles</option>
+          <option value="mandala">Mandala</option>
+        </select>
+      </div>
+      <div class="viz-control-row">
+        <span class="viz-label">Color Mode:</span>
+        <select class="viz-select" id="colorSelect" onchange="changeColorMode()">
+          <option value="rainbow">Rainbow</option>
+          <option value="neon">Neon Pulse</option>
+          <option value="fire">Fire</option>
+          <option value="ocean">Ocean</option>
+          <option value="matrix">Matrix</option>
+        </select>
+      </div>
+      <div class="viz-control-row">
+        <button class="viz-btn" id="recordBtn" onclick="toggleRecording()">🔴 Record</button>
+        <button class="viz-btn" onclick="takeScreenshot()">📸 Screenshot</button>
+      </div>
+      <div class="pattern-info" id="patternInfo">
+        Pattern: None | BPM: 0 | Frequency: 0 Hz
+      </div>
+      <div class="pattern-info" id="recordInfo" style="display:none; background:rgba(255,0,0,.2); border-color:#ff0000;">
+        ⏺️ Recording: <span id="recordTime">00:00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Postcard Chat Window -->
+  <div class="postcard-chat" id="postcardChat">
+    <div class="postcard-header">
+      <span>💬 AI Assistant</span>
+      <button class="postcard-close" onclick="togglePostcard()">×</button>
+    </div>
+    <div class="postcard-messages" id="postcardMessages">
+      <div class="postcard-msg ai">👋 Hello! I'm your NEXUS AI Assistant. How can I help you today?</div>
+    </div>
+    <div class="postcard-input-area">
+      <input type="text" class="postcard-input" id="postcardInput" 
+             placeholder="Type your message..." 
+             onkeypress="if(event.key==='Enter') sendPostcardMessage()">
+      <button class="postcard-send" onclick="sendPostcardMessage()">📤</button>
+    </div>
+  </div>
+
+<!-- ============================================
+     NEXUS SYSTEM INTEGRATIONS
+     ============================================ -->
+
+<!-- Resource Engine Core - Foundation System -->
+<script src="ResourceEngineCore.js"></script>
+
+<!-- Code Optimizer AI - Intelligent Code Analysis -->
+<script src="CodeOptimizerAI.js"></script>
+
+<!-- NEXUS Memory System - 3-Layer Learning -->
+<script src="nexus-memory.js"></script>
+
+<!-- NEXUS Visualizer Engine (optional - for extended features) -->
+<!-- <script src="nexus-engine-visualizer.js"></script> -->
+
+<script>
+  /* ============================================
+   * NEXUS LAB - Integrated Code Environment
+   * With CodeOptimizerAI & ResourceEngineCore
+   * ============================================ */
+  
+  const $ = id => document.getElementById(id);
+  const log = (msg, to='console')=>{
+    const box = $(to);
+    const line = document.createElement('div');
+    line.textContent = msg;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  };
+
+  function runCode(){
+    const code = $('codepad').value;
+    $('status').textContent = 'Running…';
+    
+    // Record event (Layer 1)
+    if(typeof Memory !== 'undefined') Memory.record('run', { lines: code.split('\n').length });
+    
+    // Use CodeOptimizerAI if available
+    if(typeof window.CodeOptimizerAI !== 'undefined'){
+      try {
+        const analysis = window.CodeOptimizerAI.analyze(code);
+        if(analysis.warnings && analysis.warnings.length > 0){
+          analysis.warnings.forEach(warn => {
+            const w = document.createElement('div'); 
+            w.className='warn'; 
+            w.textContent='[OPTIMIZER] ' + warn;
+            $('analyst').appendChild(w);
+          });
+        }
+      } catch(e){
+        log('[OPTIMIZER] Analysis failed: ' + e.message, 'console');
+      }
+    }
+    
+    try{
+      // eslint-disable-next-line no-eval
+      const result = eval(code);
+      const r = (result !== undefined) ? (' → ' + String(result)) : '';
+      $('status').textContent = 'Done';
+      const ok = document.createElement('div'); ok.className='ok'; ok.textContent='[OK] Code executed' + r;
+      $('analyst').appendChild(ok); $('analyst').scrollTop = $('analyst').scrollHeight;
+      
+      // Track success
+      if(typeof Memory !== 'undefined'){
+        Memory.get().totals.codeRuns++;
+        Memory.reward('run', 0.5); // Small reward for successful run
+      }
+      
+      // Use ResourceEngineCore if available
+      if(typeof window.ResourceEngineCore !== 'undefined'){
+        const metrics = window.ResourceEngineCore.getMetrics();
+        log(`[RESOURCES] CPU: ${metrics.cpu}% | Memory: ${metrics.memory}MB`, 'console');
+      }
+    }catch(err){
+      $('status').textContent = 'Error';
+      const e = document.createElement('div'); e.className='err'; e.textContent='[ERROR] ' + err.message;
+      $('console').appendChild(e); $('console').scrollTop = $('console').scrollHeight;
+      
+      // Penalize errors slightly
+      if(typeof Memory !== 'undefined') Memory.reward('run', -0.2);
+    }
+  }
+  function saveFile(){ 
+    const code = $('codepad').value;
+    // Use ResourceEngineCore to save if available
+    if(typeof window.ResourceEngineCore !== 'undefined'){
+      window.ResourceEngineCore.saveToLocal('nexus-code', code);
+      log('[SYSTEM] Code saved to ResourceEngine', 'console');
+    }
+    log('[SYSTEM] Save requested'); 
+    $('status').textContent='Saved'; 
+  }
+  
+  function formatCode(){ 
+    const code = $('codepad').value;
+    
+    // Record event
+    if(typeof Memory !== 'undefined') Memory.record('format');
+    
+    // Use CodeOptimizerAI formatter if available
+    if(typeof window.CodeOptimizerAI !== 'undefined'){
+      try {
+        const formatted = window.CodeOptimizerAI.format(code);
+        $('codepad').value = formatted;
+        log('[FORMAT] Code formatted with AI optimizer', 'analyst');
+        $('status').textContent='Formatted';
+        if(typeof Memory !== 'undefined'){
+          Memory.get().totals.formatCalls++;
+          Memory.reward('format', 0.3);
+        }
+        return;
+      } catch(e){
+        log('[FORMAT] AI formatter unavailable, using basic format', 'analyst');
+      }
+    }
+    
+    // Basic fallback formatting
+    try {
+      const formatted = code.split('\n').map(line => line.trim()).join('\n');
+      $('codepad').value = formatted;
+      log('[FORMAT] Basic formatter applied', 'analyst');
+      if(typeof Memory !== 'undefined') Memory.reward('format', 0.1);
+    } catch(e){
+      log('[FORMAT] Format failed: ' + e.message, 'analyst');
+    }
+  }
+  
+  function newFile(){ 
+    $('codepad').value=''; 
+    $('status').textContent='New file'; 
+    log('[SYSTEM] New file created', 'console');
+  }
+  function openFile(){ log('[SYSTEM] Open dialog (stub)'); }
+  function exportFile(){ log('[SYSTEM] Export (stub)'); }
+  function toggleTheme(){ document.body.classList.toggle('alt'); }
+
+  /* AI Chat Functions */
+  let aiEnabled = false;
+  
+  function toggleAI(){
+    togglePostcard();
+  }
+  
+  function togglePostcard(){
+    const postcard = $('postcardChat');
+    postcard.classList.toggle('active');
+    
+    // Save preference (Layer 1)
+    if(typeof Memory !== 'undefined'){
+      Memory.setPrefs({ aiOpen: postcard.classList.contains('active') });
+      if(postcard.classList.contains('active')){
+        Memory.get().totals.aiInteractions++;
+      }
+    }
+  }
+  
+  function toggleAIOld(){
+    aiEnabled = !aiEnabled;
+    const chatBox = $('aiChat');
+    const toggleBtn = $('aiToggle');
+    
+    if(aiEnabled){
+      chatBox.classList.remove('hidden');
+      toggleBtn.style.background = 'var(--lime)';
+      toggleBtn.style.color = '#000';
+      addAIMessage('[AI] Assistant activated!', 'ai');
+      log('[SYSTEM] AI Assistant enabled', 'console');
+    } else {
+      chatBox.classList.add('hidden');
+      toggleBtn.style.background = '';
+      toggleBtn.style.color = '';
+      log('[SYSTEM] AI Assistant disabled', 'console');
+    }
+  }
+  
+  function addAIMessage(text, type='ai'){
+    const box = $('aiMessages');
+    const msg = document.createElement('div');
+    msg.className = 'ai-msg ' + type;
+    msg.textContent = text;
+    box.appendChild(msg);
+    box.scrollTop = box.scrollHeight;
+  }
+  
+  function sendAIMessage(){
+    const input = $('aiInput');
+    const message = input.value.trim();
+    
+    if(!message) return;
+    
+    // Display user message
+    addAIMessage('[YOU] ' + message, 'user');
+    input.value = '';
+    
+    // Process AI command
+    processAICommand(message);
+  }
+  
+  function processAICommand(message){
+    const lower = message.toLowerCase();
+    const code = $('codepad').value;
+    
+    setTimeout(()=>{
+      if(lower.includes('help')){
+        addAIMessage('[AI] Available commands: help, analyze, debug, optimize, explain, run', 'ai');
+      } else if(lower.includes('analyze')){
+        const lines = code.split('\n').length;
+        const funcs = (code.match(/function/g) || []).length;
+        addAIMessage(`[AI] Code analysis: ${lines} lines, ${funcs} functions detected`, 'ai');
+      } else if(lower.includes('debug')){
+        addAIMessage('[AI] Analyzing for errors... No critical issues found.', 'ai');
+      } else if(lower.includes('optimize')){
+        addAIMessage('[AI] Suggestions: Use const for constants, avoid nested loops, cache repeated calls', 'ai');
+      } else if(lower.includes('explain')){
+        addAIMessage('[AI] This code appears to be ' + (code.length > 100 ? 'complex' : 'simple') + '. I can help break it down.', 'ai');
+      } else if(lower.includes('run')){
+        addAIMessage('[AI] Executing your code...', 'ai');
+        runCode();
+      } else {
+        addAIMessage(`[AI] I understand: "${message}". How can I help with your code?`, 'ai');
+      }
+    }, 300);
+  }
+
+  /* Toolbar Toggle Function */
+  function toggleToolbar(){
+    const layout = document.querySelector('.layout');
+    const text = $('toolbarToggleText');
+    
+    layout.classList.toggle('toolbar-hidden');
+    
+    if(layout.classList.contains('toolbar-hidden')){
+      text.textContent = 'Show';
+      log('[SYSTEM] Toolbar hidden - Focus mode activated', 'console');
+    } else {
+      text.textContent = 'Hide';
+      log('[SYSTEM] Toolbar visible', 'console');
+    }
+  }
+
+  /* Master Menu Toggle Function */
+  function toggleAllMenus(){
+    const body = document.body;
+    const btn = $('toggleMenusBtn');
+    const text = $('toggleMenusText');
+    
+    body.classList.toggle('menus-hidden');
+    btn.classList.toggle('collapsed');
+    
+    if(body.classList.contains('menus-hidden')){
+      text.textContent = 'Show Menus';
+      log('[SYSTEM] Menus hidden - Focus mode activated', 'console');
+    } else {
+      text.textContent = 'Hide Menus';
+      log('[SYSTEM] Menus visible', 'console');
+    }
+  }
+
+  /* Postcard Chat Functions */
+  function sendPostcardMessage(){
+    const input = $('postcardInput');
+    const message = input.value.trim();
+    
+    if(!message) return;
+    
+    // Add user message
+    addPostcardMessage(message, 'user');
+    input.value = '';
+    
+    // Simulate AI response
+    setTimeout(()=>{
+      processPostcardAI(message);
+    }, 500);
+  }
+  
+  function addPostcardMessage(text, type='ai'){
+    const container = $('postcardMessages');
+    const msg = document.createElement('div');
+    msg.className = 'postcard-msg ' + type;
+    msg.textContent = text;
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+  }
+  
+  function processPostcardAI(message){
+    const lower = message.toLowerCase();
+    const code = $('codepad').value;
+    
+    // Greetings & Social
+    if(lower.match(/^(hi|hey|hello|howdy|yo|sup|greetings)/)){
+      const greetings = [
+        "Hey there! 👋 How's it going?",
+        "Hello! 😊 What's on your mind today?",
+        "Hi! Great to see you! How can I help?",
+        "Hey! 🌟 Ready to chat or work on something cool?"
+      ];
+      addPostcardMessage(greetings[Math.floor(Math.random() * greetings.length)], 'ai');
+    }
+    // How are you
+    else if(lower.match(/how are you|how's it going|what's up|how you doing/)){
+      const responses = [
+        "I'm doing great! Thanks for asking! 😊 How about you?",
+        "All systems running smooth! 🚀 How's your day going?",
+        "Fantastic! Ready to help with anything you need. How are you?",
+        "Pretty good! Just here vibing in the NEXUS. What about you?"
+      ];
+      addPostcardMessage(responses[Math.floor(Math.random() * responses.length)], 'ai');
+    }
+    // General questions
+    else if(lower.includes('what can you do') || lower.includes('what do you do')){
+      addPostcardMessage("I can chat with you about anything! 💬\n\nI'm great for:\n• Having casual conversations\n• Answering questions\n• Helping with ideas\n• Code assistance (when needed)\n• Just keeping you company!\n\nWhat would you like to talk about?", 'ai');
+    }
+    else if(lower.includes('who are you') || lower.includes('what are you')){
+      addPostcardMessage("I'm NEXUS AI Assistant! 🤖✨\n\nThink of me as your friendly companion - here to chat, brainstorm, answer questions, or help out however I can. I'm conversational first, technical second!\n\nWhat brings you here today?", 'ai');
+    }
+    // Weather & time
+    else if(lower.includes('weather')){
+      addPostcardMessage("I don't have live weather data, but I hope it's nice where you are! ☀️🌧️ Are you planning something outdoors?", 'ai');
+    }
+    else if(lower.includes('time') && !lower.includes('timeline')){
+      const now = new Date();
+      addPostcardMessage(`It's ${now.toLocaleTimeString()}! ⏰ Time flies when you're having fun, right?`, 'ai');
+    }
+    // Ideas & creativity
+    else if(lower.includes('idea') || lower.includes('suggest') || lower.includes('inspiration')){
+      addPostcardMessage("� I love brainstorming! What kind of ideas are you looking for?\n\n• Project ideas?\n• Creative concepts?\n• Problem solutions?\n• Something fun?\n\nTell me more!", 'ai');
+    }
+    else if(lower.includes('bored') || lower.includes('boring')){
+      addPostcardMessage("Feeling bored? Let's change that! 🎉\n\nWe could:\n• Chat about interesting topics\n• Explore the visualizer 🎵\n• Brainstorm something creative\n• Tell some jokes\n\nWhat sounds good?", 'ai');
+    }
+    // Thanks
+    else if(lower.match(/^(thanks|thank you|thx|ty)/)){
+      const thanks = [
+        "You're welcome! 😊",
+        "Happy to help! 🌟",
+        "Anytime! That's what I'm here for! 💚",
+        "No problem at all! 👍"
+      ];
+      addPostcardMessage(thanks[Math.floor(Math.random() * thanks.length)], 'ai');
+    }
+    // Jokes
+    else if(lower.includes('joke') || lower.includes('funny')){
+      const jokes = [
+        "Why do programmers prefer dark mode? Because light attracts bugs! 🐛😄",
+        "What's a computer's favorite snack? Microchips! 🍟",
+        "Why did the developer go broke? Because he used up all his cache! 💸",
+        "How many programmers does it take to change a light bulb? None, that's a hardware problem! 💡"
+      ];
+      addPostcardMessage(jokes[Math.floor(Math.random() * jokes.length)], 'ai');
+    }
+    // Music & Audio
+    else if(lower.includes('music') || lower.includes('song')){
+      addPostcardMessage("Love music! 🎵 Have you tried the audio visualizer? Click the 🎵 Audio button to see your sound come alive with shapes and colors!", 'ai');
+    }
+    // Visual & Shader suggestions
+    else if(lower.includes('visual') || lower.includes('shader') || lower.includes('effect')){
+      addPostcardMessage("🎨 Let's make something amazing!\n\nTry these combos in the visualizer:\n• Spiral + Neon Pulse = Hypnotic!\n• Mandala + Rainbow = Sacred vibes\n• Particles + Fire = Cosmic explosion\n• Wave + Ocean = Liquid dreams\n• Circle + Matrix = Digital portal\n\nDon't forget to hit 🔴 Record to save your creations!", 'ai');
+    }
+    else if(lower.includes('record') || lower.includes('capture') || lower.includes('save')){
+      addPostcardMessage("📹 Want to capture those visuals?\n\nIn the visualizer:\n• 🔴 Record - Captures video\n• 📸 Screenshot - Grabs a still frame\n\nCreate something crazy and save it! The recordings auto-download when you stop! 🎬", 'ai');
+    }
+    else if(lower.includes('crazy') || lower.includes('trippy') || lower.includes('psychedelic')){
+      addPostcardMessage("🌀 Want something WILD?\n\nTry this:\n1. Open visualizer (🎵 Audio)\n2. Set Shape to Spiral or Particles\n3. Color mode to Neon Pulse\n4. Hit Autoplay\n5. Start recording!\n\nYou'll get some seriously trippy visuals! 🎆✨", 'ai');
+    }
+    else if(lower.includes('best') || lower.includes('cool') || lower.includes('awesome')){
+      addPostcardMessage("🌟 Here's what looks AMAZING:\n\n• Mandala + Rainbow + your voice = Pure magic\n• Spiral + Fire + autoplay = Cosmic dance\n• Particles + Matrix = Glitch art\n\nExperiment and record your favorites! What style are you into?", 'ai');
+    }
+    // Food
+    else if(lower.includes('food') || lower.includes('hungry') || lower.includes('eat')){
+      addPostcardMessage("Mmm, food! 🍕 I wish I could taste things! What's your favorite food? Or are you hungry right now?", 'ai');
+    }
+    // Games
+    else if(lower.includes('game') || lower.includes('play')){
+      addPostcardMessage("Games are awesome! 🎮 What kind of games do you like? We could also make something fun here in NEXUS!", 'ai');
+    }
+    // Help command
+    else if(lower.includes('help') || lower.includes('command')){
+      addPostcardMessage("I'm here to chat naturally! 💬 Just talk to me like a friend.\n\nBut if you need code help, I can:\n• analyze - Check your code\n• debug - Find issues\n• optimize - Get tips\n• run - Execute code\n\n🧠 Memory commands:\n• history - Show session history\n• stats - Learning statistics\n• recommend - Get smart suggestions\n• clear memory - Delete learning data\n\nMostly though, just chat with me about anything! 😊", 'ai');
+    }
+    // Memory commands (Layer 3)
+    else if(lower.includes('history')){
+      if(typeof Memory !== 'undefined'){
+        const history = Memory.getHistory();
+        if(history.length === 0){
+          addPostcardMessage('📜 No history yet. Start using NEXUS and I\'ll remember your sessions!', 'ai');
+        } else {
+          const formatted = history.map(h => `• ${h.note}`).join('\n');
+          addPostcardMessage(`📜 Recent History:\n\n${formatted}`, 'ai');
+        }
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    else if(lower.includes('stats') || lower.includes('statistics')){
+      if(typeof Memory !== 'undefined'){
+        const stats = Memory.getStats();
+        const msg = `📊 Learning Stats:\n\n` +
+          `Learning: ${stats.learning ? '✅ Enabled' : '❌ Disabled'}\n` +
+          `Total Events: ${stats.totalEvents}\n` +
+          `Code Runs: ${stats.totals.codeRuns}\n` +
+          `Format Calls: ${stats.totals.formatCalls}\n` +
+          `Viz Time: ${Math.floor(stats.totals.vizSeconds / 60)}m ${stats.totals.vizSeconds % 60}s\n` +
+          `AI Interactions: ${stats.totals.aiInteractions}\n` +
+          `Sessions: ${stats.sessionCount}\n` +
+          `Last Seen: ${stats.lastSeen}\n\n` +
+          `Top Events:\n${stats.topEvents.map(e => `  • ${e.event} (${e.count}×, score: ${e.score})`).join('\n')}`;
+        addPostcardMessage(msg, 'ai');
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    else if(lower.includes('recommend')){
+      if(typeof Memory !== 'undefined'){
+        const shapes = ['bars', 'circle', 'wave', 'spiral', 'particles', 'mandala'];
+        const colors = ['rainbow', 'neon', 'fire', 'ocean', 'matrix'];
+        const suggestedShape = Memory.recommend('shape:', shapes);
+        const suggestedColor = Memory.recommend('color:', colors);
+        addPostcardMessage(`🎨 Based on what you enjoy:\n\n• Shape: ${suggestedShape}\n• Color: ${suggestedColor}\n\nTry this combo! I think you'll like it based on your past recordings! 🌟`, 'ai');
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    else if(lower.includes('clear memory') || lower.includes('delete memory')){
+      if(typeof Memory !== 'undefined'){
+        Memory.clear();
+        addPostcardMessage('🗑️ All learning data has been cleared. Starting fresh!', 'ai');
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    else if(lower.includes('export memory')){
+      if(typeof Memory !== 'undefined'){
+        Memory.export();
+        addPostcardMessage('💾 Memory exported to file! Check your downloads.', 'ai');
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    else if(lower.includes('learning on') || lower.includes('enable learning')){
+      if(typeof Memory !== 'undefined'){
+        Memory.setLearning(true);
+        addPostcardMessage('🧠 Learning enabled! I\'ll remember your preferences and adapt to you.', 'ai');
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    else if(lower.includes('learning off') || lower.includes('disable learning')){
+      if(typeof Memory !== 'undefined'){
+        Memory.setLearning(false);
+        addPostcardMessage('🔒 Learning disabled. I won\'t track your usage anymore (privacy mode).', 'ai');
+      } else {
+        addPostcardMessage('❌ Memory system not loaded', 'ai');
+      }
+    }
+    // Code-specific (only if they ask)
+    else if(lower.includes('analyze') && code.length > 0){
+      const lines = code.split('\n').length;
+      const funcs = (code.match(/function/g) || []).length;
+      addPostcardMessage(`📊 Quick Analysis:\n• ${lines} lines\n• ${funcs} functions\n\nLooks good! Need help with anything specific?`, 'ai');
+    }
+    else if(lower.includes('debug')){
+      addPostcardMessage("🔍 I'll check for issues... Everything looks clean! Let me know if something's not working right.", 'ai');
+    }
+    else if(lower.includes('optimize')){
+      addPostcardMessage("⚡ Some quick tips:\n• Keep it simple\n• Use const/let properly\n• Avoid unnecessary loops\n\nYour code working okay?", 'ai');
+    }
+    else if(lower.includes('run') && lower.includes('code')){
+      addPostcardMessage("▶️ Running your code now...", 'ai');
+      runCode();
+      setTimeout(()=>addPostcardMessage("✅ Done! Check the console. How'd it go?", 'ai'), 300);
+    }
+    // Questions
+    else if(lower.includes('?')){
+      addPostcardMessage("That's a great question! � I'll do my best to help. Can you give me a bit more detail about what you're curious about?", 'ai');
+    }
+    // Default - natural conversation
+    else {
+      const responses = [
+        "I hear you! Tell me more about that.",
+        "Interesting! What made you think of that?",
+        "I'm listening! 👂 Go on...",
+        "That's cool! What else is on your mind?",
+        "I get what you're saying. Want to explore that more?",
+        "Nice! I'm here if you want to talk about anything.",
+        "For sure! What would you like to discuss?",
+        "I'm with you! Keep talking, I'm interested! 😊"
+      ];
+      addPostcardMessage(responses[Math.floor(Math.random() * responses.length)], 'ai');
+    }
+  }
+
+  /* Audio Visualizer System */
+  let audioContext, analyser, dataArray, bufferLength;
+  let audioSource, microphone;
+  let canvas, ctx;
+  let animationId;
+  let currentShape = 'bars';
+  let currentColorMode = 'rainbow';
+  let isAudioActive = false;
+  let autoplayEnabled = false;
+  let voiceRecognition = null;
+  let detectedBPM = 0;
+  let dominantFreq = 0;
+  
+  // Screen Recording
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let isRecording = false;
+  let recordStartTime = 0;
+  let recordTimer = null;
+
+  function toggleVisualizer(){
+    const panel = $('visualizerPanel');
+    panel.classList.toggle('active');
+    
+    if(panel.classList.contains('active')){
+      initVisualizer();
+    } else {
+      stopAudio();
+    }
+  }
+
+  function initVisualizer(){
+    canvas = $('vizCanvas');
+    ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    
+    log('[VISUALIZER] Initialized', 'console');
+  }
+
+  async function startAudio(){
+    try {
+      if(!audioContext){
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+      }
+
+      // Get microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+      
+      isAudioActive = true;
+      $('startAudioBtn').textContent = '⏸️ Stop Audio';
+      $('startAudioBtn').classList.add('active');
+      
+      log('[AUDIO] Microphone active', 'console');
+      visualize();
+      
+      if(autoplayEnabled){
+        generateTone();
+      }
+    } catch(err){
+      log('[ERROR] Microphone access denied: ' + err.message, 'console');
+      addPostcardMessage('❌ Could not access microphone. Please grant permission.', 'ai');
+    }
+  }
+
+  function stopAudio(){
+    if(animationId){
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+    if(microphone){
+      microphone.disconnect();
+      microphone = null;
+    }
+    if(audioSource){
+      audioSource.stop();
+      audioSource = null;
+    }
+    isAudioActive = false;
+    if($('startAudioBtn')){
+      $('startAudioBtn').textContent = '🎤 Start Audio';
+      $('startAudioBtn').classList.remove('active');
+    }
+    
+    // Clear canvas
+    if(ctx){
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  function toggleAutoplay(){
+    autoplayEnabled = !autoplayEnabled;
+    const btn = $('autoplayBtn');
+    
+    if(autoplayEnabled){
+      btn.classList.add('active');
+      btn.textContent = '⏸️ Stop Play';
+      if(isAudioActive){
+        generateTone();
+      }
+      log('[AUTOPLAY] Enabled', 'console');
+    } else {
+      btn.classList.remove('active');
+      btn.textContent = '▶️ Autoplay';
+      if(audioSource){
+        audioSource.stop();
+        audioSource = null;
+      }
+      log('[AUTOPLAY] Disabled', 'console');
+    }
+  }
+
+  function generateTone(){
+    if(!audioContext || !autoplayEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(analyser);
+    analyser.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 440 + Math.random() * 440; // Random frequency
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.3;
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 2);
+    
+    audioSource = oscillator;
+    
+    // Generate next tone
+    setTimeout(()=>{
+      if(autoplayEnabled) generateTone();
+    }, 2000);
+  }
+
+  function toggleVoiceRecognition(){
+    if(!('webkitSpeechRecognition' in window)){
+      addPostcardMessage('❌ Voice recognition not supported in this browser.', 'ai');
+      return;
+    }
+    
+    if(!voiceRecognition){
+      voiceRecognition = new webkitSpeechRecognition();
+      voiceRecognition.continuous = true;
+      voiceRecognition.interimResults = true;
+      
+      voiceRecognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        log('[VOICE] ' + transcript, 'console');
+        
+        // Process voice commands
+        const lower = transcript.toLowerCase();
+        if(lower.includes('change shape')){
+          const shapes = ['bars', 'circle', 'wave', 'spiral', 'particles', 'mandala'];
+          currentShape = shapes[Math.floor(Math.random() * shapes.length)];
+          $('shapeSelect').value = currentShape;
+          addPostcardMessage('🔄 Changed shape to: ' + currentShape, 'ai');
+        }
+        if(lower.includes('change color')){
+          const colors = ['rainbow', 'neon', 'fire', 'ocean', 'matrix'];
+          currentColorMode = colors[Math.floor(Math.random() * colors.length)];
+          $('colorSelect').value = currentColorMode;
+          addPostcardMessage('🎨 Changed color to: ' + currentColorMode, 'ai');
+        }
+      };
+      
+      voiceRecognition.start();
+      log('[VOICE] Recognition started', 'console');
+      addPostcardMessage('🗣️ Voice recognition active! Try saying "change shape" or "change color"', 'ai');
+    } else {
+      voiceRecognition.stop();
+      voiceRecognition = null;
+      log('[VOICE] Recognition stopped', 'console');
+    }
+  }
+
+  function changeShape(){
+    currentShape = $('shapeSelect').value;
+    log('[VISUALIZER] Shape changed to: ' + currentShape, 'console');
+    
+    // Save preference + record event (Layer 1 & 2)
+    if(typeof Memory !== 'undefined'){
+      Memory.setPrefs({ shape: currentShape });
+      Memory.record('shape:' + currentShape);
+    }
+  }
+
+  function changeColorMode(){
+    currentColorMode = $('colorSelect').value;
+    log('[VISUALIZER] Color mode changed to: ' + currentColorMode, 'console');
+    
+    // Save preference + record event (Layer 1 & 2)
+    if(typeof Memory !== 'undefined'){
+      Memory.setPrefs({ color: currentColorMode });
+      Memory.record('color:' + currentColorMode);
+    }
+  }
+
+  function visualize(){
+    if(!isAudioActive) return;
+    
+    animationId = requestAnimationFrame(visualize);
+    
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Pattern recognition
+    detectPattern();
+    
+    // Clear canvas
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw based on shape
+    switch(currentShape){
+      case 'bars': drawBars(); break;
+      case 'circle': drawCircle(); break;
+      case 'wave': drawWave(); break;
+      case 'spiral': drawSpiral(); break;
+      case 'particles': drawParticles(); break;
+      case 'mandala': drawMandala(); break;
+    }
+  }
+
+  function detectPattern(){
+    // Calculate average frequency
+    let sum = 0;
+    for(let i = 0; i < bufferLength; i++){
+      sum += dataArray[i];
+    }
+    const avg = sum / bufferLength;
+    
+    // Find dominant frequency
+    let maxVal = 0;
+    let maxIndex = 0;
+    for(let i = 0; i < bufferLength; i++){
+      if(dataArray[i] > maxVal){
+        maxVal = dataArray[i];
+        maxIndex = i;
+      }
+    }
+    dominantFreq = Math.round((maxIndex * audioContext.sampleRate) / (analyser.fftSize * 2));
+    
+    // Simple BPM detection (very rough)
+    if(maxVal > 200){
+      detectedBPM = Math.round(60 + (maxVal / 255) * 120);
+    }
+    
+    // Determine pattern
+    let pattern = 'Silent';
+    if(avg > 150) pattern = 'Intense';
+    else if(avg > 100) pattern = 'Active';
+    else if(avg > 50) pattern = 'Moderate';
+    else if(avg > 20) pattern = 'Quiet';
+    
+    $('patternInfo').textContent = `Pattern: ${pattern} | BPM: ${detectedBPM} | Frequency: ${dominantFreq} Hz`;
+  }
+
+  function getColor(index, total){
+    const hue = (index / total) * 360;
+    
+    switch(currentColorMode){
+      case 'rainbow':
+        return `hsl(${hue}, 100%, 50%)`;
+      case 'neon':
+        return `hsl(${280 + Math.sin(Date.now() / 500) * 80}, 100%, 50%)`;
+      case 'fire':
+        return `hsl(${Math.random() * 60}, 100%, 50%)`;
+      case 'ocean':
+        return `hsl(${180 + hue / 2}, 100%, 50%)`;
+      case 'matrix':
+        return `hsl(120, 100%, ${30 + (index / total) * 70}%)`;
+      default:
+        return `hsl(${hue}, 100%, 50%)`;
+    }
+  }
+
+  function drawBars(){
+    const barWidth = (canvas.width / bufferLength) * 2.5;
+    let x = 0;
+    
+    for(let i = 0; i < bufferLength; i++){
+      const barHeight = (dataArray[i] / 255) * canvas.height;
+      ctx.fillStyle = getColor(i, bufferLength);
+      ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+      x += barWidth + 1;
+    }
+  }
+
+  function drawCircle(){
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 50;
+    
+    for(let i = 0; i < bufferLength; i++){
+      const angle = (i / bufferLength) * Math.PI * 2;
+      const amp = (dataArray[i] / 255) * 100;
+      const x = centerX + Math.cos(angle) * (radius + amp);
+      const y = centerY + Math.sin(angle) * (radius + amp);
+      
+      ctx.fillStyle = getColor(i, bufferLength);
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawWave(){
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const sliceWidth = canvas.width / bufferLength;
+    let x = 0;
+    
+    for(let i = 0; i < bufferLength; i++){
+      const v = dataArray[i] / 128.0;
+      const y = v * canvas.height / 2;
+      
+      ctx.strokeStyle = getColor(i, bufferLength);
+      
+      if(i === 0){
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+      
+      x += sliceWidth;
+    }
+    
+    ctx.stroke();
+  }
+
+  function drawSpiral(){
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const time = Date.now() / 1000;
+    
+    for(let i = 0; i < bufferLength; i++){
+      const angle = (i / bufferLength) * Math.PI * 4 + time;
+      const radius = (i / bufferLength) * 200;
+      const amp = (dataArray[i] / 255) * 50;
+      const x = centerX + Math.cos(angle) * (radius + amp);
+      const y = centerY + Math.sin(angle) * (radius + amp);
+      
+      ctx.fillStyle = getColor(i, bufferLength);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawParticles(){
+    for(let i = 0; i < 50; i++){
+      const dataIndex = Math.floor((i / 50) * bufferLength);
+      const amp = dataArray[dataIndex] / 255;
+      
+      const x = (Math.random() * canvas.width);
+      const y = (Math.random() * canvas.height) * amp;
+      const size = amp * 10;
+      
+      ctx.fillStyle = getColor(i, 50);
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawMandala(){
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const petals = 8;
+    
+    for(let i = 0; i < bufferLength; i += 4){
+      for(let p = 0; p < petals; p++){
+        const angle = (p / petals) * Math.PI * 2;
+        const radius = (dataArray[i] / 255) * 150;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        
+        ctx.fillStyle = getColor(i, bufferLength);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  /* Screen Recording Functions */
+  async function toggleRecording(){
+    if(isRecording){
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }
+
+  async function startRecording(){
+    try {
+      // Capture canvas stream
+      const canvasStream = canvas.captureStream(30); // 30 FPS
+      
+      // Setup media recorder
+      const options = { mimeType: 'video/webm;codecs=vp9' };
+      
+      // Try different codecs if vp9 not supported
+      if(!MediaRecorder.isTypeSupported(options.mimeType)){
+        options.mimeType = 'video/webm;codecs=vp8';
+        if(!MediaRecorder.isTypeSupported(options.mimeType)){
+          options.mimeType = 'video/webm';
+        }
+      }
+      
+      mediaRecorder = new MediaRecorder(canvasStream, options);
+      recordedChunks = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if(event.data.size > 0){
+          recordedChunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nexus-visualizer-${Date.now()}.webm`;
+        a.click();
+        
+        log('[RECORDER] Video saved!', 'console');
+        addPostcardMessage('🎬 Your visualizer recording has been saved! Check your downloads! 🎉', 'ai');
+        
+        URL.revokeObjectURL(url);
+      };
+      
+      mediaRecorder.start();
+      isRecording = true;
+      recordStartTime = Date.now();
+      
+      // Update UI
+      $('recordBtn').textContent = '⏹️ Stop';
+      $('recordBtn').classList.add('active');
+      $('recordInfo').style.display = 'block';
+      
+      // Start timer
+      recordTimer = setInterval(updateRecordTime, 1000);
+      
+      log('[RECORDER] Recording started!', 'console');
+      addPostcardMessage('🔴 Recording started! Capture those awesome visuals! ✨', 'ai');
+      
+    } catch(err){
+      log('[ERROR] Recording failed: ' + err.message, 'console');
+      addPostcardMessage('❌ Recording failed. Make sure the visualizer is running!', 'ai');
+    }
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && isRecording){
+      const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+      
+      mediaRecorder.stop();
+      isRecording = false;
+      
+      // Stop timer
+      clearInterval(recordTimer);
+      recordTimer = null;
+      
+      // Update UI
+      $('recordBtn').textContent = '🔴 Record';
+      $('recordBtn').classList.remove('active');
+      $('recordInfo').style.display = 'none';
+      
+      // Reward based on recording time (Layer 2 - Bandit learning)
+      if(typeof Memory !== 'undefined'){
+        Memory.reward('shape:' + currentShape, elapsed);
+        Memory.reward('color:' + currentColorMode, elapsed / 2);
+        Memory.get().totals.vizSeconds += elapsed;
+        log(`[MEMORY] Rewarded ${currentShape} + ${currentColorMode} for ${elapsed}s recording`, 'console');
+      }
+      
+      log('[RECORDER] Recording stopped', 'console');
+    }
+  }
+
+  function updateRecordTime(){
+    const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    $('recordTime').textContent = 
+      `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function takeScreenshot(){
+    if(!canvas){
+      addPostcardMessage('❌ Start the visualizer first!', 'ai');
+      return;
+    }
+    
+    // Convert canvas to image
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nexus-visualizer-${Date.now()}.png`;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      
+      log('[SCREENSHOT] Image saved!', 'console');
+      addPostcardMessage('📸 Screenshot saved! Got that perfect moment! 🌟', 'ai');
+    }, 'image/png');
+  }
+
+  // Session snapshot function (Layer 3)
+  function snapshotSession(){
+    if(typeof Memory === 'undefined') return;
+    
+    const code = $('codepad').value;
+    const note = `lines:${code.split('\n').length} shape:${currentShape} color:${currentColorMode} chars:${code.length}`;
+    Memory.snapshot(note, { 
+      codeLength: code.length, 
+      shape: currentShape, 
+      color: currentColorMode 
+    });
+  }
+
+  window.addEventListener('load', ()=> {
+    $('codepad').focus();
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+T: Toggle Toolbar
+      if(e.ctrlKey && e.key === 't'){
+        e.preventDefault();
+        toggleToolbar();
+      }
+      // Ctrl+M: Toggle Side Menus
+      if(e.ctrlKey && e.key === 'm'){
+        e.preventDefault();
+        toggleAllMenus();
+      }
+    });
+    
+    // ============================================
+    // NEXUS DASHBOARD INITIALIZATION
+    // ============================================
+    console.log('%c🚀 NEXUS Dashboard Ready!', 'color: #b6ff00; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px rgba(182,255,0,0.5);');
+    console.log('%cWelcome to NEXUS Dashboard (Integrated Edition)', 'color: #9aa7b5; font-size: 13px;');
+    console.log('');
+    
+    // ============================================
+    // MEMORY SYSTEM INITIALIZATION (Layer 1)
+    // ============================================
+    if(typeof Memory !== 'undefined'){
+      console.log('%c🧠 Memory System Initializing...', 'color: #ff6a00; font-weight: bold;');
+      
+      const m = Memory.get();
+      
+      // Restore preferences
+      if(m.prefs.theme === 'alt') document.body.classList.add('alt');
+      if(m.prefs.aiOpen) $('postcardChat').classList.add('active');
+      if(!m.prefs.toolbarOpen) toggleToolbar();
+      
+      // Restore visualizer preferences with recommendations (Layer 2)
+      if(isAudioActive === false){
+        const shapes = ['bars', 'circle', 'wave', 'spiral', 'particles', 'mandala'];
+        const colors = ['rainbow', 'neon', 'fire', 'ocean', 'matrix'];
+        
+        // Use recommendation system for first-time setup
+        const recommendedShape = Memory.recommend('shape:', shapes, 0.2);
+        const recommendedColor = Memory.recommend('color:', colors, 0.2);
+        
+        currentShape = m.prefs.shape || recommendedShape;
+        currentColorMode = m.prefs.color || recommendedColor;
+        
+        if($('shapeSelect')) $('shapeSelect').value = currentShape;
+        if($('colorSelect')) $('colorSelect').value = currentColorMode;
+        
+        console.log(`%c  Restored prefs: shape=${currentShape}, color=${currentColorMode}`, 'color: #9aa7b5;');
+      }
+      
+      // Log stats
+      const stats = Memory.getStats();
+      console.log(`%c  Learning: ${stats.learning ? 'ON' : 'OFF'} | Events: ${stats.totalEvents} | Sessions: ${stats.sessionCount}`, 'color: #9aa7b5;');
+      
+      // Save snapshot on unload (Layer 3)
+      window.addEventListener('beforeunload', snapshotSession);
+      
+      console.log('%c✓ Memory System Ready', 'color: #b6ff00;');
+      log('[MEMORY] Learning system initialized', 'console');
+    } else {
+      console.log('%c⚠️ Memory System not loaded', 'color: #ffd166;');
+    }
+    console.log('');
+    
+    // Check integrations
+    const hasCodeOptimizer = typeof window.CodeOptimizerAI !== 'undefined';
+    const hasResourceEngine = typeof window.ResourceEngineCore !== 'undefined';
+    
+    console.log('%c🔌 Integration Status:', 'color: #ff6a00; font-weight: bold;');
+    console.log(`   CodeOptimizerAI: ${hasCodeOptimizer ? '✅ LOADED' : '⚠️ Not found'}`, `color: ${hasCodeOptimizer ? '#b6ff00' : '#ffd166'}`);
+    console.log(`   ResourceEngineCore: ${hasResourceEngine ? '✅ LOADED' : '⚠️ Not found'}`, `color: ${hasResourceEngine ? '#b6ff00' : '#ffd166'}`);
+    console.log('');
+    
+    // Log to console panel
+    if(hasCodeOptimizer){
+      log('[INTEGRATION] CodeOptimizerAI loaded', 'console');
+      const ok1 = document.createElement('div'); ok1.className='ok'; 
+      ok1.textContent='✓ CodeOptimizerAI active';
+      $('analyst').appendChild(ok1);
+    }
+    if(hasResourceEngine){
+      log('[INTEGRATION] ResourceEngineCore loaded', 'console');
+      const ok2 = document.createElement('div'); ok2.className='ok'; 
+      ok2.textContent='✓ ResourceEngineCore active';
+      $('analyst').appendChild(ok2);
+    }
+    
+    // Try to load saved code
+    if(hasResourceEngine){
+      const savedCode = window.ResourceEngineCore.loadFromLocal('nexus-code');
+      if(savedCode){
+        $('codepad').value = savedCode;
+        log('[SYSTEM] Restored previous session', 'console');
+      }
+    }
+    
+    console.log('%cStart coding here...', 'color: #9aa7b5; font-size: 13px;');
+    console.log('');
+
+    // Example: Integrated environment
+    const NEXUS = {
+      clock: {
+        bpm: 120,
+        phase: 0,
+        start() {
+          console.log('%c♪ Clock started at ' + this.bpm + ' BPM', 'color: #ff6a00; font-weight: bold;');
+          return this;
+        },
+        setBPM(newBPM) {
+          this.bpm = newBPM;
+          console.log(`♪ BPM updated to ${newBPM}`);
+          return this;
+        }
+      },
+      audio: {
+        spectralCentroid: 440,
+        synthesize(freq) {
+          const result = `Synthesizing at ${freq}Hz`;
+          console.log('%c🔊 ' + result, 'color: #b6ff00;');
+          return result;
+        },
+        tune(note) {
+          const freqMap = { A: 440, C: 261.63, D: 293.66, E: 329.63, G: 392 };
+          return this.synthesize(freqMap[note] || 440);
+        }
+      },
+      swarm: {
+        agents: 7,
+        analyze(code) {
+          const analysis = {
+            complexity: code.length / 1000,
+            patterns: (code.match(/function/g) || []).length,
+            lines: code.split('\n').length,
+            chars: code.length
+          };
+          console.log('%c🐝 Code analysis:', 'color: #ff6a00; font-weight: bold;', analysis);
+          return analysis;
+        },
+        setAgents(count) {
+          this.agents = count;
+          console.log(`🐝 Swarm size set to ${count} agents`);
+          return this;
+        }
+      },
+      log(msg, color = '#b6ff00') {
+        console.log(`%c${msg}`, `color: ${color}; font-weight: bold;`);
+      }
+    };
+
+    // Test the system
+    console.log('%c--- System Test ---', 'color: #ff6a00; font-weight: bold;');
+    NEXUS.clock.start();
+    console.log(NEXUS.audio.synthesize(440));
+    const testCode = 'function example() {\n  function nested() {}\n}';
+    const analysis = NEXUS.swarm.analyze(testCode);
+    console.log('%c--- Test Complete ---', 'color: #b6ff00; font-weight: bold;');
+    console.log('');
+
+    // Make NEXUS available globally for user interaction
+    window.NEXUS = NEXUS;
+    console.log('%c💡 TIP: Use window.NEXUS to interact with the system', 'color: #9aa7b5; font-style: italic;');
+    console.log('%c   Try: NEXUS.clock.setBPM(140)', 'color: #9aa7b5; font-style: italic;');
+    console.log('%c   Try: NEXUS.audio.tune("A")', 'color: #9aa7b5; font-style: italic;');
+    console.log('%c   Try: NEXUS.swarm.analyze(codepad.value)', 'color: #9aa7b5; font-style: italic;');
+    console.log('');
+  });
+</script>
+</body>
+</html>
+

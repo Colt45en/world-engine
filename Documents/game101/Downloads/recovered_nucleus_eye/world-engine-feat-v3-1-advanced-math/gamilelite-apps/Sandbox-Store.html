@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandbox Store - GameLite Marketplace</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            --bg: #0a0f17;
+            --ink: #e9f0ff;
+            --muted: #9fb0d1;
+            --line: rgba(170,220,255,.25);
+            --good: #22c55e;
+            --bad: #ef4444;
+            --mana: #3b82f6;
+            --gold: #eab308;
+            --purple: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            background: radial-gradient(1200px 800px at 15% -10%, #10183b, var(--bg));
+            color: var(--ink);
+            font-family: system-ui, 'Segoe UI', Roboto, Inter, Arial, sans-serif;
+        }
+
+        /* Header */
+        #header {
+            background: rgba(0,0,0,.5);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--line);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--purple), var(--mana));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        button {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(0,0,0,.4);
+            color: var(--ink);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        button:hover {
+            border-color: rgba(255,255,255,.35);
+            background: rgba(255,255,255,.1);
+            transform: translateY(-1px);
+        }
+
+        button.primary {
+            background: var(--mana);
+            border-color: var(--mana);
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #60a5fa;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: linear-gradient(180deg, rgba(168,85,247,0.1) 0%, transparent 100%);
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--purple), var(--mana), var(--good));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        /* Search Bar */
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        input[type="search"] {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1rem;
+            background: rgba(0,0,0,.4);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            color: var(--ink);
+            font-size: 1rem;
+        }
+
+        input[type="search"]:focus {
+            outline: none;
+            border-color: var(--mana);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+        }
+
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 2rem 2rem;
+        }
+
+        .category-chip {
+            padding: 0.5rem 1.25rem;
+            background: rgba(168,85,247,.2);
+            border: 1px solid var(--purple);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-chip:hover {
+            background: rgba(168,85,247,.3);
+            transform: translateY(-2px);
+        }
+
+        .category-chip.active {
+            background: var(--purple);
+            color: white;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Product Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .product-card {
+            background: rgba(0,0,0,.3);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            border-color: var(--mana);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(59,130,246,0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(168,85,247,0.3), rgba(59,130,246,0.3));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .product-info {
+            padding: 1.25rem;
+        }
+
+        .product-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-author {
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .product-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+
+        .product-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--good);
+        }
+
+        .price-free {
+            color: var(--mana);
+        }
+
+        /* Status Banner */
+        .status-banner {
+            background: rgba(234,179,8,0.2);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .status-banner h3 {
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div id="header">
+        <div class="logo">
+            <span>🛒</span>
+            <span>Sandbox Store</span>
+        </div>
+        <div class="nav-links">
+            <button onclick="window.location.href='index.html'">🏠 Hub</button>
+            <button class="primary">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>🛒 Sandbox Store</h1>
+        <p>Buy, sell, and discover amazing GameLite assets</p>
+        
+        <!-- Search -->
+        <div class="search-container">
+            <input type="search" placeholder="Search for models, textures, tools..." id="search-input">
+            <span class="search-icon">🔍</span>
+        </div>
+
+        <!-- Categories -->
+        <div class="categories">
+            <div class="category-chip active">All</div>
+            <div class="category-chip">3D Models</div>
+            <div class="category-chip">Textures</div>
+            <div class="category-chip">Animations</div>
+            <div class="category-chip">Tools</div>
+            <div class="category-chip">Scripts</div>
+            <div class="category-chip">Environments</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Status Banner -->
+        <div class="status-banner">
+            <h3>🚧 Coming Soon!</h3>
+            <p>The Sandbox Store is currently under development. Check the documentation for the complete vision and roadmap.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">See: <strong>SANDBOXSTORE_COMPLETE_VISION.md</strong> for details</p>
+        </div>
+
+        <h2 style="margin-bottom: 1rem;">Featured Assets</h2>
+
+        <!-- Products Grid (Demo) -->
+        <div class="products-grid" id="products-grid">
+            <!-- Products will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        // Demo products
+        const demoProducts = [
+            {
+                title: 'Sci-Fi Character Pack',
+                author: 'GameLite Studios',
+                price: 29.99,
+                downloads: 1234,
+                rating: 4.8,
+                icon: '🤖'
+            },
+            {
+                title: 'Medieval Castle Kit',
+                author: 'ArtByDesign',
+                price: 49.99,
+                downloads: 892,
+                rating: 4.9,
+                icon: '🏰'
+            },
+            {
+                title: 'Nature Texture Bundle',
+                author: 'TexturePro',
+                price: 19.99,
+                downloads: 2341,
+                rating: 4.7,
+                icon: '🌲'
+            },
+            {
+                title: 'Animation Toolkit',
+                author: 'AnimatorX',
+                price: 0,
+                downloads: 5678,
+                rating: 4.9,
+                icon: '🎬'
+            },
+            {
+                title: 'Urban City Props',
+                author: 'CityBuilder',
+                price: 34.99,
+                downloads: 756,
+                rating: 4.6,
+                icon: '🏙️'
+            },
+            {
+                title: 'Fantasy Weapons',
+                author: 'SwordMaster',
+                price: 24.99,
+                downloads: 1567,
+                rating: 4.8,
+                icon: '⚔️'
+            }
+        ];
+
+        // Populate products
+        const grid = document.getElementById('products-grid');
+        demoProducts.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <div class="product-image">${product.icon}</div>
+                <div class="product-info">
+                    <div class="product-title">${product.title}</div>
+                    <div class="product-author">by ${product.author}</div>
+                    <div class="product-stats">
+                        <span>⭐ ${product.rating}</span>
+                        <span>⬇️ ${product.downloads.toLocaleString()}</span>
+                    </div>
+                    <div class="product-price">
+                        <span class="price ${product.price === 0 ? 'price-free' : ''}">
+                            ${product.price === 0 ? 'FREE' : '$' + product.price}
+                        </span>
+                        <button class="primary">${product.price === 0 ? 'Download' : 'Buy'}</button>
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', () => {
+                alert(`${product.title}\n\nThis is a demo. Full marketplace coming soon!\nSee SANDBOXSTORE_COMPLETE_VISION.md for details.`);
+            });
+            
+            grid.appendChild(card);
+        });
+
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.product-card');
+            
+            cards.forEach(card => {
+                const title = card.querySelector('.product-title').textContent.toLowerCase();
+                card.style.display = title.includes(term) ? 'block' : 'none';
+            });
+        });
+
+        // Category chips
+        document.querySelectorAll('.category-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+            });
+        });
+
+        console.log('🛒 Sandbox Store loaded!');
+        console.log('📦 This is a demo preview. Full marketplace features coming soon.');
+        console.log('📄 See SANDBOXSTORE_COMPLETE_VISION.md for the complete implementation plan.');
+    </script>
+</body>
+</html>

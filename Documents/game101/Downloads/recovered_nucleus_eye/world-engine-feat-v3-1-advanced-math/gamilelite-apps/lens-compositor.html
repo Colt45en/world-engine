@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lens Tunnel Compositor</title>
+    <style>
+        :root {
+            --bg: #0a0e27;
+            --surface: #1a1f3a;
+            --primary: #72f6d1;
+            --secondary: #6c91ff;
+            --accent: #ff6b9d;
+            --text: #e0e7ff;
+            --muted: #8892b0;
+            --border: #2d3561;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--surface);
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            border-color: var(--primary);
+            background: rgba(114, 246, 209, 0.1);
+        }
+
+        .btn.active {
+            background: var(--primary);
+            color: var(--bg);
+            border-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .btn.recording {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            animation: pulse-record 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-record {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .compositor-canvas {
+            border: 2px solid var(--border);
+            box-shadow: 0 0 40px rgba(114, 246, 209, 0.2);
+            border-radius: 8px;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: var(--surface);
+            border-left: 2px solid var(--border);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section h3 {
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .layer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .layer-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .layer-item.active {
+            border-color: var(--primary);
+            background: rgba(114, 246, 209, 0.05);
+        }
+
+        .layer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .layer-name {
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .layer-toggle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .layer-toggle.on {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .layer-toggle.on::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--bg);
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .layer-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .control-row label {
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+
+        .control-row input[type="range"] {
+            width: 120px;
+        }
+
+        .control-row select {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .blend-mode-select {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .raymarch-section {
+            background: rgba(108, 145, 255, 0.05);
+        }
+
+        .raymarch-toggle {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .audio-viz {
+            height: 60px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .audio-viz canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .stat-box {
+            background: var(--bg);
+            padding: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.25rem;
+        }
+
+        .info-text {
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.5;
+            background: rgba(114, 246, 209, 0.05);
+            padding: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid rgba(114, 246, 209, 0.2);
+        }
+
+        .layer-iframe { 
+            display: none;
+            width: 800px;
+            height: 600px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainview"></div>
+    <iframe class="layer-iframe" id="RNES-Nexus-Visualizer" src="RNES-Nexus-Visualizer.html"></iframe>
+    <div class="header">
+        <h1>🔬 Lens Tunnel Compositor</h1>
+        <div class="header-actions">
+            <button class="btn" id="btnSnapshot">📸 Snapshot</button>
+            <button class="btn" id="btnRecord">🎥 Record</button>
+            <button class="btn" id="btnAudio">🎤 Audio</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="canvas-area">
+            <canvas id="compositorCanvas" class="compositor-canvas" width="800" height="600"></canvas>
+        </div>
+
+        <div class="sidebar">
+            <!-- Lens Layers -->
+            <div class="section">
+                <h3>🔮 Lens Layers (Light Path)</h3>
+                <div class="info-text">
+                   imageflow: RNES-Nexus-Visualizer → Light flow from Light Lab 7 → Lab 1 → Output. Each lens adds effects that stack.
+                </div>
+                <div class="layer-list" id="layerList"></div>
+            </div>
+
+            <!-- Raymarch Engine -->
+            <div class="section raymarch-section">
+                <h3>✨ Raymarch Engine</h3>
+                <button class="btn raymarch-toggle" id="btnRaymarch">Enable Raymarch</button>
+                <div class="control-row">
+                    <label>Ray Steps:</label>
+                    <input type="range" id="raySteps" min="10" max="100" value="50">
+                    <span id="rayStepsVal">50</span>
+                </div>
+                <div class="control-row">
+                    <label>Light Intensity:</label>
+                    <input type="range" id="lightIntensity" min="0" max="200" value="100">
+                    <span id="lightIntensityVal">100%</span>
+                </div>
+                <div class="control-row">
+                    <label>Reflection:</label>
+                    <input type="range" id="reflectionAmount" min="0" max="100" value="50">
+                    <span id="reflectionVal">50%</span>
+                </div>
+            </div>
+
+            <!-- Audio Reactive -->
+            <div class="section">
+                <h3>🎵 Audio Reactive</h3>
+                <div class="audio-viz">
+                    <canvas id="audioCanvas"></canvas>
+                </div>
+                <div class="control-row" style="margin-top: 0.75rem;">
+                    <label>Sensitivity:</label>
+                    <input type="range" id="audioSensitivity" min="0" max="200" value="100">
+                    <span id="sensitivityVal">100%</span>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="section">
+                <h3>📊 Compositor Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statLayers">0</div>
+                        <div class="stat-label">Active Layers</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statFPS">60</div>
+                        <div class="stat-label">FPS</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statAudio">Off</div>
+                        <div class="stat-label">Audio</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statRaymarch">Off</div>
+                        <div class="stat-label">Raymarch</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden iframes for each lab -->
+    <iframe class="layer-iframe" id="RNES-Nexus-Visualizer.html" src="RNES-Nexus-Visualizer.html"></iframe>
+    <iframe class="layer-iframe" id="lab1Frame" src="math-lab-1.html"></iframe>
+    <iframe class="layer-iframe" id="lab2Frame" src="math-lab-2.html"></iframe>
+    <iframe class="layer-iframe" id="lab3Frame" src="math-lab-3.html"></iframe>
+    <iframe class="layer-iframe" id="lab5Frame" src="math-lab-5.html"></iframe>
+    <iframe class="layer-iframe" id="lab6Frame" src="math-lab-6.html"></iframe>
+    <iframe class="layer-iframe" id="lab7Frame" src="math-lab-7.html"></iframe>
+
+    <script src="lens-compositor.js"></script>
+</body>
+</html>

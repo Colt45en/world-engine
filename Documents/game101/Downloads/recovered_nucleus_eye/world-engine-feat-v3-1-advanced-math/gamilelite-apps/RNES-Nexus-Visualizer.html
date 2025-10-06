@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RNES 6.0 + Nexus-Lab-correct + ResourceEngineCore</title>
+    <style>
+        :root {
+            --bg: #0a0f17;
+            --panel: #0f1620;
+            --accent: #10e0e0;
+            --text: #e8f0ff;
+            --muted: #92a0b3;
+            --good: #22c55e;
+            --bad: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            grid-template-rows: 60px 1fr 200px 50px;
+            height: 100vh;
+            gap: 1px;
+            background: #000;
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            grid-column: 1 / -1;
+            background: linear-gradient(180deg, #0f1a33, #0b1427);
+            border-bottom: 1px solid #1d2c56;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            gap: 1rem;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #10e0e0, #72f6d1);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        /* Canvas Area */
+        .canvas-area {
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #worldCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Visualizer Overlay */
+        #visualizerCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            opacity: 0.6;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            background: var(--panel);
+            border-left: 1px solid #1d2c56;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .stats-panel h3 {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.875rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .stat-value.good {
+            color: var(--good);
+        }
+
+        .stat-value.bad {
+            color: var(--bad);
+        }
+
+        /* Console */
+        .console {
+            grid-column: 1 / -1;
+            background: #000;
+            border-top: 1px solid #1d2c56;
+            padding: 0.75rem;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+
+        .console-line {
+            padding: 0.25rem 0;
+            color: var(--muted);
+        }
+
+        .console-line.info {
+            color: var(--accent);
+        }
+
+        .console-line.success {
+            color: var(--good);
+        }
+
+        .console-line.warning {
+            color: #fbbf24;
+        }
+
+        .console-line.error {
+            color: var(--bad);
+        }
+
+        /* Buttons */
+        .btn {
+            background: #14254b;
+            color: var(--text);
+            border: 1px solid #243869;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #1a2f5e;
+            border-color: var(--accent);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .btn.rec {
+            background: #c41e3a;
+            border-color: #d83654;
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.75rem;
+            min-width: 32px;
+        }
+
+        .btn.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: 600;
+        }
+
+        /* HUD Overlay */
+        .hud {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .hud-chip {
+            background: rgba(18, 35, 71, 0.9);
+            border: 1px solid #243c72;
+            border-radius: 999px;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .hud-chip b {
+            color: var(--accent);
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(10, 15, 23, 0.95);
+            border: 1px solid #1d2c56;
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(8px);
+            font-size: 0.75rem;
+        }
+
+        .legend h4 {
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        /* Dashboard Panel */
+        .dashboard-panel {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            bottom: 0;
+            width: 600px;
+            background: var(--panel);
+            border-left: 2px solid var(--accent);
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.8);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-panel.open {
+            transform: translateX(0);
+        }
+
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(180deg, #0f1a33, #0b1427);
+            border-bottom: 1px solid #1d2c56;
+        }
+
+        .dashboard-header h2 {
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .dashboard-close {
+            background: transparent;
+            border: 1px solid var(--muted);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .dashboard-close:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .dashboard-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .dashboard-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.35rem 0;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        /* Optimizer Panel */
+        .optimizer-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .task-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            font-size: 0.75rem;
+        }
+
+        .task-item .task-name {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .task-item .task-status {
+            color: var(--muted);
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🌐 RNES 6.0 + Nexus Lab Unified Engine</h1>
+            <div class="header-controls">
+                <button class="btn" id="btnResetCamera">Reset View (R)</button>
+                <button class="btn" id="btnToggleParticles">✨ Particles</button>
+                <button class="btn" id="btnClearParticles">🧹 Clear</button>
+                <button class="btn" id="btnToggleVisualizer">Audio Viz</button>
+                <button class="btn" id="btnOptimizeAll">⚡ Optimize All</button>
+                <button class="btn rec" id="btnRecord">● Record</button>
+            </div>
+        </header>
+
+        <!-- Main Canvas -->
+        <div class="canvas-area">
+            <canvas id="worldCanvas" width="1200" height="800"></canvas>
+            <canvas id="visualizerCanvas" width="1200" height="800"></canvas>
+            
+            <!-- HUD -->
+            <div class="hud">
+                <div class="hud-chip">Camera: <b id="hudCamX">0</b>, <b id="hudCamY">0</b></div>
+                <div class="hud-chip">FPS: <b id="hudFPS">60</b></div>
+                <div class="hud-chip">Chunks Loaded: <b id="hudChunks">0</b></div>
+                <div class="hud-chip">Resources: <b id="hudResources">0</b> / <b id="hudTotal">0</b></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <h4>Legend</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ccff;"></div>
+                    <span>Camera</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255,255,255,0.5); border: 2px solid white;"></div>
+                    <span>Load Radius</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255,0,0,0.5); border: 2px solid red;"></div>
+                    <span>Unload Radius</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #55aaff;"></div>
+                    <span>Loaded Chunks</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ff00;"></div>
+                    <span>LOD High</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffff00;"></div>
+                    <span>LOD Medium</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff8800;"></div>
+                    <span>LOD Low</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+            <h3>Engine Statistics</h3>
+            <div class="stat-row">
+                <span class="stat-label">Chunks Loaded</span>
+                <span class="stat-value" id="statChunksLoaded">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Resources Loaded</span>
+                <span class="stat-value" id="statResourcesLoaded">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Resources Visible</span>
+                <span class="stat-value good" id="statResourcesVisible">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">LOD High</span>
+                <span class="stat-value" id="statLODHigh">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">LOD Medium</span>
+                <span class="stat-value" id="statLODMedium">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">LOD Low</span>
+                <span class="stat-value" id="statLODLow">0</span>
+            </div>
+
+            <!-- Code Optimizer Section -->
+            <div class="optimizer-section">
+                <h3>Code Optimizer AI</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Optimizations</span>
+                    <span class="stat-value" id="statOptimizations">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Upgrades</span>
+                    <span class="stat-value" id="statUpgrades">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Avg Improvement</span>
+                    <span class="stat-value good" id="statImprovement">0%</span>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <button class="btn" id="btnQueueTask" style="width: 100%;">+ Add Task</button>
+                    <button class="btn" id="btnProcessQueue" style="width: 100%; margin-top: 0.5rem;">Process Queue</button>
+                </div>
+
+                <div class="task-list" id="taskList">
+                    <!-- Tasks will be added here -->
+                </div>
+            </div>
+
+            <!-- Nexus Color AI Section -->
+            <div class="optimizer-section">
+                <h3>🎨 Nexus Color AI</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Color Lines</span>
+                    <span class="stat-value" id="statColorLines">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Active Palette</span>
+                    <span class="stat-value" id="statPalette">cyberpunk</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Active Particles</span>
+                    <span class="stat-value good" id="statParticles">0</span>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <button class="btn" id="btnGenerateColors" style="width: 100%;">✨ Generate Epic Colors</button>
+                    <button class="btn" id="btnCyclePalette" style="width: 100%; margin-top: 0.5rem;">🔄 Cycle Palette</button>
+                    <button class="btn" id="btnExportShader" style="width: 100%; margin-top: 0.5rem;">📋 Export Shader</button>
+                </div>
+
+                <div id="colorPreview" style="margin-top: 1rem; height: 60px; border-radius: 8px; border: 1px solid #243869; background: linear-gradient(90deg, #10e0e0, #72f6d1);"></div>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console" id="console">
+            <div class="console-line info">[RNES] Initializing engine...</div>
+        </div>
+
+        <!-- Unified Timeline Toolbar -->
+        <div class="timeline-toolbar" style="grid-column: 1/-1; background: #0a0f17; border-top: 1px solid #1d2c56; padding: 0.75rem 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <span style="color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-right: 0.5rem;">🎨 Art Pad Tools:</span>
+            
+            <!-- Visual Effects -->
+            <button class="btn" id="btnSpotlight" title="Mouse-tracking spotlight">💡 Spotlight</button>
+            
+            <!-- Geometry Tools -->
+            <button class="btn" id="btnGeometry" title="Generate geometric graphs">🔷 Geometry</button>
+            <button class="btn" id="btnLineMode" title="Line drawing modes">📏 Lines</button>
+            
+            <!-- Time Control -->
+            <button class="btn" id="btnSlowMo" title="Slow motion (0.5x)">⏪ Slow</button>
+            <button class="btn" id="btnNormalTime" title="Normal speed (1x)">▶️ 1x</button>
+            <button class="btn" id="btnFastFwd" title="Fast forward (2x)">⏩ Fast</button>
+            
+            <!-- Math Labs -->
+            <span style="color: var(--muted); font-size: 0.75rem; margin-left: 1rem; margin-right: 0.25rem;">📚 Math Labs:</span>
+            <button class="btn btn-sm" id="btnLab1" title="Node/Electron Cubes">1</button>
+            <button class="btn btn-sm" id="btnLab2" title="Spotlight Hue/Thermal">2</button>
+            <button class="btn btn-sm" id="btnLab3" title="Color Fill System">3</button>
+            <button class="btn btn-sm" id="btnLab4" title="Color Fill System">4</button>
+            <button class="btn btn-sm" id="btnLab5" title="Time Flow Control">5</button>
+            <button class="btn btn-sm" id="btnLab6" title="Orb Graph System">6</button>
+            <button class="btn btn-sm" id="btnLab7" title="Grid Wire System">7</button>
+            
+            <!-- Lens Compositor -->
+            <button class="btn" id="btnCompositor" title="Lens Tunnel Compositor - Stack all labs" style="margin-left: 1rem; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: var(--bg); font-weight: 600;">🔬 Compositor</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Panel Overlay -->
+    <div class="dashboard-panel" id="dashboardPanel">
+        <div class="dashboard-header">
+            <h2 id="dashboardTitle">Dashboard</h2>
+            <button class="dashboard-close" id="btnCloseDashboard">✕ Close</button>
+        </div>
+        <div class="dashboard-content">
+            <iframe class="dashboard-iframe" id="dashboardIframe" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <script type="module" src="./nexus-engine-visualizer.js"></script>
+</body>
+</html>

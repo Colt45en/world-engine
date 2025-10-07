@@ -8,7 +8,7 @@ __pycache__/
 *.pyc
 
 # VSCode
-.vscode/
+# (Intentionally left out from ignore so launch configurations can be committed)
 
 # OS files
 Thumbs.db

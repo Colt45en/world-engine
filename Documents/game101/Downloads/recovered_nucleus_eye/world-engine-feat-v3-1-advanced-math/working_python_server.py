@@ -32,8 +32,12 @@ class WorkingServer:
         self.port = port
         self.clients = set()
         
-    async def handle_client(self, websocket, path):
-        """Handle WebSocket client connections"""
+    async def handle_client(self, websocket, path=None):
+        """Handle WebSocket client connections
+
+        Some websockets versions call the handler with (websocket, path) and some with
+        only (websocket). Accept an optional `path` for compatibility.
+        """
         self.clients.add(websocket)
         client_id = len(self.clients)
         logger.info(f"Client {client_id} connected from {websocket.remote_address}")

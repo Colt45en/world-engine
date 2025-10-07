@@ -46,6 +46,11 @@ app.get('/vault', (req, res) => {
     res.sendFile(join(__dirname, 'nexus-ai-vault.html'));
 });
 
+// Development Vault
+app.get('/dev-vault', (req, res) => {
+    res.sendFile(join(__dirname, 'dev-vault.html'));
+});
+
 // NEXUS Lab
 app.get('/lab', (req, res) => {
     res.sendFile(join(__dirname, 'nexus-lab.html'));

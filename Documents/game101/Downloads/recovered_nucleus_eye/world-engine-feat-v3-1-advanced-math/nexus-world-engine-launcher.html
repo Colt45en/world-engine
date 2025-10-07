@@ -443,13 +443,37 @@
 
     <script>
         function openApp(url) {
-            window.open(url, '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+            // Convert relative paths to server routes
+            let serverUrl = url;
+            if (url.startsWith('./')) {
+                serverUrl = url.substring(2); // Remove './'
+            }
+            if (url.includes('gamilelite-apps/')) {
+                serverUrl = '/gamilelite/' + url.split('gamilelite-apps/')[1];
+            }
+            
+            // Map specific files to server routes
+            const routeMap = {
+                'nexus-brain-dashboard.html': '/brain',
+                'nexus-ai-vault.html': '/vault', 
+                'nexus-lab.html': '/lab',
+                'world-engine-demo.html': '/engine',
+                'multi-language-commander.html': '/commander',
+                'language-commanding-dashboard.html': '/language-dashboard'
+            };
+            
+            if (routeMap[serverUrl]) {
+                serverUrl = routeMap[serverUrl];
+            }
+            
+            console.log('Opening app:', serverUrl);
+            window.open(serverUrl, '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
         }
 
         function startWorldEngine() {
             addToLog('🌍 Starting World Engine Studio...');
-            // This would typically start the main application
-            window.open('./world-engine-demo.html', '_blank', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+            // Open the World Engine demo through the server route
+            window.open('/engine', '_blank', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
         }
 
         function runPythonTraining() {

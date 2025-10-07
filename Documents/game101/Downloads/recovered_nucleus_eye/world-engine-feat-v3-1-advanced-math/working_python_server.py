@@ -13,6 +13,16 @@ from datetime import datetime
 import sys
 import os
 
+# Ensure UTF-8 output on Windows consoles so emoji printing doesn't raise
+# UnicodeEncodeError (cp1252 can't encode many emoji characters).
+try:
+    # Python 3.7+ has reconfigure
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    # Fall back silently if reconfigure isn't available
+    pass
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

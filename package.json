@@ -1,20 +1,45 @@
 {
-    "name": "world-engine",
-    "private": true,
-    "version": "0.0.0",
-    "type": "module",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview"
-    },
-    "dependencies": {
-        "@react-three/drei": "^10.7.6",
-        "@react-three/fiber": "^9.3.0",
-        "@react-three/postprocessing": "^3.0.4",
-        "express": "^5.1.0",
-        "three": "^0.180.0"
-        "react": "^18.2.0"
-    "devDependencies": {
-        "vite": "^5.0.0"
-    }
+  "name": "world-engine-studio",
+  "version": "2.0.0",
+  "description": "World Engine Advanced Systems Studio Interface with Backend API",
+  "type": "module",
+  "main": "world-engine-studio-server.js",
+  "scripts": {
+    "start": "node world-engine-studio-server.js",
+    "dev": "nodemon world-engine-studio-server.js",
+    "test": "node world-engine-integration-test.js",
+    "install-deps": "npm install"
+  },
+  "keywords": [
+    "world-engine",
+    "morphology",
+    "nlp",
+    "indexing",
+    "studio",
+    "advanced-systems",
+    "unified-scaffold",
+    "nexus-beat-system"
+  ],
+  "author": "World Engine Team",
+  "license": "MIT",
+  "dependencies": {
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.3.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.7.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "leva": "^0.10.0",
+    "socket.io": "^4.7.4",
+    "three": "^0.180.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

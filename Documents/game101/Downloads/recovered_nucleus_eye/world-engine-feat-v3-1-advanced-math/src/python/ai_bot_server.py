@@ -305,8 +305,21 @@ class AIBotServer:
                     'client_type': 'ai_bot_server'
                 }))
 
+            # Determine websocket URL from central port_config.json (fallback to 8701)
+            try:
+                import json as _json, os as _os
+                cfg_path = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..', '..', '..', 'port_config.json'))
+                if _os.path.exists(cfg_path):
+                    with open(cfg_path, 'r', encoding='utf-8') as _fh:
+                        _cfg = _json.load(_fh)
+                        target_port = int(_cfg.get('ws_port', 8701))
+                else:
+                    target_port = 8701
+            except Exception:
+                target_port = 8701
+
             self.ws_client = websocket.WebSocketApp(
-                "ws://localhost:9000",
+                f"ws://localhost:{target_port}",
                 on_message=on_message,
                 on_error=on_error,
                 on_close=on_close,

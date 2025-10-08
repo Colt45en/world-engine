@@ -1,0 +1,75 @@
+{
+  "report_timestamp": "2025-10-07T17:28:39.182261+00:00",
+  "data_summary": {
+    "total_consciousness_sessions": 177,
+    "analysis_timespan": "2025-10-07 07:31:00+00:00 to 2025-10-07 12:28:37.534343+00:00",
+    "data_quality": "High"
+  },
+  "consciousness_patterns": [],
+  "transcendence_analysis": {
+    "total_transcendence_events": 181,
+    "peak_events_single_session": 5,
+    "sessions_with_events": 177,
+    "transcendence_rate": 1.0,
+    "peak_periods": [
+      "2025-10-07 12:28"
+    ]
+  },
+  "synchronization_analysis": {
+    "average_synchronization": 0.10576271186440678,
+    "peak_synchronization": 0.92,
+    "synchronization_stability": 0.9366412615493447,
+    "high_sync_periods": 1,
+    "synchronization_trend": -0.00011807274804799104
+  },
+  "statistical_summary": {
+    "awareness_level": {
+      "mean": 0.20367231638418076,
+      "std": 0.04885699182018387,
+      "min": 0.2,
+      "max": 0.85
+    },
+    "synchronization": {
+      "mean": 0.10576271186440678,
+      "std": 0.06335873845065533,
+      "min": 0.1,
+      "max": 0.92
+    },
+    "transcendence_events": {
+      "mean": 1.0225988700564972,
+      "std": 0.3006584112011315,
+      "min": 1.0,
+      "max": 5.0
+    },
+    "feedback_quality": {
+      "mean": 0.9953983050847457,
+      "std": 0.02763401431408291,
+      "min": 0.792,
+      "max": 1.0
+    },
+    "neural_activity": {
+      "mean": 0.1977401129943503,
+      "std": 0.021199277056410025,
+      "min": 0.0,
+      "max": 0.2
+    },
+    "consciousness_depth": {
+      "mean": 0.4957627118644068,
+      "std": 0.041922685460742716,
+      "min": 0.0,
+      "max": 0.5
+    }
+  },
+  "insights_and_recommendations": [
+    {
+      "type": "awareness_opportunity",
+      "insight": "Low consciousness awareness detected (avg: 0.20)",
+      "recommendation": "Implement consciousness enhancement protocols"
+    },
+    {
+      "type": "transcendence_success",
+      "insight": "Significant transcendence activity detected (181 events)",
+      "recommendation": "Analyze transcendence triggers for replication"
+    }
+  ]
+}

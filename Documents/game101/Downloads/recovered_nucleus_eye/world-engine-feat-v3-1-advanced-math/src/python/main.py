@@ -126,16 +126,7 @@ def launch_cli():
             print(f"Error: {e}")
 
     print("\nGoodbye!")
-
-            else:
-                print("Unknown command. Try: score, word, compare, or quit")
-
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
-            print(f"Error: {e}")
-
-    print("\nGoodbye!")
+    # End of interactive CLI
 
 
 def setup_project():

@@ -9,15 +9,15 @@ import os
 import re
 import json
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 class SystemIntegrationFixer:
     def __init__(self, base_path: str):
         self.base_path = Path(base_path)
-        self.html_files = []
-        self.js_files = []
+        self.html_files: List[Path] = []
+        self.js_files: List[Path] = []
         self.fixed_count = 0
-        self.issues_found = []
+        self.issues_found: List[str] = []
 
     def scan_files(self):
         """Scan for all HTML and JS files in the project."""
@@ -109,7 +109,19 @@ class SystemIntegrationFixer:
 
     def fix_websocket_connections(self, content: str) -> str:
         """Standardize WebSocket connection URLs."""
-        # Replace various WebSocket URL patterns with standard one
+        # Determine target ws URL from central port_config.json (fallback to 8701)
+        try:
+            import json as _json, os as _os
+            cfg_path = _os.path.abspath(_os.path.join(os.path.dirname(__file__), '..', '..', '..', 'port_config.json'))
+            if _os.path.exists(cfg_path):
+                with open(cfg_path, 'r', encoding='utf-8') as fh:
+                    _cfg = _json.load(fh)
+                    target_port = int(_cfg.get('ws_port', 8701))
+            else:
+                target_port = 8701
+        except Exception:
+            target_port = 8701
+
         websocket_patterns = [
             r'ws://localhost:\d+',
             r'wss://localhost:\d+',
@@ -117,7 +129,7 @@ class SystemIntegrationFixer:
         ]
 
         for pattern in websocket_patterns:
-            content = re.sub(pattern, 'ws://localhost:9000', content)
+            content = re.sub(pattern, f'ws://localhost:{target_port}', content)
 
         return content
 
@@ -179,7 +191,7 @@ class SystemIntegrationFixer:
 
     def add_missing_functions(self, content: str) -> str:
         """Add commonly missing JavaScript functions."""
-        missing_functions = []
+        missing_functions: List[str] = []
 
         # Check for common function calls that might be missing
         if 'applyOperator(' in content and 'function applyOperator' not in content:
@@ -234,11 +246,13 @@ class SystemIntegrationFixer:
 
         return content
 
-    def create_navigation_map(self):
+    from typing import Any
+
+    def create_navigation_map(self) -> Dict[str, Dict[str, Any]]:
         """Create a navigation map of all systems and their connections."""
         print("\n🗺️ Creating system navigation map...")
 
-        nav_map = {
+        nav_map: Dict[str, Dict[str, Any]] = {
             "tier5_systems": {
                 "master_interface": "./MASTER_UNIFIED_INTERFACE.html",
                 "engine_room": "./demos/tier4_collaborative_demo.html",
@@ -253,7 +267,7 @@ class SystemIntegrationFixer:
                 "vector_lab": "./vectorlab-codex-glyph.py"
             },
             "integration_points": {
-                "websocket_url": "ws://localhost:9000",
+                "websocket_url": "ws://localhost:8701",
                 "server_url": "http://localhost:8000",
                 "bridge_script": "./studio-bridge.js",
                 "tier4_integration": "./tier4_room_integration.ts"
@@ -270,7 +284,7 @@ class SystemIntegrationFixer:
             json.dump(nav_map, f, indent=2)
 
         print("✅ Navigation map created: SYSTEM_NAVIGATION_MAP.json")
-        return nav_map
+        return nav_map # type: ignore
 
     def generate_fix_report(self):
         """Generate a comprehensive fix report."""

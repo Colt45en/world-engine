@@ -451,6 +451,144 @@
             justify-content: center;
             font-size: 12px;
         }
+
+        .log-console {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            width: 340px;
+            height: calc(100vh - 160px);
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid #00ffff;
+            border-radius: 12px;
+            box-shadow: 0 15px 30px rgba(0, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 500;
+        }
+
+        .log-console-header {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 18px 18px 12px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.25);
+            background: linear-gradient(180deg, rgba(0, 40, 60, 0.9), rgba(0, 20, 40, 0.9));
+        }
+
+        .log-console-title {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .log-console-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .log-select {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 6px;
+            color: #00ffff;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-select:focus {
+            outline: none;
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+        }
+
+        .log-action {
+            background: transparent;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 6px;
+            color: #00ffff;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-action:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .log-stream {
+            flex: 1;
+            padding: 12px 18px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .log-entry {
+            border-left: 3px solid rgba(0, 255, 255, 0.6);
+            padding-left: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(0, 20, 40, 0.7);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #ccfaff;
+        }
+
+        .log-entry[data-category="vector"] {
+            border-left-color: #00ffff;
+        }
+
+        .log-entry[data-category="node"] {
+            border-left-color: #ff00ff;
+        }
+
+        .log-entry[data-category="vault"] {
+            border-left-color: #ffff00;
+        }
+
+        .log-entry[data-category="alert"] {
+            border-left-color: #ff5555;
+        }
+
+        .log-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(0, 255, 255, 0.9);
+        }
+
+        .log-entry-message {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .log-entry-details {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.4;
+        }
+
+        .log-placeholder {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            padding: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -594,6 +732,26 @@
         </div>
     </div>
 
+    <div class="log-console" id="logConsole">
+        <div class="log-console-header">
+            <div class="log-console-title">Vector Limb Telemetry</div>
+            <div class="log-console-controls">
+                <select class="log-select" id="logFilter">
+                    <option value="all">All Streams</option>
+                    <option value="vector">Vector Limbs</option>
+                    <option value="node">Node Connectors</option>
+                    <option value="vault">Knowledge Vaults</option>
+                    <option value="alert">Alerts</option>
+                </select>
+                <button class="log-action" id="logExport">Export</button>
+                <button class="log-action" id="logClear">Clear</button>
+            </div>
+        </div>
+        <div class="log-stream" id="logEntries">
+            <div class="log-placeholder">Awaiting limb-vector signals…</div>
+        </div>
+    </div>
+
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <div class="loading-spinner"></div>
@@ -618,6 +776,352 @@
         };
 
         let startTime = Date.now();
+
+        const LOG_CATEGORIES = {
+            vector: { label: 'Vector Limbs', emoji: '🦾' },
+            node: { label: 'Node Connectors', emoji: '🕸️' },
+            vault: { label: 'Knowledge Vaults', emoji: '🧠' },
+            alert: { label: 'Alerts', emoji: '⚠️' }
+        };
+
+    const LOG_ALLOWED_FIELDS = ['vectorId', 'limb', 'node', 'vault', 'status', 'variance', 'channel', 'magnitude', 'emojiMemory', 'payload'];
+    const LOG_MAX_ENTRIES = 400;
+    const TELEMETRY_DEFAULT_ENDPOINT = 'ws://localhost:8701';
+    const LOG_BACKOFF_STEPS = [1500, 2500, 4000, 6500, 10000];
+    const logBuffer = [];
+
+    let telemetrySocket = null;
+    let telemetryReconnectTimer = null;
+    let telemetryBackoffIndex = 0;
+    let useSimulatedTelemetry = true;
+    let liveTelemetryConnected = false;
+
+        const SYSTEM_EMOJI_MEMORY = {
+            nucleus: '🧠🔮',
+            playground: '🎮📐',
+            education: '🎓🧮',
+            integration: '🔗⚡'
+        };
+
+        function sanitizeLogDetails(details = {}) {
+            if (!details || typeof details !== 'object') {
+                return {};
+            }
+
+            const sanitized = {};
+            for (const key of LOG_ALLOWED_FIELDS) {
+                if (details[key] !== undefined && details[key] !== null && details[key] !== '') {
+                    sanitized[key] = details[key];
+                }
+            }
+            return sanitized;
+        }
+
+        function pushLogEntry(category, message, details = {}) {
+            if (!LOG_CATEGORIES[category] || !message) {
+                return;
+            }
+
+            const entry = {
+                id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                ts: new Date().toISOString(),
+                category,
+                message,
+                details: sanitizeLogDetails(details)
+            };
+
+            logBuffer.unshift(entry);
+            if (logBuffer.length > LOG_MAX_ENTRIES) {
+                logBuffer.pop();
+            }
+
+            renderLogEntries();
+        }
+
+        function renderLogEntries() {
+            const container = document.getElementById('logEntries');
+            const filterSelect = document.getElementById('logFilter');
+
+            if (!container || !filterSelect) {
+                return;
+            }
+
+            const filterValue = filterSelect.value;
+            container.innerHTML = '';
+
+            const entries = logBuffer.filter(entry => filterValue === 'all' || entry.category === filterValue);
+
+            if (entries.length === 0) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'log-placeholder';
+                placeholder.textContent = 'No telemetry entries for this stream yet.';
+                container.appendChild(placeholder);
+                return;
+            }
+
+            for (const entry of entries) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'log-entry';
+                wrapper.dataset.category = entry.category;
+
+                const header = document.createElement('div');
+                header.className = 'log-entry-header';
+                const label = document.createElement('span');
+                const categoryMeta = LOG_CATEGORIES[entry.category];
+                label.textContent = `${categoryMeta.emoji} ${categoryMeta.label}`;
+                const timestamp = document.createElement('span');
+                timestamp.textContent = formatTimestamp(entry.ts);
+                header.append(label, timestamp);
+
+                const message = document.createElement('div');
+                message.className = 'log-entry-message';
+                message.textContent = entry.message;
+
+                wrapper.append(header, message);
+
+                const detailsKeys = Object.keys(entry.details || {});
+                if (detailsKeys.length > 0) {
+                    const detailsBlock = document.createElement('div');
+                    detailsBlock.className = 'log-entry-details';
+
+                    for (const key of detailsKeys) {
+                        const line = document.createElement('div');
+                        line.textContent = `${key}: ${entry.details[key]}`;
+                        detailsBlock.appendChild(line);
+                    }
+
+                    wrapper.appendChild(detailsBlock);
+                }
+
+                container.appendChild(wrapper);
+            }
+        }
+
+        function formatTimestamp(isoString) {
+            const date = new Date(isoString);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const millis = String(date.getMilliseconds()).padStart(3, '0');
+            return `${hours}:${minutes}:${seconds}.${millis}`;
+        }
+
+        function exportTelemetryLog() {
+            if (logBuffer.length === 0) {
+                alert('No telemetry data to export yet.');
+                return;
+            }
+
+            const exportPayload = logBuffer.map(entry => ({
+                ...entry,
+                ts: entry.ts,
+                details: entry.details
+            }));
+
+            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `nexus-limb-telemetry-${Date.now()}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            console.log('🗒️ Telemetry log exported');
+        }
+
+        function clearTelemetryLog() {
+            logBuffer.length = 0;
+            renderLogEntries();
+        }
+
+        function getEmojiMemory(systemType) {
+            return SYSTEM_EMOJI_MEMORY[systemType] || '🧬';
+        }
+
+        function startTelemetryStreams() {
+            // Vector limb heartbeat stream
+            setInterval(() => {
+                if (!useSimulatedTelemetry || metrics.systemsOnline === 0) {
+                    return;
+                }
+
+                const vectorId = `VX-${Math.floor(Math.random() * 800 + 100)}`;
+                const node = pickNodeTarget();
+                const variance = (Math.random() * 0.02).toFixed(4);
+                const emojiMemory = sampleEmojiMemory();
+
+                pushLogEntry('vector', 'Limb vector coherence check', {
+                    vectorId,
+                    node,
+                    variance,
+                    emojiMemory
+                });
+            }, 9000);
+
+            // Knowledge vault sync stream
+            setInterval(() => {
+                if (!useSimulatedTelemetry || metrics.systemsOnline === 0) {
+                    return;
+                }
+
+                const vault = pickVaultTarget();
+                const channel = `kv-${Math.floor(Math.random() * 16 + 1)}`;
+                const magnitude = (Math.random() * 1.2 + 0.4).toFixed(2);
+
+                pushLogEntry('vault', 'Knowledge vault sync pulse', {
+                    vault,
+                    channel,
+                    magnitude,
+                    emojiMemory: sampleEmojiMemory()
+                });
+            }, 14000);
+        }
+
+        function pickNodeTarget() {
+            const nodes = ['meta-orchestrator', 'limb-array-alpha', 'limb-array-beta', 'coherence-grid', 'vault-bridge'];
+            return nodes[Math.floor(Math.random() * nodes.length)];
+        }
+
+        function pickVaultTarget() {
+            const vaults = ['memory-vault-a', 'math-vault-b', 'pattern-vault-c', 'story-vault-d'];
+            return vaults[Math.floor(Math.random() * vaults.length)];
+        }
+
+        function sampleEmojiMemory() {
+            const sequences = ['🧠✨📊', '🦾⚡️🔁', '📚🧮🌀', '🔗🪐💡', '🧬💾🌌'];
+            return sequences[Math.floor(Math.random() * sequences.length)];
+        }
+
+        function scheduleTelemetryReconnect() {
+            clearTimeout(telemetryReconnectTimer);
+            const delay = LOG_BACKOFF_STEPS[Math.min(telemetryBackoffIndex, LOG_BACKOFF_STEPS.length - 1)];
+            telemetryReconnectTimer = setTimeout(() => {
+                telemetryBackoffIndex = Math.min(telemetryBackoffIndex + 1, LOG_BACKOFF_STEPS.length - 1);
+                connectTelemetrySocket();
+            }, delay);
+        }
+
+        function announceTelemetryStatus(statusText, category = 'alert', details = {}) {
+            pushLogEntry(category, statusText, {
+                ...details,
+                emojiMemory: details.emojiMemory || '🛰️✨'
+            });
+        }
+
+        function handleTelemetryMessage(rawMessage) {
+            let payload;
+
+            try {
+                payload = JSON.parse(rawMessage.data);
+            } catch (error) {
+                console.error('❌ Failed to parse telemetry payload', error);
+                return;
+            }
+
+            if (!payload || typeof payload !== 'object') {
+                return;
+            }
+
+            switch (payload.type) {
+                case 'telemetry_event': {
+                    const event = payload.event || {};
+                    const category = event.category || 'alert';
+                    const message = event.message || 'Telemetry event received';
+                    const details = sanitizeLogDetails(event.details || {});
+                    pushLogEntry(category, message, details);
+                    break;
+                }
+                case 'network_update': {
+                    const statusElement = document.getElementById('networkStatus');
+                    if (statusElement) {
+                        statusElement.textContent = 'Online (vector network)';
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+
+        function connectTelemetrySocket() {
+            const endpoint = window.NEXUS_TELEMETRY_ENDPOINT || TELEMETRY_DEFAULT_ENDPOINT;
+
+            try {
+                if (telemetrySocket) {
+                    try {
+                        telemetrySocket.close();
+                    } catch (closeError) {
+                        console.warn('⚠️ Failed to close previous telemetry socket', closeError);
+                    }
+                }
+
+                const socket = new WebSocket(endpoint);
+                telemetrySocket = socket;
+
+                const handleOpen = () => {
+                    telemetryBackoffIndex = 0;
+                    liveTelemetryConnected = true;
+                    useSimulatedTelemetry = false;
+                    clearTimeout(telemetryReconnectTimer);
+
+                    const statusElement = document.getElementById('networkStatus');
+                    if (statusElement) {
+                        statusElement.textContent = 'Online (live telemetry)';
+                    }
+
+                    announceTelemetryStatus('Telemetry uplink established', 'vector', {
+                        channel: endpoint,
+                        status: 'connected'
+                    });
+                };
+
+                const handleDisconnection = (reason = 'closed') => {
+                    if (telemetrySocket !== socket) {
+                        return;
+                    }
+
+                    socket.removeEventListener('open', handleOpen);
+                    socket.removeEventListener('message', handleTelemetryMessage);
+                    socket.removeEventListener('close', handleClose);
+                    socket.removeEventListener('error', handleError);
+                    telemetrySocket = null;
+
+                    if (liveTelemetryConnected) {
+                        announceTelemetryStatus(`Telemetry uplink ${reason}`, 'alert', {
+                            status: 'degraded'
+                        });
+                    }
+
+                    liveTelemetryConnected = false;
+                    useSimulatedTelemetry = true;
+
+                    const statusElement = document.getElementById('networkStatus');
+                    if (statusElement) {
+                        statusElement.textContent = 'Offline (retrying)';
+                    }
+
+                    scheduleTelemetryReconnect();
+                };
+
+                const handleClose = () => handleDisconnection('closed');
+                const handleError = () => handleDisconnection('errored');
+
+                socket.addEventListener('open', handleOpen);
+                socket.addEventListener('message', handleTelemetryMessage);
+                socket.addEventListener('close', handleClose);
+                socket.addEventListener('error', handleError);
+
+            } catch (error) {
+                console.error('❌ Telemetry connection error', error);
+                scheduleTelemetryReconnect();
+            }
+        }
+
+        window.NexusLogger = {
+            push: pushLogEntry,
+            categories: LOG_CATEGORIES,
+            connect: connectTelemetrySocket
+        };
 
         // Initialize matrix background
         function initMatrixBackground() {
@@ -675,6 +1179,12 @@
                         // Update metrics
                         updateMetrics();
 
+                        pushLogEntry('node', `${systemType} node online`, {
+                            node: systemType,
+                            status: 'online',
+                            emojiMemory: getEmojiMemory(systemType)
+                        });
+
                         console.log(`✅ ${systemType} system launched successfully`);
                     } else {
                         throw new Error('Failed to open window - popup blocked?');
@@ -685,11 +1195,23 @@
                     updateSystemStatus(systemType, 'active');
                     showSystemBadge(systemType);
                     updateMetrics();
+
+                    pushLogEntry('node', `${systemType} integrator engaged`, {
+                        node: systemType,
+                        status: 'online',
+                        emojiMemory: getEmojiMemory(systemType)
+                    });
                 }
 
             } catch (error) {
                 console.error(`❌ Failed to launch ${systemType}:`, error);
                 updateSystemStatus(systemType, 'inactive');
+                pushLogEntry('alert', `${systemType} launch error`, {
+                    node: systemType,
+                    status: 'error',
+                    payload: error.message,
+                    emojiMemory: '🚨'
+                });
             } finally {
                 hideLoading();
             }
@@ -713,6 +1235,11 @@
                     hideSystemBadge(systemType);
                     updateMetrics();
                     clearInterval(checkInterval);
+                    pushLogEntry('alert', `${systemType} node disconnected`, {
+                        node: systemType,
+                        status: 'offline',
+                        emojiMemory: getEmojiMemory(systemType)
+                    });
                     console.log(`📝 ${systemType} system closed`);
                 }
             }, 1000);
@@ -816,6 +1343,13 @@
             systemState.integration.online = true;
             updateSystemStatus('integration', 'active');
 
+            pushLogEntry('vector', 'Integration limb nexus bridged', {
+                vectorId: 'integration-core',
+                node: 'integration',
+                status: 'bridged',
+                emojiMemory: getEmojiMemory('integration')
+            });
+
             hideLoading();
             console.log('🚀 All systems initialization complete');
         }
@@ -831,6 +1365,16 @@
             };
 
             hideLoading();
+
+            for (const [system, result] of Object.entries(diagnostics)) {
+                const category = result.status === 'OPERATIONAL' ? 'node' : 'alert';
+                pushLogEntry(category, `${system} diagnostics ${result.status.toLowerCase()}`, {
+                    node: system,
+                    status: result.status,
+                    variance: `${result.healthScore}%`,
+                    emojiMemory: getEmojiMemory(system)
+                });
+            }
 
             // Show diagnostics results
             let report = 'NEXUS System Diagnostics Report:\n\n';
@@ -937,6 +1481,36 @@
 
             initMatrixBackground();
             startPeriodicUpdates();
+
+            renderLogEntries();
+
+            const filterSelect = document.getElementById('logFilter');
+            if (filterSelect) {
+                filterSelect.addEventListener('change', renderLogEntries);
+            }
+
+            const clearButton = document.getElementById('logClear');
+            if (clearButton) {
+                clearButton.addEventListener('click', clearTelemetryLog);
+            }
+
+            const exportButton = document.getElementById('logExport');
+            if (exportButton) {
+                exportButton.addEventListener('click', exportTelemetryLog);
+            }
+
+            startTelemetryStreams();
+            connectTelemetrySocket();
+
+            const statusElement = document.getElementById('networkStatus');
+            if (statusElement) {
+                statusElement.textContent = 'Connecting…';
+            }
+
+            pushLogEntry('alert', 'Telemetry console armed', {
+                status: 'awaiting-signals',
+                emojiMemory: '🗂️✨'
+            });
 
             // Initial system status check
             setTimeout(() => {

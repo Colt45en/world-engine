@@ -1,0 +1,4 @@
+{
+  "ws_port": 8701,
+  "note": "Central websocket port. Use this single port for all WebSocket services."
+}

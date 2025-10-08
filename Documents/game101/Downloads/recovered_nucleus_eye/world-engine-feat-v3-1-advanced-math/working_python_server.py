@@ -12,6 +12,8 @@ import logging
 from datetime import datetime
 import sys
 import os
+import traceback
+from pathlib import Path
 
 # Ensure UTF-8 output on Windows consoles so emoji printing doesn't raise
 # UnicodeEncodeError (cp1252 can't encode many emoji characters).
@@ -27,8 +29,24 @@ except Exception:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Readiness file path (created when server is accepting connections)
+READY_FILE = Path.cwd() / 'server_ready.tmp'
+
 class WorkingServer:
-    def __init__(self, port=9100):
+    def __init__(self, port=None):
+        # Allow central port override via repo-level ports.json
+        if port is None:
+            try:
+                import json as _json
+                from pathlib import Path as _P
+                cfg = _P(__file__).resolve().parents[3] / 'ports.json'
+                if cfg.exists():
+                    data = _json.loads(cfg.read_text())
+                    port = int(data.get('ws_port', 9100))
+                else:
+                    port = 9100
+            except Exception:
+                port = 9100
         self.port = port
         self.clients = set()
         
@@ -69,7 +87,15 @@ class WorkingServer:
                     await websocket.send(json.dumps(error_response))
                     
         except Exception as e:
-            logger.error(f"Error handling client {client_id}: {e}")
+            # Log full traceback so we can diagnose 1011 internal errors
+            logger.error(f"Unhandled error handling client {client_id}: {e}")
+            logger.error(traceback.format_exc())
+            # Attempt to close the websocket with an internal-error close code and a short reason
+            try:
+                await websocket.close(code=1011, reason='internal server error')
+            except Exception:
+                # Ignore errors while trying to close
+                pass
         finally:
             self.clients.discard(websocket)
             logger.info(f"Client {client_id} disconnected")
@@ -154,10 +180,24 @@ class WorkingServer:
                 print(f"   {module}: {status}")
             
             # Start server
-            async with websockets.serve(self.handle_client, "localhost", self.port):
-                print(f"\n✅ Server running on ws://localhost:{self.port}")
-                print("Press Ctrl+C to stop")
-                await asyncio.Future()  # Run forever
+            try:
+                async with websockets.serve(self.handle_client, "localhost", self.port):
+                    # Write readiness file so external test harnesses can detect ready state
+                    try:
+                        READY_FILE.write_text(str(os.getpid()))
+                    except Exception:
+                        logger.debug('Could not write readiness file')
+
+                    print(f"\n✅ Server running on ws://localhost:{self.port}")
+                    print("Press Ctrl+C to stop")
+                    await asyncio.Future()  # Run forever
+            finally:
+                # Clean up readiness file on shutdown
+                try:
+                    if READY_FILE.exists():
+                        READY_FILE.unlink()
+                except Exception:
+                    pass
                 
         except ImportError:
             print("❌ websockets module not available")

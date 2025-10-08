@@ -1,0 +1,8 @@
+{
+  "timestamp": "2025-10-07T07:31:00",
+  "awareness": 0.85,
+  "sync": 0.92,
+  "transcendence_events": 2,
+  "meta": {"source": "sim"},
+  "notes": "Sample session for analyzer test"
+}

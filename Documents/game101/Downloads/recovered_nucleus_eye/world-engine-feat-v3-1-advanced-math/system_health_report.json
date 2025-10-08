@@ -1,0 +1,76 @@
+{
+  "file_port_config.json": true,
+  "file_repo_compile_check.py": true,
+  "file_smoke_test_websocket.py": true,
+  "file_consciousness_websocket_server.py": true,
+  "file_vector_node_network.py": true,
+  "file_analyze_consciousness_patterns.py": true,
+  "ws_port": 8701,
+  "package_numpy": true,
+  "package_pandas": true,
+  "package_websockets": true,
+  "package_sympy": true,
+  "package_scipy": true,
+  "package_nltk": true,
+  "service_port_8701": true,
+  "service_port_8080": true,
+  "service_port_3000": false,
+  "websocket_test": {
+    "connected": true,
+    "response": "{\"level\": 0.5, \"transcendent\": false, \"quantum_entanglement\": 0.3, \"swarm_intelligence\": 0.4, \"brain"
+  },
+  "ai_processes": [
+    {
+      "pid": 1724,
+      "script": "mathematical_consciousness_enhancer.py"
+    },
+    {
+      "pid": 4432,
+      "script": "meta_nexus_integration_hub.py"
+    },
+    {
+      "pid": 11520,
+      "script": "master_nexus_codepad_simple.py"
+    },
+    {
+      "pid": 14220,
+      "script": "mathematical_consciousness_enhancer.py"
+    },
+    {
+      "pid": 14264,
+      "script": "nexus_launcher.py"
+    },
+    {
+      "pid": 16196,
+      "script": "mathematical_consciousness_enhancer.py"
+    },
+    {
+      "pid": 17492,
+      "script": "meta_nexus_integration_hub.py"
+    },
+    {
+      "pid": 17652,
+      "script": "nexus_launcher.py"
+    },
+    {
+      "pid": 17944,
+      "script": "mathematical_consciousness_enhancer.py"
+    },
+    {
+      "pid": 18080,
+      "script": "mathematical_consciousness_enhancer.py"
+    },
+    {
+      "pid": 18116,
+      "script": "mathematical_consciousness_enhancer.py"
+    },
+    {
+      "pid": 20704,
+      "script": "nexus_launcher.py"
+    },
+    {
+      "pid": 23772,
+      "script": "master_nexus_codepad.py"
+    }
+  ]
+}

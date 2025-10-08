@@ -1,933 +1,644 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">    
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🎨 Advanced Voxel Sculptor - Full Integration</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Voxel Sculptor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #e2e8f0; }
+    .tool-btn {
+      background-color: #334155; /* bg-slate-700 */
+      color: #fff; /* text-white */
+      font-weight: bold; /* font-bold */
+      padding: 0.5rem 1rem; /* py-2 px-4 */
+      border-radius: 0.5rem; /* rounded */
+      transition: background-color 0.2s;
+      opacity: 1;
+      cursor: pointer;
     }
-    </script>
-    <style>
-        .tool-btn {
-            padding: 8px 12px;
-            margin: 2px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.05);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-            color: white;
-        }
-        .tool-btn:hover {
-            background: rgba(78,205,196,0.15);
-            border-color: #4ecdc4;
-            transform: translateY(-1px);
-        }
-        .tool-btn.active {
-            background: rgba(78,205,196,0.25);
-            border-color: #4ecdc4;
-            color: #4ecdc4;
-            font-weight: bold;
-        }
-        .tool-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-    </style>
+    .tool-btn:hover {
+      background-color: #475569; /* hover:bg-slate-600 */
+    }
+    .tool-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .tool-btn.active {
+      background-color: #2563eb; /* bg-blue-600 */
+    }
+    input[type="range"] {
+      width: 100%; /* w-full */
+    }
+    #previewCanvas { width: 100%; height: 300px; border-radius: 0.5rem; background-color: #000; }
+    #grid2d { width: 100%; height: 200px; border: 1px solid #444; background: #111; cursor: crosshair; }
+    .grid-cell { border: 1px solid #333; }
+  </style>
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  <style>
+    .tool-btn { padding: 8px 12px; margin: 2px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; color: white; }
+    .tool-btn:hover { background: rgba(78,205,196,0.15); border-color: #4ecdc4; transform: translateY(-1px); }
+    .tool-btn.active { background: rgba(78,205,196,0.25); border-color: #4ecdc4; color: #4ecdc4; font-weight: bold; }
+    .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  </style>
 </head>
 <body class="bg-slate-900 text-white">
-    <div class="p-6 max-w-7xl mx-auto">
-        <h1 class="text-4xl font-bold mb-2 text-center">🎨 Advanced Voxel Sculptor</h1>
-        <p class="text-slate-400 mb-6 text-center">Generate → Transform → Morph → Sculpt → Export</p>
+  <div class="p-6 max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold mb-2 text-center">🎨 Advanced Voxel Sculptor</h1>
+    <p class="text-slate-400 mb-6 text-center">Generate → Transform → Morph → Sculpt → Export</p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+      <!-- Left Panel: Generation -->
+      <div class="bg-slate-800 rounded-lg p-4">
+        <h2 class="text-xl font-bold mb-4">📤 1. Generate</h2>
+        <button id="uploadBtn" class="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold mb-3">📁 Upload Silhouette PNG</button>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg" style="display:none" />
+
+        <!-- Avatar Heightfield Generator -->
+        <div class="bg-slate-700 rounded-lg p-3 mb-4">
+          <h3 class="text-sm font-bold mb-2 text-cyan-400">🧑‍🎨 Avatar Heightfield</h3>
+          <button id="generateAvatar" class="w-full px-3 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-sm font-bold mb-2">✨ Generate Sweat Spout Avatar</button>
+          <div class="text-xs space-y-1">
+            <div class="flex justify-between items-center gap-2">
+              <span>Grid:</span>
+              <select id="gridSize" class="bg-slate-600 rounded px-2 py-1 text-xs">
+                <option value="224">224×224</option>
+                <option value="240" selected>240×240</option>
+                <option value="256">256×256</option>
+              </select>
+            </div>
+            <div class="flex justify-between items-center gap-2">
+              <span>Smoothing:</span>
+              <input type="range" id="avatarSmoothing" min="4" max="6" step="1" value="5" class="w-28">
+              <span id="avatarSmoothingVal" class="font-mono">5</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <div>
+            <label class="block mb-1 font-bold text-cyan-400">🎯 Quick Presets:</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="presetBalanced" class="tool-btn">Balanced</button>
+              <button id="presetQuality" class="tool-btn">Quality</button>
+              <button id="presetFast" class="tool-btn">Fast</button>
+              <button id="presetArtistic" class="tool-btn">Artistic</button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Voxel Size:</span>
+            <input type="range" id="voxelSize" min="0.05" max="0.3" step="0.01" value="0.10" class="w-28">
+            <span id="voxelSizeVal" class="font-mono text-xs">0.10</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Depth:</span>
+            <input type="range" id="depthFactor" min="0.1" max="0.8" step="0.05" value="0.5" class="w-28">
+            <span id="depthFactorVal" class="font-mono text-xs">0.5</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Max Voxels:</span>
+            <input type="range" id="maxVoxels" min="50000" max="500000" step="50000" value="300000" class="w-28">
+            <span id="maxVoxelsVal" class="font-mono text-xs">300k</span>
+          </div>
+
+          <label class="flex items-center gap-2 pt-1">
+            <input type="checkbox" id="perfMode">
+            <span class="text-xs">⚡ Performance Mode (lower quality, faster)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Center: Viewport with 2D Grid -->
+      <div class="lg:col-span-2 bg-slate-800 rounded-lg p-4">
+        <h2 class="text-xl font-bold mb-2">🎨 2D Grid Editor</h2>
+        <canvas id="grid2d" width="400" height="200"></canvas>
+        <div class="mt-2 text-sm text-slate-400">Click to paint • Shift+click to erase • Auto-generates 3D below</div>
         
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-            <!-- Left Panel: Generation -->
-            <div class="bg-slate-800 rounded-lg p-4">
-                <h2 class="text-xl font-bold mb-4">📤 1. Generate</h2>
-                <button id="uploadBtn" class="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold mb-3">
-                    📁 Upload Silhouette PNG
-                </button>
-                
-                <div class="space-y-3 text-sm">
-                    <div>
-                        <label class="block mb-1 font-bold text-cyan-400">🎯 Quick Presets:</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="presetBalanced" class="tool-btn">Balanced</button>
-                            <button id="presetQuality" class="tool-btn">Quality</button>
-                            <button id="presetFast" class="tool-btn">Fast</button>
-                            <button id="presetArtistic" class="tool-btn">Artistic</button>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <span>Voxel Size:</span>
-                        <input type="range" id="voxelSize" min="0.05" max="0.3" step="0.01" value="0.10" class="w-24">
-                        <span id="voxelSizeVal" class="font-mono text-xs">0.10</span>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <span>Depth:</span>
-                        <input type="range" id="depthFactor" min="0.1" max="0.8" step="0.05" value="0.5" class="w-24">
-                        <span id="depthFactorVal" class="font-mono text-xs">0.5</span>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <span>Max Voxels:</span>
-                        <input type="range" id="maxVoxels" min="50000" max="500000" step="50000" value="300000" class="w-24">
-                        <span id="maxVoxelsVal" class="font-mono text-xs">300k</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Center: Viewport -->
-            <div class="lg:col-span-2 bg-slate-800 rounded-lg p-4">
-                <h2 class="text-xl font-bold mb-2">👁️ 3D View</h2>
-                <div id="previewCanvas" class="w-full h-96 bg-black rounded-lg relative"></div>
-                <div class="mt-3 flex gap-2">
-                    <button id="resetView" class="tool-btn flex-1">🔄 Reset View</button>
-                    <button id="exportGLB" class="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-bold" disabled>
-                        💾 Export GLB
-                    </button>
-                </div>
-                
-                <!-- Transform Mode Selector -->
-                <div class="mt-3 p-3 bg-slate-700 rounded-lg">
-                    <h3 class="font-bold text-sm mb-2">🔧 Transform Mode:</h3>
-                    <div class="grid grid-cols-4 gap-2">
-                        <button class="tool-btn active" data-transform="translate">Move</button>
-                        <button class="tool-btn" data-transform="rotate">Rotate</button>
-                        <button class="tool-btn" data-transform="scale">Scale</button>
-                        <button class="tool-btn" data-transform="none">Select</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Panel: Advanced Tools -->
-            <div class="bg-slate-800 rounded-lg p-4 space-y-4">
-                <div>
-                    <h2 class="text-xl font-bold mb-3">🔄 2. Morph</h2>
-                    
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center justify-between">
-                            <span>Amount:</span>
-                            <input type="range" id="morphAmount" min="0" max="1" step="0.05" value="0" class="w-24">
-                            <span id="morphAmountVal" class="font-mono text-xs">0.00</span>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button class="tool-btn" id="spherifyBtn" disabled>⚪ Spherify</button>
-                        <button class="tool-btn" id="cubeifyBtn" disabled>📦 Cubeify</button>
-                        <button class="tool-btn" id="twistBtn" disabled>🌀 Twist</button>
-                        <button class="tool-btn" id="bendBtn" disabled>🌊 Bend</button>
-                    </div>
-                </div>
-
-                <div>
-                    <h2 class="text-xl font-bold mb-3">✂️ 3. Sculpt</h2>
-                    
-                    <label class="flex items-center gap-2 mb-2">
-                        <input type="checkbox" id="sculptMode">
-                        <span class="text-sm font-bold">Enable Sculpting</span>
-                    </label>
-                    
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <button class="tool-btn sculpt-tool active" data-tool="push">⬆️ Push</button>
-                        <button class="tool-btn sculpt-tool" data-tool="pull">⬇️ Pull</button>
-                        <button class="tool-btn sculpt-tool" data-tool="smooth">✨ Smooth</button>
-                        <button class="tool-btn sculpt-tool" data-tool="pinch">🤏 Pinch</button>
-                    </div>
-                    
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center justify-between">
-                            <span>Brush:</span>
-                            <input type="range" id="brushSize" min="0.1" max="2" step="0.1" value="0.5" class="w-24">
-                            <span id="brushSizeVal" class="font-mono text-xs">0.5</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Strength:</span>
-                            <input type="range" id="sculptStrength" min="0.1" max="2" step="0.1" value="0.8" class="w-24">
-                            <span id="sculptStrengthVal" class="font-mono text-xs">0.8</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h2 class="text-xl font-bold mb-3">⚙️ Operations</h2>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button class="tool-btn" id="smoothMeshBtn" disabled>✨ Smooth</button>
-                        <button class="tool-btn" id="resetToOriginal" disabled>↩️ Reset</button>
-                    </div>
-                </div>
-            </div>
+        <h3 class="text-lg font-bold mt-4 mb-2">👁️ 3D Preview</h3>
+        <div id="previewCanvas" class="w-full h-64 bg-black rounded-lg relative"></div>
+        <div class="mt-3 flex gap-2">
+          <button id="resetView" class="tool-btn flex-1">🔄 Reset View</button>
+          <button id="exportGLB" class="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-bold" disabled>💾 Export GLB</button>
         </div>
 
-        <!-- Status Bar -->
-        <div class="bg-slate-800 rounded-lg p-4">
-            <h2 class="text-xl font-bold mb-3">ℹ️ Status</h2>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                <div>
-                    <div class="text-slate-400">Voxels:</div>
-                    <div id="totalVoxels" class="text-xl font-bold text-green-400">0</div>
-                </div>
-                <div>
-                    <div class="text-slate-400">Mode:</div>
-                    <div id="currentMode" class="text-xl font-bold text-cyan-400">Generate</div>
-                </div>
-                <div>
-                    <div class="text-slate-400">Tool:</div>
-                    <div id="currentTool" class="text-xl font-bold text-purple-400">None</div>
-                </div>
-                <div>
-                    <div class="text-slate-400">Processing:</div>
-                    <div id="processTime" class="text-xl font-bold text-yellow-400">-</div>
-                </div>
-                <div>
-                    <div class="text-slate-400">Status:</div>
-                    <div id="statusText" class="text-xl font-bold text-orange-400">Ready</div>
-                </div>
+        <!-- Transform Mode Selector -->
+        <div class="mt-3 p-3 bg-slate-700 rounded-lg">
+          <h3 class="font-bold text-sm mb-2">🔧 Transform Mode:</h3>
+          <div class="grid grid-cols-4 gap-2">
+            <button class="tool-btn active" data-transform="translate">Move</button>
+            <button class="tool-btn" data-transform="rotate">Rotate</button>
+            <button class="tool-btn" data-transform="scale">Scale</button>
+            <button class="tool-btn" data-transform="none">Select</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Advanced Tools -->
+      <div class="bg-slate-800 rounded-lg p-4 space-y-4">
+        <div>
+          <h2 class="text-xl font-bold mb-3">🔄 2. Morph</h2>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between gap-2">
+              <span>Amount:</span>
+              <input type="range" id="morphAmount" min="0" max="1" step="0.05" value="0" class="w-28">
+              <span id="morphAmountVal" class="font-mono text-xs">0.00</span>
             </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <button class="tool-btn" id="spherifyBtn" disabled>⚪ Spherify</button>
+            <button class="tool-btn" id="cubeifyBtn" disabled>📦 Cubeify</button>
+            <button class="tool-btn" id="twistBtn" disabled>🌀 Twist</button>
+            <button class="tool-btn" id="bendBtn" disabled>🌊 Bend</button>
+          </div>
         </div>
 
-        <!-- Log -->
-        <div class="bg-slate-800 rounded-lg p-4 mt-4">
-            <h2 class="text-xl font-bold mb-3">📝 Log</h2>
-            <div id="logOutput" class="bg-black rounded-lg p-3 font-mono text-xs text-green-400 h-32 overflow-y-auto"></div>
+        <div>
+          <h2 class="text-xl font-bold mb-3">✂️ 3. Sculpt</h2>
+          <label class="flex items-center gap-2 mb-2">
+            <input type="checkbox" id="sculptMode">
+            <span class="text-sm font-bold">Enable Sculpting</span>
+          </label>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <button class="tool-btn sculpt-tool active" data-tool="push">⬆️ Push</button>
+            <button class="tool-btn sculpt-tool" data-tool="pull">⬇️ Pull</button>
+            <button class="tool-btn sculpt-tool" data-tool="smooth">✨ Smooth</button>
+            <button class="tool-btn sculpt-tool" data-tool="pinch">🤏 Pinch</button>
+          </div>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between gap-2">
+              <span>Brush:</span>
+              <input type="range" id="brushSize" min="0.1" max="2" step="0.1" value="0.5" class="w-28">
+              <span id="brushSizeVal" class="font-mono text-xs">0.5</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span>Strength:</span>
+              <input type="range" id="sculptStrength" min="0.1" max="2" step="0.1" value="0.8" class="w-28">
+              <span id="sculptStrengthVal" class="font-mono text-xs">0.8</span>
+            </div>
+          </div>
         </div>
+
+        <div>
+          <h2 class="text-xl font-bold mb-3">⚙️ Operations</h2>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="tool-btn" id="smoothMeshBtn" disabled>✨ Smooth</button>
+            <button class="tool-btn" id="resetToOriginal" disabled>↩️ Reset</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { TransformControls } from 'three/addons/controls/TransformControls.js';
-        import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+    <!-- Status Bar -->
+    <div class="bg-slate-800 rounded-lg p-4">
+      <h2 class="text-xl font-bold mb-3">ℹ️ Status</h2>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+        <div><div class="text-slate-400">Voxels:</div><div id="totalVoxels" class="text-xl font-bold text-green-400">0</div></div>
+        <div><div class="text-slate-400">Mode:</div><div id="currentMode" class="text-xl font-bold text-cyan-400">Generate</div></div>
+        <div><div class="text-slate-400">Tool:</div><div id="currentTool" class="text-xl font-bold text-purple-400">None</div></div>
+        <div><div class="text-slate-400">Processing:</div><div id="processTime" class="text-xl font-bold text-yellow-400">-</div></div>
+        <div><div class="text-slate-400">Status:</div><div id="statusText" class="text-xl font-bold text-orange-400">Ready</div></div>
+      </div>
+    </div>
 
-        let scene, camera, renderer, controls, transformControls;
-        let currentMesh = null;
-        let currentImageData = null;
-        let originalGeometry = null;
-        
-        // Interaction state
-        let currentTransformMode = 'translate';
-        let isSculpting = false;
-        let sculptTool = 'push';
-        let isMouseDown = false;
-        
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+    <!-- Log -->
+    <div class="bg-slate-800 rounded-lg p-4 mt-4">
+      <h2 class="text-xl font-bold mb-3">📝 Log</h2>
+      <div id="logOutput" class="bg-black rounded-lg p-3 font-mono text-xs text-green-400 h-32 overflow-y-auto"></div>
+    </div>
+  </div>
 
-        // Logging
-        function log(msg) {
-            const logDiv = document.getElementById('logOutput');
-            const time = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `[${time}] ${msg}\n`;
-            logDiv.scrollTop = logDiv.scrollHeight;
-            console.log(msg);
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { TransformControls } from 'three/addons/controls/TransformControls.js';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+    import * as BufferGeometryUtils from 'https://unpkg.com/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js';
+
+    let scene, camera, renderer, controls, transformControls;
+    let perfMode = false; // ⚡ Performance mode flag
+    let currentMesh = null;
+    let currentImageData = null;
+    let originalGeometry = null;
+
+    // Interaction state
+    let currentTransformMode = 'translate';
+    let isSculpting = false;
+    let sculptTool = 'push';
+    let isMouseDown = false;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // Logging
+    function log(msg) {
+      const logDiv = document.getElementById('logOutput');
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `[${time}] ${msg}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(msg);
+    }
+
+    // Tiny test helper
+    function assert(name, cond) {
+      if (cond) log(`✅ TEST PASS: ${name}`); else log(`❌ TEST FAIL: ${name}`);
+    }
+
+    // UI value mirrors + live regenerate on core sliders
+    function updateUIValues() {
+      document.getElementById('voxelSizeVal').textContent = document.getElementById('voxelSize').value;
+      document.getElementById('depthFactorVal').textContent = document.getElementById('depthFactor').value;
+      document.getElementById('maxVoxelsVal').textContent = (document.getElementById('maxVoxels').value / 1000 | 0) + 'k';
+      document.getElementById('morphAmountVal').textContent = Number(document.getElementById('morphAmount').value).toFixed(2);
+      document.getElementById('brushSizeVal').textContent = document.getElementById('brushSize').value;
+      document.getElementById('sculptStrengthVal').textContent = document.getElementById('sculptStrength').value;
+    }
+    ['voxelSize','depthFactor','maxVoxels','morphAmount','brushSize','sculptStrength'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', () => { updateUIValues(); if (id==='voxelSize' || id==='depthFactor' || id==='maxVoxels') debouncedRegen(); });
+    });
+
+    // Debounce helper
+    function debounce(fn, ms=200){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
+    const debouncedRegen = debounce(regenerateModel, 200);
+
+    // Scene init
+    function initScene() {
+      const container = document.getElementById('previewCanvas');
+      const w = container.clientWidth; const h = container.clientHeight;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 2000);
+      camera.position.set(5, 5, 10); camera.lookAt(0,0,0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      setRenderPerf();
+      renderer.setSize(w, h);
+      renderer.shadowMap.enabled = !perfMode;
+      document.getElementById('previewCanvas').appendChild(renderer.domElement);
+
+      // Resize
+      window.addEventListener('resize', () => {
+        const w2 = container.clientWidth; const h2 = container.clientHeight;
+        camera.aspect = w2 / h2; camera.updateProjectionMatrix();
+        renderer.setSize(w2, h2);
+      });
+
+      // Orbit controls
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.05;
+
+      // Transform controls
+      transformControls = new TransformControls(camera, renderer.domElement);
+      transformControls.addEventListener('dragging-changed', (e) => { controls.enabled = !e.value; });
+      transformControls.addEventListener('objectChange', () => { updateStatus('Transforming object'); });
+      scene.add(transformControls);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); directionalLight.position.set(5, 10, 5); directionalLight.castShadow = true; scene.add(directionalLight);
+      const fillLight = new THREE.DirectionalLight(0x4ecdc4, 0.3); fillLight.position.set(-3, 2, -2); scene.add(fillLight);
+
+      // Ground + grid
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x1a2332, roughness: 0.9 }));
+      ground.rotation.x = -Math.PI / 2; ground.position.y = -2; ground.receiveShadow = true; scene.add(ground);
+      const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222); gridHelper.position.y = -1.99; scene.add(gridHelper);
+      const axesHelper = new THREE.AxesHelper(3); scene.add(axesHelper);
+
+      // Mouse events
+      renderer.domElement.addEventListener('mousedown', onMouseDown);
+      renderer.domElement.addEventListener('mousemove', onMouseMove);
+      renderer.domElement.addEventListener('mouseup', onMouseUp);
+      renderer.domElement.addEventListener('click', onCanvasClick);
+
+      animate();
+      log('🎬 Scene initialized with full controls');
+    }
+
+    function setRenderPerf(){
+      if (!renderer) return;
+      renderer.setPixelRatio(perfMode ? 1 : Math.min(2, window.devicePixelRatio || 1));
+      renderer.shadowMap.enabled = !perfMode;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      if (!perfMode && currentMesh && !isSculpting) currentMesh.rotation.y += 0.002;
+      renderer.render(scene, camera);
+    }
+
+    // Mouse helpers
+    function updateMousePosition(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+    function onMouseDown(e){ if (!isSculpting || !currentMesh) return; isMouseDown = true; updateMousePosition(e); applySculpting(); }
+    function onMouseMove(e){ updateMousePosition(e); if (isMouseDown && isSculpting && currentMesh) applySculpting(); }
+    function onMouseUp(){ isMouseDown = false; }
+    function onCanvasClick(e){ if (isSculpting) return; updateMousePosition(e); raycaster.setFromCamera(mouse, camera); if (!currentMesh) return; const hit = raycaster.intersectObject(currentMesh); if (hit.length){ attachTransformControls(); log('✅ Mesh selected for transformation'); } }
+
+    // Transform controls
+    function setTransformMode(mode){
+      document.querySelectorAll('[data-transform]').forEach(b=>b.classList.remove('active'));
+      const btn = document.querySelector(`[data-transform="${mode}"]`); if (btn) btn.classList.add('active');
+      currentTransformMode = mode; document.getElementById('currentTool').textContent = mode==='none'?'Select':mode[0].toUpperCase()+mode.slice(1);
+      if (mode==='none'){ transformControls.detach(); }
+      else if (currentMesh){ transformControls.setMode(mode); transformControls.attach(currentMesh); }
+      log(`🔧 Transform mode: ${mode}`);
+    }
+    function attachTransformControls(){ if (currentMesh && currentTransformMode!=='none'){ transformControls.setMode(currentTransformMode); transformControls.attach(currentMesh); } }
+    document.querySelectorAll('[data-transform]').forEach(btn => btn.addEventListener('click', () => setTransformMode(btn.dataset.transform)));
+
+    // Sculpting
+    function setSculptTool(tool){ document.querySelectorAll('.sculpt-tool').forEach(b=>b.classList.remove('active')); const btn=document.querySelector(`[data-tool="${tool}"]`); if(btn) btn.classList.add('active'); sculptTool=tool; document.getElementById('currentTool').textContent = tool[0].toUpperCase()+tool.slice(1); log(`✂️ Sculpt tool: ${tool}`); }
+    document.querySelectorAll('.sculpt-tool').forEach(btn => btn.addEventListener('click', () => setSculptTool(btn.dataset.tool)));
+    document.getElementById('sculptMode').addEventListener('change',(e)=>{ isSculpting=e.target.checked; document.getElementById('currentMode').textContent = isSculpting?'Sculpt':'Transform'; if (isSculpting){ transformControls.detach(); log('✂️ Sculpting mode enabled'); } else { attachTransformControls(); log('🔧 Transform mode enabled'); } });
+
+    function applySculpting(){
+      if (!currentMesh) return;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObject(currentMesh);
+      if (!hits.length) return;
+      const { point, face } = hits[0];
+      const geometry = currentMesh.geometry;
+      const positions = geometry.attributes.position;
+      const brushSize = parseFloat(document.getElementById('brushSize').value);
+      const strength  = parseFloat(document.getElementById('sculptStrength').value) * 0.01;
+      const localPoint = currentMesh.worldToLocal(point.clone());
+      const v = new THREE.Vector3();
+
+      for (let i=0;i<positions.count;i++){
+        v.fromBufferAttribute(positions, i);
+        const d = v.distanceTo(localPoint);
+        if (d < brushSize){
+          const falloff = 1 - (d/brushSize);
+          const normal = face ? face.normal : v.clone().normalize();
+          let disp = 0;
+          switch (sculptTool){
+            case 'push': disp = strength * falloff; v.addScaledVector(normal, disp); break;
+            case 'pull': disp = -strength * falloff; v.addScaledVector(normal, disp); break;
+            case 'smooth':
+              v.lerp(v.clone().normalize().multiplyScalar(v.length()*0.98), strength*falloff*0.5);
+              break;
+            case 'pinch':
+              const toCenter = localPoint.clone().sub(v).normalize();
+              v.addScaledVector(toCenter, strength*falloff*0.5);
+              break;
+          }
+          positions.setXYZ(i, v.x, v.y, v.z);
         }
+      }
+      positions.needsUpdate = true;
+      geometry.computeVertexNormals();
+    }
 
-        // Update UI values
-        function updateUIValues() {
-            document.getElementById('voxelSizeVal').textContent = document.getElementById('voxelSize').value;
-            document.getElementById('depthFactorVal').textContent = document.getElementById('depthFactor').value;
-            document.getElementById('maxVoxelsVal').textContent = (document.getElementById('maxVoxels').value / 1000).toFixed(0) + 'k';
-            document.getElementById('morphAmountVal').textContent = parseFloat(document.getElementById('morphAmount').value).toFixed(2);
-            document.getElementById('brushSizeVal').textContent = document.getElementById('brushSize').value;
-            document.getElementById('sculptStrengthVal').textContent = document.getElementById('sculptStrength').value;
+    // Morphing
+    function applyMorph(type){
+      if (!currentMesh || !originalGeometry) return;
+      const geometry = currentMesh.geometry;
+      const positions = geometry.attributes.position;
+      const orig = originalGeometry.attributes.position;
+      const morphAmount = parseFloat(document.getElementById('morphAmount').value);
+      const o = new THREE.Vector3();
+      const t = new THREE.Vector3();
+      for (let i=0;i<positions.count;i++){
+        o.fromBufferAttribute(orig, i);
+        t.copy(o);
+        switch(type){
+          case 'spherify': t.normalize().multiplyScalar(0.8); break;
+          case 'cubeify': t.set(Math.sign(t.x)*0.8, Math.sign(t.y)*0.8, Math.sign(t.z)*0.8); break;
+          case 'twist': {
+            const angle = t.y * Math.PI * 0.5; const cx=Math.cos(angle), sx=Math.sin(angle);
+            const x = t.x * cx - t.z * sx; const z = t.x * sx + t.z * cx; t.x = x; t.z = z; break; }
+          case 'bend': t.x += Math.sin(t.y * 0.3) * 0.5; break;
         }
+        o.lerp(t, morphAmount);
+        positions.setXYZ(i, o.x, o.y, o.z);
+      }
+      positions.needsUpdate = true; geometry.computeVertexNormals();
+      log(`🔄 Applied ${type} morph (${(morphAmount*100)|0}%)`);
+    }
+    document.getElementById('spherifyBtn').addEventListener('click', ()=>applyMorph('spherify'));
+    document.getElementById('cubeifyBtn').addEventListener('click', ()=>applyMorph('cubeify'));
+    document.getElementById('twistBtn').addEventListener('click', ()=>applyMorph('twist'));
+    document.getElementById('bendBtn').addEventListener('click', ()=>applyMorph('bend'));
 
-        ['voxelSize', 'depthFactor', 'maxVoxels', 'morphAmount', 'brushSize', 'sculptStrength'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateUIValues);
-        });
+    // Image helpers
+    function imageToCanvas(img, maxSize=512){
+      const canvas=document.createElement('canvas'); let w=img.width, h=img.height; const m=Math.max(w,h);
+      if (m>maxSize){ const s=maxSize/m; w=(w*s)|0; h=(h*s)|0; }
+      canvas.width=w; canvas.height=h; const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h); return canvas;
+    }
+    function canvasToGrayscale(canvas){ const ctx=canvas.getContext('2d'); const img=ctx.getImageData(0,0,canvas.width,canvas.height); const d=img.data; for(let i=0;i<d.length;i+=4){ const a=d[i+3]; const g=a>0 ? (0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]) : 0; d[i]=d[i+1]=d[i+2]=g; d[i+3]=255; } ctx.putImageData(img,0,0); }
+    function otsuThreshold(canvas){ const ctx=canvas.getContext('2d'); const img=ctx.getImageData(0,0,canvas.width,canvas.height); const d=img.data; const hist=new Array(256).fill(0); for(let i=0;i<d.length;i+=4) hist[d[i]]++; const total=canvas.width*canvas.height; let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i]; let sumB=0,wB=0,maxVar=0,thr=0; for(let t=0;t<256;t++){ wB+=hist[t]; if(!wB) continue; const wF=total-wB; if(!wF) break; sumB+=t*hist[t]; const mB=sumB/wB; const mF=(sum-sumB)/wF; const v=wB*wF*(mB-mF)*(mB-mF); if(v>maxVar){maxVar=v;thr=t;} } return thr; }
+    function applyThreshold(canvas,thr){ const ctx=canvas.getContext('2d'); const img=ctx.getImageData(0,0,canvas.width,canvas.height); const d=img.data; for(let i=0;i<d.length;i+=4){ const v=d[i]; const bin=v>=thr?255:0; d[i]=d[i+1]=d[i+2]=bin; d[i+3]=255; } ctx.putImageData(img,0,0); }
+    function readMask(canvas){ const ctx=canvas.getContext('2d'); const img=ctx.getImageData(0,0,canvas.width,canvas.height); const d=img.data; const mask=new Uint8Array(canvas.width*canvas.height); for(let i=0,p=0;i<mask.length;i++,p+=4) mask[i]=d[p]; return mask; }
 
-        // Initialize Three.js scene
-        function initScene() {
-            const container = document.getElementById('previewCanvas');
-            const w = container.clientWidth;
-            const h = container.clientHeight;
+    // Voxel generation (merged geometry with BufferGeometryUtils + adaptive stride)
+    function createVoxelGeometry(mask, w, h, config){
+      const VOXEL_SIZE = parseFloat(config.voxelSize);
+      const depthFactor = parseFloat(config.depthFactor);
+      const maxVoxels = parseInt(config.maxVoxels);
+      const depth = Math.max(1, Math.floor(Math.max(w,h) * depthFactor));
 
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000);
+      // Adaptive stride: smaller voxels -> larger stride, keeps voxel count sane
+      const targetWorldDensity = 0.12; // ~world units per sample
+      const stride = Math.max(1, Math.floor(targetWorldDensity / VOXEL_SIZE));
 
-            camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
-            camera.position.set(5, 5, 10);
-            camera.lookAt(0, 0, 0);
+      log(`🧊 Creating voxels (size=${VOXEL_SIZE}, depth=${depth}, stride=${stride})...`);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(w, h);
-            renderer.shadowMap.enabled = true;
-            container.appendChild(renderer.domElement);
+      const geos = []; const cubeGeoBase = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+      let voxelCount = 0; const halfW = w/2, halfH = h/2; const voxelDepth = Math.max(1, Math.floor(depth * 0.5));
 
-            // Orbit controls
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-
-            // Transform controls
-            transformControls = new TransformControls(camera, renderer.domElement);
-            transformControls.addEventListener('dragging-changed', (event) => {
-                controls.enabled = !event.value;
-            });
-            transformControls.addEventListener('objectChange', () => {
-                updateStatus('Transforming object');
-            });
-            scene.add(transformControls);
-
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            directionalLight.position.set(5, 10, 5);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
-
-            const fillLight = new THREE.DirectionalLight(0x4ecdc4, 0.3);
-            fillLight.position.set(-3, 2, -2);
-            scene.add(fillLight);
-
-            // Ground
-            const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(20, 20),
-                new THREE.MeshStandardMaterial({ color: 0x1a2332, roughness: 0.9 })
-            );
-            ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-
-            // Grid
-            const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
-            gridHelper.position.y = -1.99;
-            scene.add(gridHelper);
-
-            // Axes
-            const axesHelper = new THREE.AxesHelper(3);
-            scene.add(axesHelper);
-
-            // Mouse events
-            renderer.domElement.addEventListener('mousedown', onMouseDown);
-            renderer.domElement.addEventListener('mousemove', onMouseMove);
-            renderer.domElement.addEventListener('mouseup', onMouseUp);
-            renderer.domElement.addEventListener('click', onCanvasClick);
-
-            animate();
-            log('🎬 Scene initialized with full controls');
+      for (let y=0; y<h; y+=stride){
+        for (let x=0; x<w; x+=stride){
+          const idx = y*w + x; if (mask[idx] === 0) continue; // skip background
+          for (let z=0; z<voxelDepth; z+=Math.max(1, Math.floor(stride/2))){
+            const g = cubeGeoBase.clone();
+            g.translate((x - halfW) * VOXEL_SIZE, (halfH - y) * VOXEL_SIZE, (z - voxelDepth/2) * VOXEL_SIZE);
+            geos.push(g); voxelCount++; if (voxelCount >= maxVoxels) break;
+          }
+          if (voxelCount >= maxVoxels) break;
         }
+        if (voxelCount >= maxVoxels) break;
+      }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            if (currentMesh && !isSculpting) {
-                currentMesh.rotation.y += 0.002;
-            }
-            renderer.render(scene, camera);
-        }
+      log(`✅ Created ${voxelCount} voxels`);
+      document.getElementById('totalVoxels').textContent = voxelCount.toLocaleString();
 
-        // Mouse interaction
-        function updateMousePosition(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        }
+      const merge = BufferGeometryUtils.mergeGeometries || BufferGeometryUtils.mergeBufferGeometries;
+      const merged = merge(geos, false);
+      geos.forEach(g=>g.dispose());
+      merged.computeBoundingBox();
+      return merged;
+    }
 
-        function onMouseDown(event) {
-            if (!isSculpting || !currentMesh) return;
-            isMouseDown = true;
-            updateMousePosition(event);
-            applySculpting();
-        }
+    // Center model, fit camera
+    function centerAndFrame(mesh){
+      mesh.geometry.computeBoundingBox();
+      const bb = mesh.geometry.boundingBox;
+      const size = new THREE.Vector3(); bb.getSize(size);
+      const center = new THREE.Vector3(); bb.getCenter(center);
+      mesh.position.sub(center); // center at origin
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fitDist = maxDim / (2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))) + 1.5;
+      camera.position.set(fitDist, fitDist, fitDist);
+      camera.lookAt(0,0,0);
+      controls.target.set(0,0,0); controls.update();
+    }
 
-        function onMouseMove(event) {
-            updateMousePosition(event);
-            if (isMouseDown && isSculpting && currentMesh) {
-                applySculpting();
-            }
-        }
-
-        function onMouseUp() {
-            isMouseDown = false;
-        }
-
-        function onCanvasClick(event) {
-            if (isSculpting) return;
-            updateMousePosition(event);
-            raycaster.setFromCamera(mouse, camera);
-            
-            if (currentMesh) {
-                const intersects = raycaster.intersectObject(currentMesh);
-                if (intersects.length > 0) {
-                    attachTransformControls();
-                    log('✅ Mesh selected for transformation');
-                }
-            }
-        }
-
-        // Transform Controls
-        function setTransformMode(mode) {
-            document.querySelectorAll('[data-transform]').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[data-transform="${mode}"]`).classList.add('active');
-            
-            currentTransformMode = mode;
-            document.getElementById('currentTool').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
-            
-            if (mode === 'none') {
-                transformControls.detach();
-            } else if (currentMesh) {
-                transformControls.setMode(mode);
-                transformControls.attach(currentMesh);
-            }
-            log(`🔧 Transform mode: ${mode}`);
-        }
-
-        function attachTransformControls() {
-            if (currentMesh && currentTransformMode !== 'none') {
-                transformControls.setMode(currentTransformMode);
-                transformControls.attach(currentMesh);
-            }
-        }
-
-        document.querySelectorAll('[data-transform]').forEach(btn => {
-            btn.addEventListener('click', () => setTransformMode(btn.dataset.transform));
-        });
-
-        // Sculpting
-        function setSculptTool(tool) {
-            document.querySelectorAll('.sculpt-tool').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
-            sculptTool = tool;
-            document.getElementById('currentTool').textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
-            log(`✂️ Sculpt tool: ${tool}`);
-        }
-
-        document.querySelectorAll('.sculpt-tool').forEach(btn => {
-            btn.addEventListener('click', () => setSculptTool(btn.dataset.tool));
-        });
-
-        document.getElementById('sculptMode').addEventListener('change', (e) => {
-            isSculpting = e.target.checked;
-            document.getElementById('currentMode').textContent = isSculpting ? 'Sculpt' : 'Transform';
-            if (isSculpting) {
-                transformControls.detach();
-                log('✂️ Sculpting mode enabled');
-            } else {
-                attachTransformControls();
-                log('🔧 Transform mode enabled');
-            }
-        });
-
-        function applySculpting() {
-            if (!currentMesh) return;
-            
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(currentMesh);
-            
-            if (intersects.length === 0) return;
-            
-            const { point, face } = intersects[0];
-            const geometry = currentMesh.geometry;
-            const positions = geometry.attributes.position;
-            const brushSize = parseFloat(document.getElementById('brushSize').value);
-            const strength = parseFloat(document.getElementById('sculptStrength').value) * 0.01;
-            
-            const localPoint = currentMesh.worldToLocal(point.clone());
-            
-            for (let i = 0; i < positions.count; i++) {
-                const vertex = new THREE.Vector3();
-                vertex.fromBufferAttribute(positions, i);
-                
-                const distance = vertex.distanceTo(localPoint);
-                if (distance < brushSize) {
-                    const falloff = 1 - (distance / brushSize);
-                    const normal = face ? face.normal.clone() : vertex.clone().normalize();
-                    
-                    let displacement = 0;
-                    switch (sculptTool) {
-                        case 'push':
-                            displacement = strength * falloff;
-                            break;
-                        case 'pull':
-                            displacement = -strength * falloff;
-                            break;
-                        case 'smooth':
-                            // Simplified smoothing
-                            displacement = strength * falloff * 0.5;
-                            break;
-                        case 'pinch':
-                            const toCenter = localPoint.clone().sub(vertex).normalize();
-                            vertex.add(toCenter.multiplyScalar(strength * falloff * 0.5));
-                            break;
-                    }
-                    
-                    if (sculptTool !== 'pinch') {
-                        vertex.add(normal.multiplyScalar(displacement));
-                    }
-                    
-                    positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
-                }
-            }
-            
-            positions.needsUpdate = true;
-            geometry.computeVertexNormals();
-        }
-
-        // Morphing Operations
-        function applyMorph(type) {
-            if (!currentMesh || !originalGeometry) return;
-            
-            const geometry = currentMesh.geometry;
-            const positions = geometry.attributes.position;
-            const origPositions = originalGeometry.attributes.position;
-            const morphAmount = parseFloat(document.getElementById('morphAmount').value);
-            
-            for (let i = 0; i < positions.count; i++) {
-                const original = new THREE.Vector3();
-                original.fromBufferAttribute(origPositions, i);
-                
-                let target = original.clone();
-                
-                switch (type) {
-                    case 'spherify':
-                        target.normalize().multiplyScalar(0.8);
-                        break;
-                    case 'cubeify':
-                        target.x = Math.sign(target.x) * 0.8;
-                        target.y = Math.sign(target.y) * 0.8;
-                        target.z = Math.sign(target.z) * 0.8;
-                        break;
-                    case 'twist':
-                        const angle = target.y * Math.PI * 0.5;
-                        const x = target.x * Math.cos(angle) - target.z * Math.sin(angle);
-                        const z = target.x * Math.sin(angle) + target.z * Math.cos(angle);
-                        target.x = x;
-                        target.z = z;
-                        break;
-                    case 'bend':
-                        const bendAmount = target.y * 0.3;
-                        target.x += Math.sin(bendAmount) * 0.5;
-                        break;
-                }
-                
-                const morphed = original.clone().lerp(target, morphAmount);
-                positions.setXYZ(i, morphed.x, morphed.y, morphed.z);
-            }
-            
-            positions.needsUpdate = true;
-            geometry.computeVertexNormals();
-            log(`🔄 Applied ${type} morph (${(morphAmount * 100).toFixed(0)}%)`);
-        }
-
-        document.getElementById('spherifyBtn').addEventListener('click', () => applyMorph('spherify'));
-        document.getElementById('cubeifyBtn').addEventListener('click', () => applyMorph('cubeify'));
-        document.getElementById('twistBtn').addEventListener('click', () => applyMorph('twist'));
-        document.getElementById('bendBtn').addEventListener('click', () => applyMorph('bend'));
-
-        // Smooth mesh operation
-        document.getElementById('smoothMeshBtn').addEventListener('click', () => {
-            if (!currentMesh) return;
-            
-            const geometry = currentMesh.geometry;
-            const positions = geometry.attributes.position;
-            const smoothAmount = 0.1;
-            
-            const newPositions = new Float32Array(positions.array);
-            
-            for (let i = 0; i < positions.count; i++) {
-                const vertex = new THREE.Vector3().fromBufferAttribute(positions, i);
-                let avgPos = new THREE.Vector3();
-                let count = 0;
-                
-                for (let j = 0; j < positions.count; j++) {
-                    if (i === j) continue;
-                    const other = new THREE.Vector3().fromBufferAttribute(positions, j);
-                    if (vertex.distanceTo(other) < 0.3) {
-                        avgPos.add(other);
-                        count++;
-                    }
-                }
-                
-                if (count > 0) {
-                    avgPos.divideScalar(count);
-                    vertex.lerp(avgPos, smoothAmount);
-                }
-                
-                newPositions[i * 3] = vertex.x;
-                newPositions[i * 3 + 1] = vertex.y;
-                newPositions[i * 3 + 2] = vertex.z;
-            }
-            
-            positions.array = newPositions;
-            positions.needsUpdate = true;
-            geometry.computeVertexNormals();
-            log('✨ Mesh smoothed');
-        });
-
-        // Reset to original
-        document.getElementById('resetToOriginal').addEventListener('click', () => {
-            if (!currentMesh || !originalGeometry) return;
-            
-            currentMesh.geometry.dispose();
-            currentMesh.geometry = originalGeometry.clone();
-            log('↩️ Reset to original geometry');
-        });
-
-        // Image processing functions (same as before)
-        function imageToCanvas(img, maxSize = 256) {
-            const canvas = document.createElement('canvas');
-            let w = img.width, h = img.height;
-            const maxDim = Math.max(w, h);
-            if (maxDim > maxSize) {
-                const scale = maxSize / maxDim;
-                w = Math.floor(w * scale);
-                h = Math.floor(h * scale);
-            }
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            return canvas;
-        }
-
-        function canvasToGrayscale(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const a = data[i + 3];
-                const gray = a > 0 ? (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) : 0;
-                data[i] = data[i + 1] = data[i + 2] = gray;
-                data[i + 3] = 255;
-            }
-            ctx.putImageData(imgData, 0, 0);
-        }
-
-        function otsuThreshold(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            const hist = new Array(256).fill(0);
-
-            for (let i = 0; i < data.length; i += 4) {
-                hist[data[i]]++;
-            }
-
-            const total = canvas.width * canvas.height;
-            let sum = 0;
-            for (let i = 0; i < 256; i++) sum += i * hist[i];
-
-            let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 0;
-            for (let t = 0; t < 256; t++) {
-                wB += hist[t];
-                if (wB === 0) continue;
-                wF = total - wB;
-                if (wF === 0) break;
-
-                sumB += t * hist[t];
-                const mB = sumB / wB;
-                const mF = (sum - sumB) / wF;
-                const varBetween = wB * wF * (mB - mF) * (mB - mF);
-
-                if (varBetween > maxVar) {
-                    maxVar = varBetween;
-                    threshold = t;
-                }
-            }
-
-            return threshold;
-        }
-
-        function applyThreshold(canvas, threshold) {
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const v = data[i];
-                const bin = v >= threshold ? 255 : 0;
-                data[i] = data[i + 1] = data[i + 2] = bin;
-                data[i + 3] = 255;
-            }
-
-            ctx.putImageData(imgData, 0, 0);
-        }
-
-        function readMask(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            const mask = new Uint8Array(canvas.width * canvas.height);
-            for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
-                mask[i] = data[p];
-            }
-            return mask;
-        }
-
-        // Voxel generation (simplified checkerboard version)
-        function createVoxelGeometry(mask, w, h, config) {
-            const VOXEL_SIZE = parseFloat(config.voxelSize);
-            const depthFactor = parseFloat(config.depthFactor);
-            const maxVoxels = parseInt(config.maxVoxels);
-            const depth = Math.floor(w * depthFactor);
-            
-            log(`🧊 Creating voxels (size=${VOXEL_SIZE}, depth=${depth})...`);
-
-            const allGeometries = [];
-            const cubeGeo = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
-            let voxelCount = 0;
-
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const idx = y * w + x;
-                    if (mask[idx] === 0) continue;
-                    
-                    // Checkerboard pattern for efficiency
-                    if ((x + y) % 2 !== 0) continue;
-
-                    const voxelDepth = Math.floor(depth * 0.5);
-
-                    for (let z = 0; z < voxelDepth; z++) {
-                        const clonedGeo = cubeGeo.clone();
-                        clonedGeo.translate(
-                            (x - w / 2) * VOXEL_SIZE,
-                            (h / 2 - y) * VOXEL_SIZE,
-                            (z - voxelDepth / 2) * VOXEL_SIZE
-                        );
-                        allGeometries.push(clonedGeo);
-                        voxelCount++;
-                        if (voxelCount >= maxVoxels) break;
-                    }
-                    if (voxelCount >= maxVoxels) break;
-                }
-                if (voxelCount >= maxVoxels) break;
-            }
-
-            log(`✅ Created ${voxelCount} voxels`);
-            document.getElementById('totalVoxels').textContent = voxelCount.toLocaleString();
-
-            // Merge geometries
-            const mergedGeometry = new THREE.BufferGeometry();
-            const positionArrays = [];
-            const normalArrays = [];
-            const indexArrays = [];
-            let indexOffset = 0;
-
-            for (const geo of allGeometries) {
-                const pos = geo.attributes.position.array;
-                const norm = geo.attributes.normal.array;
-                const idx = geo.index ? geo.index.array : null;
-
-                positionArrays.push(pos);
-                normalArrays.push(norm);
-
-                if (idx) {
-                    const offsetIdx = new Uint16Array(idx.length);
-                    for (let i = 0; i < idx.length; i++) {
-                        offsetIdx[i] = idx[i] + indexOffset;
-                    }
-                    indexArrays.push(offsetIdx);
-                }
-
-                indexOffset += pos.length / 3;
-            }
-
-            const totalPositions = positionArrays.reduce((sum, arr) => sum + arr.length, 0);
-            const totalNormals = normalArrays.reduce((sum, arr) => sum + arr.length, 0);
-            const totalIndices = indexArrays.reduce((sum, arr) => sum + arr.length, 0);
-
-            const positionArray = new Float32Array(totalPositions);
-            const normalArray = new Float32Array(totalNormals);
-            const indexArray = new Uint32Array(totalIndices);
-
-            let posOffset = 0, normOffset = 0, idxOffset = 0;
-
-            for (let i = 0; i < positionArrays.length; i++) {
-                positionArray.set(positionArrays[i], posOffset);
-                normalArray.set(normalArrays[i], normOffset);
-                indexArray.set(indexArrays[i], idxOffset);
-
-                posOffset += positionArrays[i].length;
-                normOffset += normalArrays[i].length;
-                idxOffset += indexArrays[i].length;
-            }
-
-            mergedGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
-            mergedGeometry.setAttribute('normal', new THREE.BufferAttribute(normalArray, 3));
-            mergedGeometry.setIndex(new THREE.BufferAttribute(indexArray, 1));
-
-            return mergedGeometry;
-        }
-
-        // Process image
-        function processImage(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    log(`📷 Image loaded: ${img.width}×${img.height}`);
-                    
-                    const canvas = imageToCanvas(img, 256);
-                    log(`📐 Resized to: ${canvas.width}×${canvas.height}`);
-                    
-                    canvasToGrayscale(canvas);
-                    const threshold = otsuThreshold(canvas);
-                    applyThreshold(canvas, threshold);
-                    
-                    const mask = readMask(canvas);
-                    currentImageData = { mask, width: canvas.width, height: canvas.height };
-                    
-                    regenerateModel();
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // Regenerate model
-        function regenerateModel() {
-            if (!currentImageData) return;
-
-            log('🔨 Generating 3D model...');
-            const startTime = performance.now();
-            
-            const config = {
-                voxelSize: document.getElementById('voxelSize').value,
-                depthFactor: document.getElementById('depthFactor').value,
-                maxVoxels: document.getElementById('maxVoxels').value
-            };
-
-            const geometry = createVoxelGeometry(
-                currentImageData.mask,
-                currentImageData.width,
-                currentImageData.height,
-                config
-            );
-
-            if (currentMesh) {
-                scene.remove(currentMesh);
-                currentMesh.geometry.dispose();
-                currentMesh.material.dispose();
-            }
-
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x3b82f6,
-                roughness: 0.7,
-                metalness: 0.3,
-                flatShading: false
-            });
-
-            currentMesh = new THREE.Mesh(geometry, material);
-            currentMesh.castShadow = true;
-            currentMesh.receiveShadow = true;
-            scene.add(currentMesh);
-
-            // Store original geometry for morphing
-            originalGeometry = geometry.clone();
-
-            const endTime = performance.now();
-            const processingTime = ((endTime - startTime) / 1000).toFixed(2);
-            document.getElementById('processTime').textContent = `${processingTime}s`;
-            document.getElementById('statusText').textContent = 'Complete';
-            
-            // Enable all tools
-            document.querySelectorAll('.tool-btn[disabled]').forEach(btn => btn.disabled = false);
-            document.getElementById('exportGLB').disabled = false;
-            
-            // Attach transform controls
-            attachTransformControls();
-            
-            log(`✅ Model ready! (${processingTime}s)`);
-        }
-
-        // Upload button
-        document.getElementById('uploadBtn').addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/png,image/jpeg';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) processImage(file);
-            };
-            input.click();
-        });
-
-        // Presets
-        const presets = {
-            balanced: { voxelSize: 0.10, depthFactor: 0.5, maxVoxels: 300000 },
-            quality: { voxelSize: 0.08, depthFactor: 0.6, maxVoxels: 400000 },
-            fast: { voxelSize: 0.15, depthFactor: 0.4, maxVoxels: 150000 },
-            artistic: { voxelSize: 0.12, depthFactor: 0.5, maxVoxels: 250000 }
+    // Process image
+    function processImage(file){
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          try {
+            log(`📷 Image loaded: ${img.width}×${img.height}`);
+            if (img.width < 32 || img.height < 32) { log('❌ Error: Image too small. Minimum 32×32'); return; }
+            if (img.width > 4096 || img.height > 4096) { log('⚠️ Large image detected. Resizing…'); }
+            const canvas = imageToCanvas(img, 512);
+            log(`📐 Processed to: ${canvas.width}×${canvas.height}`);
+            canvasToGrayscale(canvas);
+            const thr = otsuThreshold(canvas); applyThreshold(canvas, thr);
+            const mask = readMask(canvas);
+            currentImageData = { mask, width: canvas.width, height: canvas.height };
+            log('✅ Image processed successfully');
+            regenerateModel();
+          } catch (err){ log(`❌ Error processing image: ${err.message}`); console.error(err); }
         };
+        img.onerror = ()=> log('❌ Error: Failed to load image. Check file.');
+        img.src = e.target.result;
+      };
+      reader.onerror = ()=> log('❌ Error: Failed to read file.');
+      reader.readAsDataURL(file);
+    }
 
-        function applyPreset(name) {
-            const preset = presets[name];
-            document.getElementById('voxelSize').value = preset.voxelSize;
-            document.getElementById('depthFactor').value = preset.depthFactor;
-            document.getElementById('maxVoxels').value = preset.maxVoxels;
-            updateUIValues();
-            if (currentImageData) regenerateModel();
-            log(`🎯 Applied "${name}" preset`);
-        }
+    // Regenerate model
+    function regenerateModel(){
+      if (!currentImageData) return;
+      log('🔨 Generating 3D model…');
+      const t0 = performance.now();
+      const config = { voxelSize: document.getElementById('voxelSize').value, depthFactor: document.getElementById('depthFactor').value, maxVoxels: document.getElementById('maxVoxels').value };
+      const geometry = createVoxelGeometry(currentImageData.mask, currentImageData.width, currentImageData.height, config);
 
-        document.getElementById('presetBalanced').addEventListener('click', () => applyPreset('balanced'));
-        document.getElementById('presetQuality').addEventListener('click', () => applyPreset('quality'));
-        document.getElementById('presetFast').addEventListener('click', () => applyPreset('fast'));
-        document.getElementById('presetArtistic').addEventListener('click', () => applyPreset('artistic'));
+      if (currentMesh){ transformControls.detach(); scene.remove(currentMesh); currentMesh.geometry.dispose(); currentMesh.material.dispose(); }
 
-        // Reset view
-        document.getElementById('resetView').addEventListener('click', () => {
-            camera.position.set(5, 5, 10);
-            camera.lookAt(0, 0, 0);
-            controls.reset();
-            if (currentMesh) {
-                currentMesh.rotation.set(0, 0, 0);
-            }
-            log('🔄 View reset');
-        });
+      const material = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.7, metalness: 0.3, flatShading: false });
+      currentMesh = new THREE.Mesh(geometry, material); currentMesh.castShadow = true; currentMesh.receiveShadow = true; scene.add(currentMesh);
 
-        // Export GLB
-        document.getElementById('exportGLB').addEventListener('click', () => {
-            if (!currentMesh) return;
+      originalGeometry = geometry.clone();
+      centerAndFrame(currentMesh);
 
-            log('💾 Exporting GLB...');
-            const exporter = new GLTFExporter();
+      const dt = ((performance.now()-t0)/1000).toFixed(2);
+      document.getElementById('processTime').textContent = `${dt}s`;
+      document.getElementById('statusText').textContent = 'Complete';
+      document.querySelectorAll('.tool-btn[disabled]').forEach(b=>b.disabled=false);
+      document.getElementById('exportGLB').disabled=false;
+      attachTransformControls();
+      log(`✅ Model ready! (${dt}s)`);
+    }
 
-            exporter.parse(
-                currentMesh,
-                (result) => {
-                    const blob = new Blob([result], { type: 'application/octet-stream' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'advanced_voxel_model.glb';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    log('✅ GLB exported!');
-                },
-                (error) => {
-                    console.error('Export error:', error);
-                    log('❌ Export failed!');
-                },
-                { binary: true }
-            );
-        });
+    // Upload UI
+    document.getElementById('uploadBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if (!file) return;
+      if (!/^image\/(png|jpeg)$/.test(file.type)) { log('❌ Error: Choose a PNG or JPEG'); return; }
+      if (file.size > 10*1024*1024) { log('❌ Error: File too large (>10MB)'); return; }
+      log(`📁 Loading ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+      processImage(file);
+    });
+    // Perf mode toggle
+    document.getElementById('perfMode').addEventListener('change', (e)=>{ perfMode = e.target.checked; setRenderPerf(); if (currentImageData) debouncedRegen(); });
 
-        // Update status helper
-        function updateStatus(text) {
-            document.getElementById('statusText').textContent = text;
-        }
+    // Avatar heightfield
+    document.getElementById('generateAvatar').addEventListener('click', ()=>{
+      const gridSize = parseInt(document.getElementById('gridSize').value);
+      const smoothing = parseInt(document.getElementById('avatarSmoothing').value);
+      log(`🧑‍🎨 Generating ${gridSize}×${gridSize} avatar heightfield with ${smoothing} smoothing…`);
+      generateAvatarHeightfield(gridSize, smoothing);
+    });
+    document.getElementById('avatarSmoothing').addEventListener('input', (e)=>{ document.getElementById('avatarSmoothingVal').textContent = e.target.value; });
 
-        // Initialize
-        initScene();
-        updateUIValues();
-        log('🚀 Advanced Voxel Sculptor ready!');
-        log('💡 Upload image → Transform → Morph → Sculpt → Export');
-    </script>
+    function generateAvatarHeightfield(gridSize=240, smoothing=5){
+      const canvas=document.createElement('canvas'); canvas.width=gridSize; canvas.height=gridSize; const ctx=canvas.getContext('2d');
+      const imageData=ctx.createImageData(gridSize,gridSize); const data=imageData.data; const cx=gridSize/2, cy=gridSize/2, r=gridSize*0.35;
+      for(let y=0;y<gridSize;y++){
+        for(let x=0;x<gridSize;x++){
+          const dx=x-cx, dy=y-cy; const dist=Math.hypot(dx,dy); let height=0; if (dist<r){ const head=1 - (dist/r); height=Math.pow(head,1.5)*255; const nx=dx/r, ny=dy/r; if (ny<-0.2 && ny>-0.7) height += Math.sin(nx*Math.PI)*30*(1+ny); const eyeD=0.25, eyeY=-0.1; const l=Math.hypot(nx+eyeD, ny-eyeY), rr=Math.hypot(nx-eyeD, ny-eyeY); if (l<0.15) height -= 40*(1-l/0.15); if (rr<0.15) height -= 40*(1-rr/0.15); if (Math.abs(nx)<0.08 && ny>-0.1 && ny<0.3) height += 20*Math.sin((ny+0.1)*Math.PI/0.4); if (ny>0.2 && ny<0.4 && Math.abs(nx)<0.2) height -= 15*Math.sin(nx*Math.PI/0.4); }
+          const idx=(y*gridSize+x)*4; const h=Math.max(0,Math.min(255,height)); data[idx]=data[idx+1]=data[idx+2]=h; data[idx+3]=255; }
+      }
+      ctx.putImageData(imageData,0,0);
+      for(let i=0;i<smoothing;i++) applyGaussianBlur(ctx, gridSize);
+      canvasToGrayscale(canvas); const thr=otsuThreshold(canvas); applyThreshold(canvas, thr);
+      const mask=readMask(canvas); currentImageData={ mask, width: canvas.width, height: canvas.height };
+      log(`✨ Avatar heightfield generated (${gridSize}×${gridSize}, ${smoothing} passes)`);
+      regenerateModel();
+    }
+    function applyGaussianBlur(ctx,size){ const img=ctx.getImageData(0,0,size,size); const d=img.data; const out=new Uint8ClampedArray(d.length); const k=[1,2,1,2,4,2,1,2,1]; const ks=16; for(let y=1;y<size-1;y++){ for(let x=1;x<size-1;x++){ let sum=0; for(let ky=-1;ky<=1;ky++){ for(let kx=-1;kx<=1;kx++){ const si=((y+ky)*size+(x+kx))*4; const ki=(ky+1)*3+(kx+1); sum+=d[si]*k[ki]; } } const di=(y*size+x)*4; const b=sum/ks; out[di]=out[di+1]=out[di+2]=b; out[di+3]=255; } } for(let i=0;i<d.length;i+=4){ const x=(i/4)%size; const y=((i/4)/size|0); if (x===0||x===size-1||y===0||y===size-1){ out[i]=d[i]; out[i+1]=d[i+1]; out[i+2]=d[i+2]; out[i+3]=d[i+3]; } } ctx.putImageData(new ImageData(out,size,size),0,0); }
+
+    // Presets
+    const presets={ balanced:{voxelSize:0.10, depthFactor:0.5, maxVoxels:300000}, quality:{voxelSize:0.08, depthFactor:0.6, maxVoxels:400000}, fast:{voxelSize:0.15, depthFactor:0.4, maxVoxels:150000}, artistic:{voxelSize:0.12, depthFactor:0.5, maxVoxels:250000} };
+    function applyPreset(name){ const p=presets[name]; document.getElementById('voxelSize').value=p.voxelSize; document.getElementById('depthFactor').value=p.depthFactor; document.getElementById('maxVoxels').value=p.maxVoxels; updateUIValues(); if (currentImageData) debouncedRegen(); log(`🎯 Applied \"${name}\" preset`); }
+    document.getElementById('presetBalanced').addEventListener('click',()=>applyPreset('balanced'));
+    document.getElementById('presetQuality').addEventListener('click',()=>applyPreset('quality'));
+    document.getElementById('presetFast').addEventListener('click',()=>applyPreset('fast'));
+    document.getElementById('presetArtistic').addEventListener('click',()=>applyPreset('artistic'));
+
+    // Reset view
+    document.getElementById('resetView').addEventListener('click',()=>{ camera.position.set(5,5,10); camera.lookAt(0,0,0); controls.reset(); if (currentMesh) currentMesh.rotation.set(0,0,0); log('🔄 View reset'); });
+
+    // Export GLB
+    document.getElementById('exportGLB').addEventListener('click',()=>{
+      if (!currentMesh) return; log('💾 Exporting GLB…'); const exporter=new GLTFExporter();
+      exporter.parse(currentMesh,(result)=>{ const blob=new Blob([result],{type:'application/octet-stream'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='advanced_voxel_model.glb'; a.click(); URL.revokeObjectURL(url); log('✅ GLB exported!'); },(err)=>{ console.error(err); log('❌ Export failed!'); },{ binary:true });
+    });
+
+    // Status helper
+    function updateStatus(text){ document.getElementById('statusText').textContent = text; }
+
+    // --- Smoke tests ---
+    function runSmokeTests(){
+      try {
+        assert('BufferGeometryUtils namespace present', !!BufferGeometryUtils);
+        const mergeFn = BufferGeometryUtils.mergeGeometries || BufferGeometryUtils.mergeBufferGeometries;
+        assert('mergeGeometries (or mergeBufferGeometries) exists', typeof mergeFn === 'function');
+        const g1 = new THREE.BoxGeometry(1,1,1); const g2 = new THREE.BoxGeometry(1,1,1);
+        const merged = mergeFn([g1, g2], false);
+        assert('merge returns BufferGeometry', merged && merged.isBufferGeometry);
+        const expected = g1.attributes.position.count + g2.attributes.position.count;
+        assert('merged vertex count equals sum', merged.attributes.position.count === expected);
+        g1.dispose(); g2.dispose(); merged.dispose();
+
+        // Otsu threshold sanity
+        const cvs = document.createElement('canvas'); cvs.width=8; cvs.height=8; const ctx=cvs.getContext('2d');
+        ctx.fillStyle='#000'; ctx.fillRect(0,0,8,8); ctx.fillStyle='#fff'; ctx.fillRect(0,0,4,8);
+        const thr = otsuThreshold(cvs); assert('otsuThreshold in [0,255]', Number.isFinite(thr) && thr>=0 && thr<=255);
+
+        // Minimal voxel build
+        const mask = new Uint8Array(16); // 4x4
+        [5,6,9,10].forEach(i=>mask[i]=255); // small 2x2 block in center
+        const geo = createVoxelGeometry(mask, 4, 4, { voxelSize: 0.1, depthFactor: 0.5, maxVoxels: 1000 });
+        assert('createVoxelGeometry returns geometry', geo && geo.isBufferGeometry);
+        geo.dispose();
+      } catch (e){
+        log('❌ Smoke tests crashed: ' + e.message);
+      }
+    }
+    // --- End smoke tests ---  
+    runSmokeTests();
+    updateUIValues();
+    initScene();
+  </script>
 </body>
 </html>

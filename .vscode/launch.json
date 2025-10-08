@@ -2,8 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+        "name": "(Windows) Attach",
+        "type": "cppvsdbg",
+        "request": "attach",
+        "processId": "${command:pickProcess}"
+    },
+    {
       "name": "Run Working Server (venv311)",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/Documents/game101/Downloads/recovered_nucleus_eye/world-engine-feat-v3-1-advanced-math/working_python_server.py",
       "console": "integratedTerminal",
@@ -14,7 +20,7 @@
     },
     {
       "name": "Run Smoke Test (venv311)",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/tests/smoke_test_ws.py",
       "console": "integratedTerminal",
@@ -30,26 +36,4 @@
       "configurations": ["Run Working Server (venv311)", "Run Smoke Test (venv311)"]
     }
   ]
-}
-{
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        
-        {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python Debugger: Python File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}"
-        }
-    ]
 }

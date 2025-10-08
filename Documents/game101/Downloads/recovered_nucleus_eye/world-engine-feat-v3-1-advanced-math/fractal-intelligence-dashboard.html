@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Intelligence Engine v6.0 - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px #00ffff); }
+            to { filter: drop-shadow(0 0 20px #ff00ff); }
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            margin-top: 10px;
+            color: #888;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.1);
+        }
+
+        .panel h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .online { background: #00ff00; }
+        .offline { background: #ff4444; }
+        .processing { background: #ffaa00; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #00ffff;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #0080ff, #00ffff);
+            transform: scale(1.05);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #ff4444, #ff6666);
+        }
+
+        .log-container {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        .log-level-info { color: #00ffff; }
+        .log-level-warning { color: #ffaa00; }
+        .log-level-error { color: #ff4444; }
+        .log-level-success { color: #00ff00; }
+
+        .visualization {
+            position: relative;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .fractal-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, 
+                rgba(0, 255, 255, 0.1) 0%, 
+                rgba(255, 0, 255, 0.1) 50%, 
+                rgba(255, 255, 0, 0.1) 100%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg) scale(1); }
+            to { transform: rotate(360deg) scale(1.1); }
+        }
+
+        .pain-heatmap {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            margin-top: 10px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .intensity-0 { background: rgba(0, 255, 0, 0.2); }
+        .intensity-1 { background: rgba(255, 255, 0, 0.3); }
+        .intensity-2 { background: rgba(255, 165, 0, 0.4); }
+        .intensity-3 { background: rgba(255, 69, 0, 0.5); }
+        .intensity-4 { background: rgba(255, 0, 0, 0.6); }
+
+        .neural-network {
+            position: relative;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .neuron {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #00ffff;
+            border-radius: 50%;
+            animation: neuronPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes neuronPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        .timeline {
+            list-style: none;
+            max-height: 260px;
+            overflow-y: auto;
+            padding-left: 0;
+        }
+
+        .timeline-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 255, 0.08);
+        }
+
+        .timeline-item strong {
+            display: block;
+            color: #00ffff;
+            margin-bottom: 4px;
+        }
+
+        .timeline-item span {
+            color: #b0b0b0;
+            font-size: 0.85em;
+            display: block;
+        }
+
+        .panel-footer {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #888;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌀 Fractal Intelligence Engine v6.0</h1>
+            <div class="subtitle">Advanced ML-Powered Self-Optimizing System with Nick Compression Algorithm</div>
+            <div class="subtitle">Real-time Pain Detection & Analysis Integration</div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Engine Status Panel -->
+            <div class="panel">
+                <h3>
+                    <span class="status-indicator processing" id="engineStatus"></span>
+                    Engine Status
+                </h3>
+                <div class="metric">
+                    <span>Current Iteration:</span>
+                    <span class="metric-value" id="currentIteration">0</span>
+                </div>
+                <div class="metric">
+                    <span>Chaos Factor:</span>
+                    <span class="metric-value" id="chaosFactor">0.050</span>
+                </div>
+                <div class="metric">
+                    <span>Self-Regulation:</span>
+                    <span class="metric-value" id="selfRegulation">Active</span>
+                </div>
+                <div class="metric">
+                    <span>Knowledge Base Size:</span>
+                    <span class="metric-value" id="knowledgeSize">0 bytes</span>
+                </div>
+                <div class="controls">
+                    <button class="btn" onclick="startEngine()">Start Evolution</button>
+                    <button class="btn" onclick="pauseEngine()">Pause</button>
+                    <button class="btn danger" onclick="resetEngine()">Reset</button>
+                </div>
+            </div>
+
+            <!-- Nick Compression Panel -->
+            <div class="panel">
+                <h3>
+                    <span class="status-indicator online" id="nickStatus"></span>
+                    Nick Compression Algorithm
+                </h3>
+                <div class="metric">
+                    <span>Current Algorithm:</span>
+                    <span class="metric-value" id="currentAlgorithm">zlib</span>
+                </div>
+                <div class="metric">
+                    <span>Compression Ratio:</span>
+                    <span class="metric-value" id="compressionRatio">0%</span>
+                </div>
+                <div class="metric">
+                    <span>ML Prediction:</span>
+                    <span class="metric-value" id="mlPrediction">Analyzing...</span>
+                </div>
+                <div class="metric">
+                    <span>Optimization Score:</span>
+                    <span class="metric-value" id="optimizationScore">0.00</span>
+                </div>
+                <div class="controls">
+                    <button class="btn" onclick="forceOptimization()">Force Optimization</button>
+                    <button class="btn" onclick="testCompression()">Test Compression</button>
+                </div>
+            </div>
+
+            <!-- Knowledge Timeline Panel -->
+            <div class="panel">
+                <h3>📚 Knowledge Timeline</h3>
+                <ul class="timeline" id="knowledgeTimeline"></ul>
+                <div class="panel-footer">
+                    <span>Latest 50 insights</span>
+                    <button class="btn" onclick="downloadKnowledge()">Export Insights</button>
+                </div>
+            </div>
+
+            <!-- Pain Detection Integration -->
+            <div class="panel">
+                <h3>
+                    <span class="status-indicator online" id="painApiStatus"></span>
+                    Pain Detection API
+                </h3>
+                <div class="metric">
+                    <span>API Status:</span>
+                    <span class="metric-value" id="apiStatus">Connected</span>
+                </div>
+                <div class="metric">
+                    <span>Total Pain Events:</span>
+                    <span class="metric-value" id="totalPainEvents">0</span>
+                </div>
+                <div class="metric">
+                    <span>Average Severity:</span>
+                    <span class="metric-value" id="avgSeverity">0.0</span>
+                </div>
+                <div class="metric">
+                    <span>Active Clusters:</span>
+                    <span class="metric-value" id="activeClusters">0</span>
+                </div>
+                <div class="controls">
+                    <button class="btn" onclick="injectPainEvent()">Inject Pain Event</button>
+                    <button class="btn" onclick="refreshPainData()">Refresh Data</button>
+                </div>
+            </div>
+
+            <!-- Fractal Visualization -->
+            <div class="panel">
+                <h3>🌀 Fractal Consciousness Visualization</h3>
+                <div class="visualization">
+                    <div class="fractal-pattern"></div>
+                    <div class="neural-network" id="neuralNetwork"></div>
+                </div>
+                <div class="metric">
+                    <span>Consciousness Coherence:</span>
+                    <span class="metric-value" id="coherence">73.2%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pain Heatmap -->
+        <div class="panel">
+            <h3>🧠 Pain Intensity Heatmap</h3>
+            <div class="pain-heatmap" id="painHeatmap"></div>
+        </div>
+
+        <!-- Real-time Logs -->
+        <div class="panel">
+            <h3>📊 Real-time Evolution Logs</h3>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span> 
+                    <span class="log-level-info">System initialized. Awaiting evolution start...</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="clearLogs()">Clear Logs</button>
+                <button class="btn" onclick="exportLogs()">Export Logs</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = 'http://localhost:8600';
+        let pollInterval = null;
+    let lastLogCount = 0;
+    let serverLogCount = 0;
+        let lastInsightIteration = 0;
+        const insightHistory = [];
+        let cachedPainSummary = { clusters: [], totalEvents: 0 };
+
+        async function initDashboard() {
+            generateNeuralNetwork();
+            await syncState({ initial: true });
+            startPolling();
+            startVisualLoop();
+            logMessage('Dashboard connected to Fractal Intelligence API', 'success');
+        }
+
+        async function fetchJson(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options,
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text || `Request failed (${response.status})`);
+                }
+
+                if (response.status === 204) {
+                    return null;
+                }
+
+                return await response.json();
+            } catch (error) {
+                logMessage(error.message || 'Network request failed', 'error');
+                throw error;
+            }
+        }
+
+        async function syncState({ initial = false } = {}) {
+            try {
+                const state = await fetchJson(`${apiBase}/engine/state`);
+                if (!state) return;
+
+                updateEnginePanel(state);
+                updateNickPanel(state.metrics || {});
+                updatePainPanel(state.metrics?.pain_summary);
+                updateTimeline(state.metrics || {});
+                updateLogs(state.logs || []);
+
+                if (initial) {
+                    try {
+                        const summary = await fetchJson(`${apiBase}/pain/summary`);
+                        updatePainPanel(summary);
+                    } catch (error) {
+                        // Already logged via fetchJson
+                    }
+                }
+            } catch (error) {
+                // Errors already handled in fetchJson
+            }
+        }
+
+        function startPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+            pollInterval = setInterval(() => {
+                syncState().catch(() => {});
+            }, 1500);
+        }
+
+        function startVisualLoop() {
+            setInterval(() => {
+                generatePainHeatmap(cachedPainSummary?.clusters || []);
+                if (Math.random() < 0.2) {
+                    generateNeuralNetwork();
+                }
+            }, 5000);
+        }
+
+        function generateNeuralNetwork() {
+            const container = document.getElementById('neuralNetwork');
+            container.innerHTML = '';
+
+            for (let i = 0; i < 24; i++) {
+                const neuron = document.createElement('div');
+                neuron.className = 'neuron';
+                neuron.style.left = Math.random() * 90 + '%';
+                neuron.style.top = Math.random() * 90 + '%';
+                neuron.style.animationDelay = Math.random() * 3 + 's';
+                container.appendChild(neuron);
+            }
+        }
+
+        function generatePainHeatmap(clusters = []) {
+            const container = document.getElementById('painHeatmap');
+            container.innerHTML = '';
+
+            if (!clusters.length) {
+                for (let i = 0; i < 100; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'heatmap-cell intensity-' + Math.floor(Math.random() * 2);
+                    container.appendChild(cell);
+                }
+                return;
+            }
+
+            const severities = clusters.map(cluster => cluster.avgSeverity || cluster.severity || 0);
+            const maxSeverity = Math.max(...severities, 1);
+
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                const cluster = clusters[i % clusters.length];
+                const severity = cluster.avgSeverity || cluster.severity || 0;
+                const normalized = Math.min(4, Math.round((severity / maxSeverity) * 4));
+                cell.className = `heatmap-cell intensity-${normalized}`;
+                container.appendChild(cell);
+            }
+        }
+
+        function updateEnginePanel(state) {
+            const metrics = state.metrics || {};
+            document.getElementById('currentIteration').textContent = metrics.iteration ?? 0;
+            document.getElementById('chaosFactor').textContent = formatNumber(metrics.chaos_factor, 3);
+            const knowledgeChars = metrics.knowledge_size || 0;
+            const compressedBytes = metrics.compressed_size || 0;
+            document.getElementById('knowledgeSize').textContent = `${formatBytes(compressedBytes)} (${knowledgeChars} chars)`;
+            document.getElementById('selfRegulation').textContent = metrics.self_regulation ? 'Active' : 'Paused';
+
+            if (state.running) {
+                updateStatusIndicator('engineStatus', 'processing');
+            } else if (state.completed) {
+                updateStatusIndicator('engineStatus', 'online');
+            } else {
+                updateStatusIndicator('engineStatus', metrics.iteration ? 'online' : 'offline');
+            }
+
+            const coherence = 50 + Math.sin((metrics.iteration || 0) * 0.1) * 25;
+            document.getElementById('coherence').textContent = formatNumber(coherence, 1) + '%';
+        }
+
+        function updateNickPanel(metrics) {
+            document.getElementById('currentAlgorithm').textContent = metrics.algorithm || 'zlib';
+            const ratio = metrics.compression_ratio;
+            document.getElementById('compressionRatio').textContent = ratio != null ? formatNumber(ratio * 100, 1) + '%' : 'n/a';
+            document.getElementById('mlPrediction').textContent = metrics.prediction || 'Analyzing...';
+            document.getElementById('optimizationScore').textContent = formatNumber(metrics.optimization_score || 0, 2);
+        }
+
+        function updatePainPanel(summary) {
+            cachedPainSummary = summary || { clusters: [], totalEvents: 0 };
+            const clusters = cachedPainSummary.clusters || [];
+            const events = cachedPainSummary.totalEvents || 0;
+            document.getElementById('totalPainEvents').textContent = events;
+            document.getElementById('avgSeverity').textContent = formatNumber(cachedPainSummary.avgSeverity || 0, 1);
+            document.getElementById('activeClusters').textContent = clusters.length;
+
+            const status = events > 0 || clusters.length ? 'online' : 'offline';
+            updateStatusIndicator('painApiStatus', status);
+            document.getElementById('apiStatus').textContent = status === 'online' ? 'Connected' : 'Disconnected';
+            generatePainHeatmap(clusters);
+        }
+
+        function updateTimeline(metrics) {
+            const iteration = metrics.iteration;
+            if (!iteration || iteration <= lastInsightIteration) return;
+
+            lastInsightIteration = iteration;
+            insightHistory.push({
+                iteration,
+                insight: metrics.insight || 'Insight captured',
+                chaos: metrics.chaos_adjustment,
+                timestamp: metrics.timestamp,
+            });
+
+            if (insightHistory.length > 50) {
+                insightHistory.shift();
+            }
+
+            renderTimeline();
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('knowledgeTimeline');
+            container.innerHTML = '';
+
+            insightHistory.slice().reverse().forEach(entry => {
+                const li = document.createElement('li');
+                li.className = 'timeline-item';
+                li.innerHTML = `
+                    <strong>Iteration ${entry.iteration}</strong>
+                    <span>${entry.insight}</span>
+                    ${entry.chaos ? `<span>Δ Chaos: ${entry.chaos}</span>` : ''}
+                    <span>${formatTimestamp(entry.timestamp)}</span>
+                `;
+                container.appendChild(li);
+            });
+        }
+
+        function updateLogs(logs) {
+            if (!Array.isArray(logs)) return;
+            const container = document.getElementById('logContainer');
+
+            if (logs.length < lastLogCount) {
+                container.innerHTML = '';
+                lastLogCount = 0;
+            }
+
+            for (let i = lastLogCount; i < logs.length; i++) {
+                const entry = logs[i];
+                const message = entry.insight || entry.chaos_adjustment || 'State update';
+                appendLogEntry(container, entry.timestamp, message, 'info');
+            }
+
+            lastLogCount = logs.length;
+            serverLogCount = logs.length;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendLogEntry(container, timestamp, message, level = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${formatTimestamp(timestamp)}]</span>
+                <span class="log-level-${level}">${message}</span>
+            `;
+            container.appendChild(logEntry);
+        }
+
+        function updateStatusIndicator(elementId, status) {
+            const indicator = document.getElementById(elementId);
+            indicator.className = `status-indicator ${status}`;
+        }
+
+        async function startEngine() {
+            try {
+                await fetchJson(`${apiBase}/engine/start`, { method: 'POST', body: JSON.stringify({}) });
+                logMessage('Start command sent to engine', 'success');
+                await syncState();
+            } catch (error) {
+                logMessage('Unable to start engine: ' + error.message, 'error');
+            }
+        }
+
+        async function pauseEngine() {
+            try {
+                await fetchJson(`${apiBase}/engine/pause`, { method: 'POST', body: JSON.stringify({}) });
+                logMessage('Engine paused', 'warning');
+                await syncState();
+            } catch (error) {
+                logMessage('Unable to pause engine: ' + error.message, 'error');
+            }
+        }
+
+        async function resetEngine() {
+            try {
+                await fetchJson(`${apiBase}/engine/reset`, { method: 'POST', body: JSON.stringify({}) });
+                logMessage('Engine reset to initial state', 'warning');
+                insightHistory.length = 0;
+                lastInsightIteration = 0;
+                document.getElementById('knowledgeTimeline').innerHTML = '';
+                document.getElementById('logContainer').innerHTML = '';
+                lastLogCount = 0;
+                await syncState();
+            } catch (error) {
+                logMessage('Unable to reset engine: ' + error.message, 'error');
+            }
+        }
+
+        async function forceOptimization() {
+            try {
+                const result = await fetchJson(`${apiBase}/engine/force-optimization`, { method: 'POST', body: JSON.stringify({}) });
+                logMessage(`Nick algorithm now ${result.algorithm} (compression ratio ${(result.compression_ratio || 0).toFixed(2)})`, 'info');
+                await syncState();
+            } catch (error) {
+                logMessage('Optimization request failed: ' + error.message, 'error');
+            }
+        }
+
+        async function testCompression() {
+            try {
+                const result = await fetchJson(`${apiBase}/engine/test-compression`, { method: 'POST', body: JSON.stringify({}) });
+                const percent = (result.ratio * 100).toFixed(1);
+                logMessage(`Compression test: ${formatBytes(result.original_size)} → ${formatBytes(result.compressed_size)} (${percent}% reduction)`, 'success');
+            } catch (error) {
+                logMessage('Compression test failed: ' + error.message, 'error');
+            }
+        }
+
+        async function refreshPainData() {
+            try {
+                const summary = await fetchJson(`${apiBase}/pain/summary`);
+                updatePainPanel(summary);
+                logMessage('Pain data refreshed', 'success');
+            } catch (error) {
+                logMessage('Failed to refresh pain data: ' + error.message, 'error');
+            }
+        }
+
+        async function injectPainEvent() {
+            const text = window.prompt('Describe the pain event (optional):');
+            let severity = window.prompt('Severity 1-10 (optional):');
+            severity = severity ? parseInt(severity, 10) : undefined;
+
+            try {
+                await fetchJson(`${apiBase}/pain/inject`, {
+                    method: 'POST',
+                    body: JSON.stringify({ text, severity }),
+                });
+                logMessage('Pain event injected into engine', 'warning');
+                await refreshPainData();
+            } catch (error) {
+                logMessage('Failed to inject pain event: ' + error.message, 'error');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            lastLogCount = serverLogCount;
+            logMessage('Logs cleared locally', 'info');
+        }
+
+        function exportLogs() {
+            const stateLogs = insightHistory.map(entry => `[${formatTimestamp(entry.timestamp)}] Iteration ${entry.iteration} -> ${entry.insight}`);
+            const logText = stateLogs.join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fractal_engine_logs_${new Date().toISOString().slice(0, 19)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            logMessage('Insight log exported', 'success');
+        }
+
+        function downloadKnowledge() {
+            const data = insightHistory.map(item => ({
+                iteration: item.iteration,
+                insight: item.insight,
+                chaos_adjustment: item.chaos,
+                timestamp: item.timestamp,
+            }));
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fractal_knowledge_${new Date().toISOString().slice(0, 19)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            logMessage('Knowledge timeline exported', 'success');
+        }
+
+        function logMessage(message, level = 'info') {
+            const container = document.getElementById('logContainer');
+            appendLogEntry(container, new Date().toISOString(), message, level);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatNumber(value, digits = 2) {
+            const num = Number(value || 0);
+            return num.toFixed(digits);
+        }
+
+        function formatBytes(bytes) {
+            const units = ['bytes', 'KB', 'MB'];
+            let size = bytes;
+            let unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) {
+                return new Date().toLocaleTimeString();
+            }
+            try {
+                return new Date(timestamp).toLocaleTimeString();
+            } catch (error) {
+                return timestamp;
+            }
+        }
+
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html>

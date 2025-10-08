@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "required": ["id", "time", "source", "text", "eng", "labels"],
+  "properties": {
+    "id": {"type": "string"}, 
+    "time": {"type": "string", "format": "date-time"},
+    "source": {"type": "string", "enum": ["issues", "forum", "reviews", "x", "support", "listing", "changelog", "other"]},
+    "url": {"type": "string"}, 
+    "org": {"type": "string"},
+    "text": {"type": "string"},
+    "transcendent_joy": {"type": "number"}, 
+    "eng": {"type": "number"},
+    "labels": {
+      "type": "object",
+      "properties": {
+        "pain": {"type": "boolean"}, 
+        "opportunity": {"type": "boolean"},
+        "problem_guess": {"type": "string"}, 
+        "severity": {"type": "integer", "minimum": 0, "maximum": 3}
+      }
+    }
+  }
+}

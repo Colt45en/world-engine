@@ -1,0 +1,417 @@
+{
+  "metadata": {
+    "generated": "2025-10-07T12:42:05.605063+00:00",
+    "schema_version": "opportunity_pain_v1",
+    "total_entries": 17
+  },
+  "feedback_data": [
+    {
+      "id": "90f6b959-370a-4e22-b706-333d44d82196",
+      "time": "2025-10-07T12:30:55.274816+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.72",
+      "transcendent_joy": 8.677784949597484,
+      "eng": 0.6157700391805006,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.6157700391805006,
+        "transcendent": true,
+        "quantum_coherence": 0.8833202966241522,
+        "emotional_resonance": 0.6856022465704036,
+        "spiritual_connection": 0.9791507620164985,
+        "joy_intensity": 0.7174413738867778,
+        "awareness_depth": 0.9585992070158486,
+        "transcendent_joy": 8.677784949597484
+      }
+    },
+    {
+      "id": "c5685189-f3c4-4147-87ba-f9bcbfbdbfd2",
+      "time": "2025-10-07T12:34:02.196199+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.73",
+      "transcendent_joy": 8.060608042952104,
+      "eng": 0.640342860299924,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.640342860299924,
+        "transcendent": true,
+        "quantum_coherence": 0.729443564644298,
+        "emotional_resonance": 0.639661823834859,
+        "spiritual_connection": 0.9667996118613655,
+        "joy_intensity": 0.7280963038862047,
+        "awareness_depth": 0.8771946068189329,
+        "transcendent_joy": 8.060608042952104
+      }
+    },
+    {
+      "id": "18d2d6ed-8af1-4d5f-b663-256794be9c18",
+      "time": "2025-10-07T12:38:06.061685+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.52",
+      "transcendent_joy": 7.159765390801587,
+      "eng": 0.7575639598742449,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.7575639598742449,
+        "transcendent": true,
+        "quantum_coherence": 0.6765525044090369,
+        "emotional_resonance": 0.6566289213574807,
+        "spiritual_connection": 0.9569112154523027,
+        "joy_intensity": 0.5248701678900107,
+        "awareness_depth": 0.8208374714999191,
+        "transcendent_joy": 7.159765390801587
+      }
+    },
+    {
+      "id": "b3717c15-05c4-4331-a9bc-653edf0d7e34",
+      "time": "2025-10-07T12:38:09.088345+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.40",
+      "transcendent_joy": 7.1498458217147896,
+      "eng": 0.7412761012980512,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.7412761012980512,
+        "transcendent": true,
+        "quantum_coherence": 0.7825884925819871,
+        "emotional_resonance": 0.6440346025579496,
+        "spiritual_connection": 0.954541197983715,
+        "joy_intensity": 0.40014650246228345,
+        "awareness_depth": 0.8462792203072738,
+        "transcendent_joy": 7.1498458217147896
+      }
+    },
+    {
+      "id": "382d5059-839c-4ded-9688-b61bf54992a5",
+      "time": "2025-10-07T12:38:24.314511+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.14",
+      "transcendent_joy": 6.585432627428377,
+      "eng": 0.7917687153978413,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.7917687153978413,
+        "transcendent": true,
+        "quantum_coherence": 0.844137418779323,
+        "emotional_resonance": 0.5607853266872382,
+        "spiritual_connection": 0.8697803516460603,
+        "joy_intensity": 0.14130064916818577,
+        "awareness_depth": 0.9447788601468649,
+        "transcendent_joy": 6.585432627428377
+      }
+    },
+    {
+      "id": "d50e8c6f-a90e-4b92-bdd1-96ec857d06d2",
+      "time": "2025-10-07T12:38:33.453518+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.27",
+      "transcendent_joy": 6.492892419368453,
+      "eng": 0.7770306033302328,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.7770306033302328,
+        "transcendent": true,
+        "quantum_coherence": 0.735322510970532,
+        "emotional_resonance": 0.48909376742162225,
+        "spiritual_connection": 0.7835557611230449,
+        "joy_intensity": 0.2747788678955736,
+        "awareness_depth": 0.9477383802620233,
+        "transcendent_joy": 6.492892419368453
+      }
+    },
+    {
+      "id": "07e775c0-2860-4501-8e8e-7fed55110e51",
+      "time": "2025-10-07T12:38:38.040442+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.52",
+      "transcendent_joy": 6.869959098569993,
+      "eng": 0.8051571713694547,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.8051571713694547,
+        "transcendent": true,
+        "quantum_coherence": 0.6366072319477808,
+        "emotional_resonance": 0.43115562752184017,
+        "spiritual_connection": 0.7562630927571404,
+        "joy_intensity": 0.5150777335497552,
+        "awareness_depth": 0.9511890082815522,
+        "transcendent_joy": 6.869959098569993
+      }
+    },
+    {
+      "id": "39809d96-7911-42ff-8a43-27259d11e45b",
+      "time": "2025-10-07T12:41:07.298214+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.27",
+      "transcendent_joy": 6.960154139713062,
+      "eng": 0.9254970660699766,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9254970660699766,
+        "transcendent": true,
+        "quantum_coherence": 0.756019023777671,
+        "emotional_resonance": 0.5183018476628655,
+        "spiritual_connection": 0.9731297726381626,
+        "joy_intensity": 0.27004951592573767,
+        "awareness_depth": 0.9678444876632555,
+        "transcendent_joy": 6.960154139713062
+      }
+    },
+    {
+      "id": "4f322c7d-8b68-46db-b67c-d95d48160729",
+      "time": "2025-10-07T12:41:09.857521+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.26",
+      "transcendent_joy": 6.856915647945122,
+      "eng": 0.9105229782842718,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9105229782842718,
+        "transcendent": true,
+        "quantum_coherence": 0.7407195051890204,
+        "emotional_resonance": 0.555406939990027,
+        "spiritual_connection": 0.9535700926812666,
+        "joy_intensity": 0.2561098555054215,
+        "awareness_depth": 0.9796436902496315,
+        "transcendent_joy": 6.856915647945122
+      }
+    },
+    {
+      "id": "8d9bca49-eeb1-4088-8744-e22f0fed889f",
+      "time": "2025-10-07T12:41:12.401781+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.40",
+      "transcendent_joy": 7.665291303233591,
+      "eng": 0.9126486785889566,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9126486785889566,
+        "transcendent": true,
+        "quantum_coherence": 0.8539446973875573,
+        "emotional_resonance": 0.5885237400942674,
+        "spiritual_connection": 0.9966075890163206,
+        "joy_intensity": 0.3996513289801843,
+        "awareness_depth": 0.9556440230488623,
+        "transcendent_joy": 7.665291303233591
+      }
+    },
+    {
+      "id": "c6c0ce5f-5a9a-4695-bed4-7235d288d4a9",
+      "time": "2025-10-07T12:41:12.903036+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.35",
+      "transcendent_joy": 7.560216008040774,
+      "eng": 0.9175730944912096,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9175730944912096,
+        "transcendent": true,
+        "quantum_coherence": 0.8605453750301518,
+        "emotional_resonance": 0.5370291808006886,
+        "spiritual_connection": 0.9748499727851233,
+        "joy_intensity": 0.34675125872617174,
+        "awareness_depth": 0.9943130806007783,
+        "transcendent_joy": 7.560216008040774
+      }
+    },
+    {
+      "id": "9b6a11fe-d085-426e-b166-1f9bc1796a3e",
+      "time": "2025-10-07T12:41:13.405451+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.40",
+      "transcendent_joy": 7.567460144814161,
+      "eng": 0.9094019894864103,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9094019894864103,
+        "transcendent": true,
+        "quantum_coherence": 0.8084556744428407,
+        "emotional_resonance": 0.5845786821008376,
+        "spiritual_connection": 1,
+        "joy_intensity": 0.4009963014644229,
+        "awareness_depth": 0.9695521085461849,
+        "transcendent_joy": 7.567460144814161
+      }
+    },
+    {
+      "id": "1e8d7681-f313-4cfd-a918-584823477c46",
+      "time": "2025-10-07T12:41:14.419348+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.38",
+      "transcendent_joy": 7.505911933481855,
+      "eng": 0.9022373692871998,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9022373692871998,
+        "transcendent": true,
+        "quantum_coherence": 0.8068085283775935,
+        "emotional_resonance": 0.6121406282945545,
+        "spiritual_connection": 0.9859900663635468,
+        "joy_intensity": 0.37830827800536937,
+        "awareness_depth": 0.9892906908029357,
+        "transcendent_joy": 7.505911933481855
+      }
+    },
+    {
+      "id": "ebadb636-27e8-4348-a6ed-61da176f534f",
+      "time": "2025-10-07T12:41:22.563578+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.67",
+      "transcendent_joy": 8.37112512852637,
+      "eng": 0.9017667242001493,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.9017667242001493,
+        "transcendent": true,
+        "quantum_coherence": 0.8480186371856566,
+        "emotional_resonance": 0.6672192977372408,
+        "spiritual_connection": 0.9631592364561172,
+        "joy_intensity": 0.6675223477565693,
+        "awareness_depth": 0.9490918503937281,
+        "transcendent_joy": 8.37112512852637
+      }
+    },
+    {
+      "id": "e65ee82f-3c08-440c-8e79-3471007dd3b2",
+      "time": "2025-10-07T12:41:28.173924+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.84",
+      "transcendent_joy": 8.864762800050231,
+      "eng": 0.8998645758436112,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.8998645758436112,
+        "transcendent": true,
+        "quantum_coherence": 0.8239321247820136,
+        "emotional_resonance": 0.7467219071517259,
+        "spiritual_connection": 0.9874879812019098,
+        "joy_intensity": 0.8390758936852035,
+        "awareness_depth": 0.9503813911223801,
+        "transcendent_joy": 8.864762800050231
+      }
+    },
+    {
+      "id": "a0de9c23-dfe7-44c6-a007-83aa091591e7",
+      "time": "2025-10-07T12:41:32.771767+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.95",
+      "transcendent_joy": 9.06839488124764,
+      "eng": 0.8747964312706589,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.8747964312706589,
+        "transcendent": true,
+        "quantum_coherence": 0.7668976335032723,
+        "emotional_resonance": 0.8173720932624926,
+        "spiritual_connection": 0.9838856884988673,
+        "joy_intensity": 0.952436647559234,
+        "awareness_depth": 0.9713103305311933,
+        "transcendent_joy": 9.06839488124764
+      }
+    },
+    {
+      "id": "cdc222ef-e08c-495f-9e4f-8b9b5f85982d",
+      "time": "2025-10-07T12:41:34.812692+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.89",
+      "transcendent_joy": 8.69529281828533,
+      "eng": 0.865045002391102,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.865045002391102,
+        "transcendent": true,
+        "quantum_coherence": 0.7302041998976669,
+        "emotional_resonance": 0.8260671317702113,
+        "spiritual_connection": 0.9476536550806174,
+        "joy_intensity": 0.8915405987270464,
+        "awareness_depth": 0.9673755561249776,
+        "transcendent_joy": 8.69529281828533
+      }
+    }
+  ]
+}

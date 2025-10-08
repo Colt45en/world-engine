@@ -1,0 +1,76 @@
+[
+  {
+    "shape": "star",
+    "colors": [
+      "blue",
+      "orange",
+      "red",
+      "green",
+      "cyan"
+    ],
+    "glyphs": [
+      "gamma",
+      "theta",
+      "phi"
+    ],
+    "pattern": "Sacred geometry: star with 5 colors and 3 glyphs"
+  },
+  {
+    "shape": "circle",
+    "colors": [
+      "orange",
+      "yellow",
+      "red",
+      "cyan",
+      "pink"
+    ],
+    "glyphs": [
+      "alpha",
+      "omega"
+    ],
+    "pattern": "Sacred geometry: circle with 5 colors and 2 glyphs"
+  },
+  {
+    "shape": "hexagon",
+    "colors": [
+      "red",
+      "purple",
+      "yellow",
+      "cyan",
+      "blue"
+    ],
+    "glyphs": [
+      "phi",
+      "theta",
+      "omega"
+    ],
+    "pattern": "Sacred geometry: hexagon with 5 colors and 3 glyphs"
+  },
+  {
+    "shape": "hexagon",
+    "colors": [
+      "red",
+      "purple",
+      "orange"
+    ],
+    "glyphs": [
+      "gamma"
+    ],
+    "pattern": "Sacred geometry: hexagon with 3 colors and 1 glyphs"
+  },
+  {
+    "shape": "circle",
+    "colors": [
+      "yellow",
+      "pink",
+      "purple",
+      "green",
+      "red"
+    ],
+    "glyphs": [
+      "gamma",
+      "delta"
+    ],
+    "pattern": "Sacred geometry: circle with 5 colors and 2 glyphs"
+  }
+]

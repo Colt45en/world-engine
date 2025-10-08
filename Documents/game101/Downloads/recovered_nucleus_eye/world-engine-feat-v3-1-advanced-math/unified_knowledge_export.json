@@ -1,0 +1,47 @@
+{
+  "final_analytics": {
+    "total_entries": 500,
+    "total_connections": 600,
+    "system_stats": {
+      "ai_brain_merger": {
+        "count": 200,
+        "avg_importance": 0.20209677764613385
+      },
+      "fractal_intelligence_engine": {
+        "count": 100,
+        "avg_importance": 0.83315
+      },
+      "pain_detection_system": {
+        "count": 200,
+        "avg_importance": 0.40299999999999997
+      }
+    },
+    "recent_activity": [
+      [
+        "connection_created",
+        600.0,
+        "vault_system"
+      ],
+      [
+        "knowledge_stored",
+        200.0,
+        "ai_brain_merger"
+      ],
+      [
+        "knowledge_stored",
+        200.0,
+        "fractal_intelligence_engine"
+      ],
+      [
+        "knowledge_stored",
+        200.0,
+        "pain_detection_system"
+      ]
+    ],
+    "vault_health": 0.5,
+    "knowledge_density": 1.2
+  },
+  "evolution_cycles": 100,
+  "transcendence_achieved": false,
+  "export_timestamp": "2025-10-07T02:01:37.352743"
+}

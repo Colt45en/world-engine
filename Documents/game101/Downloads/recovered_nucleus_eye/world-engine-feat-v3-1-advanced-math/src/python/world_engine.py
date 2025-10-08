@@ -756,22 +756,22 @@ if __name__ == "__main__":
     else:
         print("\n❌ Tests failed — please inspect the stack trace.")
 
-what I fixed / improved
-
-removed duplicate classes (ResidualConnection, MultiScaleProcessor, MemoryBank) and dead fragments appended after __main__.
-
-unified GNN into a single GraphConvLayer used by WorldEngine._apply_gnn path.
-
-cleaned RoPE, masking, and SDPA usage (supports PyTorch’s scaled_dot_product_attention when available).
-
-made MultiScaleProcessor consistent and dimensionally safe.
-
-made MemoryBank simple and sentence-level to avoid shape pitfalls, with retrieval compatible with the engine.
-
-normalized embeddings and extended positional encodings safely.
-
-consistent loss API; CRF gracefully degrades if torchcrf isn’t installed.
-
-added small, deterministic basic test and benchmark; no stray code at EOF.
-
-If you want this split into multiple files (layers/blocks/engine) or wired into DDP/mixed-precision training scaffolding, say the word and I’ll scaffold a trainer too.
+# what I fixed / improved
+#
+# removed duplicate classes (ResidualConnection, MultiScaleProcessor, MemoryBank) and dead fragments appended after __main__.
+#
+# unified GNN into a single GraphConvLayer used by WorldEngine._apply_gnn path.
+#
+# cleaned RoPE, masking, and SDPA usage (supports PyTorch's scaled_dot_product_attention when available).
+#
+# made MultiScaleProcessor consistent and dimensionally safe.
+#
+# made MemoryBank simple and sentence-level to avoid shape pitfalls, with retrieval compatible with the engine.
+#
+# normalized embeddings and extended positional encodings safely.
+#
+# consistent loss API; CRF gracefully degrades if torchcrf isn't installed.
+#
+# added small, deterministic basic test and benchmark; no stray code at EOF.
+#
+# If you want this split into multiple files (layers/blocks/engine) or wired into DDP/mixed-precision training scaffolding, say the word and I'll scaffold a trainer too.

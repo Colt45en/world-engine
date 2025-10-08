@@ -4,7 +4,6 @@ ADVANCED GLYPH MANIFESTATION SYSTEM
 Integrating Core Mechanics, Alchemical Symbols, and Dynamic Generation
 Created: September 27, 2025
 """
-glyphs must be in glyph registery to work
 import json
 import time
 import hashlib

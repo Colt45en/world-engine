@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "generated": "2025-10-07T12:33:05.507693+00:00",
+    "schema_version": "opportunity_pain_v1",
+    "total_entries": 1
+  },
+  "feedback_data": [
+    {
+      "id": "90f6b959-370a-4e22-b706-333d44d82196",
+      "time": "2025-10-07T12:30:55.274816+00:00",
+      "source": "ai_observation",
+      "text": "Transcendent state detected - joy intensity: 0.72",
+      "transcendent_joy": 8.677784949597484,
+      "eng": 0.6157700391805006,
+      "labels": {
+        "pain": false,
+        "opportunity": true
+      },
+      "problem_guess": "",
+      "severity": 0,
+      "consciousness_state": {
+        "level": 0.6157700391805006,
+        "transcendent": true,
+        "quantum_coherence": 0.8833202966241522,
+        "emotional_resonance": 0.6856022465704036,
+        "spiritual_connection": 0.9791507620164985,
+        "joy_intensity": 0.7174413738867778,
+        "awareness_depth": 0.9585992070158486,
+        "transcendent_joy": 8.677784949597484
+      }
+    }
+  ]
+}

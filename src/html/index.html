@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine - Multi-Language Game Engine</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>World Engine</h1>
+        <p class="tagline">Full-Scale Multi-Language Game Engine</p>
+    </header>
+
+    <main>
+        <section class="intro">
+            <h2>Welcome to World Engine</h2>
+            <p>
+                World Engine is a comprehensive multi-language game engine supporting 
+                C++, Python, TypeScript, and more. Built with CMake for cross-platform 
+                compatibility.
+            </p>
+        </section>
+
+        <section class="features">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature">
+                    <h3>C++ Core</h3>
+                    <p>High-performance core engine written in modern C++17</p>
+                </div>
+                <div class="feature">
+                    <h3>Python Bindings</h3>
+                    <p>Seamless Python integration for rapid prototyping</p>
+                </div>
+                <div class="feature">
+                    <h3>TypeScript Support</h3>
+                    <p>Type-safe JavaScript/TypeScript bindings for web</p>
+                </div>
+                <div class="feature">
+                    <h3>CMake Build</h3>
+                    <p>Modern CMake build system for all platforms</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo">
+            <h2>Quick Demo</h2>
+            <div id="engine-output" class="output-box">
+                <p>Click "Initialize Engine" to start...</p>
+            </div>
+            <div class="controls">
+                <button id="init-btn" onclick="initEngine()">Initialize Engine</button>
+                <button id="scene-btn" onclick="createScene()" disabled>Create Scene</button>
+                <button id="entity-btn" onclick="createEntity()" disabled>Create Entity</button>
+            </div>
+        </section>
+
+        <section class="docs">
+            <h2>Documentation</h2>
+            <ul>
+                <li><a href="#build">Building from Source</a></li>
+                <li><a href="#cpp">C++ API Reference</a></li>
+                <li><a href="#python">Python API Reference</a></li>
+                <li><a href="#ts">TypeScript API Reference</a></li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 World Engine Team | Version 1.0.0</p>
+    </footer>
+
+    <script src="js/engine.js"></script>
+</body>
+</html>

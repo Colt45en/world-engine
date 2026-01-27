@@ -64,6 +64,15 @@ except ImportError:
             self.name = name
             self.entities = []
             self.systems = []
+            self.next_entity_id = 1
+        
+        def create_entity(self, name="Entity"):
+            """Create a new entity"""
+            entity = Entity(self.next_entity_id)
+            entity.name = name
+            self.next_entity_id += 1
+            self.entities.append(entity)
+            return entity
 
 # Utility functions
 def get_version():

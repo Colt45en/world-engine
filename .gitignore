@@ -11,6 +11,31 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
+# Build directories
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.Python
+.eggs/
+
+# Node.js / TypeScript
+node_modules/
+npm-debug.log*
+*.tsbuildinfo
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # CLion
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

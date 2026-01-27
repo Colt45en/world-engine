@@ -1,0 +1,29 @@
+{
+  "name": "@worldengine/core",
+  "version": "1.0.0",
+  "description": "World Engine TypeScript/JavaScript bindings",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "game-engine",
+    "world-engine",
+    "typescript",
+    "javascript"
+  ],
+  "author": "World Engine Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ]
+}

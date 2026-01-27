@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Engine - Interactive Demo</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>World Engine Interactive Demo</h1>
+        <p class="tagline">Experience Multi-Language Game Engine in Action</p>
+    </header>
+
+    <main>
+        <section class="demo-section">
+            <h2>Live Engine Demo</h2>
+            <div class="demo-container">
+                <canvas id="demo-canvas" width="800" height="600"></canvas>
+                <div class="demo-info">
+                    <h3>Engine Status</h3>
+                    <p>FPS: <span id="fps">0</span></p>
+                    <p>Entities: <span id="entity-count">0</span></p>
+                    <p>Frame: <span id="frame-count">0</span></p>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="start-btn" onclick="startDemo()">Start Demo</button>
+                <button id="stop-btn" onclick="stopDemo()" disabled>Stop Demo</button>
+                <button id="reset-btn" onclick="resetDemo()">Reset</button>
+            </div>
+        </section>
+
+        <section class="code-examples">
+            <h2>Code Examples</h2>
+            
+            <div class="example">
+                <h3>C++ Example</h3>
+                <pre><code class="language-cpp">
+#include &lt;world_engine/world_engine.h&gt;
+
+int main() {
+    WorldEngine::Engine engine;
+    engine.initialize();
+    
+    auto scene = std::make_shared&lt;WorldEngine::Scene&gt;("Main");
+    auto entity = scene-&gt;createEntity("Player");
+    
+    engine.setActiveScene(scene);
+    engine.run();
+    
+    return 0;
+}
+                </code></pre>
+            </div>
+
+            <div class="example">
+                <h3>Python Example</h3>
+                <pre><code class="language-python">
+import world_engine as we
+
+engine = we.Engine()
+engine.initialize()
+
+scene = we.Scene("Main")
+entity = scene.create_entity("Player")
+
+engine.set_active_scene(scene)
+engine.run()
+                </code></pre>
+            </div>
+
+            <div class="example">
+                <h3>TypeScript Example</h3>
+                <pre><code class="language-typescript">
+import { Engine, Scene } from '@worldengine/core';
+
+const engine = new Engine();
+engine.initialize();
+
+const scene = new Scene('Main');
+const entity = scene.createEntity('Player');
+
+engine.setActiveScene(scene);
+// In browser/Node.js, use tick() for frame updates
+setInterval(() => engine.tick(), 16);
+                </code></pre>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 World Engine Team | <a href="index.html">Back to Home</a></p>
+    </footer>
+
+    <script src="js/engine.js"></script>
+    <script src="js/demo.js"></script>
+</body>
+</html>
